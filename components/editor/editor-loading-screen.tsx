@@ -2,7 +2,7 @@
 
 import { cn } from '@/lib/utils'
 
-import { MinimalTypographicLoader } from '@/components/ui/minimal-typographic-loader'
+import { InfinityLoader } from '@/components/editor/InfinityLoader'
 
 interface EditorLoadingScreenProps {
   caption?: string
@@ -13,5 +13,13 @@ export function EditorLoadingScreen({
   caption = 'Loading...',
   className,
 }: EditorLoadingScreenProps) {
-  return <MinimalTypographicLoader label={caption} message="Preparing the editor workspace." className={cn(className)} />
+  return (
+    <InfinityLoader
+      visible
+      mode="infinity"
+      title={caption}
+      subtitle="Preparing the editor workspace."
+      className={cn(className)}
+    />
+  )
 }

@@ -3,7 +3,6 @@
 import * as React from 'react'
 import { motion } from 'framer-motion'
 import { LuxuryVignette } from '@/components/editor/luxury-vignette'
-import { LiquidFrameSelector } from '@/components/editor/liquid-frame-selector'
 import { buildRevealVariants } from '@/lib/motion'
 import type {
   Project,
@@ -44,20 +43,7 @@ export interface InspectorPanelProps {
 
 export function InspectorPanel({
   inspectorViewportRef,
-  previewFramePreset,
-  fitMode,
-  hasSourceAsset,
-  onSetViralClipSplitPreviewActive,
-  onSetPreviewFramePreset,
-  onPreviewFrameLabel,
-  onSetFitMode,
-  onPickSource,
 }: InspectorPanelProps) {
-  const handlePresetChange = React.useCallback((preset: PreviewFramePreset) => {
-    onSetViralClipSplitPreviewActive(false)
-    onSetPreviewFramePreset(preset)
-  }, [onSetPreviewFramePreset, onSetViralClipSplitPreviewActive])
-
   return (
     <motion.aside
       layout
@@ -75,16 +61,7 @@ export function InspectorPanel({
           whileInView="visible"
           viewport={{ once: true }}
           className="relative"
-        >
-          <LiquidFrameSelector
-            value={previewFramePreset}
-            fitMode={fitMode}
-            hasSourceAsset={hasSourceAsset}
-            onPresetChange={handlePresetChange}
-            onFitModeChange={onSetFitMode}
-            onPickSource={onPickSource}
-          />
-        </motion.div>
+        />
       </div>
     </motion.aside>
   )

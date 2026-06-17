@@ -54,7 +54,7 @@ function SourceAddGlyph({
       }
     >
       <span className="absolute inset-0 rounded-[20px] border border-white/12 bg-[linear-gradient(145deg,rgba(255,255,255,0.13)_0%,rgba(255,255,255,0.04)_46%,rgba(255,255,255,0.02)_100%)] shadow-[0_22px_44px_-30px_rgba(0,0,0,0.95),inset_0_1px_0_rgba(255,255,255,0.22)] backdrop-blur-xl" />
-      <span className="absolute inset-[7px] rounded-[15px] border border-white/10 bg-black/38 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)]" />
+      <span className="absolute inset-[7px] rounded-[15px] border border-white/10 bg-[rgba(10,10,12,0.38)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)]" />
       <motion.span
         className="absolute inset-[11px] rounded-[12px] border border-white/14"
         animate={reduceMotion ? undefined : { rotate: isDragActive ? 8 : [0, 2, 0, -2, 0], opacity: isDragActive ? 0.82 : [0.42, 0.62, 0.42] }}
@@ -100,7 +100,7 @@ export function SourceStagePlaceholder({
         isDragActive
           ? 'border-[#9ff6e3]/38 bg-[#9ff6e3]/[0.055] shadow-[0_0_42px_rgba(159,246,227,0.12)]'
           : isLoading
-            ? 'border-white/8 bg-black hover:border-white/12'
+            ? 'border-white/8 bg-[rgba(255,255,255,0.02)] hover:border-white/12'
             : isError
               ? 'border-rose-400/24 bg-rose-400/[0.055]'
               : 'border-white/10 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0)_38%),linear-gradient(180deg,rgba(255,255,255,0.025)_0%,rgba(255,255,255,0.01)_100%)] hover:border-white/18 hover:bg-white/[0.035]',

@@ -7,7 +7,7 @@ import { CinematicPreviewRuntime } from '@/components/editor/cinematic-preview-r
 import { ViralClipSplitPreview } from '@/components/editor/viral-clip-split-preview'
 import { PreviewGenerationState } from '@/components/editor/preview-generation-state'
 import { PreviewFeedbackShell } from '@/components/editor/preview-feedback-shell'
-import { SourceStagePlaceholder } from '@/components/editor/source-stage-placeholder'
+import { VideoWorkspace } from '@/components/editor/VideoWorkspace'
 import { cn } from '@/lib/utils'
 import type {
   Project,
@@ -15,7 +15,9 @@ import type {
   HeaderNavMode,
   PreviewMediaKind,
   AnimationPlan,
-  TranscriptStatus
+  TranscriptStatus,
+  PreviewFramePreset,
+  PreviewFitMode,
 } from '@/lib/types'
 import type { SplitPreviewAssetState } from '@/lib/hooks/useVideoEngine'
 
@@ -39,7 +41,8 @@ export interface PreviewCanvasProps {
   previewPlaying: boolean
   shouldUseLegacySessionPreviewSurface: boolean
   previewFrameTransformStyle: React.CSSProperties | undefined
-  fitMode: 'fill' | 'fit'
+  fitMode: PreviewFitMode
+  previewFramePreset: PreviewFramePreset
   currentSplitPreviewAssets: SplitPreviewAssetState
   isLockedViralClipTriggerHovered: boolean
   isPreviewMuted: boolean
@@ -68,6 +71,8 @@ export interface PreviewCanvasProps {
   onPreviewVideoPause: () => void
   onPreviewVideoError: () => void
   onTogglePreviewPlayback: () => void
+  onPreviewFramePresetChange: (preset: PreviewFramePreset) => void
+  onFitModeChange: (mode: PreviewFitMode) => void
   onSetIsPreviewBriefGenerating: (visible: boolean) => void
   onSetShowPreviewFeedback: (show: boolean) => void
   onSetInlinePreviewStatusHovered: (hovered: boolean) => void
@@ -98,6 +103,7 @@ export function PreviewCanvas({
   shouldUseLegacySessionPreviewSurface,
   previewFrameTransformStyle,
   fitMode,
+  previewFramePreset,
   currentSplitPreviewAssets,
   isLockedViralClipTriggerHovered,
   isPreviewMuted,
@@ -126,6 +132,8 @@ export function PreviewCanvas({
   onPreviewVideoPause,
   onPreviewVideoError,
   onTogglePreviewPlayback,
+  onPreviewFramePresetChange,
+  onFitModeChange,
   onSetIsPreviewBriefGenerating,
   onSetShowPreviewFeedback,
   onSetInlinePreviewStatusHovered,
@@ -138,174 +146,180 @@ export function PreviewCanvas({
 
   return (
     <div className="flex flex-col items-center w-full">
-      <div className="relative group w-full max-w-[min(100%,54rem)] self-center rounded-[24px] border border-white/8 bg-[#050505] p-2 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.85)]">
-        {/* Glass Border Container */}
-        <div className="relative h-[clamp(250px,40vh,460px)] w-full overflow-hidden rounded-[18px] border border-white/10 bg-[#000]">
+      <div className="relative group w-full max-w-[min(100%,54rem)] self-center rounded-[24px] border border-white/8 bg-[#0A0A0C] p-2 shadow-[0_20px_32px_-18px_rgba(0,0,0,0.55)]">
+        <input
+          ref={sourceFileInputRef}
+          type="file"
+          accept="video/mp4,video/quicktime,video/webm,video/x-m4v,video/x-matroska,.mp4,.mov,.m4v,.webm,.mkv"
+          className="sr-only"
+          onChange={onInlineSourceFileInputChange}
+        />
+
+        <VideoWorkspace
+          hasMedia={hasPreviewMedia}
+          loading={isSourceStageActivelyLoading}
+          aspectPreset={previewFramePreset}
+          fitMode={fitMode}
+          isDragActive={isInlineSourceDragOver}
+          onAspectPresetChange={onPreviewFramePresetChange}
+          onFitModeChange={onFitModeChange}
+          onImport={onPickSource}
+          onEmptyClick={onPickSource}
+          onEmptyDragOver={onInlineSourceDragOver}
+          onEmptyDragLeave={onInlineSourceDragLeave}
+          onEmptyDrop={onInlineSourceDrop}
+          className="rounded-[18px]"
+        >
           <div className="relative flex h-full w-full items-center justify-center">
             <div
               ref={musicSpotlightPortalRef}
               className="pointer-events-none absolute right-2 top-2 z-20"
             />
-            <input
-              ref={sourceFileInputRef}
-              type="file"
-              accept="video/mp4,video/quicktime,video/webm,video/x-m4v,video/x-matroska,.mp4,.mov,.m4v,.webm,.mkv"
-              className="sr-only"
-              onChange={onInlineSourceFileInputChange}
-            />
-            <motion.div
-              layout
-              className="relative overflow-hidden rounded-[8px] border border-white/5 bg-black"
-              style={{
-                aspectRatio: visiblePreviewAspectRatio,
-                width: previewFrameWidth,
-                height: 'auto',
-                willChange: 'width, height, transform',
-              }}
-              transition={{
-                layout: {
-                  duration: 0.72,
-                  ease: [0.645, 0.045, 0.355, 1],
-                },
-              }}
-            >
-              <div className="relative h-full w-full">
-                <BriefPipelineProgress
-                  status={job?.transcriptStatus}
-                  steps={job?.previewProgressSteps}
-                />
 
-                {hasSourceAsset && hasPreviewMedia && !clipModeActive ? (
-                  <motion.div
-                    initial={{ opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-                    className="pointer-events-none absolute bottom-3 left-3 z-20"
-                  >
-                    <div className="inline-flex max-w-[calc(100%-1.5rem)] items-center gap-2 rounded-full border border-white/10 bg-black/48 px-3 py-1.5 text-[11px] text-white/86 shadow-[0_18px_30px_-22px_rgba(0,0,0,0.95)] backdrop-blur-md">
-                      <Film className="size-3.5 shrink-0 text-accent-cyan" />
-                      <div className="min-w-0 truncate font-medium text-white/90">
-                        {sourceAssetLabel ?? project?.title ?? 'Source video'}
-                      </div>
-                    </div>
-                  </motion.div>
-                ) : null}
-
-                {hasPreviewMedia ? (
-                  <>
-                    <CinematicPreviewRuntime
-                      animationPlan={previewOverlayPlan}
-                      currentTimeMs={previewCurrentTimeSec * 1000}
-                      aspectRatio={visiblePreviewAspectRatio}
-                      showSafeZones={Boolean(previewOverlayPlan)}
-                      className="absolute inset-0"
-                    >
-                      {showViralClipSplitPreview ? (
-                        <ViralClipSplitPreview
-                          key={`viral-split-${viralClipSplitAnimationKey}-${previewUrl}`}
-                          active={showViralClipSplitPreview}
-                          animationKey={viralClipSplitAnimationKey}
-                          previewUrl={previewUrl}
-                          previewKind={previewKind}
-                          title={sourceAssetLabel ?? project?.title ?? 'Source video'}
-                          isPlaying={previewPlaying}
-                          currentTimeSec={previewCurrentTimeSec}
-                          mediaTransformStyle={
-                            shouldUseLegacySessionPreviewSurface ? undefined : previewFrameTransformStyle
-                          }
-                          objectFit={fitMode === 'fill' ? 'cover' : 'contain'}
-                          splitVideoSources={currentSplitPreviewAssets}
-                          highlightRestore={isLockedViralClipTriggerHovered}
-                          onRestoreLandscape={onRestoreLandscape}
-                        />
-                      ) : previewKind === 'image' ? (
-                        <div className="absolute inset-0 overflow-hidden bg-black">
-                          <div
-                            className="absolute inset-0"
-                            style={shouldUseLegacySessionPreviewSurface ? undefined : previewFrameTransformStyle}
-                          >
-                            <img
-                              src={previewUrl}
-                              alt={project?.title ?? 'Project preview'}
-                              className="block h-full w-full bg-black"
-                              onLoad={onPreviewImageLoaded}
-                              style={{
-                                objectFit: fitMode === 'fill' ? 'cover' : 'contain',
-                              }}
-                            />
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="absolute inset-0 flex items-center justify-center overflow-hidden bg-black">
-                          <div
-                            className="absolute inset-0 cursor-pointer"
-                            onPointerDown={(event) => {
-                              event.preventDefault()
-                              event.stopPropagation()
-                              onTogglePreviewPlayback()
-                            }}
-                            style={shouldUseLegacySessionPreviewSurface ? undefined : previewFrameTransformStyle}
-                          >
-                            <video
-                              key={previewUrl}
-                              ref={previewVideoRef}
-                              src={previewUrl}
-                              muted={isPreviewMuted}
-                              playsInline
-                              controls={false}
-                              preload="auto"
-                              onLoadedMetadata={onPreviewMetadataLoaded}
-                              onLoadedData={onPreviewVideoReady}
-                              onCanPlay={onPreviewVideoReady}
-                              onTimeUpdate={onPreviewTimeUpdate}
-                              onEnded={onPreviewEnded}
-                              onPlay={onPreviewVideoPlay}
-                              onPause={onPreviewVideoPause}
-                              onError={onPreviewVideoError}
-                              className="pointer-events-none block h-full w-full select-none bg-black"
-                              style={{
-                                objectFit: fitMode === 'fill' ? 'cover' : 'contain',
-                              }}
-                            />
-                          </div>
-                        </div>
-                      )}
-                    </CinematicPreviewRuntime>
-
-                    <PreviewGenerationState
-                      isVisible={isPreviewBriefGenerating}
-                      onComplete={() => {
-                        onSetIsPreviewBriefGenerating(false)
-                        onSetShowPreviewFeedback(true)
-                      }}
-                    />
-
-                    <PreviewFeedbackShell
-                      previewId={undefined}
-                      projectId={projectId}
-                      show={showPreviewFeedback}
-                      onDismiss={() => onSetShowPreviewFeedback(false)}
-                      onSubmitPayload={(payload) => {
-                        console.debug('Preview Feedback Submitted:', payload)
-                        if (payload.sentiment === 'try_again') {
-                          // Local only, no backend mutation
-                          console.debug('Try again requested')
-                        }
-                      }}
-                    />
-                  </>
-                ) : (
-                  <SourceStagePlaceholder
-                    status={sourceStageError ? 'error' : isSourceStageActivelyLoading ? 'loading' : 'empty'}
-                    isDragActive={isInlineSourceDragOver}
-                    onPickSource={onPickSource}
-                    onDragOver={onInlineSourceDragOver}
-                    onDragLeave={onInlineSourceDragLeave}
-                    onDrop={onInlineSourceDrop}
+            {hasPreviewMedia ? (
+              <motion.div
+                layout
+                className="relative overflow-hidden rounded-[8px] border border-white/5 bg-[rgba(255,255,255,0.02)]"
+                style={{
+                  aspectRatio: visiblePreviewAspectRatio,
+                  width: previewFrameWidth,
+                  height: 'auto',
+                  willChange: 'width, height, transform',
+                  transition:
+                    'width 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), height 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                }}
+                transition={{
+                  layout: {
+                    duration: 0.4,
+                    ease: [0.25, 0.46, 0.45, 0.94],
+                  },
+                }}
+              >
+                <div className="relative h-full w-full">
+                  <BriefPipelineProgress
+                    status={job?.transcriptStatus}
+                    steps={job?.previewProgressSteps}
                   />
-                )}
-              </div>
-            </motion.div>
+
+                  {hasSourceAsset && !clipModeActive ? (
+                    <motion.div
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                      className="pointer-events-none absolute bottom-3 left-3 z-20"
+                    >
+                      <div className="inline-flex max-w-[calc(100%-1.5rem)] items-center gap-2 rounded-full border border-white/10 bg-[rgba(10,10,12,0.62)] px-3 py-1.5 text-[11px] text-white/86 shadow-[0_12px_24px_-18px_rgba(0,0,0,0.7)] backdrop-blur-md">
+                        <Film className="size-3.5 shrink-0 text-[#EAEAEA]" />
+                        <div className="min-w-0 truncate font-medium text-white/90">
+                          {sourceAssetLabel ?? project?.title ?? 'Source video'}
+                        </div>
+                      </div>
+                    </motion.div>
+                  ) : null}
+
+                  <CinematicPreviewRuntime
+                    animationPlan={previewOverlayPlan}
+                    currentTimeMs={previewCurrentTimeSec * 1000}
+                    aspectRatio={visiblePreviewAspectRatio}
+                    showSafeZones={Boolean(previewOverlayPlan)}
+                    className="absolute inset-0"
+                  >
+                    {showViralClipSplitPreview ? (
+                      <ViralClipSplitPreview
+                        key={`viral-split-${viralClipSplitAnimationKey}-${previewUrl}`}
+                        active={showViralClipSplitPreview}
+                        animationKey={viralClipSplitAnimationKey}
+                        previewUrl={previewUrl}
+                        previewKind={previewKind}
+                        title={sourceAssetLabel ?? project?.title ?? 'Source video'}
+                        isPlaying={previewPlaying}
+                        currentTimeSec={previewCurrentTimeSec}
+                        mediaTransformStyle={
+                          shouldUseLegacySessionPreviewSurface ? undefined : previewFrameTransformStyle
+                        }
+                        objectFit={fitMode === 'fill' ? 'cover' : 'contain'}
+                        splitVideoSources={currentSplitPreviewAssets}
+                        highlightRestore={isLockedViralClipTriggerHovered}
+                        onRestoreLandscape={onRestoreLandscape}
+                      />
+                    ) : previewKind === 'image' ? (
+                      <div className="absolute inset-0 overflow-hidden bg-[#0A0A0C]">
+                        <div
+                          className="absolute inset-0"
+                          style={shouldUseLegacySessionPreviewSurface ? undefined : previewFrameTransformStyle}
+                        >
+                          <img
+                            src={previewUrl}
+                            alt={project?.title ?? 'Project preview'}
+                            className="block h-full w-full"
+                            onLoad={onPreviewImageLoaded}
+                            style={{
+                              objectFit: fitMode === 'fill' ? 'cover' : 'contain',
+                            }}
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center overflow-hidden bg-[#0A0A0C]">
+                        <div
+                          className="absolute inset-0 cursor-pointer"
+                          onPointerDown={(event) => {
+                            event.preventDefault()
+                            event.stopPropagation()
+                            onTogglePreviewPlayback()
+                          }}
+                          style={shouldUseLegacySessionPreviewSurface ? undefined : previewFrameTransformStyle}
+                        >
+                          <video
+                            key={previewUrl}
+                            ref={previewVideoRef}
+                            src={previewUrl}
+                            muted={isPreviewMuted}
+                            playsInline
+                            controls={false}
+                            preload="auto"
+                            onLoadedMetadata={onPreviewMetadataLoaded}
+                            onLoadedData={onPreviewVideoReady}
+                            onCanPlay={onPreviewVideoReady}
+                            onTimeUpdate={onPreviewTimeUpdate}
+                            onEnded={onPreviewEnded}
+                            onPlay={onPreviewVideoPlay}
+                            onPause={onPreviewVideoPause}
+                            onError={onPreviewVideoError}
+                            className="pointer-events-none block h-full w-full select-none"
+                            style={{
+                              objectFit: fitMode === 'fill' ? 'cover' : 'contain',
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </CinematicPreviewRuntime>
+
+                  <PreviewGenerationState
+                    isVisible={isPreviewBriefGenerating}
+                    onComplete={() => {
+                      onSetIsPreviewBriefGenerating(false)
+                      onSetShowPreviewFeedback(true)
+                    }}
+                  />
+
+                  <PreviewFeedbackShell
+                    previewId={undefined}
+                    projectId={projectId}
+                    show={showPreviewFeedback}
+                    onDismiss={() => onSetShowPreviewFeedback(false)}
+                    onSubmitPayload={(payload) => {
+                      console.debug('Preview Feedback Submitted:', payload)
+                      if (payload.sentiment === 'try_again') {
+                        // Local only, no backend mutation
+                        console.debug('Try again requested')
+                      }
+                    }}
+                  />
+                </div>
+              </motion.div>
+            ) : null}
           </div>
 
           {/* Floating Controls Overlay */}
@@ -315,7 +329,7 @@ export function PreviewCanvas({
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 20 }}
-                className="absolute inset-x-0 bottom-6 z-30 flex items-center justify-center px-6"
+                className="absolute inset-x-0 bottom-[6.5rem] z-30 flex items-center justify-center px-6"
               >
                 <div className="glass-panel flex items-center gap-4 rounded-full bg-void/60 px-2 py-2 backdrop-blur-2xl">
                   <div className="flex items-center gap-3 px-3 py-1">
@@ -329,7 +343,7 @@ export function PreviewCanvas({
 
                   <button
                     onClick={onTogglePreviewPlayback}
-                    className="flex h-12 w-12 items-center justify-center rounded-full bg-accent-cyan text-void transition-transform active:scale-95"
+                    className="flex h-12 w-12 items-center justify-center rounded-full bg-[#EAEAEA] text-[#0A0A0C] transition-transform active:scale-95"
                   >
                     {previewPlaying ? <Pause className="size-5 fill-current" /> : <Play className="size-5 fill-current ml-1" />}
                   </button>
@@ -353,7 +367,7 @@ export function PreviewCanvas({
                 initial={{ opacity: 0, scale: 0.96 }}
                 animate={{ opacity: 1, scale: 1 }}
                 className={cn(
-                  'pointer-events-auto inline-flex items-center overflow-hidden rounded-full border border-white/10 bg-black/44 px-3 py-1.5 backdrop-blur-md',
+                  'pointer-events-auto inline-flex items-center overflow-hidden rounded-full border border-white/10 bg-[rgba(10,10,12,0.58)] px-3 py-1.5 backdrop-blur-md',
                   isInlinePreviewStatusExpanded ? 'gap-2 text-[11px] text-white/72' : 'size-9 justify-center text-white/84'
                 )}
               >
@@ -369,7 +383,7 @@ export function PreviewCanvas({
               </motion.button>
             </div>
           )}
-        </div>
+        </VideoWorkspace>
       </div>
     </div>
   )
@@ -392,7 +406,7 @@ function BriefPipelineProgress({
   return (
     <div className="absolute inset-x-4 bottom-4 z-30 flex flex-col items-center gap-3 px-4">
       {statusLabel ? (
-        <div className="rounded-full border border-white/10 bg-black/48 px-3 py-1.5 text-[11px] font-medium text-white/70 shadow-[0_18px_30px_-22px_rgba(0,0,0,0.95)] backdrop-blur-md">
+        <div className="rounded-full border border-white/10 bg-[rgba(10,10,12,0.62)] px-3 py-1.5 text-[11px] font-medium text-white/70 shadow-[0_12px_24px_-18px_rgba(0,0,0,0.7)] backdrop-blur-md">
           {statusLabel}
         </div>
       ) : null}
@@ -402,7 +416,7 @@ function BriefPipelineProgress({
             key={item}
             initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
-            className="rounded-full border border-white/8 bg-black/44 px-3 py-1.5 text-[11px] text-white/62 backdrop-blur-sm"
+            className="rounded-full border border-white/8 bg-[rgba(10,10,12,0.58)] px-3 py-1.5 text-[11px] text-white/62 backdrop-blur-sm"
           >
             {item}
           </motion.div>

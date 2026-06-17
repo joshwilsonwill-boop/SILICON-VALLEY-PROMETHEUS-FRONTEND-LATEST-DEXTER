@@ -8188,6 +8188,7 @@ function OriginalEditorPage() {
                       shouldUseLegacySessionPreviewSurface={shouldUseLegacySessionPreviewSurface}
                       previewFrameTransformStyle={previewFrameTransformStyle}
                       fitMode={fitMode}
+                      previewFramePreset={previewFramePreset}
                       currentSplitPreviewAssets={currentSplitPreviewAssets}
                       isLockedViralClipTriggerHovered={isLockedViralClipTriggerHovered}
                       isPreviewMuted={isPreviewMuted}
@@ -8216,6 +8217,8 @@ function OriginalEditorPage() {
                       onPreviewVideoPause={handlePreviewVideoPause}
                       onPreviewVideoError={handlePreviewVideoError}
                       onTogglePreviewPlayback={togglePreviewPlayback}
+                      onPreviewFramePresetChange={setPreviewFramePreset}
+                      onFitModeChange={setFitMode}
                       onSetIsPreviewBriefGenerating={setIsPreviewBriefGenerating}
                       onSetShowPreviewFeedback={setShowPreviewFeedback}
                       onSetInlinePreviewStatusHovered={setInlinePreviewStatusHovered}

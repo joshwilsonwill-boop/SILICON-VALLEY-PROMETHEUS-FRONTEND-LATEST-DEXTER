@@ -102,7 +102,12 @@ function run() {
   const previewCanvas = read('components/editor/PreviewCanvas.tsx')
   assert.equal(previewCanvas.includes("previewUrl || hasSourceAsset ? 'loading' : 'empty'"), false)
   assert.match(previewCanvas, /isSourceStageActivelyLoading: boolean/)
-  assert.match(previewCanvas, /status=\{sourceStageError \? 'error' : isSourceStageActivelyLoading \? 'loading' : 'empty'\}/)
+  assert.match(previewCanvas, /<VideoWorkspace/)
+  assert.match(previewCanvas, /previewFramePreset/)
+  assert.match(previewCanvas, /onPreviewFramePresetChange/)
+  assert.match(previewCanvas, /onFitModeChange/)
+  assert.equal(previewCanvas.includes('SourceStagePlaceholder'), false)
+  assert.equal(previewCanvas.includes("status={sourceStageError ? 'error' : isSourceStageActivelyLoading ? 'loading' : 'empty'}"), false)
 
   const sourceStagePlaceholder = read('components/editor/source-stage-placeholder.tsx')
   assert.match(sourceStagePlaceholder, /SourceAddGlyph/)

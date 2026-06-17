@@ -9,29 +9,48 @@ function read(relativePath) {
 }
 
 function run() {
+  const dockPath = 'components/editor/AspectRatioDock.tsx'
+  assert.equal(existsSync(join(root, dockPath)), true)
+
+  const dock = read(dockPath)
+  assert.match(dock, /AspectRatioDock/)
+  assert.match(dock, /Native/)
+  assert.match(dock, /Wide/)
+  assert.match(dock, /Vertical/)
+  assert.match(dock, /Square/)
+  assert.match(dock, /Fill/)
+  assert.match(dock, /Fit/)
+  assert.match(dock, /Import/)
+  assert.match(dock, /1\.25/)
+  assert.match(dock, /1\.1/)
+  assert.match(dock, /1\.05/)
+
   const selectorPath = 'components/editor/liquid-frame-selector.tsx'
   assert.equal(existsSync(join(root, selectorPath)), true)
 
   const selector = read(selectorPath)
   assert.match(selector, /LiquidFrameSelector/)
-  assert.match(selector, /Refractive Gel Thumb-Track Selector/)
   assert.match(selector, /logarithmicRatioStops/)
   assert.match(selector, /magneticDetents/)
-  assert.match(selector, /layoutId="liquid-frame-selector-thumb"/)
-  assert.match(selector, /aria-label="Frame aspect selector"/)
+  assert.match(selector, /AspectRatioDock/)
   assert.match(selector, /onPresetChange/)
   assert.match(selector, /onFitModeChange/)
+  assert.equal(selector.includes('layoutId="liquid-frame-selector-thumb"'), false)
+  assert.equal(selector.includes('grid grid-cols-4'), false)
+  assert.equal(selector.includes('Source / NATIVE'), false)
 
   const inspectorPanel = read('components/editor/InspectorPanel.tsx')
   for (const removedText of ['Motion Brain', 'Frame Controls', 'Output frame', 'Canvas format', 'Add source']) {
     assert.equal(inspectorPanel.includes(removedText), false, removedText)
   }
-  assert.match(inspectorPanel, /<LiquidFrameSelector/)
-  assert.match(inspectorPanel, /onPresetChange=\{handlePresetChange\}/)
-  assert.match(inspectorPanel, /onFitModeChange=\{onSetFitMode\}/)
+  assert.equal(inspectorPanel.includes('<LiquidFrameSelector'), false)
+  assert.equal(inspectorPanel.includes('Refractive Gel Thumb-Track Selector'), false)
 
   const previewCanvas = read('components/editor/PreviewCanvas.tsx')
   assert.equal(previewCanvas.includes('Transcribing source'), false)
+  assert.match(previewCanvas, /<VideoWorkspace/)
+  assert.match(previewCanvas, /onPreviewFramePresetChange/)
+  assert.match(previewCanvas, /onFitModeChange/)
 
   const editorHeader = read('components/editor/EditorHeader.tsx')
   assert.equal(editorHeader.includes('ArrowLeft'), false)
