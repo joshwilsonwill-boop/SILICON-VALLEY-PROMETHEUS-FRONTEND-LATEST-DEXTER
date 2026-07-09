@@ -1,0 +1,5725 @@
+[
+  {
+    "route": "home",
+    "path": "/",
+    "viewport": "desktop",
+    "finalUrl": "http://127.0.0.1:3000/",
+    "status": 200,
+    "metrics": {
+      "title": "Prometheus",
+      "h1": "Ready to Create Something?",
+      "bodyText": "ROMETHEUS Studio Projects Library Editor Analytics Settings ROMETHEUS PRICING Ready to Create Something ? Upload a source, choose a visual lane, and send the next edit into motion. Send Source videos kept for 15 days. Outputs are permanent. Clone Editing Style Improve Reveal Showcase Iman Punchy Aggressive pacing, strong captions, momentum-focused cut rhythm. Iman Clean Minimalist captions, crisp ",
+      "scrollWidth": 1440,
+      "innerWidth": 1440,
+      "scrollHeight": 900,
+      "innerHeight": 900,
+      "overflowers": [
+        {
+          "tag": "header",
+          "className": "fixed top-0 z-30 w-full border-b border-white/[0.05] bg-black/10 backdrop-blur-md md:z-50",
+          "text": "rometheusPricingPricing",
+          "left": 290,
+          "right": 1730,
+          "top": 0,
+          "bottom": 65,
+          "visibility": "visible",
+          "opacity": "1"
+        },
+        {
+          "tag": "div",
+          "className": "mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-8",
+          "text": "rometheusPricingPricing",
+          "left": 370,
+          "right": 1650,
+          "top": 0,
+          "bottom": 64,
+          "visibility": "visible",
+          "opacity": "1"
+        },
+        {
+          "tag": "div",
+          "className": "flex studio-cinematic-rail-track gap-3 px-3",
+          "text": "Iman PunchyAggressive pacing, strong captions, momentum-focused cut rhythm.Iman CleanMinimalist captions, crisp jump cuts, premium sound des",
+          "left": -45,
+          "right": 4215,
+          "top": 704,
+          "bottom": 816,
+          "visibility": "visible",
+          "opacity": "1"
+        },
+        {
+          "tag": "button",
+          "className": "group premium-motion-surface relative h-24 w-44 shrink-0 overflow-hidden rounded-[18px] border bg-white/[0.035] text-left shadow-[0_22px_48px_-34px_rgba(0,0,0,0.92)] transition-[border-color,background-color,transform] d",
+          "text": "Cinematic NoirMoody contrast, restrained captions, slow-burn pacing.",
+          "left": 1383,
+          "right": 1607,
+          "top": 704,
+          "bottom": 816,
+          "visibility": "visible",
+          "opacity": "1"
+        },
+        {
+          "tag": "img",
+          "className": "object-cover opacity-75 transition duration-300 group-hover:scale-105 group-hover:opacity-95",
+          "text": "",
+          "left": 1384,
+          "right": 1606,
+          "top": 705,
+          "bottom": 815,
+          "visibility": "visible",
+          "opacity": "0.75"
+        },
+        {
+          "tag": "div",
+          "className": "absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.02)_0%,rgba(0,0,0,0.82)_100%)]",
+          "text": "",
+          "left": 1384,
+          "right": 1606,
+          "top": 705,
+          "bottom": 815,
+          "visibility": "visible",
+          "opacity": "1"
+        },
+        {
+          "tag": "div",
+          "className": "absolute inset-x-3 bottom-3",
+          "text": "Cinematic NoirMoody contrast, restrained captions, slow-burn pacing.",
+          "left": 1396,
+          "right": 1594,
+          "top": 768,
+          "bottom": 803,
+          "visibility": "visible",
+          "opacity": "1"
+        },
+        {
+          "tag": "div",
+          "className": "truncate text-xs font-semibold text-white/92",
+          "text": "Cinematic Noir",
+          "left": 1396,
+          "right": 1594,
+          "top": 768,
+          "bottom": 784,
+          "visibility": "visible",
+          "opacity": "1"
+        },
+        {
+          "tag": "div",
+          "className": "mt-1 line-clamp-1 text-[10px] text-white/48",
+          "text": "Moody contrast, restrained captions, slow-burn pacing.",
+          "left": 1396,
+          "right": 1594,
+          "top": 788,
+          "bottom": 803,
+          "visibility": "visible",
+          "opacity": "1"
+        },
+        {
+          "tag": "div",
+          "className": "mt-3 flex studio-cinematic-rail-track gap-3 px-3",
+          "text": "Minimal SubtleBare captions and clean cuts for brand-first content.Stoic RedBold accents, confident pacing, minimal distractions.Cinematic N",
+          "left": -1377,
+          "right": 2883,
+          "top": 828,
+          "bottom": 940,
+          "visibility": "visible",
+          "opacity": "1"
+        },
+        {
+          "tag": "button",
+          "className": "group premium-motion-surface relative h-24 w-44 shrink-0 overflow-hidden rounded-[18px] border bg-white/[0.035] text-left shadow-[0_22px_48px_-34px_rgba(0,0,0,0.92)] transition-[border-color,background-color,transform] d",
+          "text": "Cinematic NoirMoody contrast, restrained captions, slow-burn pacing.",
+          "left": 1231,
+          "right": 1455,
+          "top": 828,
+          "bottom": 940,
+          "visibility": "visible",
+          "opacity": "1"
+        },
+        {
+          "tag": "img",
+          "className": "object-cover opacity-75 transition duration-300 group-hover:scale-105 group-hover:opacity-95",
+          "text": "",
+          "left": 1232,
+          "right": 1454,
+          "top": 829,
+          "bottom": 939,
+          "visibility": "visible",
+          "opacity": "0.75"
+        },
+        {
+          "tag": "div",
+          "className": "absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.02)_0%,rgba(0,0,0,0.82)_100%)]",
+          "text": "",
+          "left": 1232,
+          "right": 1454,
+          "top": 829,
+          "bottom": 939,
+          "visibility": "visible",
+          "opacity": "1"
+        }
+      ],
+      "truncated": [
+        {
+          "tag": "div",
+          "className": "premium-motion-surface premium-telemetry-panel relative overflow-hidden rounded-[16px] border border-white/[0.13] bg-[#070707]/90 shadow-[0_40px_120px_-70px_rgba(96,190,255,0.62)] backdrop-blur-2xl",
+          "text": "SendSource videos kept for 15 days. Outputs are permanent.",
+          "scrollWidth": 1297,
+          "clientWidth": 1022,
+          "right": 1367,
+          "bottom": 613
+        },
+        {
+          "tag": "div",
+          "className": "studio-cinematic-rails premium-telemetry-panel premium-vignette-edges group relative overflow-hidden rounded-[18px] border border-white/[0.08] bg-black/[0.22] py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]",
+          "text": "@keyframes studio-marquee-right { from { transform: translateX(-50%); } to { transform: translateX(0%); } } @keyframes s",
+          "scrollWidth": 4260,
+          "clientWidth": 1022,
+          "right": 1377,
+          "bottom": 953
+        }
+      ],
+      "buttons": [
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Collapse sidebar"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Open mobile navigation"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": "Upload source",
+          "aria": null
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": "Templates and styles",
+          "aria": null
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Choose animation style"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Send",
+          "disabled": true,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Clone Editing Style",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Improve",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Reveal Showcase",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Iman PunchyAggressive pacing, strong captions, momentum-focused cut rhythm.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Iman Punchy animation style"
+        },
+        {
+          "text": "Iman CleanMinimalist captions, crisp jump cuts, premium sound design slots.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Iman Clean animation style"
+        },
+        {
+          "text": "Long Form Typography V1Long-form SVG typography, highlight markers, and smart punch-ins.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Long Form Typography V1 animation style"
+        },
+        {
+          "text": "Reels HeatFast hook, high energy cuts, b-roll heavy overlays.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Reels Heat animation style"
+        },
+        {
+          "text": "Reels HeatFast hook, high energy cuts, b-roll heavy overlays.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Reels Heat animation style"
+        },
+        {
+          "text": "Docs StoryBreathing room, cinematic pacing, tasteful captioning.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Docs Story animation style"
+        },
+        {
+          "text": "Cinematic NoirMoody contrast, restrained captions, slow-burn pacing.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Cinematic Noir animation style"
+        },
+        {
+          "text": "Stoic RedBold accents, confident pacing, minimal distractions.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Stoic Red animation style"
+        },
+        {
+          "text": "Minimal SubtleBare captions and clean cuts for brand-first content.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Minimal Subtle animation style"
+        },
+        {
+          "text": "Iman PunchyAggressive pacing, strong captions, momentum-focused cut rhythm.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Iman Punchy animation style"
+        },
+        {
+          "text": "Iman CleanMinimalist captions, crisp jump cuts, premium sound design slots.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Iman Clean animation style"
+        },
+        {
+          "text": "Long Form Typography V1Long-form SVG typography, highlight markers, and smart punch-ins.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Long Form Typography V1 animation style"
+        },
+        {
+          "text": "Reels HeatFast hook, high energy cuts, b-roll heavy overlays.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Reels Heat animation style"
+        },
+        {
+          "text": "Reels HeatFast hook, high energy cuts, b-roll heavy overlays.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Reels Heat animation style"
+        },
+        {
+          "text": "Docs StoryBreathing room, cinematic pacing, tasteful captioning.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Docs Story animation style"
+        },
+        {
+          "text": "Cinematic NoirMoody contrast, restrained captions, slow-burn pacing.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Cinematic Noir animation style"
+        },
+        {
+          "text": "Stoic RedBold accents, confident pacing, minimal distractions.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Stoic Red animation style"
+        },
+        {
+          "text": "Minimal SubtleBare captions and clean cuts for brand-first content.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Minimal Subtle animation style"
+        },
+        {
+          "text": "Minimal SubtleBare captions and clean cuts for brand-first content.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Minimal Subtle animation style"
+        },
+        {
+          "text": "Stoic RedBold accents, confident pacing, minimal distractions.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Stoic Red animation style"
+        },
+        {
+          "text": "Cinematic NoirMoody contrast, restrained captions, slow-burn pacing.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Cinematic Noir animation style"
+        },
+        {
+          "text": "Docs StoryBreathing room, cinematic pacing, tasteful captioning.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Docs Story animation style"
+        },
+        {
+          "text": "Reels HeatFast hook, high energy cuts, b-roll heavy overlays.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Reels Heat animation style"
+        },
+        {
+          "text": "Reels HeatFast hook, high energy cuts, b-roll heavy overlays.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Reels Heat animation style"
+        },
+        {
+          "text": "Long Form Typography V1Long-form SVG typography, highlight markers, and smart punch-ins.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Long Form Typography V1 animation style"
+        },
+        {
+          "text": "Iman CleanMinimalist captions, crisp jump cuts, premium sound design slots.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Iman Clean animation style"
+        },
+        {
+          "text": "Iman PunchyAggressive pacing, strong captions, momentum-focused cut rhythm.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Iman Punchy animation style"
+        },
+        {
+          "text": "Minimal SubtleBare captions and clean cuts for brand-first content.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Minimal Subtle animation style"
+        },
+        {
+          "text": "Stoic RedBold accents, confident pacing, minimal distractions.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Stoic Red animation style"
+        },
+        {
+          "text": "Cinematic NoirMoody contrast, restrained captions, slow-burn pacing.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Cinematic Noir animation style"
+        },
+        {
+          "text": "Docs StoryBreathing room, cinematic pacing, tasteful captioning.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Docs Story animation style"
+        },
+        {
+          "text": "Reels HeatFast hook, high energy cuts, b-roll heavy overlays.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Reels Heat animation style"
+        },
+        {
+          "text": "Reels HeatFast hook, high energy cuts, b-roll heavy overlays.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Reels Heat animation style"
+        },
+        {
+          "text": "Long Form Typography V1Long-form SVG typography, highlight markers, and smart punch-ins.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Long Form Typography V1 animation style"
+        },
+        {
+          "text": "Iman CleanMinimalist captions, crisp jump cuts, premium sound design slots.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Iman Clean animation style"
+        },
+        {
+          "text": "Iman PunchyAggressive pacing, strong captions, momentum-focused cut rhythm.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Iman Punchy animation style"
+        }
+      ]
+    },
+    "consoleErrors": [],
+    "pageErrors": [],
+    "screenshotPath": "C:\\Users\\HomePC\\Documents\\THE FRONT END, PROMETHEUS\\audit-artifacts\\ui-audit-pass2\\desktop-home.png"
+  },
+  {
+    "route": "pricing",
+    "path": "/pricing",
+    "viewport": "desktop",
+    "finalUrl": "http://127.0.0.1:3000/pricing",
+    "status": 200,
+    "metrics": {
+      "title": "Pricing | Prometheus",
+      "h1": "Premium video infrastructure, packaged for teams that ship.",
+      "bodyText": "ROMETHEUS PRICING LOGIN GET STARTED PRICING Premium video infrastructure, packaged for teams that ship. Choose a Prometheus Studio plan for a professional video editing and production workspace for filmmakers, motion design, cloud-backed project storage, and export-ready rendering workflows. PROMETHEUS 150 CREDITS Creator For independent creators and solo operators producing content at scale. $ 99",
+      "scrollWidth": 1440,
+      "innerWidth": 1440,
+      "scrollHeight": 1808,
+      "innerHeight": 900,
+      "overflowers": [
+        {
+          "tag": "div",
+          "className": "pointer-events-none absolute left-1/2 top-[8.5rem] z-0 w-[140vw] -translate-x-1/2 scale-x-105 select-none text-center text-[4.2rem] font-black leading-none text-white/[0.04] blur-[2px] sm:text-[7.5rem] md:top-[10rem] md:",
+          "text": "PROMETHEUS",
+          "left": -338,
+          "right": 1778,
+          "top": 719,
+          "bottom": 959,
+          "visibility": "visible",
+          "opacity": "1"
+        }
+      ],
+      "truncated": [
+        {
+          "tag": "section",
+          "className": "relative isolate overflow-hidden px-1 pb-2 pt-8",
+          "text": "PROMETHEUS150 creditsCreatorFor independent creators and solo operators producing content at scale.$997.99/ moAI-powered",
+          "scrollWidth": 1746,
+          "clientWidth": 1376,
+          "right": 1408,
+          "bottom": 1712
+        }
+      ],
+      "buttons": [
+        {
+          "text": "Get Started",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        }
+      ]
+    },
+    "consoleErrors": [],
+    "pageErrors": [],
+    "screenshotPath": "C:\\Users\\HomePC\\Documents\\THE FRONT END, PROMETHEUS\\audit-artifacts\\ui-audit-pass2\\desktop-pricing.png"
+  },
+  {
+    "route": "login",
+    "path": "/login",
+    "viewport": "desktop",
+    "finalUrl": "http://127.0.0.1:3000/login",
+    "status": 200,
+    "metrics": {
+      "title": "Prometheus",
+      "h1": "Sign in",
+      "bodyText": "rometheus Privacy Policy Terms of Service Contact Home Sign in Use OAuth or your email and password. Continue with Google Continue with Apple Continue with GitHub OR CONTINUE WITH EMAIL Email Password Forgot password? Sign in Don't have an account? Sign up By clicking continue, you agree to our Terms of Service and Privacy Policy.",
+      "scrollWidth": 1440,
+      "innerWidth": 1440,
+      "scrollHeight": 900,
+      "innerHeight": 900,
+      "overflowers": [],
+      "truncated": [],
+      "buttons": [
+        {
+          "text": "Continue with Google",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Continue with Apple",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Continue with GitHub",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Sign in",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        }
+      ]
+    },
+    "consoleErrors": [],
+    "pageErrors": [],
+    "screenshotPath": "C:\\Users\\HomePC\\Documents\\THE FRONT END, PROMETHEUS\\audit-artifacts\\ui-audit-pass2\\desktop-login.png"
+  },
+  {
+    "route": "signup",
+    "path": "/signup",
+    "viewport": "desktop",
+    "finalUrl": "http://127.0.0.1:3000/signup",
+    "status": 200,
+    "metrics": {
+      "title": "Prometheus",
+      "h1": "Create account",
+      "bodyText": "rometheus Privacy Policy Terms of Service Contact Home Create account Create a new account in under a minute. Email Password Confirm password Create account Continue with Google Already have an account? Sign in PROMETHEUS STUDIO Professional video editing and production workspace for filmmakers, motion designers, and modern production teams. © 2026 PROMETHEUS STUDIO. ALL RIGHTS RESERVED. Pricing T",
+      "scrollWidth": 1440,
+      "innerWidth": 1440,
+      "scrollHeight": 1097,
+      "innerHeight": 900,
+      "overflowers": [],
+      "truncated": [],
+      "buttons": [
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Show password"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Show password"
+        },
+        {
+          "text": "Create account",
+          "disabled": true,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Continue with Google",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        }
+      ]
+    },
+    "consoleErrors": [],
+    "pageErrors": [],
+    "screenshotPath": "C:\\Users\\HomePC\\Documents\\THE FRONT END, PROMETHEUS\\audit-artifacts\\ui-audit-pass2\\desktop-signup.png"
+  },
+  {
+    "route": "projects",
+    "path": "/projects?devAuthBypass=1",
+    "viewport": "desktop",
+    "finalUrl": "http://127.0.0.1:3000/projects?devAuthBypass=1",
+    "status": 200,
+    "metrics": {
+      "title": "Prometheus",
+      "h1": "Projects",
+      "bodyText": "ROMETHEUS Studio Projects Library Editor Analytics Settings Projects Your creative workspace New Project Sort by Last edited Created Name Progress All0 Draft0 Rendering0 Completed0 Failed0",
+      "scrollWidth": 1440,
+      "innerWidth": 1440,
+      "scrollHeight": 900,
+      "innerHeight": 900,
+      "overflowers": [],
+      "truncated": [],
+      "buttons": [
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Collapse sidebar"
+        },
+        {
+          "text": "New Project",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "All0",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Draft0",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Rendering0",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Completed0",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Failed0",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        }
+      ]
+    },
+    "consoleErrors": [],
+    "pageErrors": [],
+    "screenshotPath": "C:\\Users\\HomePC\\Documents\\THE FRONT END, PROMETHEUS\\audit-artifacts\\ui-audit-pass2\\desktop-projects.png"
+  },
+  {
+    "route": "editor-root",
+    "path": "/editor?devAuthBypass=1",
+    "viewport": "desktop",
+    "finalUrl": "http://127.0.0.1:3000/signup?next=%2Fprojects",
+    "status": 200,
+    "metrics": {
+      "title": "Prometheus",
+      "h1": "Create account",
+      "bodyText": "rometheus Privacy Policy Terms of Service Contact Home Create account Create a new account in under a minute. Email Password Confirm password Create account Continue with Google Already have an account? Sign in PROMETHEUS STUDIO Professional video editing and production workspace for filmmakers, motion designers, and modern production teams. © 2026 PROMETHEUS STUDIO. ALL RIGHTS RESERVED. Pricing T",
+      "scrollWidth": 1440,
+      "innerWidth": 1440,
+      "scrollHeight": 1097,
+      "innerHeight": 900,
+      "overflowers": [],
+      "truncated": [],
+      "buttons": [
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Show password"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Show password"
+        },
+        {
+          "text": "Create account",
+          "disabled": true,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Continue with Google",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        }
+      ]
+    },
+    "consoleErrors": [
+      "Failed to load resource: net::ERR_NETWORK_ACCESS_DENIED"
+    ],
+    "pageErrors": [],
+    "screenshotPath": "C:\\Users\\HomePC\\Documents\\THE FRONT END, PROMETHEUS\\audit-artifacts\\ui-audit-pass2\\desktop-editor-root.png"
+  },
+  {
+    "route": "editor-workspace",
+    "path": "/editor/workspace?devAuthBypass=1",
+    "viewport": "desktop",
+    "finalUrl": "http://127.0.0.1:3000/signup?next=%2Fprojects",
+    "status": 200,
+    "metrics": {
+      "title": "Prometheus",
+      "h1": "Create account",
+      "bodyText": "rometheus Privacy Policy Terms of Service Contact Home Create account Create a new account in under a minute. Email Password Confirm password Create account Continue with Google Already have an account? Sign in PROMETHEUS STUDIO Professional video editing and production workspace for filmmakers, motion designers, and modern production teams. © 2026 PROMETHEUS STUDIO. ALL RIGHTS RESERVED. Pricing T",
+      "scrollWidth": 1440,
+      "innerWidth": 1440,
+      "scrollHeight": 1097,
+      "innerHeight": 900,
+      "overflowers": [],
+      "truncated": [],
+      "buttons": [
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Show password"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Show password"
+        },
+        {
+          "text": "Create account",
+          "disabled": true,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Continue with Google",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        }
+      ]
+    },
+    "consoleErrors": [],
+    "pageErrors": [],
+    "screenshotPath": "C:\\Users\\HomePC\\Documents\\THE FRONT END, PROMETHEUS\\audit-artifacts\\ui-audit-pass2\\desktop-editor-workspace.png"
+  },
+  {
+    "route": "editor-motion",
+    "path": "/editor/motion?devAuthBypass=1",
+    "viewport": "desktop",
+    "finalUrl": "http://127.0.0.1:3000/editor/motion?devAuthBypass=1",
+    "status": 200,
+    "metrics": {
+      "title": "Prometheus Editor",
+      "h1": "Visual Mood Experiment",
+      "bodyText": "PROMETHEUS /editor Share Editor Music Motion AI Configuration Core Model Claude 4 GPT-5 Gemini Ultra Inference Mode High Quality Realtime Draft Prompt Opus 4.6 20 Tokens 10.0 Sec Image Settings Creativity Level Mode Low High Quality Steps 0 0 100 Final Results Visual Mood Experiment A M R +2 Motion Direction Console An inertial virtualized dial with logarithmic step increments and magnetic detents",
+      "scrollWidth": 1440,
+      "innerWidth": 1440,
+      "scrollHeight": 900,
+      "innerHeight": 900,
+      "overflowers": [
+        {
+          "tag": "div",
+          "className": "absolute left-0 top-0 h-[1800px] w-[2600px] origin-top-left transition-transform duration-[260ms] ease-[cubic-bezier(0.16,1,0.3,1)]",
+          "text": "AI ConfigurationCore ModelClaude 4GPT-5Gemini UltraInference ModeHigh QualityRealtimeDraftPromptA surreal portrait of a human figure covered",
+          "left": 56,
+          "right": 2656,
+          "top": 46,
+          "bottom": 1846,
+          "visibility": "visible",
+          "opacity": "1"
+        },
+        {
+          "tag": "svg",
+          "className": "",
+          "text": "",
+          "left": 56,
+          "right": 2656,
+          "top": 46,
+          "bottom": 1846,
+          "visibility": "visible",
+          "opacity": "1"
+        }
+      ],
+      "truncated": [
+        {
+          "tag": "div",
+          "className": "absolute inset-0 overflow-hidden",
+          "text": "AI ConfigurationCore ModelClaude 4GPT-5Gemini UltraInference ModeHigh QualityRealtimeDraftPromptA surreal portrait of a ",
+          "scrollWidth": 2644,
+          "clientWidth": 1416,
+          "right": 1428,
+          "bottom": 888
+        }
+      ],
+      "buttons": [
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Create workspace item"
+        },
+        {
+          "text": "Settings",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Go back"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Open editor menu"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Close sidebar"
+        },
+        {
+          "text": "Share",
+          "disabled": false,
+          "title": null,
+          "aria": "Share project"
+        },
+        {
+          "text": "Editor",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Music",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Motion",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "output output"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "input input"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "output output"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "input input"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "output output"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Execute pipeline"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "input input-top"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "input input-bottom"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "output output"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "input input"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Night mode"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Share"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Home"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Motion"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Projects"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Search"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Pages"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Settings"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Logout"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": "Cursor",
+          "aria": "Cursor"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": "Pan",
+          "aria": "Pan"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": "Execute",
+          "aria": "Execute"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": "Image",
+          "aria": "Image"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": "Text",
+          "aria": "Text"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": "Prompt",
+          "aria": "Prompt"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": "Comment",
+          "aria": "Comment"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": "Code",
+          "aria": "Code"
+        },
+        {
+          "text": "Generate",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Genre",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Budget in millions",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Era",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Archetype",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Identity",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Look",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Details",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "$40M",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "$80M",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "$90M",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "$100M",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "$150M",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "$200M",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "$250M",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Add image",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Probe",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "glass interface closeups",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "orbital particle references",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "volumetric slate vignette",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "macro lens detents",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "refractive gel capsules",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Open command zone"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": "Enter focus mode",
+          "aria": "Enter focus mode"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Close editor menu"
+        },
+        {
+          "text": "Projects",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Motion Brain",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Music",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Analytics",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Timeline",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Chat",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Versions",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Status",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Export",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Settings",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        }
+      ]
+    },
+    "consoleErrors": [
+      "A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:\n\n- A server/client branch `if (typeof window !== 'undefined')`.\n- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.\n- Date formatting in a user's locale which doesn't match the server.\n- External changing data without sending a snapshot of it along with the HTML.\n- Invalid HTML tag nesting.\n\nIt can also happen if the client has a browser extension installed which messes with the HTML before React loaded.\n\n%s%s https://react.dev/link/hydration-mismatch \n\n  ...\n    <MotionEditorPage params={Promise} searchParams={Promise}>\n      <NodeGraphProvider>\n        <section className=\"jsx-56b8e1...\">\n          <div>\n          <div>\n          <div className=\"jsx-56b8e1...\">\n            <MotionCanvas>\n              <div className=\"relative h...\">\n                ...\n                  <NodeGraph>\n                    <svg>\n                    <div className=\"absolute l...\">\n                      <NodeCard>\n                      <NodeCard node={{id:\"prompt-1\", ...}}>\n                        <motion.article className=\"absolute c...\" data-node-id=\"prompt-1\" initial={{opacity:0, ...}} ...>\n                          <article className=\"absolute c...\" data-node-id=\"prompt-1\" onClick={function onClick} ...>\n                            <div>\n                            <header>\n                            <PromptNode node={{id:\"prompt-1\", ...}}>\n                              <div className=\"space-y-3\">\n                                <textarea\n                                  className=\"min-h-[126px] w-full resize-none rounded-lg border border-transparent bg-...\"\n                                  onChange={function onChange}\n                                  value=\"A surreal portrait of a human figure covered in blooming wildflowers and gree...\"\n-                                 style={{caret-color:\"transparent\"}}\n                                >\n                                ...\n                            ...\n                      ...\n                        <article className=\"absolute c...\" data-node-id=\"image-sett...\" onClick={function onClick} ...>\n                          <div>\n                          <header>\n                          <ImageSettingsNode node={{id:\"image-...\", ...}}>\n                            <div className=\"space-y-5\">\n                              <NodeSlider label=\"Creativity...\" left=\"Low\" onChange={function onChange} right=\"High\" ...>\n                                <label className=\"block\">\n                                  <span>\n                                  <input\n                                    className=\"motion-node-range w-full\"\n                                    max={100}\n                                    min={0}\n                                    onChange={function onChange}\n+                                   style={{--range-fill:\"50%\"}}\n-                                   style={{--range-fill:\"50%\",caret-color:\"transparent\"}}\n                                    type=\"range\"\n                                    value={50}\n                                  >\n                                  ...\n                              <NodeSlider label=\"Quality Steps\" left=\"0\" onChange={function onChange} right=\"100\" ...>\n                                <label className=\"block\">\n                                  <span>\n                                  <input\n                                    className=\"motion-node-range w-full\"\n                                    max={100}\n                                    min={0}\n                                    onChange={function onChange}\n+                                   style={{--range-fill:\"0%\"}}\n-                                   style={{--range-fill:\"0%\",caret-color:\"transparent\"}}\n                                    type=\"range\"\n                                    value={0}\n                                  >\n                                  ...\n                          ...\n                      ...\n                <MotionHeader>\n                <MotionSidebar>\n                <MotionToolbar>\n                <MotionContextMenu>\n                <NodeDragPreview>\n                <MotionDirectionDial>\n                  <motion.section data-motion-direction-dial={true} aria-label=\"Motion dir...\" className=\"absolute b...\" ...>\n                    <section data-motion-direction-dial={true} aria-label=\"Motion dir...\" className=\"absolute b...\" ...>\n                      <div>\n                      <div>\n                      <div className=\"relative g...\">\n                        <div>\n                        <aside className=\"relative m...\">\n                          <OrbitalReferenceCanvas>\n                          <div className=\"relative z...\">\n                            <LetterRevealText>\n                            <button>\n                            <input\n                              ref={{current:null}}\n                              type=\"file\"\n                              accept=\"image/*\"\n                              multiple={true}\n                              className=\"hidden\"\n                              onChange={function MotionDirectionDial.useCallback[handleReferenceUpload]}\n-                             style={{caret-color:\"transparent\"}}\n                            >\n                          <div className=\"relative z...\">\n                            <div className=\"relative\">\n                              <Search>\n                              <input\n                                value=\"volumetric liquid glass product film\"\n                                onChange={function onChange}\n                                placeholder=\"Search or probe assets\"\n                                className=\"h-9 w-full rounded-full border border-white/10 bg-black/28 pl-9 pr-20 text-...\"\n-                               style={{caret-color:\"transparent\"}}\n                              >\n                              ...\n                            ...\n                          ...\n        ...\n        ...\n"
+    ],
+    "pageErrors": [],
+    "screenshotPath": "C:\\Users\\HomePC\\Documents\\THE FRONT END, PROMETHEUS\\audit-artifacts\\ui-audit-pass2\\desktop-editor-motion.png"
+  },
+  {
+    "route": "assets",
+    "path": "/assets?devAuthBypass=1",
+    "viewport": "desktop",
+    "finalUrl": "http://127.0.0.1:3000/assets?devAuthBypass=1",
+    "status": 200,
+    "metrics": {
+      "title": "Prometheus",
+      "h1": null,
+      "bodyText": "ROMETHEUS Studio Projects Library Editor Analytics Settings PROMETHEUS LIBRARY MOVIES 00 MUSIC 00 B-ROLL 00 FONTS 00 LOGOS 00 Upload 2026 Business, Strategy FEATURED FOUNDER ARCHIVE 9.1 / 10 2.03h Alex Hormozi FOUNDER ARCHIVE Cinematic portraits, premium interview selects, and founder-led moments staged like a flagship release. Watch Hero Save Spirit LIBRARY STACK Alex Hormozi showcase HOVER TO IN",
+      "scrollWidth": 1440,
+      "innerWidth": 1440,
+      "scrollHeight": 900,
+      "innerHeight": 900,
+      "overflowers": [
+        {
+          "tag": "div",
+          "className": "absolute inset-0 scale-[1.12] bg-cover bg-center opacity-40 blur-[68px] saturate-[1.12] will-change-transform",
+          "text": "",
+          "left": 161,
+          "right": 1569,
+          "top": -95,
+          "bottom": 1032,
+          "visibility": "visible",
+          "opacity": "0.18"
+        }
+      ],
+      "truncated": [
+        {
+          "tag": "div",
+          "className": "relative min-h-[640px] overflow-hidden border-b border-white/10",
+          "text": "Prometheus LibraryMovies 00Music 00B-roll 00Fonts 00Logos 00Upload2026Business, StrategyFeatured founder archive9.1 / 10",
+          "scrollWidth": 1237,
+          "clientWidth": 1066,
+          "right": 1398,
+          "bottom": 896
+        },
+        {
+          "tag": "div",
+          "className": "group relative h-full w-full min-h-[280px] overflow-hidden rounded-[10px] border bg-[#090a0f] border-white/10 shadow-[0_24px_44px_-32px_rgba(0,0,0,0.82)]",
+          "text": "Alex archivePricing clinicOffer Breakdowns12 selects",
+          "scrollWidth": 87,
+          "clientWidth": 0,
+          "right": 358,
+          "bottom": 1321
+        },
+        {
+          "tag": "div",
+          "className": "truncate text-[10px] uppercase tracking-[0.22em] text-white/52",
+          "text": "Pricing clinic",
+          "scrollWidth": 101,
+          "clientWidth": 0,
+          "right": 373,
+          "bottom": 1230
+        },
+        {
+          "tag": "div",
+          "className": "mt-2 line-clamp-2 text-[1.05rem] font-semibold leading-tight text-white",
+          "text": "Offer Breakdowns",
+          "scrollWidth": 92,
+          "clientWidth": 0,
+          "right": 373,
+          "bottom": 1280
+        },
+        {
+          "tag": "div",
+          "className": "mt-2 truncate text-xs text-white/54",
+          "text": "12 selects",
+          "scrollWidth": 51,
+          "clientWidth": 0,
+          "right": 373,
+          "bottom": 1304
+        },
+        {
+          "tag": "div",
+          "className": "group relative h-full w-full min-h-[280px] overflow-hidden rounded-[10px] border bg-[#090a0f] border-white/10 shadow-[0_24px_44px_-32px_rgba(0,0,0,0.82)]",
+          "text": "Alex archiveDiscipline cutsGym Monologues09 selects",
+          "scrollWidth": 87,
+          "clientWidth": 0,
+          "right": 530,
+          "bottom": 1321
+        },
+        {
+          "tag": "div",
+          "className": "truncate text-[10px] uppercase tracking-[0.22em] text-white/52",
+          "text": "Discipline cuts",
+          "scrollWidth": 109,
+          "clientWidth": 0,
+          "right": 545,
+          "bottom": 1230
+        },
+        {
+          "tag": "div",
+          "className": "mt-2 line-clamp-2 text-[1.05rem] font-semibold leading-tight text-white",
+          "text": "Gym Monologues",
+          "scrollWidth": 96,
+          "clientWidth": 0,
+          "right": 545,
+          "bottom": 1280
+        },
+        {
+          "tag": "div",
+          "className": "mt-2 truncate text-xs text-white/54",
+          "text": "09 selects",
+          "scrollWidth": 51,
+          "clientWidth": 0,
+          "right": 545,
+          "bottom": 1304
+        },
+        {
+          "tag": "div",
+          "className": "group relative h-full w-full min-h-[280px] overflow-hidden rounded-[10px] border bg-[#090a0f] border-white/10 shadow-[0_24px_44px_-32px_rgba(0,0,0,0.82)]",
+          "text": "Alex archiveGrowth excerptsAcquisition Notes08 selects",
+          "scrollWidth": 87,
+          "clientWidth": 0,
+          "right": 701,
+          "bottom": 1321
+        },
+        {
+          "tag": "div",
+          "className": "truncate text-[10px] uppercase tracking-[0.22em] text-white/52",
+          "text": "Growth excerpts",
+          "scrollWidth": 122,
+          "clientWidth": 0,
+          "right": 716,
+          "bottom": 1230
+        },
+        {
+          "tag": "div",
+          "className": "mt-2 line-clamp-2 text-[1.05rem] font-semibold leading-tight text-white",
+          "text": "Acquisition Notes",
+          "scrollWidth": 85,
+          "clientWidth": 0,
+          "right": 716,
+          "bottom": 1280
+        },
+        {
+          "tag": "div",
+          "className": "mt-2 truncate text-xs text-white/54",
+          "text": "08 selects",
+          "scrollWidth": 51,
+          "clientWidth": 0,
+          "right": 716,
+          "bottom": 1304
+        },
+        {
+          "tag": "div",
+          "className": "group relative h-full w-full min-h-[280px] overflow-hidden rounded-[10px] border bg-[#090a0f] border-white/10 shadow-[0_24px_44px_-32px_rgba(0,0,0,0.82)]",
+          "text": "Alex archiveHigh-energy momentsStage Keynotes11 selects",
+          "scrollWidth": 87,
+          "clientWidth": 0,
+          "right": 873,
+          "bottom": 1321
+        },
+        {
+          "tag": "div",
+          "className": "truncate text-[10px] uppercase tracking-[0.22em] text-white/52",
+          "text": "High-energy moments",
+          "scrollWidth": 156,
+          "clientWidth": 0,
+          "right": 888,
+          "bottom": 1230
+        },
+        {
+          "tag": "div",
+          "className": "mt-2 line-clamp-2 text-[1.05rem] font-semibold leading-tight text-white",
+          "text": "Stage Keynotes",
+          "scrollWidth": 69,
+          "clientWidth": 0,
+          "right": 888,
+          "bottom": 1280
+        },
+        {
+          "tag": "div",
+          "className": "mt-2 truncate text-xs text-white/54",
+          "text": "11 selects",
+          "scrollWidth": 51,
+          "clientWidth": 0,
+          "right": 888,
+          "bottom": 1304
+        },
+        {
+          "tag": "div",
+          "className": "group relative h-full w-full min-h-[280px] overflow-hidden rounded-[10px] border bg-[#090a0f] border-white/10 shadow-[0_24px_44px_-32px_rgba(0,0,0,0.82)]",
+          "text": "Alex archiveFounder coachingOperator Advice10 selects",
+          "scrollWidth": 87,
+          "clientWidth": 0,
+          "right": 1045,
+          "bottom": 1321
+        },
+        {
+          "tag": "div",
+          "className": "truncate text-[10px] uppercase tracking-[0.22em] text-white/52",
+          "text": "Founder coaching",
+          "scrollWidth": 133,
+          "clientWidth": 0,
+          "right": 1060,
+          "bottom": 1230
+        },
+        {
+          "tag": "div",
+          "className": "mt-2 line-clamp-2 text-[1.05rem] font-semibold leading-tight text-white",
+          "text": "Operator Advice",
+          "scrollWidth": 69,
+          "clientWidth": 0,
+          "right": 1060,
+          "bottom": 1280
+        },
+        {
+          "tag": "div",
+          "className": "mt-2 truncate text-xs text-white/54",
+          "text": "10 selects",
+          "scrollWidth": 51,
+          "clientWidth": 0,
+          "right": 1060,
+          "bottom": 1304
+        },
+        {
+          "tag": "div",
+          "className": "group relative h-full w-full min-h-[280px] overflow-hidden rounded-[10px] border bg-[#090a0f] border-white/10 shadow-[0_24px_44px_-32px_rgba(0,0,0,0.82)]",
+          "text": "Alex archiveConversion-driven clipsDirect Response Vault07 selects",
+          "scrollWidth": 87,
+          "clientWidth": 0,
+          "right": 1216,
+          "bottom": 1321
+        },
+        {
+          "tag": "div",
+          "className": "truncate text-[10px] uppercase tracking-[0.22em] text-white/52",
+          "text": "Conversion-driven clips",
+          "scrollWidth": 177,
+          "clientWidth": 0,
+          "right": 1231,
+          "bottom": 1230
+        },
+        {
+          "tag": "div",
+          "className": "mt-2 line-clamp-2 text-[1.05rem] font-semibold leading-tight text-white",
+          "text": "Direct Response Vault",
+          "scrollWidth": 72,
+          "clientWidth": 0,
+          "right": 1231,
+          "bottom": 1280
+        },
+        {
+          "tag": "div",
+          "className": "mt-2 truncate text-xs text-white/54",
+          "text": "07 selects",
+          "scrollWidth": 51,
+          "clientWidth": 0,
+          "right": 1231,
+          "bottom": 1304
+        }
+      ],
+      "buttons": [
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Collapse sidebar"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Go back"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Movies 00",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Music 00",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "B-roll 00",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Fonts 00",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Logos 00",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Upload",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Search library"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "User profile"
+        },
+        {
+          "text": "Watch Hero",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Save Spirit",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Alex archivePricing clinicOffer Breakdowns12 selects",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Alex archiveDiscipline cutsGym Monologues09 selects",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Alex archiveGrowth excerptsAcquisition Notes08 selects",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Alex archiveHigh-energy momentsStage Keynotes11 selects",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Alex archiveFounder coachingOperator Advice10 selects",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Alex archiveConversion-driven clipsDirect Response Vault07 selects",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        }
+      ]
+    },
+    "consoleErrors": [],
+    "pageErrors": [
+      "Invalid or unexpected token"
+    ],
+    "screenshotPath": "C:\\Users\\HomePC\\Documents\\THE FRONT END, PROMETHEUS\\audit-artifacts\\ui-audit-pass2\\desktop-assets.png"
+  },
+  {
+    "route": "analytics",
+    "path": "/analytics?devAuthBypass=1",
+    "viewport": "desktop",
+    "finalUrl": "http://127.0.0.1:3000/analytics?devAuthBypass=1",
+    "status": 200,
+    "metrics": {
+      "title": "Prometheus",
+      "h1": null,
+      "bodyText": "ROMETHEUS Studio Projects Library Editor Analytics Settings PERFORMANCE Analytics Cross-platform telemetry, distilled. REACH 284.1K WATCH TIME 5h 11m LIKES 9,250 SHARES 1,244 REACH CURVE Cross-platform reach curve 7D 30D 90D W1 W2 W3 W4 W5 W6 W7 W8 W9 W10 W11 W12 TOP SIGNAL FEATURED SIGNAL Signal No. 04 The strongest export in the current review window. RETENTION 78% ENGAGEMENT 12.4% EVOLVE INTERF",
+      "scrollWidth": 1440,
+      "innerWidth": 1440,
+      "scrollHeight": 900,
+      "innerHeight": 900,
+      "overflowers": [],
+      "truncated": [],
+      "buttons": [
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Collapse sidebar"
+        },
+        {
+          "text": "7D",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "30D",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "90D",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Golden sky plate",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Portrait cut",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "GIFArchive frame",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Motion note",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Soft grain",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Editorial still",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        }
+      ]
+    },
+    "consoleErrors": [],
+    "pageErrors": [],
+    "screenshotPath": "C:\\Users\\HomePC\\Documents\\THE FRONT END, PROMETHEUS\\audit-artifacts\\ui-audit-pass2\\desktop-analytics.png"
+  },
+  {
+    "route": "settings",
+    "path": "/settings?devAuthBypass=1",
+    "viewport": "desktop",
+    "finalUrl": "http://127.0.0.1:3000/settings?devAuthBypass=1",
+    "status": 200,
+    "metrics": {
+      "title": "Prometheus",
+      "h1": "Settings",
+      "bodyText": "ROMETHEUS Studio Projects Library Editor Analytics Settings Settings Preferences and integrations (UI scaffolding). Profile Account info, security, preferences Notifications Mock toggles for future alerts. Processing completion Notify when edits are ready. Reduced motion override UI-only. Respects system preference by default. Integrations Mock connect states. Google Drive Connect to import source",
+      "scrollWidth": 1440,
+      "innerWidth": 1440,
+      "scrollHeight": 900,
+      "innerHeight": 900,
+      "overflowers": [],
+      "truncated": [],
+      "buttons": [
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Collapse sidebar"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Go back"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Sign out",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        }
+      ]
+    },
+    "consoleErrors": [],
+    "pageErrors": [],
+    "screenshotPath": "C:\\Users\\HomePC\\Documents\\THE FRONT END, PROMETHEUS\\audit-artifacts\\ui-audit-pass2\\desktop-settings.png"
+  },
+  {
+    "route": "team",
+    "path": "/team?devAuthBypass=1",
+    "viewport": "desktop",
+    "finalUrl": "http://127.0.0.1:3000/team?devAuthBypass=1",
+    "status": 200,
+    "metrics": {
+      "title": "Prometheus",
+      "h1": "Team",
+      "bodyText": "ROMETHEUS Studio Projects Library Editor Analytics Settings Team UI-only team management scaffolding. Members Invite, roles, permissions (mock). This is a placeholder for team collaboration flows.",
+      "scrollWidth": 1440,
+      "innerWidth": 1440,
+      "scrollHeight": 900,
+      "innerHeight": 900,
+      "overflowers": [],
+      "truncated": [],
+      "buttons": [
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Collapse sidebar"
+        }
+      ]
+    },
+    "consoleErrors": [],
+    "pageErrors": [],
+    "screenshotPath": "C:\\Users\\HomePC\\Documents\\THE FRONT END, PROMETHEUS\\audit-artifacts\\ui-audit-pass2\\desktop-team.png"
+  },
+  {
+    "route": "billing",
+    "path": "/billing?devAuthBypass=1",
+    "viewport": "desktop",
+    "finalUrl": "http://127.0.0.1:3000/signup?next=%2Fsettings%2Fbilling",
+    "status": 200,
+    "metrics": {
+      "title": "Prometheus",
+      "h1": "Create account",
+      "bodyText": "rometheus Privacy Policy Terms of Service Contact Home Create account Create a new account in under a minute. Email Password Confirm password Create account Continue with Google Already have an account? Sign in PROMETHEUS STUDIO Professional video editing and production workspace for filmmakers, motion designers, and modern production teams. © 2026 PROMETHEUS STUDIO. ALL RIGHTS RESERVED. Pricing T",
+      "scrollWidth": 1440,
+      "innerWidth": 1440,
+      "scrollHeight": 1097,
+      "innerHeight": 900,
+      "overflowers": [],
+      "truncated": [],
+      "buttons": [
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Show password"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Show password"
+        },
+        {
+          "text": "Create account",
+          "disabled": true,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Continue with Google",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        }
+      ]
+    },
+    "consoleErrors": [
+      "A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:\n\n- A server/client branch `if (typeof window !== 'undefined')`.\n- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.\n- Date formatting in a user's locale which doesn't match the server.\n- External changing data without sending a snapshot of it along with the HTML.\n- Invalid HTML tag nesting.\n\nIt can also happen if the client has a browser extension installed which messes with the HTML before React loaded.\n\n%s%s https://react.dev/link/hydration-mismatch \n\n  ...\n    <SignupPage>\n      <AuthShell title=\"Create acc...\" subtitle=\"Create a n...\" compact={true} showLegalCopy={false} ...>\n        ...\n          <main className=\"relative m...\">\n            <div>\n            <div className=\"pointer-ev...\">\n              <div>\n              <Button>\n              <div className=\"auth-shell...\">\n                <div>\n                <div>\n                <Suspense fallback={null}>\n                  <Suspense fallback={null}>\n                    <SignupForm compact={true}>\n                      <form onSubmit={function onSubmit} className=\"auth-signu...\">\n                        <div>\n                          <label>\n                          <div className=\"mt-2 relative\">\n                            <AtSign>\n                            <Input id=\"signup-email\" type=\"email\" placeholder=\"you@domain...\" className=\"peer h-10 ...\" ...>\n                              <input\n                                type=\"email\"\n                                className=\"flex w-full border px-3 py-1 text-sm shadow-sm outline-none transition-colo...\"\n                                id=\"signup-email\"\n                                placeholder=\"you@domain.com\"\n                                value=\"\"\n                                onChange={function onChange}\n                                onFocus={function onFocus}\n                                onBlur={function onBlur}\n                                autoComplete=\"email\"\n-                               style={{caret-color:\"transparent\"}}\n                              >\n                        <div>\n                          <label>\n                          <div className=\"mt-2 relative\">\n                            <Lock>\n                            <Input id=\"signup-pas...\" type=\"password\" placeholder=\"Create a p...\" ...>\n                              <input\n                                type=\"password\"\n                                className=\"flex w-full border px-3 py-1 text-sm shadow-sm outline-none transition-colo...\"\n                                id=\"signup-password\"\n                                placeholder=\"Create a password\"\n                                value=\"\"\n                                onChange={function onChange}\n                                onFocus={function onFocus}\n                                onBlur={function onBlur}\n                                autoComplete=\"new-password\"\n-                               style={{caret-color:\"transparent\"}}\n                              >\n                            ...\n                        <div>\n                          <label>\n                          <div className=\"mt-2 relative\">\n                            <Lock>\n                            <Input id=\"signup-con...\" type=\"password\" placeholder=\"Repeat you...\" ...>\n                              <input\n                                type=\"password\"\n                                className=\"flex w-full border px-3 py-1 text-sm shadow-sm outline-none transition-colo...\"\n                                id=\"signup-confirm\"\n                                placeholder=\"Repeat your password\"\n                                value=\"\"\n                                onChange={function onChange}\n                                onFocus={function onFocus}\n                                onBlur={function onBlur}\n                                autoComplete=\"new-password\"\n-                               style={{caret-color:\"transparent\"}}\n                              >\n                            ...\n                        ...\n"
+    ],
+    "pageErrors": [
+      "[Cloudflare Turnstile] Invalid or missing type for parameter \"sitekey\", expected \"string\", got \"undefined\"."
+    ],
+    "screenshotPath": "C:\\Users\\HomePC\\Documents\\THE FRONT END, PROMETHEUS\\audit-artifacts\\ui-audit-pass2\\desktop-billing.png"
+  },
+  {
+    "route": "home",
+    "path": "/",
+    "viewport": "tablet",
+    "finalUrl": "http://127.0.0.1:3000/",
+    "status": 200,
+    "metrics": {
+      "title": "Prometheus",
+      "h1": "Ready to Create SomethingNewNext?",
+      "bodyText": "ROMETHEUS Studio Projects Library Editor Analytics Settings ROMETHEUS PRICING LOGIN GET STARTED Ready to Create Something New Next ? Upload a source, choose a visual lane, and send the next edit into motion. Send Source videos kept for 15 days. Outputs are permanent. Clone Editing Style Improve Reveal Showcase Iman Punchy Aggressive pacing, strong captions, momentum-focused cut rhythm. Iman Clean ",
+      "scrollWidth": 1024,
+      "innerWidth": 1024,
+      "scrollHeight": 768,
+      "innerHeight": 768,
+      "overflowers": [
+        {
+          "tag": "header",
+          "className": "fixed top-0 z-30 w-full border-b border-white/[0.05] bg-black/10 backdrop-blur-md md:z-50",
+          "text": "rometheusPricingLoginGet StartedPricingLogin",
+          "left": 290,
+          "right": 1314,
+          "top": 0,
+          "bottom": 65,
+          "visibility": "visible",
+          "opacity": "1"
+        },
+        {
+          "tag": "div",
+          "className": "mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-8",
+          "text": "rometheusPricingLoginGet StartedPricingLogin",
+          "left": 290,
+          "right": 1314,
+          "top": 0,
+          "bottom": 64,
+          "visibility": "visible",
+          "opacity": "1"
+        },
+        {
+          "tag": "nav",
+          "className": "hidden items-center gap-8 md:flex",
+          "text": "PricingLoginGet Started",
+          "left": 981,
+          "right": 1282,
+          "top": 15,
+          "bottom": 49,
+          "visibility": "visible",
+          "opacity": "1"
+        },
+        {
+          "tag": "a",
+          "className": "rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-semibold uppercase tracking-widest text-white transition-colors hover:border-white/20 hover:bg-white/[0.08]",
+          "text": "Pricing",
+          "left": 981,
+          "right": 1070,
+          "top": 15,
+          "bottom": 49,
+          "visibility": "visible",
+          "opacity": "1"
+        }
+      ],
+      "truncated": [
+        {
+          "tag": "div",
+          "className": "premium-motion-surface premium-telemetry-panel relative overflow-hidden rounded-[16px] border border-white/[0.13] bg-[#070707]/90 shadow-[0_40px_120px_-70px_rgba(96,190,255,0.62)] backdrop-blur-2xl",
+          "text": "SendSource videos kept for 15 days. Outputs are permanent.",
+          "scrollWidth": 992,
+          "clientWidth": 684,
+          "right": 1000,
+          "bottom": 686
+        },
+        {
+          "tag": "div",
+          "className": "studio-cinematic-rails premium-telemetry-panel premium-vignette-edges group relative overflow-hidden rounded-[18px] border border-white/[0.08] bg-black/[0.22] py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]",
+          "text": "@keyframes studio-marquee-right { from { transform: translateX(-50%); } to { transform: translateX(0%); } } @keyframes s",
+          "scrollWidth": 4260,
+          "clientWidth": 684,
+          "right": 1000,
+          "bottom": 1024
+        }
+      ],
+      "buttons": [
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Collapse sidebar"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Open mobile navigation"
+        },
+        {
+          "text": "Get Started",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": "Upload source",
+          "aria": null
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": "Templates and styles",
+          "aria": null
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Choose animation style"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Send",
+          "disabled": true,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Clone Editing Style",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Improve",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Reveal Showcase",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Iman PunchyAggressive pacing, strong captions, momentum-focused cut rhythm.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Iman Punchy animation style"
+        },
+        {
+          "text": "Iman CleanMinimalist captions, crisp jump cuts, premium sound design slots.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Iman Clean animation style"
+        },
+        {
+          "text": "Long Form Typography V1Long-form SVG typography, highlight markers, and smart punch-ins.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Long Form Typography V1 animation style"
+        },
+        {
+          "text": "Reels HeatFast hook, high energy cuts, b-roll heavy overlays.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Reels Heat animation style"
+        },
+        {
+          "text": "Reels HeatFast hook, high energy cuts, b-roll heavy overlays.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Reels Heat animation style"
+        },
+        {
+          "text": "Docs StoryBreathing room, cinematic pacing, tasteful captioning.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Docs Story animation style"
+        },
+        {
+          "text": "Cinematic NoirMoody contrast, restrained captions, slow-burn pacing.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Cinematic Noir animation style"
+        },
+        {
+          "text": "Stoic RedBold accents, confident pacing, minimal distractions.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Stoic Red animation style"
+        },
+        {
+          "text": "Minimal SubtleBare captions and clean cuts for brand-first content.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Minimal Subtle animation style"
+        },
+        {
+          "text": "Iman PunchyAggressive pacing, strong captions, momentum-focused cut rhythm.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Iman Punchy animation style"
+        },
+        {
+          "text": "Iman CleanMinimalist captions, crisp jump cuts, premium sound design slots.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Iman Clean animation style"
+        },
+        {
+          "text": "Long Form Typography V1Long-form SVG typography, highlight markers, and smart punch-ins.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Long Form Typography V1 animation style"
+        },
+        {
+          "text": "Reels HeatFast hook, high energy cuts, b-roll heavy overlays.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Reels Heat animation style"
+        },
+        {
+          "text": "Reels HeatFast hook, high energy cuts, b-roll heavy overlays.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Reels Heat animation style"
+        },
+        {
+          "text": "Docs StoryBreathing room, cinematic pacing, tasteful captioning.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Docs Story animation style"
+        },
+        {
+          "text": "Cinematic NoirMoody contrast, restrained captions, slow-burn pacing.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Cinematic Noir animation style"
+        },
+        {
+          "text": "Stoic RedBold accents, confident pacing, minimal distractions.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Stoic Red animation style"
+        },
+        {
+          "text": "Minimal SubtleBare captions and clean cuts for brand-first content.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Minimal Subtle animation style"
+        },
+        {
+          "text": "Minimal SubtleBare captions and clean cuts for brand-first content.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Minimal Subtle animation style"
+        },
+        {
+          "text": "Stoic RedBold accents, confident pacing, minimal distractions.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Stoic Red animation style"
+        },
+        {
+          "text": "Cinematic NoirMoody contrast, restrained captions, slow-burn pacing.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Cinematic Noir animation style"
+        },
+        {
+          "text": "Docs StoryBreathing room, cinematic pacing, tasteful captioning.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Docs Story animation style"
+        },
+        {
+          "text": "Reels HeatFast hook, high energy cuts, b-roll heavy overlays.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Reels Heat animation style"
+        },
+        {
+          "text": "Reels HeatFast hook, high energy cuts, b-roll heavy overlays.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Reels Heat animation style"
+        },
+        {
+          "text": "Long Form Typography V1Long-form SVG typography, highlight markers, and smart punch-ins.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Long Form Typography V1 animation style"
+        },
+        {
+          "text": "Iman CleanMinimalist captions, crisp jump cuts, premium sound design slots.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Iman Clean animation style"
+        },
+        {
+          "text": "Iman PunchyAggressive pacing, strong captions, momentum-focused cut rhythm.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Iman Punchy animation style"
+        },
+        {
+          "text": "Minimal SubtleBare captions and clean cuts for brand-first content.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Minimal Subtle animation style"
+        },
+        {
+          "text": "Stoic RedBold accents, confident pacing, minimal distractions.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Stoic Red animation style"
+        },
+        {
+          "text": "Cinematic NoirMoody contrast, restrained captions, slow-burn pacing.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Cinematic Noir animation style"
+        },
+        {
+          "text": "Docs StoryBreathing room, cinematic pacing, tasteful captioning.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Docs Story animation style"
+        },
+        {
+          "text": "Reels HeatFast hook, high energy cuts, b-roll heavy overlays.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Reels Heat animation style"
+        },
+        {
+          "text": "Reels HeatFast hook, high energy cuts, b-roll heavy overlays.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Reels Heat animation style"
+        },
+        {
+          "text": "Long Form Typography V1Long-form SVG typography, highlight markers, and smart punch-ins.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Long Form Typography V1 animation style"
+        },
+        {
+          "text": "Iman CleanMinimalist captions, crisp jump cuts, premium sound design slots.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Iman Clean animation style"
+        },
+        {
+          "text": "Iman PunchyAggressive pacing, strong captions, momentum-focused cut rhythm.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Iman Punchy animation style"
+        }
+      ]
+    },
+    "consoleErrors": [],
+    "pageErrors": [],
+    "screenshotPath": "C:\\Users\\HomePC\\Documents\\THE FRONT END, PROMETHEUS\\audit-artifacts\\ui-audit-pass2\\tablet-home.png"
+  },
+  {
+    "route": "pricing",
+    "path": "/pricing",
+    "viewport": "tablet",
+    "finalUrl": "http://127.0.0.1:3000/pricing",
+    "status": 200,
+    "metrics": {
+      "title": "Pricing | Prometheus",
+      "h1": "Premium video infrastructure, packaged for teams that ship.",
+      "bodyText": "ROMETHEUS PRICING LOGIN GET STARTED PRICING Premium video infrastructure, packaged for teams that ship. Choose a Prometheus Studio plan for a professional video editing and production workspace for filmmakers, motion design, cloud-backed project storage, and export-ready rendering workflows. PROMETHEUS 150 CREDITS Creator For independent creators and solo operators producing content at scale. $ 99",
+      "scrollWidth": 1024,
+      "innerWidth": 1024,
+      "scrollHeight": 2012,
+      "innerHeight": 768,
+      "overflowers": [
+        {
+          "tag": "div",
+          "className": "pointer-events-none absolute left-1/2 top-[8.5rem] z-0 w-[140vw] -translate-x-1/2 scale-x-105 select-none text-center text-[4.2rem] font-black leading-none text-white/[0.04] blur-[2px] sm:text-[7.5rem] md:top-[10rem] md:",
+          "text": "PROMETHEUS",
+          "left": -241,
+          "right": 1265,
+          "top": 719,
+          "bottom": 911,
+          "visibility": "visible",
+          "opacity": "1"
+        }
+      ],
+      "truncated": [
+        {
+          "tag": "section",
+          "className": "relative isolate overflow-hidden px-1 pb-2 pt-8",
+          "text": "PROMETHEUS150 creditsCreatorFor independent creators and solo operators producing content at scale.$997.99/ moAI-powered",
+          "scrollWidth": 1233,
+          "clientWidth": 960,
+          "right": 992,
+          "bottom": 1916
+        }
+      ],
+      "buttons": [
+        {
+          "text": "Get Started",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        }
+      ]
+    },
+    "consoleErrors": [],
+    "pageErrors": [],
+    "screenshotPath": "C:\\Users\\HomePC\\Documents\\THE FRONT END, PROMETHEUS\\audit-artifacts\\ui-audit-pass2\\tablet-pricing.png"
+  },
+  {
+    "route": "login",
+    "path": "/login",
+    "viewport": "tablet",
+    "finalUrl": "http://127.0.0.1:3000/login",
+    "status": 200,
+    "metrics": {
+      "title": "Prometheus",
+      "h1": "Sign in",
+      "bodyText": "rometheus Privacy Policy Terms of Service Contact Home Sign in Use OAuth or your email and password. Continue with Google Continue with Apple Continue with GitHub OR CONTINUE WITH EMAIL Email Password Forgot password? Sign in Don't have an account? Sign up By clicking continue, you agree to our Terms of Service and Privacy Policy.",
+      "scrollWidth": 1024,
+      "innerWidth": 1024,
+      "scrollHeight": 768,
+      "innerHeight": 768,
+      "overflowers": [],
+      "truncated": [],
+      "buttons": [
+        {
+          "text": "Continue with Google",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Continue with Apple",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Continue with GitHub",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Sign in",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        }
+      ]
+    },
+    "consoleErrors": [],
+    "pageErrors": [],
+    "screenshotPath": "C:\\Users\\HomePC\\Documents\\THE FRONT END, PROMETHEUS\\audit-artifacts\\ui-audit-pass2\\tablet-login.png"
+  },
+  {
+    "route": "signup",
+    "path": "/signup",
+    "viewport": "tablet",
+    "finalUrl": "http://127.0.0.1:3000/signup",
+    "status": 200,
+    "metrics": {
+      "title": "Prometheus",
+      "h1": "Create account",
+      "bodyText": "rometheus Privacy Policy Terms of Service Contact Home Create account Create a new account in under a minute. Email Password Confirm password Create account Continue with Google Already have an account? Sign in PROMETHEUS STUDIO Professional video editing and production workspace for filmmakers, motion designers, and modern production teams. © 2026 PROMETHEUS STUDIO. ALL RIGHTS RESERVED. Pricing T",
+      "scrollWidth": 1024,
+      "innerWidth": 1024,
+      "scrollHeight": 1005,
+      "innerHeight": 768,
+      "overflowers": [],
+      "truncated": [],
+      "buttons": [
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Show password"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Show password"
+        },
+        {
+          "text": "Create account",
+          "disabled": true,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Continue with Google",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        }
+      ]
+    },
+    "consoleErrors": [],
+    "pageErrors": [
+      "[Cloudflare Turnstile] Invalid or missing type for parameter \"sitekey\", expected \"string\", got \"undefined\"."
+    ],
+    "screenshotPath": "C:\\Users\\HomePC\\Documents\\THE FRONT END, PROMETHEUS\\audit-artifacts\\ui-audit-pass2\\tablet-signup.png"
+  },
+  {
+    "route": "projects",
+    "path": "/projects?devAuthBypass=1",
+    "viewport": "tablet",
+    "finalUrl": "http://127.0.0.1:3000/projects?devAuthBypass=1",
+    "status": 200,
+    "metrics": {
+      "title": "Prometheus",
+      "h1": "Projects",
+      "bodyText": "ROMETHEUS Studio Projects Library Editor Analytics Settings Projects Your creative workspace New Project Sort by Last edited Created Name Progress All0 Draft0 Rendering0 Completed0 Failed0",
+      "scrollWidth": 1024,
+      "innerWidth": 1024,
+      "scrollHeight": 768,
+      "innerHeight": 768,
+      "overflowers": [],
+      "truncated": [],
+      "buttons": [
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Collapse sidebar"
+        },
+        {
+          "text": "New Project",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "All0",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Draft0",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Rendering0",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Completed0",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Failed0",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        }
+      ]
+    },
+    "consoleErrors": [],
+    "pageErrors": [],
+    "screenshotPath": "C:\\Users\\HomePC\\Documents\\THE FRONT END, PROMETHEUS\\audit-artifacts\\ui-audit-pass2\\tablet-projects.png"
+  },
+  {
+    "route": "editor-root",
+    "path": "/editor?devAuthBypass=1",
+    "viewport": "tablet",
+    "finalUrl": "http://127.0.0.1:3000/signup?next=%2Fprojects",
+    "status": 200,
+    "metrics": {
+      "title": "Prometheus",
+      "h1": "Create account",
+      "bodyText": "rometheus Privacy Policy Terms of Service Contact Home Create account Create a new account in under a minute. Email Password Confirm password Create account Continue with Google Already have an account? Sign in PROMETHEUS STUDIO Professional video editing and production workspace for filmmakers, motion designers, and modern production teams. © 2026 PROMETHEUS STUDIO. ALL RIGHTS RESERVED. Pricing T",
+      "scrollWidth": 1024,
+      "innerWidth": 1024,
+      "scrollHeight": 1005,
+      "innerHeight": 768,
+      "overflowers": [],
+      "truncated": [],
+      "buttons": [
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Show password"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Show password"
+        },
+        {
+          "text": "Create account",
+          "disabled": true,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Continue with Google",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        }
+      ]
+    },
+    "consoleErrors": [],
+    "pageErrors": [],
+    "screenshotPath": "C:\\Users\\HomePC\\Documents\\THE FRONT END, PROMETHEUS\\audit-artifacts\\ui-audit-pass2\\tablet-editor-root.png"
+  },
+  {
+    "route": "editor-workspace",
+    "path": "/editor/workspace?devAuthBypass=1",
+    "viewport": "tablet",
+    "finalUrl": "http://127.0.0.1:3000/signup?next=%2Fprojects",
+    "status": 200,
+    "metrics": {
+      "title": "Prometheus",
+      "h1": "Create account",
+      "bodyText": "rometheus Privacy Policy Terms of Service Contact Home Create account Create a new account in under a minute. Email Password Confirm password Create account Continue with Google Already have an account? Sign in PROMETHEUS STUDIO Professional video editing and production workspace for filmmakers, motion designers, and modern production teams. © 2026 PROMETHEUS STUDIO. ALL RIGHTS RESERVED. Pricing T",
+      "scrollWidth": 1024,
+      "innerWidth": 1024,
+      "scrollHeight": 1005,
+      "innerHeight": 768,
+      "overflowers": [],
+      "truncated": [],
+      "buttons": [
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Show password"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Show password"
+        },
+        {
+          "text": "Create account",
+          "disabled": true,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Continue with Google",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        }
+      ]
+    },
+    "consoleErrors": [],
+    "pageErrors": [
+      "[Cloudflare Turnstile] Invalid or missing type for parameter \"sitekey\", expected \"string\", got \"undefined\"."
+    ],
+    "screenshotPath": "C:\\Users\\HomePC\\Documents\\THE FRONT END, PROMETHEUS\\audit-artifacts\\ui-audit-pass2\\tablet-editor-workspace.png"
+  },
+  {
+    "route": "editor-motion",
+    "path": "/editor/motion?devAuthBypass=1",
+    "viewport": "tablet",
+    "finalUrl": "http://127.0.0.1:3000/editor/motion?devAuthBypass=1",
+    "status": 200,
+    "metrics": {
+      "title": "Prometheus Editor",
+      "h1": "Visual Mood Experiment",
+      "bodyText": "PROMETHEUS /editor Share Editor Music Motion AI Configuration Core Model Claude 4 GPT-5 Gemini Ultra Inference Mode High Quality Realtime Draft Prompt Opus 4.6 20 Tokens 10.0 Sec Image Settings Creativity Level Mode Low High Quality Steps 0 0 100 Final Results Visual Mood Experiment A M R +2 Motion Direction Console An inertial virtualized dial with logarithmic step increments and magnetic detents",
+      "scrollWidth": 1024,
+      "innerWidth": 1024,
+      "scrollHeight": 768,
+      "innerHeight": 768,
+      "overflowers": [
+        {
+          "tag": "div",
+          "className": "absolute left-0 top-0 h-[1800px] w-[2600px] origin-top-left transition-transform duration-[260ms] ease-[cubic-bezier(0.16,1,0.3,1)]",
+          "text": "AI ConfigurationCore ModelClaude 4GPT-5Gemini UltraInference ModeHigh QualityRealtimeDraftPromptA surreal portrait of a human figure covered",
+          "left": 56,
+          "right": 2656,
+          "top": 46,
+          "bottom": 1846,
+          "visibility": "visible",
+          "opacity": "1"
+        },
+        {
+          "tag": "svg",
+          "className": "",
+          "text": "",
+          "left": 56,
+          "right": 2656,
+          "top": 46,
+          "bottom": 1846,
+          "visibility": "visible",
+          "opacity": "1"
+        },
+        {
+          "tag": "article",
+          "className": "absolute cursor-grab rounded-xl border bg-white/[0.052] p-4 text-white shadow-[0_4px_24px_rgba(0,0,0,0.42),0_1px_2px_rgba(0,0,0,0.32)] backdrop-blur-md transition-colors active:cursor-grabbing border-white/[0.085] hover:",
+          "text": "Final Results",
+          "left": 1007,
+          "right": 1310,
+          "top": 326,
+          "bottom": 642,
+          "visibility": "visible",
+          "opacity": "0.967375"
+        },
+        {
+          "tag": "div",
+          "className": "absolute inset-0 bg-[radial-gradient(circle_at_46%_22%,rgba(250,230,170,0.95),transparent_20%),radial-gradient(circle_at_50%_40%,rgba(214,176,112,0.8),transparent_22%),linear-gradient(160deg,#315d38_0%,#8faa63_34%,#e5bf7",
+          "text": "",
+          "left": 1005,
+          "right": 1151,
+          "top": 419,
+          "bottom": 613,
+          "visibility": "visible",
+          "opacity": "1"
+        },
+        {
+          "tag": "div",
+          "className": "absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/45 to-transparent",
+          "text": "",
+          "left": 1005,
+          "right": 1151,
+          "top": 540,
+          "bottom": 613,
+          "visibility": "visible",
+          "opacity": "1"
+        },
+        {
+          "tag": "div",
+          "className": "absolute inset-0 bg-[radial-gradient(circle_at_46%_22%,rgba(250,230,170,0.95),transparent_20%),radial-gradient(circle_at_50%_40%,rgba(214,176,112,0.8),transparent_22%),linear-gradient(160deg,#315d38_0%,#8faa63_34%,#e5bf7",
+          "text": "",
+          "left": 1005,
+          "right": 1151,
+          "top": 419,
+          "bottom": 613,
+          "visibility": "visible",
+          "opacity": "1"
+        },
+        {
+          "tag": "div",
+          "className": "absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/45 to-transparent",
+          "text": "",
+          "left": 1005,
+          "right": 1151,
+          "top": 540,
+          "bottom": 613,
+          "visibility": "visible",
+          "opacity": "1"
+        },
+        {
+          "tag": "div",
+          "className": "absolute inset-0 bg-[radial-gradient(circle_at_46%_22%,rgba(250,230,170,0.95),transparent_20%),radial-gradient(circle_at_50%_40%,rgba(214,176,112,0.8),transparent_22%),linear-gradient(160deg,#315d38_0%,#8faa63_34%,#e5bf7",
+          "text": "",
+          "left": 1005,
+          "right": 1151,
+          "top": 419,
+          "bottom": 613,
+          "visibility": "visible",
+          "opacity": "1"
+        },
+        {
+          "tag": "div",
+          "className": "absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/45 to-transparent",
+          "text": "",
+          "left": 1005,
+          "right": 1151,
+          "top": 540,
+          "bottom": 613,
+          "visibility": "visible",
+          "opacity": "1"
+        }
+      ],
+      "truncated": [
+        {
+          "tag": "div",
+          "className": "absolute inset-0 overflow-hidden",
+          "text": "AI ConfigurationCore ModelClaude 4GPT-5Gemini UltraInference ModeHigh QualityRealtimeDraftPromptA surreal portrait of a ",
+          "scrollWidth": 2644,
+          "clientWidth": 1000,
+          "right": 1012,
+          "bottom": 756
+        }
+      ],
+      "buttons": [
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Create workspace item"
+        },
+        {
+          "text": "Settings",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Go back"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Open editor menu"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Close sidebar"
+        },
+        {
+          "text": "Share",
+          "disabled": false,
+          "title": null,
+          "aria": "Share project"
+        },
+        {
+          "text": "Editor",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Music",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Motion",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "output output"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "input input"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "output output"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "input input"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "output output"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Execute pipeline"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "input input-top"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "input input-bottom"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "output output"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "input input"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Night mode"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Share"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Home"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Motion"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Projects"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Search"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Pages"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Settings"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Logout"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": "Cursor",
+          "aria": "Cursor"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": "Pan",
+          "aria": "Pan"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": "Execute",
+          "aria": "Execute"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": "Image",
+          "aria": "Image"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": "Text",
+          "aria": "Text"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": "Prompt",
+          "aria": "Prompt"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": "Comment",
+          "aria": "Comment"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": "Code",
+          "aria": "Code"
+        },
+        {
+          "text": "Generate",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Genre",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Budget in millions",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Era",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Archetype",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Identity",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Look",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Details",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "$40M",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "$80M",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "$90M",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "$100M",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "$150M",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "$200M",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "$250M",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Add image",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Probe",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "glass interface closeups",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "orbital particle references",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "volumetric slate vignette",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "macro lens detents",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "refractive gel capsules",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Open command zone"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": "Enter focus mode",
+          "aria": "Enter focus mode"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Close editor menu"
+        },
+        {
+          "text": "Projects",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Motion Brain",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Music",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Analytics",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Timeline",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Chat",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Versions",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Status",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Export",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Settings",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        }
+      ]
+    },
+    "consoleErrors": [],
+    "pageErrors": [],
+    "screenshotPath": "C:\\Users\\HomePC\\Documents\\THE FRONT END, PROMETHEUS\\audit-artifacts\\ui-audit-pass2\\tablet-editor-motion.png"
+  },
+  {
+    "route": "assets",
+    "path": "/assets?devAuthBypass=1",
+    "viewport": "tablet",
+    "finalUrl": "http://127.0.0.1:3000/assets?devAuthBypass=1",
+    "status": 200,
+    "metrics": {
+      "title": "Prometheus",
+      "h1": null,
+      "bodyText": "ROMETHEUS Studio Projects Library Editor Analytics Settings PROMETHEUS LIBRARY MOVIES 00 MUSIC 00 B-ROLL 00 FONTS 00 LOGOS 00 Upload 2026 Business, Strategy FEATURED FOUNDER ARCHIVE 9.1 / 10 2.03h Alex Hormozi FOUNDER ARCHIVE Cinematic portraits, premium interview selects, and founder-led moments staged like a flagship release. Watch Hero Save Spirit LIBRARY STACK Alex Hormozi showcase HOVER TO IN",
+      "scrollWidth": 1024,
+      "innerWidth": 1024,
+      "scrollHeight": 768,
+      "innerHeight": 768,
+      "overflowers": [
+        {
+          "tag": "div",
+          "className": "absolute inset-0 scale-[1.12] bg-cover bg-center opacity-40 blur-[68px] saturate-[1.12] will-change-transform",
+          "text": "",
+          "left": 257,
+          "right": 1057,
+          "top": -62,
+          "bottom": 1043,
+          "visibility": "visible",
+          "opacity": "0.42"
+        }
+      ],
+      "truncated": [
+        {
+          "tag": "div",
+          "className": "relative min-h-[640px] overflow-hidden border-b border-white/10",
+          "text": "Prometheus LibraryMovies 00Music 00B-roll 00Fonts 00Logos 00Upload2026Business, StrategyFeatured founder archive9.1 / 10",
+          "scrollWidth": 725,
+          "clientWidth": 650,
+          "right": 982,
+          "bottom": 940
+        },
+        {
+          "tag": "div",
+          "className": "group relative h-full w-full min-h-[280px] overflow-hidden rounded-[10px] border bg-[#090a0f] border-white/10 shadow-[0_24px_44px_-32px_rgba(0,0,0,0.82)]",
+          "text": "Alex archivePricing clinicOffer Breakdowns12 selects",
+          "scrollWidth": 87,
+          "clientWidth": 0,
+          "right": 358,
+          "bottom": 1317
+        },
+        {
+          "tag": "div",
+          "className": "truncate text-[10px] uppercase tracking-[0.22em] text-white/52",
+          "text": "Pricing clinic",
+          "scrollWidth": 101,
+          "clientWidth": 0,
+          "right": 373,
+          "bottom": 1226
+        },
+        {
+          "tag": "div",
+          "className": "mt-2 line-clamp-2 text-[1.05rem] font-semibold leading-tight text-white",
+          "text": "Offer Breakdowns",
+          "scrollWidth": 92,
+          "clientWidth": 0,
+          "right": 373,
+          "bottom": 1276
+        },
+        {
+          "tag": "div",
+          "className": "mt-2 truncate text-xs text-white/54",
+          "text": "12 selects",
+          "scrollWidth": 51,
+          "clientWidth": 0,
+          "right": 373,
+          "bottom": 1300
+        },
+        {
+          "tag": "div",
+          "className": "group relative h-full w-full min-h-[280px] overflow-hidden rounded-[10px] border bg-[#090a0f] border-white/10 shadow-[0_24px_44px_-32px_rgba(0,0,0,0.82)]",
+          "text": "Alex archiveDiscipline cutsGym Monologues09 selects",
+          "scrollWidth": 87,
+          "clientWidth": 0,
+          "right": 665,
+          "bottom": 1317
+        },
+        {
+          "tag": "div",
+          "className": "truncate text-[10px] uppercase tracking-[0.22em] text-white/52",
+          "text": "Discipline cuts",
+          "scrollWidth": 109,
+          "clientWidth": 0,
+          "right": 680,
+          "bottom": 1226
+        },
+        {
+          "tag": "div",
+          "className": "mt-2 line-clamp-2 text-[1.05rem] font-semibold leading-tight text-white",
+          "text": "Gym Monologues",
+          "scrollWidth": 96,
+          "clientWidth": 0,
+          "right": 680,
+          "bottom": 1276
+        },
+        {
+          "tag": "div",
+          "className": "mt-2 truncate text-xs text-white/54",
+          "text": "09 selects",
+          "scrollWidth": 51,
+          "clientWidth": 0,
+          "right": 680,
+          "bottom": 1300
+        },
+        {
+          "tag": "div",
+          "className": "group relative h-full w-full min-h-[280px] overflow-hidden rounded-[10px] border bg-[#090a0f] border-white/10 shadow-[0_24px_44px_-32px_rgba(0,0,0,0.82)]",
+          "text": "Alex archiveGrowth excerptsAcquisition Notes08 selects",
+          "scrollWidth": 87,
+          "clientWidth": 0,
+          "right": 358,
+          "bottom": 1615
+        },
+        {
+          "tag": "div",
+          "className": "truncate text-[10px] uppercase tracking-[0.22em] text-white/52",
+          "text": "Growth excerpts",
+          "scrollWidth": 122,
+          "clientWidth": 0,
+          "right": 373,
+          "bottom": 1524
+        },
+        {
+          "tag": "div",
+          "className": "mt-2 line-clamp-2 text-[1.05rem] font-semibold leading-tight text-white",
+          "text": "Acquisition Notes",
+          "scrollWidth": 85,
+          "clientWidth": 0,
+          "right": 373,
+          "bottom": 1574
+        },
+        {
+          "tag": "div",
+          "className": "mt-2 truncate text-xs text-white/54",
+          "text": "08 selects",
+          "scrollWidth": 51,
+          "clientWidth": 0,
+          "right": 373,
+          "bottom": 1598
+        },
+        {
+          "tag": "div",
+          "className": "group relative h-full w-full min-h-[280px] overflow-hidden rounded-[10px] border bg-[#090a0f] border-white/10 shadow-[0_24px_44px_-32px_rgba(0,0,0,0.82)]",
+          "text": "Alex archiveHigh-energy momentsStage Keynotes11 selects",
+          "scrollWidth": 87,
+          "clientWidth": 0,
+          "right": 665,
+          "bottom": 1615
+        },
+        {
+          "tag": "div",
+          "className": "truncate text-[10px] uppercase tracking-[0.22em] text-white/52",
+          "text": "High-energy moments",
+          "scrollWidth": 156,
+          "clientWidth": 0,
+          "right": 680,
+          "bottom": 1524
+        },
+        {
+          "tag": "div",
+          "className": "mt-2 line-clamp-2 text-[1.05rem] font-semibold leading-tight text-white",
+          "text": "Stage Keynotes",
+          "scrollWidth": 69,
+          "clientWidth": 0,
+          "right": 680,
+          "bottom": 1574
+        },
+        {
+          "tag": "div",
+          "className": "mt-2 truncate text-xs text-white/54",
+          "text": "11 selects",
+          "scrollWidth": 51,
+          "clientWidth": 0,
+          "right": 680,
+          "bottom": 1598
+        },
+        {
+          "tag": "div",
+          "className": "group relative h-full w-full min-h-[280px] overflow-hidden rounded-[10px] border bg-[#090a0f] border-white/10 shadow-[0_24px_44px_-32px_rgba(0,0,0,0.82)]",
+          "text": "Alex archiveFounder coachingOperator Advice10 selects",
+          "scrollWidth": 87,
+          "clientWidth": 0,
+          "right": 358,
+          "bottom": 1913
+        },
+        {
+          "tag": "div",
+          "className": "truncate text-[10px] uppercase tracking-[0.22em] text-white/52",
+          "text": "Founder coaching",
+          "scrollWidth": 133,
+          "clientWidth": 0,
+          "right": 373,
+          "bottom": 1822
+        },
+        {
+          "tag": "div",
+          "className": "mt-2 line-clamp-2 text-[1.05rem] font-semibold leading-tight text-white",
+          "text": "Operator Advice",
+          "scrollWidth": 69,
+          "clientWidth": 0,
+          "right": 373,
+          "bottom": 1872
+        },
+        {
+          "tag": "div",
+          "className": "mt-2 truncate text-xs text-white/54",
+          "text": "10 selects",
+          "scrollWidth": 51,
+          "clientWidth": 0,
+          "right": 373,
+          "bottom": 1896
+        },
+        {
+          "tag": "div",
+          "className": "group relative h-full w-full min-h-[280px] overflow-hidden rounded-[10px] border bg-[#090a0f] border-white/10 shadow-[0_24px_44px_-32px_rgba(0,0,0,0.82)]",
+          "text": "Alex archiveConversion-driven clipsDirect Response Vault07 selects",
+          "scrollWidth": 87,
+          "clientWidth": 0,
+          "right": 665,
+          "bottom": 1913
+        },
+        {
+          "tag": "div",
+          "className": "truncate text-[10px] uppercase tracking-[0.22em] text-white/52",
+          "text": "Conversion-driven clips",
+          "scrollWidth": 177,
+          "clientWidth": 0,
+          "right": 680,
+          "bottom": 1822
+        },
+        {
+          "tag": "div",
+          "className": "mt-2 line-clamp-2 text-[1.05rem] font-semibold leading-tight text-white",
+          "text": "Direct Response Vault",
+          "scrollWidth": 72,
+          "clientWidth": 0,
+          "right": 680,
+          "bottom": 1872
+        },
+        {
+          "tag": "div",
+          "className": "mt-2 truncate text-xs text-white/54",
+          "text": "07 selects",
+          "scrollWidth": 51,
+          "clientWidth": 0,
+          "right": 680,
+          "bottom": 1896
+        }
+      ],
+      "buttons": [
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Collapse sidebar"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Go back"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Movies 00",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Music 00",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "B-roll 00",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Fonts 00",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Logos 00",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Upload",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Search library"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "User profile"
+        },
+        {
+          "text": "Watch Hero",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Save Spirit",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Alex archivePricing clinicOffer Breakdowns12 selects",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Alex archiveDiscipline cutsGym Monologues09 selects",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Alex archiveGrowth excerptsAcquisition Notes08 selects",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Alex archiveHigh-energy momentsStage Keynotes11 selects",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Alex archiveFounder coachingOperator Advice10 selects",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Alex archiveConversion-driven clipsDirect Response Vault07 selects",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": "Add Alex Hormozi to preferences",
+          "aria": "Add Alex Hormozi to preference vault"
+        }
+      ]
+    },
+    "consoleErrors": [],
+    "pageErrors": [],
+    "screenshotPath": "C:\\Users\\HomePC\\Documents\\THE FRONT END, PROMETHEUS\\audit-artifacts\\ui-audit-pass2\\tablet-assets.png"
+  },
+  {
+    "route": "analytics",
+    "path": "/analytics?devAuthBypass=1",
+    "viewport": "tablet",
+    "finalUrl": "http://127.0.0.1:3000/analytics?devAuthBypass=1",
+    "status": 200,
+    "metrics": {
+      "title": "Prometheus",
+      "h1": null,
+      "bodyText": "ROMETHEUS Studio Projects Library Editor Analytics Settings PERFORMANCE Analytics Cross-platform telemetry, distilled. REACH 284.1K WATCH TIME 5h 11m LIKES 9,250 SHARES 1,244 REACH CURVE Cross-platform reach curve 7D 30D 90D W1 W2 W3 W4 W5 W6 W7 W8 W9 W10 W11 W12 TOP SIGNAL FEATURED SIGNAL Signal No. 04 The strongest export in the current review window. RETENTION 78% ENGAGEMENT 12.4% EVOLVE INTERF",
+      "scrollWidth": 1024,
+      "innerWidth": 1024,
+      "scrollHeight": 768,
+      "innerHeight": 768,
+      "overflowers": [],
+      "truncated": [],
+      "buttons": [
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Collapse sidebar"
+        },
+        {
+          "text": "7D",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "30D",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "90D",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Golden sky plate",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Portrait cut",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "GIFArchive frame",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Motion note",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Soft grain",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Editorial still",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        }
+      ]
+    },
+    "consoleErrors": [],
+    "pageErrors": [],
+    "screenshotPath": "C:\\Users\\HomePC\\Documents\\THE FRONT END, PROMETHEUS\\audit-artifacts\\ui-audit-pass2\\tablet-analytics.png"
+  },
+  {
+    "route": "settings",
+    "path": "/settings?devAuthBypass=1",
+    "viewport": "tablet",
+    "finalUrl": "http://127.0.0.1:3000/settings?devAuthBypass=1",
+    "status": 200,
+    "metrics": {
+      "title": "Prometheus",
+      "h1": "Settings",
+      "bodyText": "ROMETHEUS Studio Projects Library Editor Analytics Settings Settings Preferences and integrations (UI scaffolding). Profile Account info, security, preferences Notifications Mock toggles for future alerts. Processing completion Notify when edits are ready. Reduced motion override UI-only. Respects system preference by default. Integrations Mock connect states. Google Drive Connect to import source",
+      "scrollWidth": 1024,
+      "innerWidth": 1024,
+      "scrollHeight": 768,
+      "innerHeight": 768,
+      "overflowers": [],
+      "truncated": [],
+      "buttons": [
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Collapse sidebar"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Go back"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Sign out",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        }
+      ]
+    },
+    "consoleErrors": [],
+    "pageErrors": [],
+    "screenshotPath": "C:\\Users\\HomePC\\Documents\\THE FRONT END, PROMETHEUS\\audit-artifacts\\ui-audit-pass2\\tablet-settings.png"
+  },
+  {
+    "route": "team",
+    "path": "/team?devAuthBypass=1",
+    "viewport": "tablet",
+    "finalUrl": "http://127.0.0.1:3000/team?devAuthBypass=1",
+    "status": 200,
+    "metrics": {
+      "title": "Prometheus",
+      "h1": "Team",
+      "bodyText": "ROMETHEUS Studio Projects Library Editor Analytics Settings Team UI-only team management scaffolding. Members Invite, roles, permissions (mock). This is a placeholder for team collaboration flows.",
+      "scrollWidth": 1024,
+      "innerWidth": 1024,
+      "scrollHeight": 768,
+      "innerHeight": 768,
+      "overflowers": [],
+      "truncated": [],
+      "buttons": [
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Collapse sidebar"
+        }
+      ]
+    },
+    "consoleErrors": [],
+    "pageErrors": [],
+    "screenshotPath": "C:\\Users\\HomePC\\Documents\\THE FRONT END, PROMETHEUS\\audit-artifacts\\ui-audit-pass2\\tablet-team.png"
+  },
+  {
+    "route": "billing",
+    "path": "/billing?devAuthBypass=1",
+    "viewport": "tablet",
+    "finalUrl": "http://127.0.0.1:3000/signup?next=%2Fsettings%2Fbilling",
+    "status": 200,
+    "metrics": {
+      "title": "Prometheus",
+      "h1": "Create account",
+      "bodyText": "rometheus Privacy Policy Terms of Service Contact Home Create account Create a new account in under a minute. Email Password Confirm password Create account Continue with Google Already have an account? Sign in PROMETHEUS STUDIO Professional video editing and production workspace for filmmakers, motion designers, and modern production teams. © 2026 PROMETHEUS STUDIO. ALL RIGHTS RESERVED. Pricing T",
+      "scrollWidth": 1024,
+      "innerWidth": 1024,
+      "scrollHeight": 1005,
+      "innerHeight": 768,
+      "overflowers": [],
+      "truncated": [],
+      "buttons": [
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Show password"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Show password"
+        },
+        {
+          "text": "Create account",
+          "disabled": true,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Continue with Google",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        }
+      ]
+    },
+    "consoleErrors": [
+      "A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:\n\n- A server/client branch `if (typeof window !== 'undefined')`.\n- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.\n- Date formatting in a user's locale which doesn't match the server.\n- External changing data without sending a snapshot of it along with the HTML.\n- Invalid HTML tag nesting.\n\nIt can also happen if the client has a browser extension installed which messes with the HTML before React loaded.\n\n%s%s https://react.dev/link/hydration-mismatch \n\n  ...\n    <SignupPage>\n      <AuthShell title=\"Create acc...\" subtitle=\"Create a n...\" compact={true} showLegalCopy={false} ...>\n        ...\n          <main className=\"relative m...\">\n            <div>\n            <div className=\"pointer-ev...\">\n              <div>\n              <Button>\n              <div className=\"auth-shell...\">\n                <div>\n                <div>\n                <Suspense fallback={null}>\n                  <Suspense fallback={null}>\n                    <SignupForm compact={true}>\n                      <form onSubmit={function onSubmit} className=\"auth-signu...\">\n                        <div>\n                          <label>\n                          <div className=\"mt-2 relative\">\n                            <AtSign>\n                            <Input id=\"signup-email\" type=\"email\" placeholder=\"you@domain...\" className=\"peer h-10 ...\" ...>\n                              <input\n                                type=\"email\"\n                                className=\"flex w-full border px-3 py-1 text-sm shadow-sm outline-none transition-colo...\"\n                                id=\"signup-email\"\n                                placeholder=\"you@domain.com\"\n                                value=\"\"\n                                onChange={function onChange}\n                                onFocus={function onFocus}\n                                onBlur={function onBlur}\n                                autoComplete=\"email\"\n-                               style={{caret-color:\"transparent\"}}\n                              >\n                        <div>\n                          <label>\n                          <div className=\"mt-2 relative\">\n                            <Lock>\n                            <Input id=\"signup-pas...\" type=\"password\" placeholder=\"Create a p...\" ...>\n                              <input\n                                type=\"password\"\n                                className=\"flex w-full border px-3 py-1 text-sm shadow-sm outline-none transition-colo...\"\n                                id=\"signup-password\"\n                                placeholder=\"Create a password\"\n                                value=\"\"\n                                onChange={function onChange}\n                                onFocus={function onFocus}\n                                onBlur={function onBlur}\n                                autoComplete=\"new-password\"\n-                               style={{caret-color:\"transparent\"}}\n                              >\n                            ...\n                        <div>\n                          <label>\n                          <div className=\"mt-2 relative\">\n                            <Lock>\n                            <Input id=\"signup-con...\" type=\"password\" placeholder=\"Repeat you...\" ...>\n                              <input\n                                type=\"password\"\n                                className=\"flex w-full border px-3 py-1 text-sm shadow-sm outline-none transition-colo...\"\n                                id=\"signup-confirm\"\n                                placeholder=\"Repeat your password\"\n                                value=\"\"\n                                onChange={function onChange}\n                                onFocus={function onFocus}\n                                onBlur={function onBlur}\n                                autoComplete=\"new-password\"\n-                               style={{caret-color:\"transparent\"}}\n                              >\n                            ...\n                        ...\n"
+    ],
+    "pageErrors": [
+      "[Cloudflare Turnstile] Invalid or missing type for parameter \"sitekey\", expected \"string\", got \"undefined\"."
+    ],
+    "screenshotPath": "C:\\Users\\HomePC\\Documents\\THE FRONT END, PROMETHEUS\\audit-artifacts\\ui-audit-pass2\\tablet-billing.png"
+  },
+  {
+    "route": "home",
+    "path": "/",
+    "viewport": "mobile",
+    "finalUrl": "http://127.0.0.1:3000/",
+    "status": 200,
+    "metrics": {
+      "title": "Prometheus",
+      "h1": "Ready to Create SomethingLiveNew?",
+      "bodyText": "ROMETHEUS PRICING LOGIN Ready to Create Something Live New ? Upload a source, choose a visual lane, and send the next edit into motion. Send Source videos kept for 15 days. Outputs are permanent. Clone Editing Style Improve Reveal Showcase Iman Punchy Aggressive pacing, strong captions, momentum-focused cut rhythm. Iman Clean Minimalist captions, crisp jump cuts, premium sound design slots. Long F",
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "scrollHeight": 844,
+      "innerHeight": 844,
+      "overflowers": [
+        {
+          "tag": "div",
+          "className": "flex studio-cinematic-rail-track gap-3 px-3",
+          "text": "Iman PunchyAggressive pacing, strong captions, momentum-focused cut rhythm.Iman CleanMinimalist captions, crisp jump cuts, premium sound des",
+          "left": -615,
+          "right": 2781,
+          "top": 753,
+          "bottom": 849,
+          "visibility": "visible",
+          "opacity": "1"
+        },
+        {
+          "tag": "button",
+          "className": "group premium-motion-surface relative h-24 w-44 shrink-0 overflow-hidden rounded-[18px] border bg-white/[0.035] text-left shadow-[0_22px_48px_-34px_rgba(0,0,0,0.92)] transition-[border-color,background-color,transform] d",
+          "text": "Docs StoryBreathing room, cinematic pacing, tasteful captioning.",
+          "left": 337,
+          "right": 513,
+          "top": 753,
+          "bottom": 849,
+          "visibility": "visible",
+          "opacity": "1"
+        },
+        {
+          "tag": "img",
+          "className": "object-cover opacity-75 transition duration-300 group-hover:scale-105 group-hover:opacity-95",
+          "text": "",
+          "left": 338,
+          "right": 512,
+          "top": 754,
+          "bottom": 848,
+          "visibility": "visible",
+          "opacity": "0.75"
+        },
+        {
+          "tag": "div",
+          "className": "absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.02)_0%,rgba(0,0,0,0.82)_100%)]",
+          "text": "",
+          "left": 338,
+          "right": 512,
+          "top": 754,
+          "bottom": 848,
+          "visibility": "visible",
+          "opacity": "1"
+        },
+        {
+          "tag": "div",
+          "className": "absolute inset-x-3 bottom-3",
+          "text": "Docs StoryBreathing room, cinematic pacing, tasteful captioning.",
+          "left": 350,
+          "right": 500,
+          "top": 801,
+          "bottom": 836,
+          "visibility": "visible",
+          "opacity": "1"
+        },
+        {
+          "tag": "div",
+          "className": "truncate text-xs font-semibold text-white/92",
+          "text": "Docs Story",
+          "left": 350,
+          "right": 500,
+          "top": 801,
+          "bottom": 817,
+          "visibility": "visible",
+          "opacity": "1"
+        },
+        {
+          "tag": "div",
+          "className": "mt-1 line-clamp-1 text-[10px] text-white/48",
+          "text": "Breathing room, cinematic pacing, tasteful captioning.",
+          "left": 350,
+          "right": 500,
+          "top": 821,
+          "bottom": 836,
+          "visibility": "visible",
+          "opacity": "1"
+        }
+      ],
+      "truncated": [
+        {
+          "tag": "div",
+          "className": "studio-cinematic-rails premium-telemetry-panel premium-vignette-edges group relative overflow-hidden rounded-[18px] border border-white/[0.08] bg-black/[0.22] py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]",
+          "text": "@keyframes studio-marquee-right { from { transform: translateX(-50%); } to { transform: translateX(0%); } } @keyframes s",
+          "scrollWidth": 3396,
+          "clientWidth": 356,
+          "right": 374,
+          "bottom": 970
+        }
+      ],
+      "buttons": [
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Collapse sidebar"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Open mobile navigation"
+        },
+        {
+          "text": "Get Started",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": "Upload source",
+          "aria": null
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": "Templates and styles",
+          "aria": null
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Choose animation style"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Send",
+          "disabled": true,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Clone Editing Style",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Improve",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Reveal Showcase",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Iman PunchyAggressive pacing, strong captions, momentum-focused cut rhythm.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Iman Punchy animation style"
+        },
+        {
+          "text": "Iman CleanMinimalist captions, crisp jump cuts, premium sound design slots.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Iman Clean animation style"
+        },
+        {
+          "text": "Long Form Typography V1Long-form SVG typography, highlight markers, and smart punch-ins.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Long Form Typography V1 animation style"
+        },
+        {
+          "text": "Reels HeatFast hook, high energy cuts, b-roll heavy overlays.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Reels Heat animation style"
+        },
+        {
+          "text": "Reels HeatFast hook, high energy cuts, b-roll heavy overlays.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Reels Heat animation style"
+        },
+        {
+          "text": "Docs StoryBreathing room, cinematic pacing, tasteful captioning.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Docs Story animation style"
+        },
+        {
+          "text": "Cinematic NoirMoody contrast, restrained captions, slow-burn pacing.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Cinematic Noir animation style"
+        },
+        {
+          "text": "Stoic RedBold accents, confident pacing, minimal distractions.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Stoic Red animation style"
+        },
+        {
+          "text": "Minimal SubtleBare captions and clean cuts for brand-first content.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Minimal Subtle animation style"
+        },
+        {
+          "text": "Iman PunchyAggressive pacing, strong captions, momentum-focused cut rhythm.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Iman Punchy animation style"
+        },
+        {
+          "text": "Iman CleanMinimalist captions, crisp jump cuts, premium sound design slots.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Iman Clean animation style"
+        },
+        {
+          "text": "Long Form Typography V1Long-form SVG typography, highlight markers, and smart punch-ins.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Long Form Typography V1 animation style"
+        },
+        {
+          "text": "Reels HeatFast hook, high energy cuts, b-roll heavy overlays.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Reels Heat animation style"
+        },
+        {
+          "text": "Reels HeatFast hook, high energy cuts, b-roll heavy overlays.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Reels Heat animation style"
+        },
+        {
+          "text": "Docs StoryBreathing room, cinematic pacing, tasteful captioning.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Docs Story animation style"
+        },
+        {
+          "text": "Cinematic NoirMoody contrast, restrained captions, slow-burn pacing.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Cinematic Noir animation style"
+        },
+        {
+          "text": "Stoic RedBold accents, confident pacing, minimal distractions.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Stoic Red animation style"
+        },
+        {
+          "text": "Minimal SubtleBare captions and clean cuts for brand-first content.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Minimal Subtle animation style"
+        },
+        {
+          "text": "Minimal SubtleBare captions and clean cuts for brand-first content.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Minimal Subtle animation style"
+        },
+        {
+          "text": "Stoic RedBold accents, confident pacing, minimal distractions.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Stoic Red animation style"
+        },
+        {
+          "text": "Cinematic NoirMoody contrast, restrained captions, slow-burn pacing.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Cinematic Noir animation style"
+        },
+        {
+          "text": "Docs StoryBreathing room, cinematic pacing, tasteful captioning.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Docs Story animation style"
+        },
+        {
+          "text": "Reels HeatFast hook, high energy cuts, b-roll heavy overlays.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Reels Heat animation style"
+        },
+        {
+          "text": "Reels HeatFast hook, high energy cuts, b-roll heavy overlays.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Reels Heat animation style"
+        },
+        {
+          "text": "Long Form Typography V1Long-form SVG typography, highlight markers, and smart punch-ins.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Long Form Typography V1 animation style"
+        },
+        {
+          "text": "Iman CleanMinimalist captions, crisp jump cuts, premium sound design slots.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Iman Clean animation style"
+        },
+        {
+          "text": "Iman PunchyAggressive pacing, strong captions, momentum-focused cut rhythm.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Iman Punchy animation style"
+        },
+        {
+          "text": "Minimal SubtleBare captions and clean cuts for brand-first content.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Minimal Subtle animation style"
+        },
+        {
+          "text": "Stoic RedBold accents, confident pacing, minimal distractions.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Stoic Red animation style"
+        },
+        {
+          "text": "Cinematic NoirMoody contrast, restrained captions, slow-burn pacing.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Cinematic Noir animation style"
+        },
+        {
+          "text": "Docs StoryBreathing room, cinematic pacing, tasteful captioning.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Docs Story animation style"
+        },
+        {
+          "text": "Reels HeatFast hook, high energy cuts, b-roll heavy overlays.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Reels Heat animation style"
+        },
+        {
+          "text": "Reels HeatFast hook, high energy cuts, b-roll heavy overlays.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Reels Heat animation style"
+        },
+        {
+          "text": "Long Form Typography V1Long-form SVG typography, highlight markers, and smart punch-ins.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Long Form Typography V1 animation style"
+        },
+        {
+          "text": "Iman CleanMinimalist captions, crisp jump cuts, premium sound design slots.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Iman Clean animation style"
+        },
+        {
+          "text": "Iman PunchyAggressive pacing, strong captions, momentum-focused cut rhythm.",
+          "disabled": false,
+          "title": null,
+          "aria": "Select Iman Punchy animation style"
+        }
+      ]
+    },
+    "consoleErrors": [],
+    "pageErrors": [],
+    "screenshotPath": "C:\\Users\\HomePC\\Documents\\THE FRONT END, PROMETHEUS\\audit-artifacts\\ui-audit-pass2\\mobile-home.png"
+  },
+  {
+    "route": "pricing",
+    "path": "/pricing",
+    "viewport": "mobile",
+    "finalUrl": "http://127.0.0.1:3000/pricing",
+    "status": 200,
+    "metrics": {
+      "title": "Pricing | Prometheus",
+      "h1": "Premium video infrastructure, packaged for teams that ship.",
+      "bodyText": "ROMETHEUS PRICING LOGIN PRICING Premium video infrastructure, packaged for teams that ship. Choose a Prometheus Studio plan for a professional video editing and production workspace for filmmakers, motion design, cloud-backed project storage, and export-ready rendering workflows. PROMETHEUS 150 CREDITS Creator For independent creators and solo operators producing content at scale. $ 997 .99 / mo A",
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "scrollHeight": 4098,
+      "innerHeight": 844,
+      "overflowers": [
+        {
+          "tag": "div",
+          "className": "pointer-events-none absolute left-1/2 top-[8.5rem] z-0 w-[140vw] -translate-x-1/2 scale-x-105 select-none text-center text-[4.2rem] font-black leading-none text-white/[0.04] blur-[2px] sm:text-[7.5rem] md:top-[10rem] md:",
+          "text": "PROMETHEUS",
+          "left": -92,
+          "right": 482,
+          "top": 667,
+          "bottom": 734,
+          "visibility": "visible",
+          "opacity": "1"
+        }
+      ],
+      "truncated": [
+        {
+          "tag": "section",
+          "className": "relative isolate overflow-hidden px-1 pb-2 pt-8",
+          "text": "PROMETHEUS150 creditsCreatorFor independent creators and solo operators producing content at scale.$997.99/ moAI-powered",
+          "scrollWidth": 466,
+          "clientWidth": 358,
+          "right": 374,
+          "bottom": 4002
+        }
+      ],
+      "buttons": [
+        {
+          "text": "Get Started",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        }
+      ]
+    },
+    "consoleErrors": [
+      "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+      "Failed to load resource: net::ERR_INTERNET_DISCONNECTED"
+    ],
+    "pageErrors": [],
+    "screenshotPath": "C:\\Users\\HomePC\\Documents\\THE FRONT END, PROMETHEUS\\audit-artifacts\\ui-audit-pass2\\mobile-pricing.png"
+  },
+  {
+    "route": "login",
+    "path": "/login",
+    "viewport": "mobile",
+    "finalUrl": "http://127.0.0.1:3000/login",
+    "status": 200,
+    "metrics": {
+      "title": "Prometheus",
+      "h1": "Sign in",
+      "bodyText": "Home rometheus Sign in Use OAuth or your email and password. Continue with Google Continue with Apple Continue with GitHub OR CONTINUE WITH EMAIL Email Password Forgot password? Sign in Don't have an account? Sign up By clicking continue, you agree to our Terms of Service and Privacy Policy.",
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "scrollHeight": 844,
+      "innerHeight": 844,
+      "overflowers": [],
+      "truncated": [],
+      "buttons": [
+        {
+          "text": "Continue with Google",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Continue with Apple",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Continue with GitHub",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Sign in",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        }
+      ]
+    },
+    "consoleErrors": [
+      "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+      "Failed to load resource: net::ERR_INTERNET_DISCONNECTED"
+    ],
+    "pageErrors": [],
+    "screenshotPath": "C:\\Users\\HomePC\\Documents\\THE FRONT END, PROMETHEUS\\audit-artifacts\\ui-audit-pass2\\mobile-login.png"
+  },
+  {
+    "route": "signup",
+    "path": "/signup",
+    "viewport": "mobile",
+    "finalUrl": "http://127.0.0.1:3000/signup",
+    "status": 200,
+    "metrics": {
+      "title": "Prometheus",
+      "h1": "Create account",
+      "bodyText": "Home rometheus Create account Create a new account in under a minute. Email Password Confirm password Create account Continue with Google Already have an account? Sign in PROMETHEUS STUDIO Professional video editing and production workspace for filmmakers, motion designers, and modern production teams. © 2026 PROMETHEUS STUDIO. ALL RIGHTS RESERVED. Pricing Terms & Conditions Privacy Policy Refund ",
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "scrollHeight": 1165,
+      "innerHeight": 844,
+      "overflowers": [],
+      "truncated": [],
+      "buttons": [
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Show password"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Show password"
+        },
+        {
+          "text": "Create account",
+          "disabled": true,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Continue with Google",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        }
+      ]
+    },
+    "consoleErrors": [
+      "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+      "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+      "Failed to load resource: net::ERR_INTERNET_DISCONNECTED"
+    ],
+    "pageErrors": [],
+    "screenshotPath": "C:\\Users\\HomePC\\Documents\\THE FRONT END, PROMETHEUS\\audit-artifacts\\ui-audit-pass2\\mobile-signup.png"
+  },
+  {
+    "route": "projects",
+    "path": "/projects?devAuthBypass=1",
+    "viewport": "mobile",
+    "finalUrl": "http://127.0.0.1:3000/projects?devAuthBypass=1",
+    "status": 200,
+    "metrics": {
+      "title": "Prometheus",
+      "h1": "Projects",
+      "bodyText": "Projects Your creative workspace New Project Sort by Last edited Created Name Progress All0 Draft0 Rendering0 Completed0 Failed0",
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "scrollHeight": 844,
+      "innerHeight": 844,
+      "overflowers": [],
+      "truncated": [],
+      "buttons": [
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Collapse sidebar"
+        },
+        {
+          "text": "New Project",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "All0",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Draft0",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Rendering0",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Completed0",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Failed0",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        }
+      ]
+    },
+    "consoleErrors": [
+      "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+      "Failed to load resource: net::ERR_INTERNET_DISCONNECTED"
+    ],
+    "pageErrors": [],
+    "screenshotPath": "C:\\Users\\HomePC\\Documents\\THE FRONT END, PROMETHEUS\\audit-artifacts\\ui-audit-pass2\\mobile-projects.png"
+  },
+  {
+    "route": "editor-root",
+    "path": "/editor?devAuthBypass=1",
+    "viewport": "mobile",
+    "finalUrl": "http://127.0.0.1:3000/signup?next=%2Fprojects",
+    "status": 200,
+    "metrics": {
+      "title": "Prometheus",
+      "h1": "Create account",
+      "bodyText": "Home rometheus Create account Create a new account in under a minute. Email Password Confirm password Create account Continue with Google Already have an account? Sign in PROMETHEUS STUDIO Professional video editing and production workspace for filmmakers, motion designers, and modern production teams. © 2026 PROMETHEUS STUDIO. ALL RIGHTS RESERVED. Pricing Terms & Conditions Privacy Policy Refund ",
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "scrollHeight": 1165,
+      "innerHeight": 844,
+      "overflowers": [],
+      "truncated": [],
+      "buttons": [
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Show password"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Show password"
+        },
+        {
+          "text": "Create account",
+          "disabled": true,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Continue with Google",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        }
+      ]
+    },
+    "consoleErrors": [
+      "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+      "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+      "Failed to load resource: net::ERR_INTERNET_DISCONNECTED"
+    ],
+    "pageErrors": [],
+    "screenshotPath": "C:\\Users\\HomePC\\Documents\\THE FRONT END, PROMETHEUS\\audit-artifacts\\ui-audit-pass2\\mobile-editor-root.png"
+  },
+  {
+    "route": "editor-workspace",
+    "path": "/editor/workspace?devAuthBypass=1",
+    "viewport": "mobile",
+    "finalUrl": "http://127.0.0.1:3000/signup?next=%2Fprojects",
+    "status": 200,
+    "metrics": {
+      "title": "Prometheus",
+      "h1": "Create account",
+      "bodyText": "Home rometheus Create account Create a new account in under a minute. Email Password Confirm password Create account Continue with Google Already have an account? Sign in PROMETHEUS STUDIO Professional video editing and production workspace for filmmakers, motion designers, and modern production teams. © 2026 PROMETHEUS STUDIO. ALL RIGHTS RESERVED. Pricing Terms & Conditions Privacy Policy Refund ",
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "scrollHeight": 1165,
+      "innerHeight": 844,
+      "overflowers": [],
+      "truncated": [],
+      "buttons": [
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Show password"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Show password"
+        },
+        {
+          "text": "Create account",
+          "disabled": true,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Continue with Google",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        }
+      ]
+    },
+    "consoleErrors": [
+      "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+      "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+      "Failed to load resource: net::ERR_INTERNET_DISCONNECTED"
+    ],
+    "pageErrors": [],
+    "screenshotPath": "C:\\Users\\HomePC\\Documents\\THE FRONT END, PROMETHEUS\\audit-artifacts\\ui-audit-pass2\\mobile-editor-workspace.png"
+  },
+  {
+    "route": "editor-motion",
+    "path": "/editor/motion?devAuthBypass=1",
+    "viewport": "mobile",
+    "finalUrl": "http://127.0.0.1:3000/editor/motion?devAuthBypass=1",
+    "status": 200,
+    "metrics": {
+      "title": "Prometheus Editor",
+      "h1": "Visual Mood Experiment",
+      "bodyText": "PROMETHEUS Motion Editor is optimized for desktop. Please use a larger screen.",
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "scrollHeight": 844,
+      "innerHeight": 844,
+      "overflowers": [],
+      "truncated": [],
+      "buttons": [
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Create workspace item"
+        },
+        {
+          "text": "Settings",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Go back"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Open editor menu"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Close sidebar"
+        },
+        {
+          "text": "Share",
+          "disabled": false,
+          "title": null,
+          "aria": "Share project"
+        },
+        {
+          "text": "Editor",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Music",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Motion",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "output output"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "input input"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "output output"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "input input"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "output output"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Execute pipeline"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "input input-top"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "input input-bottom"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "output output"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "input input"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Night mode"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Share"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Home"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Motion"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Projects"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Search"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Pages"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Settings"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Logout"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": "Cursor",
+          "aria": "Cursor"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": "Pan",
+          "aria": "Pan"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": "Execute",
+          "aria": "Execute"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": "Image",
+          "aria": "Image"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": "Text",
+          "aria": "Text"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": "Prompt",
+          "aria": "Prompt"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": "Comment",
+          "aria": "Comment"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": "Code",
+          "aria": "Code"
+        },
+        {
+          "text": "Generate",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Genre",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Budget in millions",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Era",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Archetype",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Identity",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Look",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Details",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "$40M",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "$80M",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "$90M",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "$100M",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "$150M",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "$200M",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "$250M",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Add image",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Probe",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "glass interface closeups",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "orbital particle references",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "volumetric slate vignette",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "macro lens detents",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "refractive gel capsules",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Open command zone"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": "Enter focus mode",
+          "aria": "Enter focus mode"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Close editor menu"
+        },
+        {
+          "text": "Projects",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Motion Brain",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Music",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Analytics",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Timeline",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Chat",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Versions",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Status",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Export",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Settings",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        }
+      ]
+    },
+    "consoleErrors": [
+      "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+      "Failed to load resource: net::ERR_INTERNET_DISCONNECTED"
+    ],
+    "pageErrors": [],
+    "screenshotPath": "C:\\Users\\HomePC\\Documents\\THE FRONT END, PROMETHEUS\\audit-artifacts\\ui-audit-pass2\\mobile-editor-motion.png"
+  },
+  {
+    "route": "assets",
+    "path": "/assets?devAuthBypass=1",
+    "viewport": "mobile",
+    "finalUrl": "http://127.0.0.1:3000/assets?devAuthBypass=1",
+    "status": 200,
+    "metrics": {
+      "title": "Prometheus",
+      "h1": null,
+      "bodyText": "PROMETHEUS LIBRARY MOVIES 00 MUSIC 00 B-ROLL 00 FONTS 00 LOGOS 00 Upload 2026 Business, Strategy FEATURED FOUNDER ARCHIVE 9.1 / 10 2.03h Alex Hormozi FOUNDER ARCHIVE Cinematic portraits, premium interview selects, and founder-led moments staged like a flagship release. Watch Hero Save Spirit LIBRARY STACK Alex Hormozi showcase HOVER TO INSPECT, CLICK TO FOCUS ALEX ARCHIVE PRICING CLINIC Offer Brea",
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "scrollHeight": 844,
+      "innerHeight": 844,
+      "overflowers": [
+        {
+          "tag": "div",
+          "className": "absolute inset-0 scale-[1.12] bg-cover bg-center opacity-40 blur-[68px] saturate-[1.12] will-change-transform",
+          "text": "",
+          "left": -13,
+          "right": 403,
+          "top": -78,
+          "bottom": 1030,
+          "visibility": "visible",
+          "opacity": "0.42"
+        },
+        {
+          "tag": "button",
+          "className": "-mr-4 relative cursor-pointer group",
+          "text": "",
+          "left": 342,
+          "right": 398,
+          "top": 87,
+          "bottom": 143,
+          "visibility": "visible",
+          "opacity": "1"
+        },
+        {
+          "tag": "div",
+          "className": "relative h-14 w-14 overflow-hidden rounded-full border bg-[#090b12] shadow-[0_18px_30px_-20px_rgba(0,0,0,0.95),0_0_0_1px_rgba(255,255,255,0.04)] transition duration-500 group-hover:z-30 group-hover:scale-105 border-white",
+          "text": "",
+          "left": 342,
+          "right": 398,
+          "top": 87,
+          "bottom": 143,
+          "visibility": "visible",
+          "opacity": "1"
+        },
+        {
+          "tag": "div",
+          "className": "pointer-events-none absolute inset-0 z-10 rounded-full bg-[radial-gradient(circle_at_50%_16%,rgba(255,255,255,0.18),rgba(255,255,255,0)_34%),linear-gradient(180deg,rgba(0,0,0,0)_42%,rgba(0,0,0,0.34)_100%)]",
+          "text": "",
+          "left": 343,
+          "right": 397,
+          "top": 88,
+          "bottom": 142,
+          "visibility": "visible",
+          "opacity": "1"
+        },
+        {
+          "tag": "img",
+          "className": "h-full w-full rounded-full object-cover object-top !m-0 !p-0",
+          "text": "",
+          "left": 343,
+          "right": 397,
+          "top": 88,
+          "bottom": 142,
+          "visibility": "visible",
+          "opacity": "1"
+        }
+      ],
+      "truncated": [
+        {
+          "tag": "div",
+          "className": "relative min-h-[640px] overflow-hidden border-b border-white/10",
+          "text": "Prometheus LibraryMovies 00Music 00B-roll 00Fonts 00Logos 00Upload2026Business, StrategyFeatured founder archive9.1 / 10",
+          "scrollWidth": 420,
+          "clientWidth": 338,
+          "right": 364,
+          "bottom": 927
+        },
+        {
+          "tag": "div",
+          "className": "group relative h-full w-full min-h-[280px] overflow-hidden rounded-[10px] border bg-[#090a0f] border-white/10 shadow-[0_24px_44px_-32px_rgba(0,0,0,0.82)]",
+          "text": "Alex archivePricing clinicOffer Breakdowns12 selects",
+          "scrollWidth": 87,
+          "clientWidth": 0,
+          "right": 44,
+          "bottom": 1328
+        },
+        {
+          "tag": "div",
+          "className": "truncate text-[10px] uppercase tracking-[0.22em] text-white/52",
+          "text": "Pricing clinic",
+          "scrollWidth": 101,
+          "clientWidth": 0,
+          "right": 59,
+          "bottom": 1237
+        },
+        {
+          "tag": "div",
+          "className": "mt-2 line-clamp-2 text-[1.05rem] font-semibold leading-tight text-white",
+          "text": "Offer Breakdowns",
+          "scrollWidth": 92,
+          "clientWidth": 0,
+          "right": 59,
+          "bottom": 1287
+        },
+        {
+          "tag": "div",
+          "className": "mt-2 truncate text-xs text-white/54",
+          "text": "12 selects",
+          "scrollWidth": 51,
+          "clientWidth": 0,
+          "right": 59,
+          "bottom": 1311
+        },
+        {
+          "tag": "div",
+          "className": "group relative h-full w-full min-h-[280px] overflow-hidden rounded-[10px] border bg-[#090a0f] border-white/10 shadow-[0_24px_44px_-32px_rgba(0,0,0,0.82)]",
+          "text": "Alex archiveDiscipline cutsGym Monologues09 selects",
+          "scrollWidth": 87,
+          "clientWidth": 0,
+          "right": 44,
+          "bottom": 1626
+        },
+        {
+          "tag": "div",
+          "className": "truncate text-[10px] uppercase tracking-[0.22em] text-white/52",
+          "text": "Discipline cuts",
+          "scrollWidth": 109,
+          "clientWidth": 0,
+          "right": 59,
+          "bottom": 1535
+        },
+        {
+          "tag": "div",
+          "className": "mt-2 line-clamp-2 text-[1.05rem] font-semibold leading-tight text-white",
+          "text": "Gym Monologues",
+          "scrollWidth": 96,
+          "clientWidth": 0,
+          "right": 59,
+          "bottom": 1585
+        },
+        {
+          "tag": "div",
+          "className": "mt-2 truncate text-xs text-white/54",
+          "text": "09 selects",
+          "scrollWidth": 51,
+          "clientWidth": 0,
+          "right": 59,
+          "bottom": 1609
+        },
+        {
+          "tag": "div",
+          "className": "group relative h-full w-full min-h-[280px] overflow-hidden rounded-[10px] border bg-[#090a0f] border-white/10 shadow-[0_24px_44px_-32px_rgba(0,0,0,0.82)]",
+          "text": "Alex archiveGrowth excerptsAcquisition Notes08 selects",
+          "scrollWidth": 87,
+          "clientWidth": 0,
+          "right": 44,
+          "bottom": 1924
+        },
+        {
+          "tag": "div",
+          "className": "truncate text-[10px] uppercase tracking-[0.22em] text-white/52",
+          "text": "Growth excerpts",
+          "scrollWidth": 122,
+          "clientWidth": 0,
+          "right": 59,
+          "bottom": 1833
+        },
+        {
+          "tag": "div",
+          "className": "mt-2 line-clamp-2 text-[1.05rem] font-semibold leading-tight text-white",
+          "text": "Acquisition Notes",
+          "scrollWidth": 85,
+          "clientWidth": 0,
+          "right": 59,
+          "bottom": 1883
+        },
+        {
+          "tag": "div",
+          "className": "mt-2 truncate text-xs text-white/54",
+          "text": "08 selects",
+          "scrollWidth": 51,
+          "clientWidth": 0,
+          "right": 59,
+          "bottom": 1907
+        },
+        {
+          "tag": "div",
+          "className": "group relative h-full w-full min-h-[280px] overflow-hidden rounded-[10px] border bg-[#090a0f] border-white/10 shadow-[0_24px_44px_-32px_rgba(0,0,0,0.82)]",
+          "text": "Alex archiveHigh-energy momentsStage Keynotes11 selects",
+          "scrollWidth": 87,
+          "clientWidth": 0,
+          "right": 44,
+          "bottom": 2222
+        },
+        {
+          "tag": "div",
+          "className": "truncate text-[10px] uppercase tracking-[0.22em] text-white/52",
+          "text": "High-energy moments",
+          "scrollWidth": 156,
+          "clientWidth": 0,
+          "right": 59,
+          "bottom": 2131
+        },
+        {
+          "tag": "div",
+          "className": "mt-2 line-clamp-2 text-[1.05rem] font-semibold leading-tight text-white",
+          "text": "Stage Keynotes",
+          "scrollWidth": 69,
+          "clientWidth": 0,
+          "right": 59,
+          "bottom": 2181
+        },
+        {
+          "tag": "div",
+          "className": "mt-2 truncate text-xs text-white/54",
+          "text": "11 selects",
+          "scrollWidth": 51,
+          "clientWidth": 0,
+          "right": 59,
+          "bottom": 2205
+        },
+        {
+          "tag": "div",
+          "className": "group relative h-full w-full min-h-[280px] overflow-hidden rounded-[10px] border bg-[#090a0f] border-white/10 shadow-[0_24px_44px_-32px_rgba(0,0,0,0.82)]",
+          "text": "Alex archiveFounder coachingOperator Advice10 selects",
+          "scrollWidth": 87,
+          "clientWidth": 0,
+          "right": 44,
+          "bottom": 2520
+        },
+        {
+          "tag": "div",
+          "className": "truncate text-[10px] uppercase tracking-[0.22em] text-white/52",
+          "text": "Founder coaching",
+          "scrollWidth": 133,
+          "clientWidth": 0,
+          "right": 59,
+          "bottom": 2429
+        },
+        {
+          "tag": "div",
+          "className": "mt-2 line-clamp-2 text-[1.05rem] font-semibold leading-tight text-white",
+          "text": "Operator Advice",
+          "scrollWidth": 69,
+          "clientWidth": 0,
+          "right": 59,
+          "bottom": 2479
+        },
+        {
+          "tag": "div",
+          "className": "mt-2 truncate text-xs text-white/54",
+          "text": "10 selects",
+          "scrollWidth": 51,
+          "clientWidth": 0,
+          "right": 59,
+          "bottom": 2503
+        },
+        {
+          "tag": "div",
+          "className": "group relative h-full w-full min-h-[280px] overflow-hidden rounded-[10px] border bg-[#090a0f] border-white/10 shadow-[0_24px_44px_-32px_rgba(0,0,0,0.82)]",
+          "text": "Alex archiveConversion-driven clipsDirect Response Vault07 selects",
+          "scrollWidth": 87,
+          "clientWidth": 0,
+          "right": 44,
+          "bottom": 2818
+        },
+        {
+          "tag": "div",
+          "className": "truncate text-[10px] uppercase tracking-[0.22em] text-white/52",
+          "text": "Conversion-driven clips",
+          "scrollWidth": 177,
+          "clientWidth": 0,
+          "right": 59,
+          "bottom": 2727
+        },
+        {
+          "tag": "div",
+          "className": "mt-2 line-clamp-2 text-[1.05rem] font-semibold leading-tight text-white",
+          "text": "Direct Response Vault",
+          "scrollWidth": 72,
+          "clientWidth": 0,
+          "right": 59,
+          "bottom": 2777
+        },
+        {
+          "tag": "div",
+          "className": "mt-2 truncate text-xs text-white/54",
+          "text": "07 selects",
+          "scrollWidth": 51,
+          "clientWidth": 0,
+          "right": 59,
+          "bottom": 2801
+        }
+      ],
+      "buttons": [
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Collapse sidebar"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Go back"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Movies 00",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Music 00",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "B-roll 00",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Fonts 00",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Logos 00",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Upload",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Search library"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "User profile"
+        },
+        {
+          "text": "Watch Hero",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Save Spirit",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Alex archivePricing clinicOffer Breakdowns12 selects",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Alex archiveDiscipline cutsGym Monologues09 selects",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Alex archiveGrowth excerptsAcquisition Notes08 selects",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Alex archiveHigh-energy momentsStage Keynotes11 selects",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Alex archiveFounder coachingOperator Advice10 selects",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Alex archiveConversion-driven clipsDirect Response Vault07 selects",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": "Add Alex Hormozi to preferences",
+          "aria": "Add Alex Hormozi to preference vault"
+        }
+      ]
+    },
+    "consoleErrors": [
+      "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+      "Failed to load resource: net::ERR_INTERNET_DISCONNECTED"
+    ],
+    "pageErrors": [],
+    "screenshotPath": "C:\\Users\\HomePC\\Documents\\THE FRONT END, PROMETHEUS\\audit-artifacts\\ui-audit-pass2\\mobile-assets.png"
+  },
+  {
+    "route": "analytics",
+    "path": "/analytics?devAuthBypass=1",
+    "viewport": "mobile",
+    "finalUrl": "http://127.0.0.1:3000/analytics?devAuthBypass=1",
+    "status": 200,
+    "metrics": {
+      "title": "Prometheus",
+      "h1": null,
+      "bodyText": "PERFORMANCE Analytics Cross-platform telemetry, distilled. REACH 284.1K WATCH TIME 5h 11m LIKES 9,250 SHARES 1,244 REACH CURVE Cross-platform reach curve 7D 30D 90D W1 W2 W3 W4 W5 W6 W7 W8 W9 W10 W11 W12 TOP SIGNAL FEATURED SIGNAL Signal No. 04 The strongest export in the current review window. RETENTION 78% ENGAGEMENT 12.4% RECENT ASSETS Golden sky plate Portrait cut GIF Archive frame Motion note",
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "scrollHeight": 844,
+      "innerHeight": 844,
+      "overflowers": [
+        {
+          "tag": "article",
+          "className": "min-w-[15rem] rounded-[12px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.02)] p-6 backdrop-blur-[12px] transition-all duration-300 hover:-translate-y-0.5 hover:border-[rgba(255,255,255,0.1)] md:min-w-0",
+          "text": "Watch time5h 11m",
+          "left": 284,
+          "right": 524,
+          "top": 193,
+          "bottom": 367,
+          "visibility": "visible",
+          "opacity": "1"
+        },
+        {
+          "tag": "div",
+          "className": "flex items-center justify-between",
+          "text": "Watch time",
+          "left": 309,
+          "right": 499,
+          "top": 218,
+          "bottom": 234,
+          "visibility": "visible",
+          "opacity": "1"
+        },
+        {
+          "tag": "div",
+          "className": "mt-5 text-[32px] font-light leading-none text-[#EAEAEA]",
+          "text": "5h 11m",
+          "left": 309,
+          "right": 499,
+          "top": 254,
+          "bottom": 286,
+          "visibility": "visible",
+          "opacity": "1"
+        },
+        {
+          "tag": "div",
+          "className": "mt-4",
+          "text": "",
+          "left": 309,
+          "right": 499,
+          "top": 302,
+          "bottom": 342,
+          "visibility": "visible",
+          "opacity": "1"
+        },
+        {
+          "tag": "svg",
+          "className": "",
+          "text": "",
+          "left": 309,
+          "right": 499,
+          "top": 302,
+          "bottom": 342,
+          "visibility": "visible",
+          "opacity": "1"
+        },
+        {
+          "tag": "path",
+          "className": "",
+          "text": "",
+          "left": 344,
+          "right": 464,
+          "top": 308,
+          "bottom": 328,
+          "visibility": "visible",
+          "opacity": "1"
+        },
+        {
+          "tag": "path",
+          "className": "",
+          "text": "",
+          "left": 344,
+          "right": 464,
+          "top": 308,
+          "bottom": 342,
+          "visibility": "visible",
+          "opacity": "1"
+        }
+      ],
+      "truncated": [],
+      "buttons": [
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Collapse sidebar"
+        },
+        {
+          "text": "7D",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "30D",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "90D",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Golden sky plate",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Portrait cut",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "GIFArchive frame",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Motion note",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Soft grain",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Editorial still",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        }
+      ]
+    },
+    "consoleErrors": [
+      "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+      "Failed to load resource: net::ERR_INTERNET_DISCONNECTED"
+    ],
+    "pageErrors": [],
+    "screenshotPath": "C:\\Users\\HomePC\\Documents\\THE FRONT END, PROMETHEUS\\audit-artifacts\\ui-audit-pass2\\mobile-analytics.png"
+  },
+  {
+    "route": "settings",
+    "path": "/settings?devAuthBypass=1",
+    "viewport": "mobile",
+    "finalUrl": "http://127.0.0.1:3000/settings?devAuthBypass=1",
+    "status": 200,
+    "metrics": {
+      "title": "Prometheus",
+      "h1": "Settings",
+      "bodyText": "Settings Preferences and integrations (UI scaffolding). Profile Account info, security, preferences Notifications Mock toggles for future alerts. Processing completion Notify when edits are ready. Reduced motion override UI-only. Respects system preference by default. Integrations Mock connect states. Google Drive Connect to import sources. Mock Social Accounts Connect publishing channels. Dropbox",
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "scrollHeight": 844,
+      "innerHeight": 844,
+      "overflowers": [],
+      "truncated": [],
+      "buttons": [
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Collapse sidebar"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Go back"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Sign out",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        }
+      ]
+    },
+    "consoleErrors": [
+      "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+      "Failed to load resource: net::ERR_INTERNET_DISCONNECTED"
+    ],
+    "pageErrors": [],
+    "screenshotPath": "C:\\Users\\HomePC\\Documents\\THE FRONT END, PROMETHEUS\\audit-artifacts\\ui-audit-pass2\\mobile-settings.png"
+  },
+  {
+    "route": "team",
+    "path": "/team?devAuthBypass=1",
+    "viewport": "mobile",
+    "finalUrl": "http://127.0.0.1:3000/team?devAuthBypass=1",
+    "status": 200,
+    "metrics": {
+      "title": "Prometheus",
+      "h1": "Team",
+      "bodyText": "Team UI-only team management scaffolding. Members Invite, roles, permissions (mock). This is a placeholder for team collaboration flows.",
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "scrollHeight": 844,
+      "innerHeight": 844,
+      "overflowers": [],
+      "truncated": [],
+      "buttons": [
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Collapse sidebar"
+        }
+      ]
+    },
+    "consoleErrors": [
+      "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+      "Failed to load resource: net::ERR_INTERNET_DISCONNECTED"
+    ],
+    "pageErrors": [],
+    "screenshotPath": "C:\\Users\\HomePC\\Documents\\THE FRONT END, PROMETHEUS\\audit-artifacts\\ui-audit-pass2\\mobile-team.png"
+  },
+  {
+    "route": "billing",
+    "path": "/billing?devAuthBypass=1",
+    "viewport": "mobile",
+    "finalUrl": "http://127.0.0.1:3000/signup?next=%2Fsettings%2Fbilling",
+    "status": 200,
+    "metrics": {
+      "title": "Prometheus",
+      "h1": "Create account",
+      "bodyText": "Home rometheus Create account Create a new account in under a minute. Email Password Confirm password Create account Continue with Google Already have an account? Sign in PROMETHEUS STUDIO Professional video editing and production workspace for filmmakers, motion designers, and modern production teams. © 2026 PROMETHEUS STUDIO. ALL RIGHTS RESERVED. Pricing Terms & Conditions Privacy Policy Refund ",
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "scrollHeight": 1165,
+      "innerHeight": 844,
+      "overflowers": [],
+      "truncated": [],
+      "buttons": [
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Show password"
+        },
+        {
+          "text": "",
+          "disabled": false,
+          "title": null,
+          "aria": "Show password"
+        },
+        {
+          "text": "Create account",
+          "disabled": true,
+          "title": null,
+          "aria": null
+        },
+        {
+          "text": "Continue with Google",
+          "disabled": false,
+          "title": null,
+          "aria": null
+        }
+      ]
+    },
+    "consoleErrors": [
+      "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+      "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+      "Failed to load resource: net::ERR_INTERNET_DISCONNECTED"
+    ],
+    "pageErrors": [],
+    "screenshotPath": "C:\\Users\\HomePC\\Documents\\THE FRONT END, PROMETHEUS\\audit-artifacts\\ui-audit-pass2\\mobile-billing.png"
+  }
+]

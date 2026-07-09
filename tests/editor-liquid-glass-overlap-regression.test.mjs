@@ -16,17 +16,16 @@ function run() {
   assert.match(commandZone, /aria-label=\{action\.label\}/)
 
   const inspectorPanel = read('components/editor/InspectorPanel.tsx')
-  assert.match(inspectorPanel, /id="lusion-viscous-membrane"/)
-  assert.match(inspectorPanel, /liquid-video-size-chip/)
-  assert.match(inspectorPanel, /liquid-video-size-chip__membrane/)
-  assert.match(inspectorPanel, /liquid-video-fit-toggle/)
-  assert.match(inspectorPanel, /liquid-video-fit-option/)
+  assert.equal(inspectorPanel.includes('id="lusion-viscous-membrane"'), false)
+  assert.equal(inspectorPanel.includes('liquid-video-size-chip'), false)
+  assert.equal(inspectorPanel.includes('liquid-video-fit-toggle'), false)
+  assert.equal(inspectorPanel.includes('liquid-video-fit-option'), false)
+
+  const editorPage = read('app/editor/[id]/page.tsx')
+  assert.equal(editorPage.includes('<InspectorPanel'), false)
 
   const globalStyles = read('app/globals.css')
   assert.match(globalStyles, /\.command-zone-backdrop/)
-  assert.match(globalStyles, /\.liquid-video-size-chip/)
-  assert.match(globalStyles, /filter: url\("#lusion-viscous-membrane"\)/)
-  assert.match(globalStyles, /--liquid-size-x/)
   assert.match(globalStyles, /prefers-reduced-motion: reduce/)
 }
 

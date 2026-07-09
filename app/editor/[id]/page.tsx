@@ -67,7 +67,6 @@ import { EditorNewProjectUploadDialog } from '@/components/editor/editor-new-pro
 import { EditorHeader } from '@/components/editor/EditorHeader'
 import { PreviewCanvas } from '@/components/editor/PreviewCanvas'
 import { TimelinePanel } from '@/components/editor/TimelinePanel'
-import { InspectorPanel } from '@/components/editor/InspectorPanel'
 import { MobileVideoPlayer } from '@/app/editor/components/mobile-video-player'
 
 // Always-Fast Lobe System
@@ -8065,7 +8064,7 @@ function OriginalEditorPage() {
               'grid min-h-0 w-full items-stretch gap-[clamp(0.75rem,1vw,1rem)] lg:h-full lg:overflow-hidden lg:grid-rows-[minmax(0,1fr)]',
               activeWorkspaceTab === 'Motion'
                 ? 'gap-0 lg:grid-cols-[minmax(0,1fr)]'
-                : 'lg:grid-cols-[minmax(0,1fr)_clamp(17rem,22vw,20.5rem)]',
+                : 'lg:grid-cols-[minmax(0,1fr)]',
             )}
           >
             <section
@@ -8246,33 +8245,6 @@ function OriginalEditorPage() {
               </div>
             </section>
 
-            <InspectorPanel
-              inspectorViewportRef={inspectorViewportRef}
-              project={project}
-              job={job}
-              previewFramePreset={previewFramePreset}
-              clipModeActive={clipModeActive}
-              fitMode={fitMode}
-              scale={scale}
-              offsetX={offsetX}
-              offsetY={offsetY}
-              sourceMetrics={sourceMetrics}
-              hasSourceAsset={hasSourceAsset}
-              sourceStageError={sourceStageError}
-              previewKind={previewKind}
-              transportTime={transportTime}
-              promptText={promptText}
-              previewOverlayPlan={previewOverlayPlan}
-              bottomMode={bottomMode}
-              onSetViralClipSplitPreviewActive={setViralClipSplitPreviewActive}
-              onSetPreviewFramePreset={setPreviewFramePreset}
-              onPreviewFrameLabel={previewFrameLabel}
-              onSetFitMode={setFitMode}
-              onSetScale={setScale}
-              onSetOffsetX={setOffsetX}
-              onSetOffsetY={setOffsetY}
-              onPickSource={openInlineSourcePicker}
-            />
           </div>
         </main>
       </div>

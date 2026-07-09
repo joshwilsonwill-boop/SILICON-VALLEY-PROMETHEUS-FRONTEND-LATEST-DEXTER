@@ -1,0 +1,9 @@
+{
+  "logo": "public/branding/prometheus-logo-no-bg.png",
+  "implementation": "CSS mask + gradients; no video, canvas, WebGL, or GIF",
+  "artifacts": [
+    "logo-loader-desktop.png",
+    "logo-loader-mobile.png",
+    "preview.html"
+  ]
+}

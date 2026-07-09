@@ -219,7 +219,7 @@ export function PrometheusAnalytics() {
   }, [])
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#0A0A0C] text-[#EAEAEA]">
+    <main className="relative min-h-screen overflow-x-hidden bg-[#0A0A0C] text-[#EAEAEA]">
       <SpectraNoise />
 
       <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-[1600px] flex-col">

@@ -1,0 +1,100 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; background: #050508; }
+  body {
+    display: grid;
+    place-items: center;
+    min-height: 100vh;
+    overflow: hidden;
+    color: white;
+    font-family: ui-sans-serif, system-ui, sans-serif;
+    background:
+      radial-gradient(circle at 50% 46%, rgba(205,232,255,0.1), rgba(74,120,255,0.052) 28%, rgba(0,0,0,0) 64%),
+      radial-gradient(circle at 50% 100%, rgba(255,255,255,0.04), rgba(0,0,0,0) 48%),
+      #050508;
+  }
+  .frame {
+    width: min(28rem, 78vw);
+    aspect-ratio: 1;
+    position: relative;
+    display: grid;
+    place-items: center;
+  }
+  .prometheus-logo-loader {
+    --prometheus-logo-mask: url('file:///C:/Users/HomePC/Documents/THE%20FRONT%20END,%20PROMETHEUS/public/branding/prometheus-logo-no-bg.png');
+    isolation: isolate;
+    position: relative;
+    width: min(18rem, 68vw);
+    aspect-ratio: 1;
+    overflow: visible;
+  }
+  @keyframes prometheus-logo-shader-sweep {
+    0% { opacity: 0; transform: translate3d(-42%, 18%, 0) rotate(-18deg) scaleY(1.16); }
+    18% { opacity: 0.82; }
+    58% { opacity: 0.42; }
+    100% { opacity: 0; transform: translate3d(46%, -16%, 0) rotate(-18deg) scaleY(1.16); }
+  }
+  @keyframes prometheus-logo-caustic-drift {
+    0%, 100% { opacity: 0.52; transform: translate3d(-1.5%, 1%, 0) rotate(0deg) scale(1.02); }
+    45% { opacity: 0.9; transform: translate3d(2%, -1.6%, 0) rotate(8deg) scale(1.05); }
+  }
+  @keyframes prometheus-logo-core-breathe {
+    0%, 100% { filter: drop-shadow(0 0 10px rgba(146, 223, 255, 0.28)) drop-shadow(0 0 28px rgba(95, 126, 255, 0.16)); transform: scale(0.992); }
+    50% { filter: drop-shadow(0 0 16px rgba(235, 250, 255, 0.5)) drop-shadow(0 0 42px rgba(116, 226, 255, 0.22)); transform: scale(1.008); }
+  }
+  .prometheus-logo-shader-mark { position: absolute; inset: -8%; overflow: visible; contain: layout paint; }
+  .prometheus-logo-shader-mark__aura,
+  .prometheus-logo-shader-mark__silhouette,
+  .prometheus-logo-shader-mark__caustic,
+  .prometheus-logo-shader-mark__sweep,
+  .prometheus-logo-shader-mark__edge { position: absolute; inset: 0; display: block; pointer-events: none; }
+  .prometheus-logo-shader-mark__aura {
+    inset: -16%; border-radius: 9999px;
+    background: radial-gradient(circle at 49% 42%, rgba(255,255,255,0.2), rgba(126,229,255,0.1) 24%, rgba(0,0,0,0) 58%), radial-gradient(circle at 56% 58%, rgba(119,104,255,0.18), rgba(0,0,0,0) 62%);
+    filter: blur(16px); opacity: 0.78;
+  }
+  .prometheus-logo-shader-mark__silhouette,
+  .prometheus-logo-shader-mark__caustic,
+  .prometheus-logo-shader-mark__sweep,
+  .prometheus-logo-shader-mark__edge {
+    -webkit-mask-image: var(--prometheus-logo-mask); mask-image: var(--prometheus-logo-mask);
+    -webkit-mask-position: center; mask-position: center;
+    -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+    -webkit-mask-size: contain; mask-size: contain;
+  }
+  .prometheus-logo-shader-mark__silhouette {
+    background: radial-gradient(circle at 35% 24%, rgba(255,255,255,0.96), rgba(210,242,255,0.42) 14%, rgba(0,0,0,0) 36%), linear-gradient(132deg, rgba(246,252,255,0.96) 0%, rgba(100,229,255,0.82) 30%, rgba(102,112,255,0.8) 58%, rgba(255,255,255,0.74) 76%, rgba(37,48,92,0.92) 100%);
+    animation: prometheus-logo-core-breathe 2.8s ease-in-out infinite;
+  }
+  .prometheus-logo-shader-mark__caustic {
+    background: conic-gradient(from 230deg at 50% 50%, rgba(255,255,255,0.08), rgba(98,227,255,0.86), rgba(111,105,255,0.48), rgba(255,255,255,0.84), rgba(85,246,216,0.32), rgba(255,255,255,0.08));
+    opacity: 0.64; animation: prometheus-logo-caustic-drift 3.25s cubic-bezier(0.4,0,0.2,1) infinite;
+  }
+  .prometheus-logo-shader-mark__sweep {
+    background: linear-gradient(103deg, rgba(255,255,255,0) 33%, rgba(255,255,255,0.92) 47%, rgba(115,231,255,0.72) 52%, rgba(255,255,255,0) 66%);
+    filter: blur(0.6px); animation: prometheus-logo-shader-sweep 2.35s cubic-bezier(0.55,0.02,0.18,1) infinite; will-change: transform, opacity;
+  }
+  .prometheus-logo-shader-mark__edge { background: rgba(255,255,255,0.34); filter: drop-shadow(0 0 1px rgba(255,255,255,0.8)) drop-shadow(0 0 18px rgba(113,219,255,0.42)); opacity: 0.72; }
+  .caption { position: absolute; bottom: 8%; color: rgba(255,255,255,0.5); font-size: 12px; letter-spacing: .24em; text-transform: uppercase; }
+</style>
+</head>
+<body>
+  <main class="frame" role="status" aria-label="Prometheus loader preview">
+    <div class="prometheus-logo-loader">
+      <div class="prometheus-logo-shader-mark" aria-hidden="true">
+        <span class="prometheus-logo-shader-mark__aura"></span>
+        <span class="prometheus-logo-shader-mark__silhouette"></span>
+        <span class="prometheus-logo-shader-mark__caustic"></span>
+        <span class="prometheus-logo-shader-mark__sweep"></span>
+        <span class="prometheus-logo-shader-mark__edge"></span>
+      </div>
+    </div>
+    <div class="caption">Prometheus</div>
+  </main>
+</body>
+</html>

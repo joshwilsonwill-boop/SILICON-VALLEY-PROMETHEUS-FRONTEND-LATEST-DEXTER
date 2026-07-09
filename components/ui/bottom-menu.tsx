@@ -2,10 +2,11 @@
 
 import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import type { Transition } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 export interface MenuBarItem {
-  icon: (props: React.SVGProps<SVGSVGElement>) => React.ReactElement;
+  icon: (props: React.SVGProps<SVGSVGElement>) => React.ReactNode;
   label: string;
   value: string | number; // Used for logic matching
   onClick?: () => void;
@@ -17,7 +18,7 @@ interface MenuBarProps extends React.HTMLAttributes<HTMLDivElement> {
   onItemClick?: (value: string | number) => void;
 }
 
-const springConfig = {
+const springConfig: Transition = {
   duration: 0.3,
   ease: "easeInOut",
 };

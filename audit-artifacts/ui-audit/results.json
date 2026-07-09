@@ -1,0 +1,918 @@
+[
+  {
+    "route": "/",
+    "viewport": "desktop",
+    "error": "TimeoutError: page.goto: Timeout 45000ms exceeded.\nCall log:\n\u001b[2m  - navigating to \"http://127.0.0.1:3000/\", waiting until \"networkidle\"\u001b[22m\n",
+    "finalUrl": "about:blank",
+    "consoleErrors": [],
+    "pageErrors": []
+  },
+  {
+    "route": "/login",
+    "viewport": "desktop",
+    "error": "TimeoutError: page.goto: Timeout 45000ms exceeded.\nCall log:\n\u001b[2m  - navigating to \"http://127.0.0.1:3000/login\", waiting until \"networkidle\"\u001b[22m\n",
+    "finalUrl": "about:blank",
+    "consoleErrors": [],
+    "pageErrors": []
+  },
+  {
+    "route": "/signup",
+    "viewport": "desktop",
+    "finalUrl": "http://127.0.0.1:3000/signup",
+    "status": 500,
+    "metrics": {
+      "title": "",
+      "h1": "This page couldn’t load",
+      "bodyText": "This page couldn’t load Reload to try again, or go back. Reload Back",
+      "scrollWidth": 1440,
+      "innerWidth": 1440,
+      "scrollHeight": 900,
+      "innerHeight": 900,
+      "overflowers": [],
+      "actionable": [
+        {
+          "tag": "button",
+          "text": "Reload",
+          "disabled": false,
+          "href": null
+        },
+        {
+          "tag": "button",
+          "text": "Back",
+          "disabled": false,
+          "href": null
+        }
+      ]
+    },
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+    ],
+    "pageErrors": [
+      "Supabase auth is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY to .env.local."
+    ]
+  },
+  {
+    "route": "/pricing",
+    "viewport": "desktop",
+    "finalUrl": "http://127.0.0.1:3000/pricing",
+    "status": 500,
+    "metrics": {
+      "title": "",
+      "h1": "This page couldn’t load",
+      "bodyText": "This page couldn’t load Reload to try again, or go back. Reload Back",
+      "scrollWidth": 1440,
+      "innerWidth": 1440,
+      "scrollHeight": 900,
+      "innerHeight": 900,
+      "overflowers": [],
+      "actionable": [
+        {
+          "tag": "button",
+          "text": "Reload",
+          "disabled": false,
+          "href": null
+        },
+        {
+          "tag": "button",
+          "text": "Back",
+          "disabled": false,
+          "href": null
+        }
+      ]
+    },
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+    ],
+    "pageErrors": [
+      "Supabase auth is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY to .env.local."
+    ]
+  },
+  {
+    "route": "/projects",
+    "viewport": "desktop",
+    "finalUrl": "http://127.0.0.1:3000/projects",
+    "status": 500,
+    "metrics": {
+      "title": "",
+      "h1": "This page couldn’t load",
+      "bodyText": "This page couldn’t load Reload to try again, or go back. Reload Back",
+      "scrollWidth": 1440,
+      "innerWidth": 1440,
+      "scrollHeight": 900,
+      "innerHeight": 900,
+      "overflowers": [],
+      "actionable": [
+        {
+          "tag": "button",
+          "text": "Reload",
+          "disabled": false,
+          "href": null
+        },
+        {
+          "tag": "button",
+          "text": "Back",
+          "disabled": false,
+          "href": null
+        }
+      ]
+    },
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+    ],
+    "pageErrors": [
+      "Supabase auth is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY to .env.local."
+    ]
+  },
+  {
+    "route": "/editor",
+    "viewport": "desktop",
+    "finalUrl": "http://127.0.0.1:3000/editor",
+    "status": 500,
+    "metrics": {
+      "title": "",
+      "h1": "This page couldn’t load",
+      "bodyText": "This page couldn’t load Reload to try again, or go back. Reload Back",
+      "scrollWidth": 1440,
+      "innerWidth": 1440,
+      "scrollHeight": 900,
+      "innerHeight": 900,
+      "overflowers": [],
+      "actionable": [
+        {
+          "tag": "button",
+          "text": "Reload",
+          "disabled": false,
+          "href": null
+        },
+        {
+          "tag": "button",
+          "text": "Back",
+          "disabled": false,
+          "href": null
+        }
+      ]
+    },
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+    ],
+    "pageErrors": [
+      "Supabase auth is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY to .env.local."
+    ]
+  },
+  {
+    "route": "/assets",
+    "viewport": "desktop",
+    "finalUrl": "http://127.0.0.1:3000/assets",
+    "status": 500,
+    "metrics": {
+      "title": "",
+      "h1": "This page couldn’t load",
+      "bodyText": "This page couldn’t load Reload to try again, or go back. Reload Back",
+      "scrollWidth": 1440,
+      "innerWidth": 1440,
+      "scrollHeight": 900,
+      "innerHeight": 900,
+      "overflowers": [],
+      "actionable": [
+        {
+          "tag": "button",
+          "text": "Reload",
+          "disabled": false,
+          "href": null
+        },
+        {
+          "tag": "button",
+          "text": "Back",
+          "disabled": false,
+          "href": null
+        }
+      ]
+    },
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+    ],
+    "pageErrors": [
+      "Supabase auth is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY to .env.local."
+    ]
+  },
+  {
+    "route": "/analytics",
+    "viewport": "desktop",
+    "finalUrl": "http://127.0.0.1:3000/analytics",
+    "status": 500,
+    "metrics": {
+      "title": "",
+      "h1": "This page couldn’t load",
+      "bodyText": "This page couldn’t load Reload to try again, or go back. Reload Back",
+      "scrollWidth": 1440,
+      "innerWidth": 1440,
+      "scrollHeight": 900,
+      "innerHeight": 900,
+      "overflowers": [],
+      "actionable": [
+        {
+          "tag": "button",
+          "text": "Reload",
+          "disabled": false,
+          "href": null
+        },
+        {
+          "tag": "button",
+          "text": "Back",
+          "disabled": false,
+          "href": null
+        }
+      ]
+    },
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+    ],
+    "pageErrors": [
+      "Supabase auth is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY to .env.local."
+    ]
+  },
+  {
+    "route": "/settings",
+    "viewport": "desktop",
+    "finalUrl": "http://127.0.0.1:3000/settings",
+    "status": 500,
+    "metrics": {
+      "title": "",
+      "h1": "This page couldn’t load",
+      "bodyText": "This page couldn’t load Reload to try again, or go back. Reload Back",
+      "scrollWidth": 1440,
+      "innerWidth": 1440,
+      "scrollHeight": 900,
+      "innerHeight": 900,
+      "overflowers": [],
+      "actionable": [
+        {
+          "tag": "button",
+          "text": "Reload",
+          "disabled": false,
+          "href": null
+        },
+        {
+          "tag": "button",
+          "text": "Back",
+          "disabled": false,
+          "href": null
+        }
+      ]
+    },
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+    ],
+    "pageErrors": [
+      "Supabase auth is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY to .env.local."
+    ]
+  },
+  {
+    "route": "/",
+    "viewport": "tablet",
+    "finalUrl": "http://127.0.0.1:3000/",
+    "status": 500,
+    "metrics": {
+      "title": "",
+      "h1": "This page couldn’t load",
+      "bodyText": "This page couldn’t load Reload to try again, or go back. Reload Back",
+      "scrollWidth": 1024,
+      "innerWidth": 1024,
+      "scrollHeight": 768,
+      "innerHeight": 768,
+      "overflowers": [],
+      "actionable": [
+        {
+          "tag": "button",
+          "text": "Reload",
+          "disabled": false,
+          "href": null
+        },
+        {
+          "tag": "button",
+          "text": "Back",
+          "disabled": false,
+          "href": null
+        }
+      ]
+    },
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+    ],
+    "pageErrors": [
+      "Supabase auth is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY to .env.local."
+    ]
+  },
+  {
+    "route": "/login",
+    "viewport": "tablet",
+    "finalUrl": "http://127.0.0.1:3000/login",
+    "status": 500,
+    "metrics": {
+      "title": "",
+      "h1": "This page couldn’t load",
+      "bodyText": "This page couldn’t load Reload to try again, or go back. Reload Back",
+      "scrollWidth": 1024,
+      "innerWidth": 1024,
+      "scrollHeight": 768,
+      "innerHeight": 768,
+      "overflowers": [],
+      "actionable": [
+        {
+          "tag": "button",
+          "text": "Reload",
+          "disabled": false,
+          "href": null
+        },
+        {
+          "tag": "button",
+          "text": "Back",
+          "disabled": false,
+          "href": null
+        }
+      ]
+    },
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+    ],
+    "pageErrors": [
+      "Supabase auth is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY to .env.local."
+    ]
+  },
+  {
+    "route": "/signup",
+    "viewport": "tablet",
+    "finalUrl": "http://127.0.0.1:3000/signup",
+    "status": 500,
+    "metrics": {
+      "title": "",
+      "h1": "This page couldn’t load",
+      "bodyText": "This page couldn’t load Reload to try again, or go back. Reload Back",
+      "scrollWidth": 1024,
+      "innerWidth": 1024,
+      "scrollHeight": 768,
+      "innerHeight": 768,
+      "overflowers": [],
+      "actionable": [
+        {
+          "tag": "button",
+          "text": "Reload",
+          "disabled": false,
+          "href": null
+        },
+        {
+          "tag": "button",
+          "text": "Back",
+          "disabled": false,
+          "href": null
+        }
+      ]
+    },
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+    ],
+    "pageErrors": [
+      "Supabase auth is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY to .env.local."
+    ]
+  },
+  {
+    "route": "/pricing",
+    "viewport": "tablet",
+    "finalUrl": "http://127.0.0.1:3000/pricing",
+    "status": 500,
+    "metrics": {
+      "title": "",
+      "h1": "This page couldn’t load",
+      "bodyText": "This page couldn’t load Reload to try again, or go back. Reload Back",
+      "scrollWidth": 1024,
+      "innerWidth": 1024,
+      "scrollHeight": 768,
+      "innerHeight": 768,
+      "overflowers": [],
+      "actionable": [
+        {
+          "tag": "button",
+          "text": "Reload",
+          "disabled": false,
+          "href": null
+        },
+        {
+          "tag": "button",
+          "text": "Back",
+          "disabled": false,
+          "href": null
+        }
+      ]
+    },
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+    ],
+    "pageErrors": [
+      "Supabase auth is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY to .env.local."
+    ]
+  },
+  {
+    "route": "/projects",
+    "viewport": "tablet",
+    "finalUrl": "http://127.0.0.1:3000/projects",
+    "status": 500,
+    "metrics": {
+      "title": "",
+      "h1": "This page couldn’t load",
+      "bodyText": "This page couldn’t load Reload to try again, or go back. Reload Back",
+      "scrollWidth": 1024,
+      "innerWidth": 1024,
+      "scrollHeight": 768,
+      "innerHeight": 768,
+      "overflowers": [],
+      "actionable": [
+        {
+          "tag": "button",
+          "text": "Reload",
+          "disabled": false,
+          "href": null
+        },
+        {
+          "tag": "button",
+          "text": "Back",
+          "disabled": false,
+          "href": null
+        }
+      ]
+    },
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+    ],
+    "pageErrors": [
+      "Supabase auth is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY to .env.local."
+    ]
+  },
+  {
+    "route": "/editor",
+    "viewport": "tablet",
+    "finalUrl": "http://127.0.0.1:3000/editor",
+    "status": 500,
+    "metrics": {
+      "title": "",
+      "h1": "This page couldn’t load",
+      "bodyText": "This page couldn’t load Reload to try again, or go back. Reload Back",
+      "scrollWidth": 1024,
+      "innerWidth": 1024,
+      "scrollHeight": 768,
+      "innerHeight": 768,
+      "overflowers": [],
+      "actionable": [
+        {
+          "tag": "button",
+          "text": "Reload",
+          "disabled": false,
+          "href": null
+        },
+        {
+          "tag": "button",
+          "text": "Back",
+          "disabled": false,
+          "href": null
+        }
+      ]
+    },
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+    ],
+    "pageErrors": [
+      "Supabase auth is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY to .env.local."
+    ]
+  },
+  {
+    "route": "/assets",
+    "viewport": "tablet",
+    "finalUrl": "http://127.0.0.1:3000/assets",
+    "status": 500,
+    "metrics": {
+      "title": "",
+      "h1": "This page couldn’t load",
+      "bodyText": "This page couldn’t load Reload to try again, or go back. Reload Back",
+      "scrollWidth": 1024,
+      "innerWidth": 1024,
+      "scrollHeight": 768,
+      "innerHeight": 768,
+      "overflowers": [],
+      "actionable": [
+        {
+          "tag": "button",
+          "text": "Reload",
+          "disabled": false,
+          "href": null
+        },
+        {
+          "tag": "button",
+          "text": "Back",
+          "disabled": false,
+          "href": null
+        }
+      ]
+    },
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+    ],
+    "pageErrors": [
+      "Supabase auth is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY to .env.local."
+    ]
+  },
+  {
+    "route": "/analytics",
+    "viewport": "tablet",
+    "finalUrl": "http://127.0.0.1:3000/analytics",
+    "status": 500,
+    "metrics": {
+      "title": "",
+      "h1": "This page couldn’t load",
+      "bodyText": "This page couldn’t load Reload to try again, or go back. Reload Back",
+      "scrollWidth": 1024,
+      "innerWidth": 1024,
+      "scrollHeight": 768,
+      "innerHeight": 768,
+      "overflowers": [],
+      "actionable": [
+        {
+          "tag": "button",
+          "text": "Reload",
+          "disabled": false,
+          "href": null
+        },
+        {
+          "tag": "button",
+          "text": "Back",
+          "disabled": false,
+          "href": null
+        }
+      ]
+    },
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+    ],
+    "pageErrors": [
+      "Supabase auth is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY to .env.local."
+    ]
+  },
+  {
+    "route": "/settings",
+    "viewport": "tablet",
+    "finalUrl": "http://127.0.0.1:3000/settings",
+    "status": 500,
+    "metrics": {
+      "title": "",
+      "h1": "This page couldn’t load",
+      "bodyText": "This page couldn’t load Reload to try again, or go back. Reload Back",
+      "scrollWidth": 1024,
+      "innerWidth": 1024,
+      "scrollHeight": 768,
+      "innerHeight": 768,
+      "overflowers": [],
+      "actionable": [
+        {
+          "tag": "button",
+          "text": "Reload",
+          "disabled": false,
+          "href": null
+        },
+        {
+          "tag": "button",
+          "text": "Back",
+          "disabled": false,
+          "href": null
+        }
+      ]
+    },
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+    ],
+    "pageErrors": [
+      "Supabase auth is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY to .env.local."
+    ]
+  },
+  {
+    "route": "/",
+    "viewport": "mobile",
+    "finalUrl": "http://127.0.0.1:3000/",
+    "status": 500,
+    "metrics": {
+      "title": "",
+      "h1": "This page couldn’t load",
+      "bodyText": "This page couldn’t load Reload to try again, or go back. Reload Back",
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "scrollHeight": 844,
+      "innerHeight": 844,
+      "overflowers": [],
+      "actionable": [
+        {
+          "tag": "button",
+          "text": "Reload",
+          "disabled": false,
+          "href": null
+        },
+        {
+          "tag": "button",
+          "text": "Back",
+          "disabled": false,
+          "href": null
+        }
+      ]
+    },
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+    ],
+    "pageErrors": [
+      "Supabase auth is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY to .env.local."
+    ]
+  },
+  {
+    "route": "/login",
+    "viewport": "mobile",
+    "finalUrl": "http://127.0.0.1:3000/login",
+    "status": 500,
+    "metrics": {
+      "title": "",
+      "h1": "This page couldn’t load",
+      "bodyText": "This page couldn’t load Reload to try again, or go back. Reload Back",
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "scrollHeight": 844,
+      "innerHeight": 844,
+      "overflowers": [],
+      "actionable": [
+        {
+          "tag": "button",
+          "text": "Reload",
+          "disabled": false,
+          "href": null
+        },
+        {
+          "tag": "button",
+          "text": "Back",
+          "disabled": false,
+          "href": null
+        }
+      ]
+    },
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+    ],
+    "pageErrors": [
+      "Supabase auth is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY to .env.local."
+    ]
+  },
+  {
+    "route": "/signup",
+    "viewport": "mobile",
+    "finalUrl": "http://127.0.0.1:3000/signup",
+    "status": 500,
+    "metrics": {
+      "title": "",
+      "h1": "This page couldn’t load",
+      "bodyText": "This page couldn’t load Reload to try again, or go back. Reload Back",
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "scrollHeight": 844,
+      "innerHeight": 844,
+      "overflowers": [],
+      "actionable": [
+        {
+          "tag": "button",
+          "text": "Reload",
+          "disabled": false,
+          "href": null
+        },
+        {
+          "tag": "button",
+          "text": "Back",
+          "disabled": false,
+          "href": null
+        }
+      ]
+    },
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+    ],
+    "pageErrors": [
+      "Supabase auth is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY to .env.local."
+    ]
+  },
+  {
+    "route": "/pricing",
+    "viewport": "mobile",
+    "finalUrl": "http://127.0.0.1:3000/pricing",
+    "status": 500,
+    "metrics": {
+      "title": "",
+      "h1": "This page couldn’t load",
+      "bodyText": "This page couldn’t load Reload to try again, or go back. Reload Back",
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "scrollHeight": 844,
+      "innerHeight": 844,
+      "overflowers": [],
+      "actionable": [
+        {
+          "tag": "button",
+          "text": "Reload",
+          "disabled": false,
+          "href": null
+        },
+        {
+          "tag": "button",
+          "text": "Back",
+          "disabled": false,
+          "href": null
+        }
+      ]
+    },
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+    ],
+    "pageErrors": [
+      "Supabase auth is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY to .env.local."
+    ]
+  },
+  {
+    "route": "/projects",
+    "viewport": "mobile",
+    "finalUrl": "http://127.0.0.1:3000/projects",
+    "status": 500,
+    "metrics": {
+      "title": "",
+      "h1": "This page couldn’t load",
+      "bodyText": "This page couldn’t load Reload to try again, or go back. Reload Back",
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "scrollHeight": 844,
+      "innerHeight": 844,
+      "overflowers": [],
+      "actionable": [
+        {
+          "tag": "button",
+          "text": "Reload",
+          "disabled": false,
+          "href": null
+        },
+        {
+          "tag": "button",
+          "text": "Back",
+          "disabled": false,
+          "href": null
+        }
+      ]
+    },
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+    ],
+    "pageErrors": [
+      "Supabase auth is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY to .env.local."
+    ]
+  },
+  {
+    "route": "/editor",
+    "viewport": "mobile",
+    "finalUrl": "http://127.0.0.1:3000/editor",
+    "status": 500,
+    "metrics": {
+      "title": "",
+      "h1": "This page couldn’t load",
+      "bodyText": "This page couldn’t load Reload to try again, or go back. Reload Back",
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "scrollHeight": 844,
+      "innerHeight": 844,
+      "overflowers": [],
+      "actionable": [
+        {
+          "tag": "button",
+          "text": "Reload",
+          "disabled": false,
+          "href": null
+        },
+        {
+          "tag": "button",
+          "text": "Back",
+          "disabled": false,
+          "href": null
+        }
+      ]
+    },
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+    ],
+    "pageErrors": [
+      "Supabase auth is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY to .env.local."
+    ]
+  },
+  {
+    "route": "/assets",
+    "viewport": "mobile",
+    "finalUrl": "http://127.0.0.1:3000/assets",
+    "status": 500,
+    "metrics": {
+      "title": "",
+      "h1": "This page couldn’t load",
+      "bodyText": "This page couldn’t load Reload to try again, or go back. Reload Back",
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "scrollHeight": 844,
+      "innerHeight": 844,
+      "overflowers": [],
+      "actionable": [
+        {
+          "tag": "button",
+          "text": "Reload",
+          "disabled": false,
+          "href": null
+        },
+        {
+          "tag": "button",
+          "text": "Back",
+          "disabled": false,
+          "href": null
+        }
+      ]
+    },
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+    ],
+    "pageErrors": [
+      "Supabase auth is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY to .env.local."
+    ]
+  },
+  {
+    "route": "/analytics",
+    "viewport": "mobile",
+    "finalUrl": "http://127.0.0.1:3000/analytics",
+    "status": 500,
+    "metrics": {
+      "title": "",
+      "h1": "This page couldn’t load",
+      "bodyText": "This page couldn’t load Reload to try again, or go back. Reload Back",
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "scrollHeight": 844,
+      "innerHeight": 844,
+      "overflowers": [],
+      "actionable": [
+        {
+          "tag": "button",
+          "text": "Reload",
+          "disabled": false,
+          "href": null
+        },
+        {
+          "tag": "button",
+          "text": "Back",
+          "disabled": false,
+          "href": null
+        }
+      ]
+    },
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+    ],
+    "pageErrors": [
+      "Supabase auth is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY to .env.local."
+    ]
+  },
+  {
+    "route": "/settings",
+    "viewport": "mobile",
+    "finalUrl": "http://127.0.0.1:3000/settings",
+    "status": 500,
+    "metrics": {
+      "title": "",
+      "h1": "This page couldn’t load",
+      "bodyText": "This page couldn’t load Reload to try again, or go back. Reload Back",
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "scrollHeight": 844,
+      "innerHeight": 844,
+      "overflowers": [],
+      "actionable": [
+        {
+          "tag": "button",
+          "text": "Reload",
+          "disabled": false,
+          "href": null
+        },
+        {
+          "tag": "button",
+          "text": "Back",
+          "disabled": false,
+          "href": null
+        }
+      ]
+    },
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+    ],
+    "pageErrors": [
+      "Supabase auth is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY to .env.local."
+    ]
+  }
+]

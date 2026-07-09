@@ -18,9 +18,10 @@ function run() {
   assert.match(editorPage, /createPortal\([\s\S]*resolvedComposerPortalTarget/)
 
   const loader = read('components/ui/minimal-typographic-loader.tsx')
-  assert.match(loader, /PrometheusInfinityMark/)
+  assert.match(loader, /PrometheusLogoShaderMark/)
   assert.equal(loader.includes('next/image'), false)
   assert.equal(loader.includes('/loaders/prometheus-infinity-loader.gif'), false)
+  assert.match(loader, /prometheus-logo-shader-mark/)
   assert.equal(loader.includes('mix-blend-screen'), false)
   assert.equal(loader.includes('standalone'), false)
   assert.equal(loader.includes('function StandaloneInfinityMark'), false)

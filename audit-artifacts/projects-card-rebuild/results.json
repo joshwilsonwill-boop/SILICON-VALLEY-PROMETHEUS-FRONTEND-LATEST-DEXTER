@@ -1,0 +1,24 @@
+[
+  {
+    "viewport": "desktop",
+    "metrics": {
+      "articleCount": 3,
+      "hasRotatingGlassClass": false,
+      "hasPersistentActionMenu": true,
+      "overflow": false,
+      "scrollWidth": 1440,
+      "innerWidth": 1440
+    }
+  },
+  {
+    "viewport": "mobile",
+    "metrics": {
+      "articleCount": 3,
+      "hasRotatingGlassClass": false,
+      "hasPersistentActionMenu": true,
+      "overflow": false,
+      "scrollWidth": 390,
+      "innerWidth": 390
+    }
+  }
+]
