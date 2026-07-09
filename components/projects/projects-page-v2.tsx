@@ -3,12 +3,13 @@
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
 import { formatDistanceToNow } from 'date-fns'
-import { AlertTriangle, Clapperboard, FolderOpen, Loader2, Plus, Search } from 'lucide-react'
+import { AlertTriangle, Clapperboard, FolderOpen, Loader2, Plus, Search, Globe, FileEdit, LoaderCircle, CheckCircle, XCircle } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { toast } from 'sonner'
 
 import { CreateProjectModal } from '@/components/projects/create-project-modal'
 import { ProjectCard } from '@/components/projects/project-card'
+import { MenuBar } from '@/components/ui/bottom-menu'
 import { Button } from '@/components/ui/button'
 import { LiquidChromeButton } from '@/components/ui/liquid-chrome-button'
 import {
@@ -163,52 +164,18 @@ export function ProjectsPageV2() {
             </LiquidChromeButton>
           </header>
 
-          <div className="mt-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="relative w-full max-w-md">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
-              <Input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search projects"
-                className="h-11 rounded-[18px] border-white/16 bg-white/[0.06] pl-10 pr-4 text-sm text-white/90 placeholder:text-white/42"
-              />
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <label className="flex h-10 items-center gap-2 rounded-[18px] border border-white/10 bg-white/[0.05] px-3 text-sm text-white/62">
-                <span className="text-white/42">Sort by</span>
-                <select
-                  value={sortKey}
-                  onChange={(event) => setSortKey(event.target.value as SortKey)}
-                  className="bg-transparent text-white outline-none"
-                >
-                  {SORT_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value} className="bg-[#0a0a0d] text-white">
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              {FILTER_OPTIONS.map((filter) => (
-                <button
-                  key={filter}
-                  type="button"
-                  onClick={() => setStatusFilter(filter)}
-                  className={cn(
-                    'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
-                    statusFilter === filter
-                      ? 'border-[var(--theme-accent)] bg-white/[0.08] text-white'
-                      : 'border-white/12 bg-white/[0.03] text-white/58 hover:text-white',
-                  )}
-                >
-                  {filter === 'all' ? 'All' : filter.charAt(0).toUpperCase() + filter.slice(1)}
-                  <span className="ml-2 rounded-full bg-white/[0.05] px-1.5 py-0.5 text-[10px] text-white/45">
-                    {filterCounts[filter]}
-                  </span>
-                </button>
-              ))}
-            </div>
+          <div className="mt-6 flex justify-center">
+            <MenuBar
+              activeValue={statusFilter}
+              onItemClick={(value) => setStatusFilter(value as StatusFilter)}
+              items={[
+                { label: 'All', icon: Globe, value: 'all' },
+                { label: 'Draft', icon: FileEdit, value: 'draft' },
+                { label: 'Rendering', icon: LoaderCircle, value: 'rendering' },
+                { label: 'Completed', icon: CheckCircle, value: 'completed' },
+                { label: 'Failed', icon: XCircle, value: 'failed' },
+              ]}
+            />
           </div>
 
           <div className="mt-6">

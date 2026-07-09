@@ -1619,6 +1619,261 @@ html[data-prometheus-reduce-motion='true'] *::after {
   animation: none;
 }
 
+@keyframes prometheus-logo-shader-sweep {
+  0% {
+    opacity: 0;
+    transform: translate3d(-42%, 18%, 0) rotate(-18deg) scaleY(1.16);
+  }
+
+  18% {
+    opacity: 0.82;
+  }
+
+  58% {
+    opacity: 0.42;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate3d(46%, -16%, 0) rotate(-18deg) scaleY(1.16);
+  }
+}
+
+@keyframes prometheus-logo-caustic-drift {
+  0%,
+  100% {
+    opacity: 0.52;
+    transform: translate3d(-1.5%, 1%, 0) rotate(0deg) scale(1.02);
+  }
+
+  45% {
+    opacity: 0.9;
+    transform: translate3d(2%, -1.6%, 0) rotate(8deg) scale(1.05);
+  }
+}
+
+@keyframes prometheus-logo-core-breathe {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 10px rgba(146, 223, 255, 0.28)) drop-shadow(0 0 28px rgba(95, 126, 255, 0.16));
+    transform: scale(0.992);
+  }
+
+  50% {
+    filter: drop-shadow(0 0 16px rgba(235, 250, 255, 0.5)) drop-shadow(0 0 42px rgba(116, 226, 255, 0.22));
+    transform: scale(1.008);
+  }
+}
+
+.prometheus-logo-loader {
+  --prometheus-logo-mask: url('/branding/prometheus-logo-no-bg.png');
+  isolation: isolate;
+}
+
+.prometheus-logo-shader-mark {
+  position: absolute;
+  inset: -8%;
+  overflow: visible;
+  contain: layout paint;
+}
+
+.prometheus-logo-shader-mark__aura,
+.prometheus-logo-shader-mark__silhouette,
+.prometheus-logo-shader-mark__caustic,
+.prometheus-logo-shader-mark__sweep,
+.prometheus-logo-shader-mark__edge {
+  position: absolute;
+  inset: 0;
+  display: block;
+  pointer-events: none;
+}
+
+.prometheus-logo-shader-mark__aura {
+  inset: -16%;
+  border-radius: 9999px;
+  background:
+    radial-gradient(circle at 49% 42%, rgba(255, 255, 255, 0.2), rgba(126, 229, 255, 0.1) 24%, rgba(0, 0, 0, 0) 58%),
+    radial-gradient(circle at 56% 58%, rgba(119, 104, 255, 0.18), rgba(0, 0, 0, 0) 62%);
+  filter: blur(16px);
+  opacity: 0.78;
+}
+
+.prometheus-logo-shader-mark__silhouette,
+.prometheus-logo-shader-mark__caustic,
+.prometheus-logo-shader-mark__sweep,
+.prometheus-logo-shader-mark__edge {
+  -webkit-mask-image: var(--prometheus-logo-mask);
+  mask-image: var(--prometheus-logo-mask);
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+}
+
+.prometheus-logo-shader-mark__silhouette {
+  background:
+    radial-gradient(circle at 35% 24%, rgba(255, 255, 255, 0.96), rgba(210, 242, 255, 0.42) 14%, rgba(0, 0, 0, 0) 36%),
+    linear-gradient(132deg, rgba(246, 252, 255, 0.96) 0%, rgba(100, 229, 255, 0.82) 30%, rgba(102, 112, 255, 0.8) 58%, rgba(255, 255, 255, 0.74) 76%, rgba(37, 48, 92, 0.92) 100%);
+  animation: prometheus-logo-core-breathe 2.8s ease-in-out infinite;
+}
+
+.prometheus-logo-shader-mark__caustic {
+  background:
+    conic-gradient(from 230deg at 50% 50%, rgba(255, 255, 255, 0.08), rgba(98, 227, 255, 0.86), rgba(111, 105, 255, 0.48), rgba(255, 255, 255, 0.84), rgba(85, 246, 216, 0.32), rgba(255, 255, 255, 0.08));
+  opacity: 0.64;
+  animation: prometheus-logo-caustic-drift 3.25s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.prometheus-logo-shader-mark__sweep {
+  background: linear-gradient(103deg, rgba(255, 255, 255, 0) 33%, rgba(255, 255, 255, 0.92) 47%, rgba(115, 231, 255, 0.72) 52%, rgba(255, 255, 255, 0) 66%);
+  filter: blur(0.6px);
+  animation: prometheus-logo-shader-sweep 2.35s cubic-bezier(0.55, 0.02, 0.18, 1) infinite;
+  will-change: transform, opacity;
+}
+
+.prometheus-logo-shader-mark__edge {
+  background: rgba(255, 255, 255, 0.34);
+  filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.8)) drop-shadow(0 0 18px rgba(113, 219, 255, 0.42));
+  opacity: 0.72;
+}
+
+.prometheus-logo-shader-mark.is-reduced-motion .prometheus-logo-shader-mark__silhouette,
+.prometheus-logo-shader-mark.is-reduced-motion .prometheus-logo-shader-mark__caustic,
+.prometheus-logo-shader-mark.is-reduced-motion .prometheus-logo-shader-mark__sweep {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .prometheus-logo-shader-mark__silhouette,
+  .prometheus-logo-shader-mark__caustic,
+  .prometheus-logo-shader-mark__sweep {
+    animation: none;
+  }
+}
+.luxury-analysis-panel {
+  position: relative;
+  overflow: hidden;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.045) 0%, rgba(255, 255, 255, 0.015) 44%, rgba(7, 8, 12, 0.32) 100%),
+    rgba(255, 255, 255, 0.03);
+  padding: 1.25rem;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 30px 60px -42px rgba(0, 0, 0, 0.82);
+  backdrop-filter: blur(40px) saturate(122%);
+  -webkit-backdrop-filter: blur(40px) saturate(122%);
+}
+
+.satin-grain-veneer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.08;
+  background-image:
+    radial-gradient(circle at 20% 14%, rgba(255, 255, 255, 0.28) 0 1px, transparent 1.2px),
+    radial-gradient(circle at 84% 72%, rgba(127, 242, 212, 0.18) 0 1px, transparent 1.2px),
+    repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.05) 0 1px, transparent 1px 6px);
+  background-size: 18px 18px, 22px 22px, 100% 100%;
+  mix-blend-mode: screen;
+}
+
+.quiet-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.38);
+}
+
+.live-indicator {
+  position: relative;
+  display: inline-flex;
+  width: 0.52rem;
+  height: 0.52rem;
+  border-radius: 9999px;
+  background: #7ff2d4;
+  box-shadow: 0 0 18px rgba(127, 242, 212, 0.34);
+}
+
+.minimal-vector-graph {
+  width: 100%;
+  min-height: 9rem;
+  overflow: visible;
+}
+
+.isomorphic-path {
+  fill: none;
+  stroke-width: 1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  vector-effect: non-scaling-stroke;
+  animation: analytics-line-trace 1.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.telemetry-node {
+  fill: rgba(255, 255, 255, 0.9);
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.interactive-zone:hover .telemetry-node {
+  transform: scale(1.75);
+}
+
+.analytics-micro-card {
+  transition:
+    transform 360ms cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 360ms cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 360ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.analytics-micro-card:hover {
+  transform: translate3d(0, -2px, 0);
+  border-color: rgba(127, 242, 212, 0.16);
+}
+
+.analytics-video-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.025);
+  padding: 0.9rem;
+}
+
+@media (min-width: 768px) {
+  .analytics-video-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+}
+
+@layer utilities {
+  .glass-sidebar {
+    background: linear-gradient(180deg, rgba(17,17,24,0.98) 0%, rgba(10,10,15,0.96) 100%);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border-right: 1px solid rgba(255,255,255,0.06);
+    box-shadow:
+      inset -1px 0 0 rgba(255,255,255,0.035),
+      inset 0 1px 0 rgba(255,255,255,0.04);
+  }
+
+  .glass-backdrop {
+    background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+}
 .luxury-analysis-panel {
   position: relative;
   overflow: hidden;
@@ -1751,3 +2006,53 @@ html[data-prometheus-reduce-motion='true'] *::after {
     height: 0;
   }
 }
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.tooltip-content {
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.tooltip-content-wrapper {
+  position: relative;
+  height: 16px;
+  overflow: hidden;
+  animation: fadeIn 150ms ease-out;
+}
+
+.tooltip-label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  opacity: 1;
+  transform: translateY(0);
+  transition: all 800ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+[data-state='closed'] {
+  opacity: 0;
+  transition: opacity 150ms ease-out;
+}
+
+[data-state='open'] {
+  opacity: 1;
+  transition: opacity 150ms ease-out, width 800ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slideOut {
+  from { transform: translateX(0); opacity: 1; }
+  to { transform: translateX(-100%); opacity: 0; }
+}
+
+.tooltip-content.slide-in { animation: slideIn 150ms ease-out; }
+.tooltip-content.slide-out { animation: slideOut 150ms ease-out; }
