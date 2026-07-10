@@ -52,7 +52,7 @@ function usePrefersReducedMotion() {
   )
 }
 
-function PrometheusLogoShaderMark({
+function PrometheusApertureLoader({
   reducedMotion,
 }: {
   reducedMotion: boolean
@@ -60,13 +60,12 @@ function PrometheusLogoShaderMark({
   return (
     <div
       aria-hidden="true"
-      className={cn('prometheus-logo-shader-mark', reducedMotion && 'is-reduced-motion')}
+      className={cn('prometheus-aperture-loader', reducedMotion && 'is-reduced-motion')}
     >
-      <span className="prometheus-logo-shader-mark__aura" />
-      <span className="prometheus-logo-shader-mark__silhouette" />
-      <span className="prometheus-logo-shader-mark__caustic" />
-      <span className="prometheus-logo-shader-mark__sweep" />
-      <span className="prometheus-logo-shader-mark__edge" />
+      <span className="prometheus-aperture-loader__halo" />
+      <span className="prometheus-aperture-loader__ring" />
+      <span className="prometheus-aperture-loader__mark" />
+      <span className="prometheus-aperture-loader__scan" />
     </div>
   )
 }
@@ -96,7 +95,7 @@ export function MinimalTypographicLoader({
       {ambient ? (
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_48%,rgba(205,232,255,0.08)_0%,rgba(74,120,255,0.052)_28%,rgba(0,0,0,0)_64%)]"
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_48%,rgba(255,255,255,0.07)_0%,rgba(118,92,255,0.045)_30%,rgba(0,0,0,0)_66%)]"
         />
       ) : null}
       <div
@@ -106,7 +105,7 @@ export function MinimalTypographicLoader({
           prefersReducedMotion && 'opacity-90',
         )}
       >
-        <PrometheusLogoShaderMark reducedMotion={prefersReducedMotion} />
+        <PrometheusApertureLoader reducedMotion={prefersReducedMotion} />
       </div>
       <span className="sr-only">{ariaLabel}</span>
     </section>

@@ -1619,50 +1619,22 @@ html[data-prometheus-reduce-motion='true'] *::after {
   animation: none;
 }
 
-@keyframes prometheus-logo-shader-sweep {
-  0% {
-    opacity: 0;
-    transform: translate3d(-42%, 18%, 0) rotate(-18deg) scaleY(1.16);
-  }
-
-  18% {
-    opacity: 0.82;
-  }
-
-  58% {
-    opacity: 0.42;
-  }
-
-  100% {
-    opacity: 0;
-    transform: translate3d(46%, -16%, 0) rotate(-18deg) scaleY(1.16);
-  }
+@keyframes prometheus-aperture-ring {
+  0% { transform: rotate(0deg) scale(0.985); opacity: 0.72; }
+  50% { transform: rotate(156deg) scale(1.012); opacity: 1; }
+  100% { transform: rotate(360deg) scale(0.985); opacity: 0.72; }
 }
 
-@keyframes prometheus-logo-caustic-drift {
-  0%,
-  100% {
-    opacity: 0.52;
-    transform: translate3d(-1.5%, 1%, 0) rotate(0deg) scale(1.02);
-  }
-
-  45% {
-    opacity: 0.9;
-    transform: translate3d(2%, -1.6%, 0) rotate(8deg) scale(1.05);
-  }
+@keyframes prometheus-aperture-scan {
+  0% { opacity: 0; transform: translate3d(-62%, 18%, 0) rotate(-18deg); }
+  20% { opacity: 0.86; }
+  58% { opacity: 0.36; }
+  100% { opacity: 0; transform: translate3d(68%, -20%, 0) rotate(-18deg); }
 }
 
-@keyframes prometheus-logo-core-breathe {
-  0%,
-  100% {
-    filter: drop-shadow(0 0 10px rgba(146, 223, 255, 0.28)) drop-shadow(0 0 28px rgba(95, 126, 255, 0.16));
-    transform: scale(0.992);
-  }
-
-  50% {
-    filter: drop-shadow(0 0 16px rgba(235, 250, 255, 0.5)) drop-shadow(0 0 42px rgba(116, 226, 255, 0.22));
-    transform: scale(1.008);
-  }
+@keyframes prometheus-aperture-pulse {
+  0%, 100% { filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.26)) drop-shadow(0 0 28px rgba(118, 92, 255, 0.14)); transform: scale(0.992); }
+  50% { filter: drop-shadow(0 0 16px rgba(255, 255, 255, 0.48)) drop-shadow(0 0 42px rgba(98, 135, 255, 0.2)); transform: scale(1.006); }
 }
 
 .prometheus-logo-loader {
@@ -1670,38 +1642,44 @@ html[data-prometheus-reduce-motion='true'] *::after {
   isolation: isolate;
 }
 
-.prometheus-logo-shader-mark {
+.prometheus-aperture-loader {
   position: absolute;
   inset: -8%;
   overflow: visible;
   contain: layout paint;
 }
 
-.prometheus-logo-shader-mark__aura,
-.prometheus-logo-shader-mark__silhouette,
-.prometheus-logo-shader-mark__caustic,
-.prometheus-logo-shader-mark__sweep,
-.prometheus-logo-shader-mark__edge {
+.prometheus-aperture-loader__halo,
+.prometheus-aperture-loader__ring,
+.prometheus-aperture-loader__mark,
+.prometheus-aperture-loader__scan {
   position: absolute;
   inset: 0;
   display: block;
   pointer-events: none;
 }
 
-.prometheus-logo-shader-mark__aura {
-  inset: -16%;
+.prometheus-aperture-loader__halo {
+  inset: -18%;
   border-radius: 9999px;
   background:
-    radial-gradient(circle at 49% 42%, rgba(255, 255, 255, 0.2), rgba(126, 229, 255, 0.1) 24%, rgba(0, 0, 0, 0) 58%),
-    radial-gradient(circle at 56% 58%, rgba(119, 104, 255, 0.18), rgba(0, 0, 0, 0) 62%);
-  filter: blur(16px);
-  opacity: 0.78;
+    radial-gradient(circle at 50% 45%, rgba(255, 255, 255, 0.2), rgba(118, 92, 255, 0.12) 24%, rgba(0, 0, 0, 0) 62%),
+    radial-gradient(circle at 54% 62%, rgba(70, 112, 255, 0.15), rgba(0, 0, 0, 0) 64%);
+  filter: blur(18px);
+  opacity: 0.74;
 }
 
-.prometheus-logo-shader-mark__silhouette,
-.prometheus-logo-shader-mark__caustic,
-.prometheus-logo-shader-mark__sweep,
-.prometheus-logo-shader-mark__edge {
+.prometheus-aperture-loader__ring {
+  inset: 8%;
+  border-radius: 9999px;
+  background: conic-gradient(from 210deg, transparent 0deg, rgba(255, 255, 255, 0.08) 48deg, rgba(255, 255, 255, 0.74) 72deg, rgba(118, 92, 255, 0.5) 104deg, transparent 154deg, rgba(255, 255, 255, 0.3) 226deg, transparent 280deg);
+  -webkit-mask: radial-gradient(circle, transparent 58%, black 60%, black 68%, transparent 70%);
+  mask: radial-gradient(circle, transparent 58%, black 60%, black 68%, transparent 70%);
+  animation: prometheus-aperture-ring 2.6s cubic-bezier(0.42, 0, 0.16, 1) infinite;
+}
+
+.prometheus-aperture-loader__mark,
+.prometheus-aperture-loader__scan {
   -webkit-mask-image: var(--prometheus-logo-mask);
   mask-image: var(--prometheus-logo-mask);
   -webkit-mask-position: center;
@@ -1712,43 +1690,27 @@ html[data-prometheus-reduce-motion='true'] *::after {
   mask-size: contain;
 }
 
-.prometheus-logo-shader-mark__silhouette {
-  background:
-    radial-gradient(circle at 35% 24%, rgba(255, 255, 255, 0.96), rgba(210, 242, 255, 0.42) 14%, rgba(0, 0, 0, 0) 36%),
-    linear-gradient(132deg, rgba(246, 252, 255, 0.96) 0%, rgba(100, 229, 255, 0.82) 30%, rgba(102, 112, 255, 0.8) 58%, rgba(255, 255, 255, 0.74) 76%, rgba(37, 48, 92, 0.92) 100%);
-  animation: prometheus-logo-core-breathe 2.8s ease-in-out infinite;
+.prometheus-aperture-loader__mark {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(190, 199, 255, 0.92) 36%, rgba(255, 255, 255, 0.76) 64%, rgba(62, 70, 104, 0.95) 100%);
+  animation: prometheus-aperture-pulse 2.7s ease-in-out infinite;
 }
 
-.prometheus-logo-shader-mark__caustic {
-  background:
-    conic-gradient(from 230deg at 50% 50%, rgba(255, 255, 255, 0.08), rgba(98, 227, 255, 0.86), rgba(111, 105, 255, 0.48), rgba(255, 255, 255, 0.84), rgba(85, 246, 216, 0.32), rgba(255, 255, 255, 0.08));
-  opacity: 0.64;
-  animation: prometheus-logo-caustic-drift 3.25s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+.prometheus-aperture-loader__scan {
+  background: linear-gradient(103deg, transparent 36%, rgba(255, 255, 255, 0.95) 48%, rgba(151, 132, 255, 0.62) 54%, transparent 66%);
+  filter: blur(0.5px);
+  animation: prometheus-aperture-scan 2.2s cubic-bezier(0.55, 0.02, 0.18, 1) infinite;
 }
 
-.prometheus-logo-shader-mark__sweep {
-  background: linear-gradient(103deg, rgba(255, 255, 255, 0) 33%, rgba(255, 255, 255, 0.92) 47%, rgba(115, 231, 255, 0.72) 52%, rgba(255, 255, 255, 0) 66%);
-  filter: blur(0.6px);
-  animation: prometheus-logo-shader-sweep 2.35s cubic-bezier(0.55, 0.02, 0.18, 1) infinite;
-  will-change: transform, opacity;
-}
-
-.prometheus-logo-shader-mark__edge {
-  background: rgba(255, 255, 255, 0.34);
-  filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.8)) drop-shadow(0 0 18px rgba(113, 219, 255, 0.42));
-  opacity: 0.72;
-}
-
-.prometheus-logo-shader-mark.is-reduced-motion .prometheus-logo-shader-mark__silhouette,
-.prometheus-logo-shader-mark.is-reduced-motion .prometheus-logo-shader-mark__caustic,
-.prometheus-logo-shader-mark.is-reduced-motion .prometheus-logo-shader-mark__sweep {
+.prometheus-aperture-loader.is-reduced-motion .prometheus-aperture-loader__ring,
+.prometheus-aperture-loader.is-reduced-motion .prometheus-aperture-loader__mark,
+.prometheus-aperture-loader.is-reduced-motion .prometheus-aperture-loader__scan {
   animation: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .prometheus-logo-shader-mark__silhouette,
-  .prometheus-logo-shader-mark__caustic,
-  .prometheus-logo-shader-mark__sweep {
+  .prometheus-aperture-loader__ring,
+  .prometheus-aperture-loader__mark,
+  .prometheus-aperture-loader__scan {
     animation: none;
   }
 }

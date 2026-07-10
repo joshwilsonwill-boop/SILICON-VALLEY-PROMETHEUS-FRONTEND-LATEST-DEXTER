@@ -1,7 +1,6 @@
 'use client'
 
 import * as React from 'react'
-import { motion } from 'framer-motion'
 import { CheckCircle2, Sparkles, Undo2, Redo2 } from 'lucide-react'
 import { WorkspaceNavBar, type WorkspaceNavItem } from '@/components/ui/anime-navbar'
 import { CinematicExportCluster } from '@/components/editor/cinematic-export-cluster'
@@ -69,7 +68,7 @@ export function EditorHeader({
   }
 
   return (
-    <header className="glass-panel sticky top-0 z-[100] h-14 shrink-0 overflow-hidden border-x-0 border-t-0 rounded-none bg-void/40 backdrop-blur-xl">
+    <header className="sticky top-0 z-[100] h-14 shrink-0 overflow-visible border-b border-white/8 bg-black/86 backdrop-blur-2xl">
       <div className="mx-auto flex h-full w-full max-w-[1800px] items-center justify-between px-4 lg:px-6">
         {/* Left: Project Info */}
         <div className="flex items-center gap-6">
@@ -112,20 +111,22 @@ export function EditorHeader({
           </div>
         </div>
 
-        {/* Center: Workspace & History */}
-        <div className="absolute left-1/2 flex -translate-x-1/2 items-center gap-8">
-          <div className="flex items-center gap-2 border-r border-white/8 pr-8">
+        {/* Center: one hover-revealed command island */}
+        <div className="group/editor-command absolute left-1/2 flex -translate-x-1/2 items-center overflow-visible rounded-full border border-white/10 bg-black/58 p-1 shadow-[0_22px_58px_-36px_rgba(0,0,0,0.98),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-2xl transition-[border-color,box-shadow] duration-300 hover:border-white/18 hover:shadow-[0_28px_72px_-40px_rgba(0,0,0,1),0_0_34px_-28px_rgba(135,160,255,0.7),inset_0_1px_0_rgba(255,255,255,0.12)]">
+          <div className="flex w-0 items-center gap-1 overflow-hidden opacity-0 transition-[width,opacity,margin] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover/editor-command:mr-1 group-hover/editor-command:w-[5.25rem] group-hover/editor-command:opacity-100">
             <button
               onClick={handleUndo}
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-white/30 transition-colors hover:bg-white/5 hover:text-white"
+              className="grid size-8 shrink-0 place-items-center rounded-full text-white/32 transition-colors hover:bg-white/7 hover:text-white"
               title="Undo (Cmd+Z)"
+              aria-label="Undo"
             >
               <Undo2 className="size-4" />
             </button>
             <button
               onClick={handleRedo}
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-white/30 transition-colors hover:bg-white/5 hover:text-white"
+              className="grid size-8 shrink-0 place-items-center rounded-full text-white/32 transition-colors hover:bg-white/7 hover:text-white"
               title="Redo (Cmd+Shift+Z)"
+              aria-label="Redo"
             >
               <Redo2 className="size-4" />
             </button>
@@ -138,26 +139,24 @@ export function EditorHeader({
             onChange={onWorkspaceTabChange}
             className="h-10"
           />
-        </div>
 
-        {/* Right: Actions */}
-        <div className="flex items-center gap-3">
-          {isDeferredChromeReady ? (
-            <CinematicExportCluster
-              onExport={onPrepareExport}
-              isExporting={isExporting}
-              isCompleted={latestExport?.status === 'completed'}
-              onDownload={onDownload}
-              isDownloading={isDownloading}
-            />
-          ) : (
-            <div className="h-9 w-[180px] rounded-full border border-white/8 bg-white/[0.03]" />
-          )}
+          <div className="ml-0 flex w-0 items-center overflow-hidden opacity-0 transition-[width,opacity,margin] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover/editor-command:ml-1 group-hover/editor-command:w-[13.75rem] group-hover/editor-command:opacity-100">
+            {isDeferredChromeReady ? (
+              <CinematicExportCluster
+                onExport={onPrepareExport}
+                isExporting={isExporting}
+                isCompleted={latestExport?.status === 'completed'}
+                onDownload={onDownload}
+                isDownloading={isDownloading}
+              />
+            ) : (
+              <div className="h-9 w-[180px] rounded-full border border-white/8 bg-white/[0.03]" />
+            )}
+          </div>
         </div>
       </div>
       
-      {/* Chrome Glow Line */}
-      <div className="absolute bottom-0 h-[1px] w-full bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+      <div className="absolute bottom-0 h-px w-full bg-gradient-to-r from-transparent via-white/10 to-transparent" />
     </header>
   )
 }

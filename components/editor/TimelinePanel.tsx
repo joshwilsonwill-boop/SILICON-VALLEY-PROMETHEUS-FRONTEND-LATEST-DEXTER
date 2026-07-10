@@ -1,9 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { Pause, Play, Volume2, VolumeX, Layers, Scissors, Music } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { BOTTOM_MODES } from '@/lib/constants'
+import { Pause, Play, Volume2, VolumeX, Layers, Scissors } from 'lucide-react'
 import type { Project, HeaderNavMode, PreviewMediaKind, BottomMode } from '@/lib/types'
 
 export interface TimelinePanelProps {
@@ -32,38 +30,15 @@ export function TimelinePanel({
   transportTime,
   transportProgress,
   isPreviewMuted,
-  project,
-  bottomMode,
   onTogglePlayback,
   onSeek,
   onToggleMute,
-  onSetBottomMode,
 }: TimelinePanelProps) {
   if (activeWorkspaceTab === 'Music') return null
 
   return (
     <div className="w-full max-w-[min(100%,64rem)] self-center px-4">
       <div className="glass-panel flex flex-col gap-4 bg-abyss/40 p-4 shadow-[0_24px_48px_-12px_rgba(0,0,0,0.5)]">
-        {/* Segments Selector / Rail */}
-        <div className="relative h-12 w-full overflow-hidden rounded-xl border border-white/5 bg-void/60">
-          {/* Mock Segments */}
-          <div className="absolute inset-y-0 left-0 w-[30%] bg-track-video/20 border-r border-track-video/40 flex items-center px-3">
-            <span className="text-[10px] uppercase tracking-widest text-track-video font-bold">Intro</span>
-          </div>
-          <div className="absolute inset-y-0 left-[30%] w-[45%] bg-track-motion/20 border-r border-track-motion/40 flex items-center px-3">
-            <span className="text-[10px] uppercase tracking-widest text-track-motion font-bold">Main Content</span>
-          </div>
-          <div className="absolute inset-y-0 left-[75%] w-[25%] bg-track-text/20 flex items-center px-3">
-            <span className="text-[10px] uppercase tracking-widest text-track-text font-bold">Outro</span>
-          </div>
-          
-          {/* Playhead Marker */}
-          <div 
-            className="absolute inset-y-0 z-10 w-px bg-accent-cyan shadow-[0_0_10px_rgba(0,240,255,0.8)]"
-            style={{ left: `${transportProgress}%` }}
-          />
-        </div>
-
         {/* Transport Controls */}
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-2">
@@ -117,24 +92,6 @@ export function TimelinePanel({
               <Scissors className="size-4" />
             </button>
           </div>
-        </div>
-
-        {/* View Selectors */}
-        <div className="flex items-center justify-center gap-1 p-1 bg-void/40 rounded-full border border-white/5 self-center">
-          {BOTTOM_MODES.map((mode) => (
-            <button
-              key={mode}
-              onClick={() => onSetBottomMode(mode)}
-              className={cn(
-                'rounded-full px-5 py-1.5 text-[11px] font-medium uppercase tracking-wider transition-all',
-                bottomMode === mode
-                  ? 'bg-white/10 text-white shadow-[0_2px_10px_rgba(0,0,0,0.2)]'
-                  : 'text-white/30 hover:text-white/60 hover:bg-white/5'
-              )}
-            >
-              {mode}
-            </button>
-          ))}
         </div>
       </div>
     </div>

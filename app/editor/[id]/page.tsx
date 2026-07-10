@@ -903,7 +903,6 @@ const VIRAL_CLIP_COUNT_PRESETS = [
 
 const SHOULD_PREFETCH_EDITOR_SUPPORT_ROUTES = process.env.NODE_ENV === 'production'
 
-const BOTTOM_MODES: BottomMode[] = ['Original', 'Music', 'Timeline']
 const MUSIC_RECOMMENDATION_LIMIT = 8
 const EDITOR_REQUEST_TIMEOUT_MS = 25_000
 
@@ -911,8 +910,8 @@ const CHAT_COMPOSER_FONT_STYLE = {
   fontFamily: '"SF Pro Text","SF Pro Display",-apple-system,BlinkMacSystemFont,"Segoe UI","Helvetica Neue",Arial,sans-serif',
 } satisfies React.CSSProperties
 
-const CHAT_REVEAL_EASE: [number, number, number, number] = [0.16, 1, 0.3, 1]
-const CHAT_LAUNCHER_EASE: [number, number, number, number] = [0.2, 0.9, 0.2, 1]
+const CHAT_REVEAL_EASE: [number, number, number, number] = [0.18, 1, 0.28, 1]
+const CHAT_LAUNCHER_EASE: [number, number, number, number] = [0.22, 1, 0.36, 1]
 
 const chatOverlayVariants: Variants = {
   hidden: {
@@ -957,32 +956,28 @@ const chatLauncherVariants: Variants = {
 const chatPanelVariants: Variants = {
   hidden: {
     opacity: 0,
-    y: 32,
-    scale: 0.982,
-    clipPath: 'inset(42% 42% 42% 42% round 999px)',
-    filter: 'blur(18px)',
+    y: 24,
+    scale: 0.965,
+    filter: 'blur(22px)',
   },
   visible: {
     opacity: 1,
     y: 0,
     scale: 1,
-    clipPath: 'inset(0% 0% 0% 0% round 34px)',
     filter: 'blur(0px)',
     transition: {
-      opacity: { duration: 0.22, ease: CHAT_REVEAL_EASE },
-      y: { type: 'spring', stiffness: 150, damping: 24, mass: 0.9 },
-      scale: { type: 'spring', stiffness: 180, damping: 26, mass: 0.9 },
-      clipPath: { duration: 0.52, ease: CHAT_REVEAL_EASE },
-      filter: { duration: 0.38, ease: CHAT_REVEAL_EASE },
+      opacity: { duration: 0.18, ease: CHAT_REVEAL_EASE },
+      y: { type: 'spring', stiffness: 185, damping: 28, mass: 0.82 },
+      scale: { type: 'spring', stiffness: 210, damping: 30, mass: 0.86 },
+      filter: { duration: 0.34, ease: CHAT_REVEAL_EASE },
     },
   },
   exit: {
     opacity: 0,
-    y: 18,
-    scale: 0.988,
-    clipPath: 'inset(8% 8% 8% 8% round 30px)',
-    filter: 'blur(12px)',
-    transition: { duration: 0.22, ease: [0.5, 0, 0.75, 0] },
+    y: 14,
+    scale: 0.982,
+    filter: 'blur(14px)',
+    transition: { duration: 0.18, ease: [0.5, 0, 0.75, 0] },
   },
 }
 
@@ -3542,7 +3537,7 @@ function FloatingChatComposer({
               onThreadOpenChange(false)
               onOpenChange(false)
             }}
-            className="pointer-events-auto fixed inset-0 -z-10 bg-[radial-gradient(circle_at_50%_30%,rgba(66,108,142,0.24)_0%,rgba(7,9,13,0.78)_42%,rgba(0,0,0,0.94)_100%)]"
+            className="pointer-events-auto fixed inset-0 -z-10 bg-black/88 backdrop-blur-2xl"
           />
         ) : null}
       </AnimatePresence>
@@ -3559,10 +3554,10 @@ function FloatingChatComposer({
           }
         }}
         className={cn(
-          'pointer-events-auto relative will-change-[transform,opacity,filter,clip-path]',
+          'pointer-events-auto relative will-change-[transform,opacity,filter]',
           isThreadOpen
             ? [
-                'premium-motion-surface premium-telemetry-panel origin-center h-[calc(100dvh-1rem)] max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] overflow-hidden rounded-[28px] border border-white/8 bg-[#050607]/92 shadow-[0_30px_90px_rgba(0,0,0,0.52)] backdrop-blur-2xl',
+                'premium-motion-surface premium-telemetry-panel origin-center h-[calc(100dvh-1rem)] max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] overflow-hidden rounded-[28px] border border-white/10 bg-black shadow-[0_42px_120px_rgba(0,0,0,0.78),0_0_0_1px_rgba(255,255,255,0.035)] backdrop-blur-2xl',
                 'md:h-[calc(100dvh-2rem)] md:max-h-[calc(100dvh-2rem)] md:w-[calc(100vw-2rem)] md:rounded-[34px]',
               ]
             : 'origin-bottom-right overflow-visible border border-transparent bg-transparent shadow-none',
@@ -3583,7 +3578,7 @@ function FloatingChatComposer({
               onOpenChange(true)
               onThreadOpenChange(true)
             }}
-            className="group/editorial-chat relative flex h-14 items-center gap-3 overflow-hidden rounded-full border border-white/12 bg-[linear-gradient(135deg,rgba(255,255,255,0.105)_0%,rgba(255,255,255,0.045)_46%,rgba(255,255,255,0.018)_100%)] py-1.5 pl-1.5 pr-4 text-white/82 shadow-[0_24px_70px_-34px_rgba(0,0,0,0.96),0_0_38px_-28px_rgba(127,242,212,0.86),inset_0_1px_0_rgba(255,255,255,0.14)] backdrop-blur-2xl transition-[border-color,background-color,color,box-shadow] duration-300 ease-out hover:border-white/20 hover:text-white hover:shadow-[0_28px_80px_-34px_rgba(0,0,0,0.98),0_0_46px_-26px_rgba(127,242,212,0.96),inset_0_1px_0_rgba(255,255,255,0.18)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9ff6e3]/36"
+            className="group/editorial-chat relative flex h-14 items-center gap-3 overflow-hidden rounded-[22px] border border-[#795cff]/35 bg-[linear-gradient(135deg,rgba(20,10,38,0.96)_0%,rgba(7,8,18,0.98)_54%,rgba(32,54,102,0.92)_100%)] py-1.5 pl-1.5 pr-4 text-white shadow-[0_24px_70px_-34px_rgba(0,0,0,0.96),0_0_36px_-22px_rgba(121,92,255,0.72),inset_0_1px_0_rgba(255,255,255,0.16)] backdrop-blur-2xl transition-[border-color,background-color,color,box-shadow,transform] duration-300 ease-out hover:border-[#9c86ff]/58 hover:text-white hover:shadow-[0_30px_86px_-36px_rgba(0,0,0,0.98),0_0_48px_-24px_rgba(98,135,255,0.78),inset_0_1px_0_rgba(255,255,255,0.22)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9c86ff]/36"
           >
             <span
               aria-hidden
@@ -3593,7 +3588,7 @@ function FloatingChatComposer({
               aria-hidden
               className="absolute -right-10 top-1/2 h-20 w-20 -translate-y-1/2 rounded-full bg-[#7ff2d4]/10 blur-2xl transition-transform duration-500 ease-out group-hover/editorial-chat:-translate-x-2"
             />
-            <span className="relative grid size-11 shrink-0 place-items-center rounded-full border border-white/12 bg-black/38 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]">
+            <span className="relative grid size-11 shrink-0 place-items-center rounded-[18px] border border-white/14 bg-black/46 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_0_24px_-12px_rgba(156,134,255,0.9)]">
               <MessageSquare className="size-4 drop-shadow-[0_0_14px_rgba(127,242,212,0.28)]" />
             </span>
             <span className="relative flex flex-col items-start leading-none">
@@ -3604,19 +3599,7 @@ function FloatingChatComposer({
         ) : null}
 
         <div className={cn('relative h-full w-full overflow-hidden rounded-[inherit] bg-transparent', !isThreadOpen && 'hidden')}>
-          {isThreadOpen ? (
-            <>
-              <div
-                aria-hidden
-                className="absolute inset-0 -z-20 bg-cover bg-center opacity-[0.44] mix-blend-screen"
-                style={{ backgroundImage: "url('/style-previews/dark-cinematic-1.jpg')" }}
-              />
-              <div
-                aria-hidden
-                className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_50%_24%,rgba(132,178,204,0.22)_0%,rgba(20,28,34,0.36)_34%,rgba(2,3,5,0.92)_72%),linear-gradient(180deg,rgba(0,0,0,0.16)_0%,rgba(0,0,0,0.76)_100%)]"
-              />
-            </>
-          ) : null}
+          {isThreadOpen ? <div aria-hidden className="absolute inset-0 -z-10 bg-black" /> : null}
           <input
             ref={attachmentInputRef}
             type="file"
@@ -3654,6 +3637,10 @@ function FloatingChatComposer({
                     icon: action.icon,
                   }))}
                   className="min-h-full"
+                  onClose={() => {
+                    onThreadOpenChange(false)
+                    onOpenChange(false)
+                  }}
                 />
               </motion.div>
             ) : false ? (
@@ -8091,14 +8078,14 @@ function OriginalEditorPage() {
 
   return (
     <>
-      <div className="relative h-[100dvh] overflow-hidden bg-[#07070a] text-white">
+      <div className="relative h-[100dvh] overflow-hidden bg-black text-white">
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(84,69,126,0.24)_0%,rgba(84,69,126,0.08)_24%,rgba(7,7,10,0)_56%),linear-gradient(180deg,rgba(16,14,24,0.72)_0%,rgba(7,7,10,1)_42%)]"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_48%_-12%,rgba(255,255,255,0.055)_0%,rgba(255,255,255,0)_34%),linear-gradient(180deg,#000_0%,#030304_44%,#000_100%)]"
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[length:100%_44px] opacity-[0.06]"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.035)_0_1px,transparent_1.2px)] bg-[length:7px_7px] opacity-[0.24]"
       />
 
       <div className="relative flex h-full min-h-0 flex-col overflow-hidden">
@@ -8154,8 +8141,8 @@ function OriginalEditorPage() {
           >
             <section
               className={cn(
-                'premium-ambient-panel premium-vignette-surface editorial-light-effect relative flex h-full min-h-0 min-w-0 flex-col overflow-hidden border border-white/8 bg-[#111115]',
-                activeWorkspaceTab === 'Motion' ? 'rounded-none border-0 bg-[#050608]' : 'rounded-[28px]',
+                'premium-ambient-panel premium-vignette-surface editorial-light-effect relative flex h-full min-h-0 min-w-0 flex-col overflow-hidden border border-white/8 bg-black',
+                activeWorkspaceTab === 'Motion' ? 'rounded-none border-0 bg-black' : 'rounded-[28px]',
               )}
             >
               <LuxuryVignette tone={activeWorkspaceTab === 'Music' ? 'music' : 'cool'} />
@@ -8198,7 +8185,7 @@ function OriginalEditorPage() {
                     ? 'overflow-hidden px-0 py-0'
                     : activeWorkspaceTab === 'Music'
                       ? 'overflow-hidden px-4 py-4'
-                    : 'overflow-y-auto overscroll-contain py-3',
+                    : 'overflow-y-auto overscroll-contain bg-black py-3',
                   activeWorkspaceTab === 'Editor' && 'px-4 gap-6 justify-center',
                 )}
               >

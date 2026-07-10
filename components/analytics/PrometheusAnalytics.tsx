@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import Image from 'next/image'
-import { LayoutGroup, motion, useReducedMotion, useScroll, useTransform } from 'framer-motion'
+import { LayoutGroup, motion, useReducedMotion } from 'framer-motion'
 import { Activity, Eye, Heart, PlayCircle, Share2 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
@@ -235,7 +235,7 @@ export function PrometheusAnalytics() {
             <TextIlluminateFallback
               text="Cross-platform telemetry, distilled."
               delayMs={titleComplete ? 500 : 0}
-              className="mt-2 text-[14px] font-normal leading-6 text-[#555]"
+              className="mt-3 block text-[14px] font-normal leading-6 text-[#555]"
             />
           </div>
         </header>
@@ -280,7 +280,6 @@ export function PrometheusAnalytics() {
           <TiltSignalCard signal={displaySignal} />
         </section>
 
-        <ScrollTextTube />
 
         <section className="px-8 pb-12 pt-12">
           <p className="text-[10px] uppercase tracking-[0.25em] text-[#444]">RECENT ASSETS</p>
@@ -696,46 +695,6 @@ function TiltSignalCard({ signal }: { signal: TopSignal }) {
         </div>
       </div>
     </aside>
-  )
-}
-
-function ScrollTextTube() {
-  const reduceMotion = useReducedMotion()
-  const tubeRef = React.useRef<HTMLDivElement | null>(null)
-  const { scrollYProgress } = useScroll({ target: tubeRef, offset: ['start end', 'end start'] })
-  const y = useTransform(scrollYProgress, [0, 1], ['0%', '-34%'])
-
-  return (
-    <section
-      ref={tubeRef}
-      className="relative mt-12 hidden h-[200px] overflow-hidden px-8 sm:block"
-      style={{ perspective: '600px' }}
-    >
-      <div className="absolute inset-0 border-y border-[rgba(255,255,255,0.03)] bg-[linear-gradient(180deg,rgba(255,255,255,0.015)_0%,rgba(255,255,255,0)_100%)]" />
-      <motion.div
-        className="absolute inset-0 flex flex-col items-center justify-center"
-        style={{
-          y: reduceMotion ? 0 : y,
-          transform: 'rotateX(25deg)',
-          transformStyle: 'preserve-3d',
-          transformOrigin: 'center center',
-        }}
-      >
-        {['EVOLVE', 'INTERFACE', 'IMMERSION', 'VELOCITY', 'PRECISION', 'CRAFT'].map((word, index) => (
-          <div
-            key={word}
-            className="leading-none text-white/[0.04] uppercase"
-            style={{
-              fontSize: '80px',
-              fontWeight: 500,
-              transform: `translateZ(${-index * 20}px)`,
-            }}
-          >
-            {word}
-          </div>
-        ))}
-      </motion.div>
-    </section>
   )
 }
 

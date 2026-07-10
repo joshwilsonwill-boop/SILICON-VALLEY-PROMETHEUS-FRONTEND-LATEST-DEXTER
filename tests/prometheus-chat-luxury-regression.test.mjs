@@ -27,15 +27,15 @@ function run() {
   assert.match(component, /rounded-\[16px_16px_4px_16px\]/)
   assert.match(component, /rounded-\[4px_16px_16px_16px\]/)
   assert.match(component, /cubic-bezier\(0\.25,\s*0\.46,\s*0\.45,\s*0\.94\)/)
-  assert.match(component, /rgba\(160,\s*180,\s*140,\s*0\.03\)/)
-  assert.match(component, /rgba\(200,\s*170,\s*120,\s*0\.02\)/)
+  assert.match(component, /prometheus-luxury-gradient-field/)
+  assert.match(component, /prometheusGradientDrift/)
+  assert.match(component, /Collapse editorial chat/)
   assert.match(component, /thinking/i)
   assert.match(component, /demoMessages/)
 
   assert.doesNotMatch(component, /EDITOR RELAY/)
   assert.doesNotMatch(component, /Build something amazing/)
   assert.doesNotMatch(component, /bg-emerald|emerald-500|#267dff|prometheus-accent-cyan/)
-  assert.doesNotMatch(component, /type:\s*'spring'/)
   assert.doesNotMatch(component, /loader-orb|AiResponseLoader/)
 
   assert.match(editorPage, /PrometheusChat/)

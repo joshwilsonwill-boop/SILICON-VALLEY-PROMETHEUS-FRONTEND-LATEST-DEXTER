@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import { motion } from 'framer-motion'
-import { ArrowUp, ImageIcon, PanelLeft, Video } from 'lucide-react'
+import { ArrowUp, ImageIcon, PanelLeft, Video, X } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 
@@ -71,6 +71,7 @@ export function PrometheusChat({
   onDraftChange,
   onAttachImage,
   onAttachVideo,
+  onClose,
   className,
 }: {
   messages: PrometheusChatMessage[]
@@ -83,6 +84,7 @@ export function PrometheusChat({
   onDraftChange?: (value: string) => void
   onAttachImage?: () => void
   onAttachVideo?: () => void
+  onClose?: () => void
   className?: string
 }) {
   const [internalDraft, setInternalDraft] = React.useState('')
@@ -120,6 +122,16 @@ export function PrometheusChat({
     >
       <PrometheusChatStyles />
       <SpectraNoiseFallback />
+      {onClose ? (
+        <button
+          type="button"
+          onClick={onClose}
+          className="group absolute right-4 top-4 z-40 grid size-10 place-items-center rounded-full border border-white/10 bg-black/35 text-white/52 shadow-[0_16px_40px_-24px_rgba(0,0,0,0.95),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-2xl transition-[border-color,background-color,color,transform] duration-300 ease-out hover:-translate-y-0.5 hover:border-white/20 hover:bg-white/[0.07] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+          aria-label="Collapse editorial chat"
+        >
+          <X className="size-4 transition-transform duration-300 group-hover:rotate-90" strokeWidth={1.6} />
+        </button>
+      ) : null}
       <aside
         className="relative z-10 hidden shrink-0 overflow-hidden border-r border-[rgba(255,255,255,0.04)] bg-[rgba(255,255,255,0.02)] md:block"
         style={{
@@ -287,12 +299,13 @@ function PrometheusMessageBubble({ message, index }: { message: PrometheusChatMe
 function SpectraNoiseFallback() {
   return (
     <div
-      className="pointer-events-none fixed inset-0 z-0 opacity-60"
+      className="pointer-events-none fixed inset-0 z-0 opacity-100"
       aria-hidden="true"
     >
-      <div className="absolute inset-0 bg-[#0A0A0C]" />
+      <div className="absolute inset-0 bg-black" />
+      <div className="prometheus-luxury-gradient-field absolute inset-[-24%]" />
       <div className="prometheus-spectra-noise absolute inset-0" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_25%_10%,rgba(180,180,180,0.08)_0%,rgba(180,180,180,0)_34%),radial-gradient(circle_at_75%_80%,rgba(200,190,170,0.06)_0%,rgba(200,190,170,0)_38%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.06)_0%,rgba(255,255,255,0)_34%),linear-gradient(180deg,rgba(0,0,0,0)_0%,rgba(0,0,0,0.68)_100%)]" />
     </div>
   )
 }
@@ -352,11 +365,23 @@ function PrometheusChatStyles() {
 
       .prometheus-spectra-noise {
         background-image:
-          radial-gradient(circle at 22% 18%, rgba(160, 180, 140, 0.03) 0 1px, transparent 1px),
-          radial-gradient(circle at 82% 72%, rgba(200, 170, 120, 0.02) 0 1px, transparent 1px),
-          repeating-radial-gradient(circle at 50% 50%, rgba(255,255,255,0.018) 0 1px, transparent 1px 3px);
-        background-size: 3px 3px, 4px 4px, 7px 7px;
-        animation: prometheusNoiseDrift 5s steps(8) infinite;
+          radial-gradient(circle at 50% 50%, rgba(255,255,255,0.035) 0 1px, transparent 1.2px),
+          radial-gradient(circle at 50% 50%, rgba(148,120,255,0.025) 0 1px, transparent 1.2px);
+        background-size: 6px 6px, 10px 10px;
+        mask-image: radial-gradient(circle at 50% 42%, black 0%, rgba(0,0,0,0.74) 44%, transparent 86%);
+        animation: prometheusNoiseDrift 8s steps(10) infinite;
+      }
+
+      .prometheus-luxury-gradient-field {
+        background:
+          radial-gradient(circle at 18% 26%, rgba(103,79,255,0.2) 0%, rgba(103,79,255,0) 28%),
+          radial-gradient(circle at 78% 18%, rgba(74,144,255,0.18) 0%, rgba(74,144,255,0) 30%),
+          radial-gradient(circle at 62% 80%, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0) 32%),
+          linear-gradient(135deg, #020204 0%, #090713 42%, #000 100%);
+        background-size: 120% 120%, 110% 110%, 140% 140%, 100% 100%;
+        filter: saturate(1.12);
+        opacity: 0.82;
+        animation: prometheusGradientDrift 14s cubic-bezier(0.45, 0, 0.2, 1) infinite alternate;
       }
 
       .prometheus-liquid-metal img {
@@ -372,11 +397,17 @@ function PrometheusChatStyles() {
       }
 
       @keyframes prometheusNoiseDrift {
-        0% { transform: translate3d(0, 0, 0); opacity: 0.52; }
-        25% { transform: translate3d(-1%, 1%, 0); opacity: 0.64; }
-        50% { transform: translate3d(1%, -1%, 0); opacity: 0.58; }
-        75% { transform: translate3d(0.5%, 1.5%, 0); opacity: 0.66; }
-        100% { transform: translate3d(0, 0, 0); opacity: 0.52; }
+        0% { transform: translate3d(0, 0, 0); opacity: 0.42; }
+        25% { transform: translate3d(-0.8%, 0.8%, 0); opacity: 0.56; }
+        50% { transform: translate3d(0.8%, -0.8%, 0); opacity: 0.48; }
+        75% { transform: translate3d(0.4%, 1.2%, 0); opacity: 0.58; }
+        100% { transform: translate3d(0, 0, 0); opacity: 0.42; }
+      }
+
+      @keyframes prometheusGradientDrift {
+        0% { transform: translate3d(-2%, -1%, 0) scale(1); background-position: 0% 40%, 80% 20%, 50% 100%, 0 0; }
+        45% { transform: translate3d(1.5%, 1%, 0) scale(1.035); background-position: 38% 24%, 60% 48%, 42% 72%, 0 0; }
+        100% { transform: translate3d(2%, -1.5%, 0) scale(1.06); background-position: 70% 56%, 24% 24%, 64% 40%, 0 0; }
       }
 
       @keyframes prometheusLiquidRipple {

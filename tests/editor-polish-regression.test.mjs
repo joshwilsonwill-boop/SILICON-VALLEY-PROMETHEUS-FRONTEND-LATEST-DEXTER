@@ -140,10 +140,10 @@ function run() {
   assert.equal(inspectorPanel.includes('lg:col-span-2'), false)
 
   const sharedLoader = read('components/ui/minimal-typographic-loader.tsx')
-  assert.match(sharedLoader, /PrometheusLogoShaderMark/)
+  assert.match(sharedLoader, /PrometheusApertureLoader/)
   assert.equal(sharedLoader.includes('next/image'), false)
   assert.equal(sharedLoader.includes('/loaders/prometheus-infinity-loader.gif'), false)
-  assert.match(sharedLoader, /prometheus-logo-shader-mark/)
+  assert.match(sharedLoader, /prometheus-aperture-loader/)
   assert.equal(sharedLoader.includes('gsap'), false)
   assert.equal(sharedLoader.includes('bg-[#000000]'), false)
   assert.match(sharedLoader, /bg-transparent/)
