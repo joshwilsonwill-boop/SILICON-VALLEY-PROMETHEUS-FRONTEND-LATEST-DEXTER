@@ -3,7 +3,7 @@
 import * as React from 'react'
 import dynamic from 'next/dynamic'
 import { safeDynamic } from '@/lib/dynamic-safe'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, motion, type Variants } from 'framer-motion'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { createPortal } from 'react-dom'
 import {
@@ -61,7 +61,6 @@ import gsap from 'gsap'
 import { TextReveal } from '@/components/editor/text-reveal'
 import { MinimalTypographicLoader } from '@/components/ui/minimal-typographic-loader'
 import { AiResponseLoader } from '@/components/ui/ai-response-loader'
-import { MicroExpander } from '@/components/ui/micro-expander'
 import { LuxuryVignette } from '@/components/editor/luxury-vignette'
 import { EditorNewProjectUploadDialog } from '@/components/editor/editor-new-project-upload-dialog'
 import { EditorHeader } from '@/components/editor/EditorHeader'
@@ -912,31 +911,101 @@ const CHAT_COMPOSER_FONT_STYLE = {
   fontFamily: '"SF Pro Text","SF Pro Display",-apple-system,BlinkMacSystemFont,"Segoe UI","Helvetica Neue",Arial,sans-serif',
 } satisfies React.CSSProperties
 
-const chatMorphSpring = {
-  type: 'spring' as const,
-  mass: 1.2,
-  stiffness: 90,
-  damping: 24,
+const CHAT_REVEAL_EASE: [number, number, number, number] = [0.16, 1, 0.3, 1]
+const CHAT_LAUNCHER_EASE: [number, number, number, number] = [0.2, 0.9, 0.2, 1]
+
+const chatOverlayVariants: Variants = {
+  hidden: {
+    opacity: 0,
+    backdropFilter: 'blur(0px) saturate(1)',
+  },
+  visible: {
+    opacity: 1,
+    backdropFilter: 'blur(30px) saturate(1.75)',
+    transition: { duration: 0.36, ease: CHAT_REVEAL_EASE },
+  },
+  exit: {
+    opacity: 0,
+    backdropFilter: 'blur(10px) saturate(1.15)',
+    transition: { duration: 0.22, ease: [0.5, 0, 0.75, 0] },
+  },
 }
 
-const chatMorphVariants = {
-  closed: {
-    opacity: 1,
-    scale: 0.98,
-    y: 6,
-    filter: 'blur(0px)',
+const chatLauncherVariants: Variants = {
+  hidden: {
+    opacity: 0,
+    y: 18,
+    scale: 0.92,
+    filter: 'blur(10px)',
   },
-  open: {
+  visible: {
     opacity: 1,
-    scale: 1,
     y: 0,
+    scale: 1,
     filter: 'blur(0px)',
+    transition: { type: 'spring', stiffness: 520, damping: 34, mass: 0.72 },
   },
-  thread: {
+  exit: {
+    opacity: 0,
+    y: -8,
+    scale: 0.88,
+    filter: 'blur(12px)',
+    transition: { duration: 0.16, ease: CHAT_LAUNCHER_EASE },
+  },
+}
+
+const chatPanelVariants: Variants = {
+  hidden: {
+    opacity: 0,
+    y: 32,
+    scale: 0.982,
+    clipPath: 'inset(42% 42% 42% 42% round 999px)',
+    filter: 'blur(18px)',
+  },
+  visible: {
     opacity: 1,
-    scale: 1,
     y: 0,
+    scale: 1,
+    clipPath: 'inset(0% 0% 0% 0% round 34px)',
     filter: 'blur(0px)',
+    transition: {
+      opacity: { duration: 0.22, ease: CHAT_REVEAL_EASE },
+      y: { type: 'spring', stiffness: 150, damping: 24, mass: 0.9 },
+      scale: { type: 'spring', stiffness: 180, damping: 26, mass: 0.9 },
+      clipPath: { duration: 0.52, ease: CHAT_REVEAL_EASE },
+      filter: { duration: 0.38, ease: CHAT_REVEAL_EASE },
+    },
+  },
+  exit: {
+    opacity: 0,
+    y: 18,
+    scale: 0.988,
+    clipPath: 'inset(8% 8% 8% 8% round 30px)',
+    filter: 'blur(12px)',
+    transition: { duration: 0.22, ease: [0.5, 0, 0.75, 0] },
+  },
+}
+
+const chatInteriorVariants: Variants = {
+  hidden: {
+    opacity: 0,
+    y: 16,
+    scale: 0.992,
+    filter: 'blur(10px)',
+  },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    filter: 'blur(0px)',
+    transition: { delay: 0.1, duration: 0.34, ease: CHAT_REVEAL_EASE },
+  },
+  exit: {
+    opacity: 0,
+    y: 8,
+    scale: 0.996,
+    filter: 'blur(8px)',
+    transition: { duration: 0.16, ease: [0.5, 0, 0.75, 0] },
   },
 }
 
@@ -3465,18 +3534,20 @@ function FloatingChatComposer({
       <AnimatePresence initial={false}>
         {isThreadOpen ? (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1, transition: { duration: reduceMotion ? 0 : 0.26 } }}
-            exit={{ opacity: 0, transition: { duration: reduceMotion ? 0 : 0.18 } }}
+            variants={chatOverlayVariants}
+            initial={reduceMotion ? false : 'hidden'}
+            animate={reduceMotion ? undefined : 'visible'}
+            exit={reduceMotion ? undefined : 'exit'}
             onClick={() => {
               onThreadOpenChange(false)
               onOpenChange(false)
             }}
-            className="pointer-events-auto fixed inset-0 -z-10 bg-[radial-gradient(circle_at_50%_30%,rgba(66,108,142,0.24)_0%,rgba(7,9,13,0.78)_42%,rgba(0,0,0,0.94)_100%)] backdrop-blur-[30px] backdrop-saturate-[1.75]"
+            className="pointer-events-auto fixed inset-0 -z-10 bg-[radial-gradient(circle_at_50%_30%,rgba(66,108,142,0.24)_0%,rgba(7,9,13,0.78)_42%,rgba(0,0,0,0.94)_100%)]"
           />
         ) : null}
       </AnimatePresence>
       <motion.div
+        key={isThreadOpen ? 'editorial-chat-chamber' : 'editorial-chat-launcher'}
         layout={false}
         drag={isMobile && isThreadOpen ? "y" : false}
         dragConstraints={{ top: 0 }}
@@ -3488,7 +3559,7 @@ function FloatingChatComposer({
           }
         }}
         className={cn(
-          'pointer-events-auto relative',
+          'pointer-events-auto relative will-change-[transform,opacity,filter,clip-path]',
           isThreadOpen
             ? [
                 'premium-motion-surface premium-telemetry-panel origin-center h-[calc(100dvh-1rem)] max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] overflow-hidden rounded-[28px] border border-white/8 bg-[#050607]/92 shadow-[0_30px_90px_rgba(0,0,0,0.52)] backdrop-blur-2xl',
@@ -3496,26 +3567,40 @@ function FloatingChatComposer({
               ]
             : 'origin-bottom-right overflow-visible border border-transparent bg-transparent shadow-none',
         )}
-        style={{ ...CHAT_COMPOSER_FONT_STYLE, transformOrigin: isThreadOpen ? 'center center' : 'bottom right' }}
-        variants={chatMorphVariants}
-        initial={reduceMotion ? false : isThreadOpen ? 'thread' : 'closed'}
-        animate={reduceMotion ? undefined : isThreadOpen ? 'thread' : isOpen ? 'open' : 'closed'}
-        exit={reduceMotion ? undefined : { opacity: 0, scale: isThreadOpen ? 0.985 : 1 }}
-        transition={reduceMotion ? undefined : chatMorphSpring}
-        whileHover={!isThreadOpen && !reduceMotion ? { scale: 1.05, boxShadow: '0 18px 42px rgba(0,0,0,0.42)' } : undefined}
+        style={{ ...CHAT_COMPOSER_FONT_STYLE, transformOrigin: isThreadOpen ? '50% 52%' : 'bottom right' }}
+        variants={isThreadOpen ? chatPanelVariants : chatLauncherVariants}
+        initial={reduceMotion ? false : 'hidden'}
+        animate={reduceMotion ? undefined : 'visible'}
+        exit={reduceMotion ? undefined : 'exit'}
+        whileHover={!isThreadOpen && !reduceMotion ? { y: -2, scale: 1.025 } : undefined}
         whileTap={!isThreadOpen && !reduceMotion ? { scale: 0.96 } : undefined}
       >
         {!isThreadOpen ? (
-          <MicroExpander
-            text="Chat"
-            icon={<MessageSquare className="size-4" />}
-            variant="ghost"
+          <button
+            type="button"
+            aria-label="Open editorial chat"
             onClick={() => {
               onOpenChange(true)
               onThreadOpenChange(true)
             }}
-            className="border-white/10 bg-white/[0.045] text-white/72 shadow-[0_18px_42px_-26px_rgba(0,0,0,0.92)] hover:bg-white/[0.075] hover:text-white"
-          />
+            className="group/editorial-chat relative flex h-14 items-center gap-3 overflow-hidden rounded-full border border-white/12 bg-[linear-gradient(135deg,rgba(255,255,255,0.105)_0%,rgba(255,255,255,0.045)_46%,rgba(255,255,255,0.018)_100%)] py-1.5 pl-1.5 pr-4 text-white/82 shadow-[0_24px_70px_-34px_rgba(0,0,0,0.96),0_0_38px_-28px_rgba(127,242,212,0.86),inset_0_1px_0_rgba(255,255,255,0.14)] backdrop-blur-2xl transition-[border-color,background-color,color,box-shadow] duration-300 ease-out hover:border-white/20 hover:text-white hover:shadow-[0_28px_80px_-34px_rgba(0,0,0,0.98),0_0_46px_-26px_rgba(127,242,212,0.96),inset_0_1px_0_rgba(255,255,255,0.18)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9ff6e3]/36"
+          >
+            <span
+              aria-hidden
+              className="absolute inset-0 bg-[radial-gradient(circle_at_24%_18%,rgba(255,255,255,0.24)_0%,rgba(255,255,255,0)_34%),linear-gradient(110deg,rgba(127,242,212,0)_0%,rgba(127,242,212,0.12)_46%,rgba(255,255,255,0)_58%)] opacity-75 transition-opacity duration-300 group-hover/editorial-chat:opacity-100"
+            />
+            <span
+              aria-hidden
+              className="absolute -right-10 top-1/2 h-20 w-20 -translate-y-1/2 rounded-full bg-[#7ff2d4]/10 blur-2xl transition-transform duration-500 ease-out group-hover/editorial-chat:-translate-x-2"
+            />
+            <span className="relative grid size-11 shrink-0 place-items-center rounded-full border border-white/12 bg-black/38 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]">
+              <MessageSquare className="size-4 drop-shadow-[0_0_14px_rgba(127,242,212,0.28)]" />
+            </span>
+            <span className="relative flex flex-col items-start leading-none">
+              <span className="text-[13px] font-semibold tracking-[0.01em]">Chat</span>
+              <span className="mt-1 text-[9px] uppercase tracking-[0.24em] text-[#d6fff7]/42">Relay</span>
+            </span>
+          </button>
         ) : null}
 
         <div className={cn('relative h-full w-full overflow-hidden rounded-[inherit] bg-transparent', !isThreadOpen && 'hidden')}>
@@ -3548,10 +3633,10 @@ function FloatingChatComposer({
               <motion.div
                 key="thread-prometheus-chat"
                 className="relative h-full min-h-0"
-                initial={reduceMotion ? false : { opacity: 0, y: 12 }}
-                animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
-                exit={reduceMotion ? undefined : { opacity: 0, y: 8 }}
-                transition={{ duration: reduceMotion ? 0 : 0.32, ease: 'easeOut' }}
+                variants={chatInteriorVariants}
+                initial={reduceMotion ? false : 'hidden'}
+                animate={reduceMotion ? undefined : 'visible'}
+                exit={reduceMotion ? undefined : 'exit'}
               >
                 <PrometheusChat
                   title="Current Chat"
