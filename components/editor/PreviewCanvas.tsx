@@ -138,9 +138,9 @@ export function PreviewCanvas({
 
   return (
     <div className="flex flex-col items-center w-full">
-      <div className="relative group w-full max-w-[min(100%,54rem)] self-center rounded-[24px] border border-white/8 bg-[#050505] p-2 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.85)]">
+      <div className="relative group w-full max-w-[min(100%,54rem)] self-center rounded-[24px] bg-black shadow-[0_32px_64px_-18px_rgba(0,0,0,0.92)]">
         {/* Glass Border Container */}
-        <div className="relative h-[clamp(250px,40vh,460px)] w-full overflow-hidden rounded-[18px] border border-white/10 bg-[#000]">
+        <div className="relative h-[clamp(250px,40vh,460px)] w-full overflow-hidden rounded-[18px] bg-black">
           <div className="relative flex h-full w-full items-center justify-center">
             <div
               ref={musicSpotlightPortalRef}
@@ -155,7 +155,7 @@ export function PreviewCanvas({
             />
             <motion.div
               layout
-              className="relative overflow-hidden rounded-[8px] border border-white/5 bg-black"
+              className="relative overflow-hidden rounded-[8px] bg-black"
               style={{
                 aspectRatio: visiblePreviewAspectRatio,
                 width: previewFrameWidth,

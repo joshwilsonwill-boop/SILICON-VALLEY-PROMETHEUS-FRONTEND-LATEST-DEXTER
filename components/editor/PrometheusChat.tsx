@@ -1,8 +1,8 @@
 'use client'
 
 import * as React from 'react'
-import { motion } from 'framer-motion'
-import { ArrowUp, ImageIcon, PanelLeft, Video, X } from 'lucide-react'
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
+import { ArrowDown, ArrowUp, ImageIcon, PanelLeft, Video, X } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 
@@ -87,11 +87,26 @@ export function PrometheusChat({
   onClose?: () => void
   className?: string
 }) {
+  const reduceMotion = Boolean(useReducedMotion())
   const [internalDraft, setInternalDraft] = React.useState('')
   const [historyExpanded, setHistoryExpanded] = React.useState(false)
+  const [showJumpToLatest, setShowJumpToLatest] = React.useState(false)
+  const scrollViewportRef = React.useRef<HTMLDivElement | null>(null)
+  const latestMessageRef = React.useRef<HTMLDivElement | null>(null)
+  const pinnedToBottomRef = React.useRef(true)
   const composedDraft = draft ?? internalDraft
   const hasDraft = composedDraft.trim().length > 0
   const showingThinking = thinking || messages.some((message) => message.status === 'thinking')
+  const lastMessage = messages[messages.length - 1]
+  const latestAssistantMessageId = React.useMemo(() => {
+    for (let index = messages.length - 1; index >= 0; index -= 1) {
+      const message = messages[index]
+      if (message?.role === 'assistant' && message.status !== 'thinking' && message.content.trim().length > 0) {
+        return message.id
+      }
+    }
+    return null
+  }, [messages])
 
   const setDraft = React.useCallback(
     (value: string) => {
@@ -104,18 +119,65 @@ export function PrometheusChat({
     [onDraftChange],
   )
 
+  const scrollToLatest = React.useCallback(
+    (behavior: ScrollBehavior = 'auto') => {
+      const viewport = scrollViewportRef.current
+      if (!viewport) return
+
+      viewport.scrollTo({
+        top: viewport.scrollHeight,
+        behavior: reduceMotion ? 'auto' : behavior,
+      })
+      pinnedToBottomRef.current = true
+      setShowJumpToLatest(false)
+    },
+    [reduceMotion],
+  )
+
+  const handleThreadScroll = React.useCallback(() => {
+    const viewport = scrollViewportRef.current
+    if (!viewport) return
+
+    const distanceFromBottom = viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight
+    const isPinned = distanceFromBottom < 112
+    pinnedToBottomRef.current = isPinned
+    setShowJumpToLatest(!isPinned && messages.length > 0)
+  }, [messages.length])
+
+  React.useEffect(() => {
+    if (!messages.length && !showingThinking) return
+
+    const rafId = window.requestAnimationFrame(() => {
+      if (pinnedToBottomRef.current || lastMessage?.role === 'user') {
+        scrollToLatest(reduceMotion ? 'auto' : 'smooth')
+        return
+      }
+
+      setShowJumpToLatest(true)
+    })
+
+    return () => window.cancelAnimationFrame(rafId)
+  }, [lastMessage?.content, lastMessage?.id, lastMessage?.role, messages.length, reduceMotion, scrollToLatest, showingThinking])
+
+  React.useEffect(() => {
+    const rafId = window.requestAnimationFrame(handleThreadScroll)
+    return () => window.cancelAnimationFrame(rafId)
+  }, [handleThreadScroll, historyExpanded])
+
   const handleSend = React.useCallback(async () => {
     const message = composedDraft.trim()
     if (!message) return
 
     if (!onDraftChange) setInternalDraft('')
+    pinnedToBottomRef.current = true
+    setShowJumpToLatest(false)
     await onSend(message)
   }, [composedDraft, onDraftChange, onSend])
 
   return (
     <section
       className={cn(
-        'prometheus-luxury-chat relative flex min-h-[100dvh] w-full overflow-hidden bg-[#0C0C0E] font-sans text-[#E8E8E8]',
+        'prometheus-luxury-chat relative flex min-h-[100dvh] w-full overflow-hidden bg-black font-sans text-[#E8E8E8]',
         className,
       )}
       aria-label="Prometheus chat"
@@ -160,27 +222,60 @@ export function PrometheusChat({
               )}
               tabIndex={historyExpanded ? 0 : -1}
             >
-              {item.title}
+              <KineticText text={item.title} active={historyExpanded} />
             </button>
           ))}
         </nav>
       </aside>
 
       <div className="relative z-10 flex min-w-0 flex-1 flex-col">
-        <p className="pt-6 text-center text-xs font-normal uppercase tracking-[0.2em] text-[#555]">{title}</p>
+        <p className="pt-6 text-center text-xs font-normal uppercase tracking-[0.2em] text-[#555]">
+          <KineticText text={title} active />
+        </p>
 
-        <div className="prometheus-luxury-scroll min-h-0 flex-1 overflow-y-auto px-8 pb-32 pt-12 md:px-24 lg:px-32">
+        <div
+          ref={scrollViewportRef}
+          onScroll={handleThreadScroll}
+          className="prometheus-luxury-scroll min-h-0 flex-1 overflow-y-auto px-8 pb-32 pt-12 md:px-24 lg:px-32"
+        >
           {messages.length === 0 ? <EmptyChatWatermark /> : null}
           <div className="flex flex-col gap-6">
             {messages.map((message, index) => (
-              <PrometheusMessageBubble key={message.id} message={message} index={index} />
+              <PrometheusMessageBubble
+                key={message.id}
+                message={message}
+                index={index}
+                isLatestAssistant={message.id === latestAssistantMessageId}
+              />
             ))}
+            <div ref={latestMessageRef} aria-hidden className="h-px w-full" />
           </div>
         </div>
 
+        <AnimatePresence>
+          {showJumpToLatest ? (
+            <motion.button
+              type="button"
+              aria-label="Scroll to latest response"
+              onClick={() => scrollToLatest('auto')}
+              className="absolute bottom-[8.75rem] right-6 z-40 inline-flex items-center gap-2 rounded-full border border-white/12 bg-black/62 px-3 py-2 text-[11px] font-medium uppercase tracking-[0.18em] text-white/74 shadow-[0_18px_44px_-28px_rgba(0,0,0,0.98),0_0_28px_-22px_rgba(156,134,255,0.8)] backdrop-blur-2xl transition-[border-color,color,transform] hover:-translate-y-0.5 hover:border-white/24 hover:text-white md:right-12"
+              initial={reduceMotion ? false : { opacity: 0, y: 10, scale: 0.96, filter: 'blur(8px)' }}
+              animate={reduceMotion ? undefined : { opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
+              exit={reduceMotion ? undefined : { opacity: 0, y: 8, scale: 0.98, filter: 'blur(6px)' }}
+              transition={{ duration: reduceMotion ? 0 : 0.22, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <span className="relative grid size-6 place-items-center rounded-full bg-white/[0.07]">
+                <ArrowDown className="size-3.5" />
+                <span className="absolute inset-0 rounded-full border border-white/10" />
+              </span>
+              Latest
+            </motion.button>
+          ) : null}
+        </AnimatePresence>
+
         {showingThinking ? (
           <motion.div
-            className="pointer-events-none absolute inset-0 z-20 grid place-items-center bg-[#0C0C0E]/10"
+            className="pointer-events-none absolute inset-0 z-20 grid place-items-center bg-black/10"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -196,23 +291,26 @@ export function PrometheusChat({
         <div className="fixed bottom-0 left-0 right-0 z-30 px-6 pb-6 pt-4">
           <div className="mx-auto max-w-3xl">
             <div className="prometheus-luxury-scroll flex gap-2 overflow-x-auto pb-3">
-              {actions.map((action) => {
+              {actions.map((action, index) => {
                 const Icon = action.icon
                 return (
-                  <button
+                  <motion.button
                     key={action.id}
                     type="button"
                     className="inline-flex shrink-0 items-center gap-2 rounded-full border border-[rgba(255,255,255,0.06)] bg-transparent px-4 py-1.5 text-[12px] font-normal text-[#666] transition-all duration-300 hover:border-[#333] hover:text-[#CCC]"
+                    initial={reduceMotion ? false : { opacity: 0, y: 8, filter: 'blur(8px)' }}
+                    animate={reduceMotion ? undefined : { opacity: 1, y: 0, filter: 'blur(0px)' }}
+                    transition={{ duration: reduceMotion ? 0 : 0.26, delay: Math.min(index * 0.035, 0.18), ease: [0.22, 1, 0.36, 1] }}
                   >
                     {Icon ? <Icon className="size-3.5 text-[#555]" /> : null}
-                    {action.label}
-                  </button>
+                    <KineticText text={action.label} active />
+                  </motion.button>
                 )
               })}
             </div>
 
             <form
-              className="flex items-center gap-3 rounded-full border border-[rgba(255,255,255,0.06)] bg-[rgba(12,12,14,0.8)] px-6 py-3 backdrop-blur-[24px]"
+              className="flex items-center gap-3 rounded-full border border-[rgba(255,255,255,0.06)] bg-[rgba(0,0,0,0.82)] px-6 py-3 backdrop-blur-[24px]"
               onSubmit={(event) => {
                 event.preventDefault()
                 void handleSend()
@@ -259,16 +357,24 @@ export function PrometheusChat({
   )
 }
 
-function PrometheusMessageBubble({ message, index }: { message: PrometheusChatMessage; index: number }) {
+function PrometheusMessageBubble({
+  message,
+  index,
+  isLatestAssistant,
+}: {
+  message: PrometheusChatMessage
+  index: number
+  isLatestAssistant: boolean
+}) {
   const isUser = message.role === 'user'
   const isThinking = message.status === 'thinking'
 
   return (
     <motion.article
       className={cn('flex flex-col', isUser ? 'items-end self-end' : 'items-start self-start')}
-      initial={{ opacity: 0, y: isUser ? 8 : 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: isUser ? 0.35 : 0.45, delay: !isUser && index > 0 ? 0.1 : 0, ease: 'easeOut' }}
+      initial={{ opacity: 0, y: isUser ? 8 : 12, filter: isUser ? 'blur(4px)' : 'blur(10px)' }}
+      animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+      transition={{ duration: isUser ? 0.35 : 0.45, delay: !isUser && index > 0 ? 0.08 : 0, ease: [0.22, 1, 0.36, 1] }}
     >
       <div
         className={cn(
@@ -278,21 +384,114 @@ function PrometheusMessageBubble({ message, index }: { message: PrometheusChatMe
             : 'rounded-[4px_16px_16px_16px] border-l border-[rgba(255,255,255,0.04)] bg-[rgba(255,255,255,0.02)] text-[#EAEAEA]',
         )}
       >
-        {isThinking ? <ThinTypingLine /> : <p className="whitespace-pre-wrap">{message.content}</p>}
+        {isThinking ? <PrometheusTypingOrbit /> : <StreamingResponseText content={message.content} active={!isUser && isLatestAssistant} />}
       </div>
       {message.pills?.length ? (
         <div className="mt-3 flex flex-wrap gap-2">
-          {message.pills.map((pill) => (
-            <span
+          {message.pills.map((pill, pillIndex) => (
+            <motion.span
               key={pill.id}
               className="rounded-full border border-[rgba(255,255,255,0.08)] bg-transparent px-4 py-1.5 text-[12px] font-normal text-[#999] transition-colors duration-300 hover:border-[#444] hover:text-[#DDD]"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.24, delay: 0.08 + pillIndex * 0.04, ease: [0.22, 1, 0.36, 1] }}
             >
-              {pill.label}
-            </span>
+              <KineticText text={pill.label} active />
+            </motion.span>
           ))}
         </div>
       ) : null}
     </motion.article>
+  )
+}
+
+function StreamingResponseText({ content, active }: { content: string; active: boolean }) {
+  const reduceMotion = Boolean(useReducedMotion())
+  const tokens = React.useMemo(() => content.split(/(\s+)/).filter(Boolean), [content])
+  const [visibleTokenCount, setVisibleTokenCount] = React.useState(active && !reduceMotion ? 0 : tokens.length)
+  const isStreaming = active && !reduceMotion && visibleTokenCount < tokens.length
+
+  React.useEffect(() => {
+    if (!active || reduceMotion || tokens.length === 0) {
+      setVisibleTokenCount(tokens.length)
+      return
+    }
+
+    let visible = 0
+    let timeoutId: number | null = null
+    setVisibleTokenCount(0)
+
+    const step = () => {
+      visible = Math.min(tokens.length, visible + (tokens.length > 140 ? 4 : 2))
+      setVisibleTokenCount(visible)
+      if (visible < tokens.length) {
+        timeoutId = window.setTimeout(step, tokens.length > 140 ? 14 : 24)
+      }
+    }
+
+    timeoutId = window.setTimeout(step, 90)
+
+    return () => {
+      if (timeoutId !== null) window.clearTimeout(timeoutId)
+    }
+  }, [active, content, reduceMotion, tokens.length])
+
+  return (
+    <p className="prometheus-response-gradient-text whitespace-pre-wrap">
+      {tokens.slice(0, visibleTokenCount).map((token, tokenIndex) => (
+        <motion.span
+          key={`${tokenIndex}-${token}`}
+          initial={active && !reduceMotion ? { opacity: 0, y: 3, filter: 'blur(5px)' } : false}
+          animate={active && !reduceMotion ? { opacity: 1, y: 0, filter: 'blur(0px)' } : undefined}
+          transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+        >
+          {token}
+        </motion.span>
+      ))}
+      {isStreaming ? <StreamingPulseDot /> : null}
+    </p>
+  )
+}
+
+function StreamingPulseDot() {
+  return (
+    <span className="prometheus-streaming-orbit ml-1 inline-grid size-4 translate-y-[2px] place-items-center" aria-hidden>
+      <span />
+    </span>
+  )
+}
+
+function PrometheusTypingOrbit() {
+  return (
+    <span className="prometheus-typing-orbit inline-flex items-center gap-2" aria-label="Thinking">
+      <span className="prometheus-typing-orbit__dot" />
+      <span className="prometheus-typing-orbit__track">
+        <span />
+      </span>
+    </span>
+  )
+}
+
+function KineticText({ text, active }: { text: string; active: boolean }) {
+  const reduceMotion = Boolean(useReducedMotion())
+  const words = React.useMemo(() => text.split(' '), [text])
+
+  if (reduceMotion || !active) return <>{text}</>
+
+  return (
+    <span className="inline-flex flex-wrap items-center gap-x-[0.35em] gap-y-0">
+      {words.map((word, index) => (
+        <motion.span
+          key={`${word}-${index}`}
+          className="inline-block"
+          initial={{ opacity: 0, y: 6, filter: 'blur(8px)' }}
+          animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+          transition={{ duration: 0.34, delay: Math.min(index * 0.035, 0.28), ease: [0.22, 1, 0.36, 1] }}
+        >
+          {word}
+        </motion.span>
+      ))}
+    </span>
   )
 }
 
@@ -337,10 +536,6 @@ function EmptyChatWatermark() {
   )
 }
 
-function ThinTypingLine() {
-  return <span className="prometheus-thinking-line block h-px w-24 bg-[rgba(180,180,180,0.4)]" aria-label="Thinking" />
-}
-
 function PrometheusChatStyles() {
   return (
     <style>{`
@@ -361,6 +556,15 @@ function PrometheusChatStyles() {
       .prometheus-luxury-scroll::-webkit-scrollbar-thumb {
         background: rgba(255,255,255,0.08);
         border-radius: 4px;
+      }
+
+      .prometheus-response-gradient-text {
+        color: rgba(238, 238, 238, 0.92);
+        background-image: linear-gradient(110deg, rgba(255,255,255,0.72) 0%, rgba(214,255,247,0.96) 18%, rgba(255,255,255,0.82) 38%, rgba(178,189,255,0.94) 58%, rgba(255,255,255,0.72) 100%);
+        background-size: 260% 100%;
+        -webkit-background-clip: text;
+        background-clip: text;
+        animation: prometheusTextGradientPass 7s ease-in-out infinite;
       }
 
       .prometheus-spectra-noise {
@@ -392,8 +596,62 @@ function PrometheusChatStyles() {
         animation: prometheusMetalSweep 3.6s ease-in-out infinite;
       }
 
-      .prometheus-thinking-line {
-        animation: prometheusThinkingPulse 1.5s ease-in-out infinite;
+      .prometheus-streaming-orbit {
+        position: relative;
+      }
+
+      .prometheus-streaming-orbit::before {
+        content: '';
+        position: absolute;
+        inset: 2px;
+        border-radius: 9999px;
+        border: 1px solid rgba(214,255,247,0.34);
+        animation: prometheusOrbitRing 1.05s ease-in-out infinite;
+      }
+
+      .prometheus-streaming-orbit > span {
+        width: 5px;
+        height: 5px;
+        border-radius: 9999px;
+        background: rgba(214,255,247,0.9);
+        box-shadow: 0 0 16px rgba(156,134,255,0.62);
+        animation: prometheusStreamingDot 0.95s cubic-bezier(0.45, 0, 0.2, 1) infinite;
+      }
+
+      .prometheus-typing-orbit__dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 9999px;
+        background: rgba(214,255,247,0.78);
+        box-shadow: 0 0 22px rgba(156,134,255,0.55);
+        animation: prometheusTypingPulse 1.1s ease-in-out infinite;
+      }
+
+      .prometheus-typing-orbit__track {
+        position: relative;
+        width: 36px;
+        height: 16px;
+        border-radius: 9999px;
+        border: 1px solid rgba(255,255,255,0.08);
+        background: rgba(255,255,255,0.025);
+        overflow: hidden;
+      }
+
+      .prometheus-typing-orbit__track > span {
+        position: absolute;
+        top: 50%;
+        left: 3px;
+        width: 8px;
+        height: 8px;
+        border-radius: 9999px;
+        background: rgba(255,255,255,0.8);
+        transform: translate3d(0,-50%,0);
+        animation: prometheusTypingTravel 1.25s cubic-bezier(0.45, 0, 0.2, 1) infinite;
+      }
+
+      @keyframes prometheusTextGradientPass {
+        0%, 100% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
       }
 
       @keyframes prometheusNoiseDrift {
@@ -421,9 +679,24 @@ function PrometheusChatStyles() {
         50% { transform: translateX(120%); opacity: 0.86; }
       }
 
-      @keyframes prometheusThinkingPulse {
-        0%, 100% { opacity: 0.3; transform: scaleX(0.82); transform-origin: left center; }
-        50% { opacity: 0.8; transform: scaleX(1); transform-origin: left center; }
+      @keyframes prometheusOrbitRing {
+        0%, 100% { opacity: 0.28; transform: scale(0.86); }
+        50% { opacity: 0.72; transform: scale(1.08); }
+      }
+
+      @keyframes prometheusStreamingDot {
+        0%, 100% { transform: translate3d(-2px, 1px, 0) scale(0.86); opacity: 0.56; }
+        50% { transform: translate3d(3px, -2px, 0) scale(1.08); opacity: 1; }
+      }
+
+      @keyframes prometheusTypingPulse {
+        0%, 100% { transform: scale(0.86); opacity: 0.48; }
+        50% { transform: scale(1.14); opacity: 1; }
+      }
+
+      @keyframes prometheusTypingTravel {
+        0%, 100% { transform: translate3d(0,-50%,0) scale(0.8); opacity: 0.5; }
+        50% { transform: translate3d(22px,-50%,0) scale(1); opacity: 1; }
       }
     `}</style>
   )

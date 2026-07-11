@@ -2,6 +2,7 @@
 
 import { motion, useReducedMotion } from "framer-motion";
 import {
+  ArrowLeft,
   BarChart3,
   Clock,
   Folder,
@@ -10,23 +11,50 @@ import {
   Zap,
 } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 import { useDeviceTier } from "@/hooks/useDeviceTier";
 
 const navItems = [
-  { id: "projects", label: "Projects", icon: Folder, count: 3, href: "/projects" },
-  { id: "recent", label: "Recent", icon: Clock, count: 0, href: "/projects?view=recent" },
-  { id: "motion", label: "Motion Brain", icon: Zap, count: 0, href: "/editor/motion" },
-  { id: "analytics", label: "Analytics", icon: BarChart3, count: 0, href: "/analytics" },
+  {
+    id: "projects",
+    label: "Projects",
+    icon: Folder,
+    count: 3,
+    href: "/projects",
+  },
+  {
+    id: "recent",
+    label: "Recent",
+    icon: Clock,
+    count: 0,
+    href: "/projects?view=recent",
+  },
+  {
+    id: "motion",
+    label: "Motion Brain",
+    icon: Zap,
+    count: 0,
+    href: "/editor/motion",
+  },
+  {
+    id: "analytics",
+    label: "Analytics",
+    icon: BarChart3,
+    count: 0,
+    href: "/analytics",
+  },
 ];
 
 export function AwwwardsSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const shouldReduceMotion = useReducedMotion();
   const tier = useDeviceTier();
   const animated = !shouldReduceMotion && tier !== "low";
-  const spring = animated ? { type: "spring" as const, damping: 30, stiffness: 300 } : { duration: 0 };
+  const spring = animated
+    ? { type: "spring" as const, damping: 30, stiffness: 300 }
+    : { duration: 0 };
 
   return (
     <motion.aside
@@ -36,25 +64,42 @@ export function AwwwardsSidebar() {
       className="glass-panel relative flex h-full flex-col border-r border-border-subtle"
       aria-label="Premium editor navigation"
     >
-      <div className="flex h-14 items-center border-b border-border-subtle px-4">
-        <motion.span
-          initial={animated ? { opacity: 0 } : false}
-          animate={{ opacity: 1 }}
-          className="text-xs font-medium uppercase tracking-wider text-text-tertiary"
-        >
-          Workspace
-        </motion.span>
-
+      <nav
+        className="flex-1 overflow-y-auto overflow-x-visible p-2 pt-3"
+        aria-label="Editor sections"
+      >
         <button
           type="button"
-          className="glass-button ml-auto flex h-11 w-11 items-center justify-center rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-cyan md:h-6 md:w-6"
-          aria-label="Create workspace item"
+          onClick={() => router.back()}
+          className="group relative mb-1 flex min-h-11 w-full items-center rounded-xl border border-transparent px-3 py-2.5 text-sm text-text-secondary transition-all hover:bg-white/5 hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-cyan"
+          aria-label="Go back"
         >
-          <Plus className="h-3.5 w-3.5 text-text-secondary" />
+          <ArrowLeft className="h-[18px] w-[18px] flex-shrink-0" />
+          <motion.span
+            initial={animated ? { opacity: 0, x: -8 } : false}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: animated ? 0.15 : 0 }}
+            className="ml-3"
+          >
+            Back
+          </motion.span>
         </button>
-      </div>
 
-      <nav className="flex-1 overflow-y-auto overflow-x-visible p-2" aria-label="Editor sections">
+        <Link
+          href="/editor/__new__"
+          className="group relative mb-2 flex min-h-11 w-full items-center rounded-xl border border-white/8 bg-white/[0.035] px-3 py-2.5 text-sm text-text-primary transition-all hover:border-white/14 hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-cyan"
+          aria-label="Create project"
+        >
+          <Plus className="h-[18px] w-[18px] flex-shrink-0" />
+          <motion.span
+            initial={animated ? { opacity: 0, x: -8 } : false}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: animated ? 0.15 : 0 }}
+            className="ml-3"
+          >
+            New project
+          </motion.span>
+        </Link>
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = isNavItemActive(pathname, item.href);

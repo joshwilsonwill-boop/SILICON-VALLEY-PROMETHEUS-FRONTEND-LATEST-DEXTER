@@ -32,6 +32,7 @@ export function ViralClipTrigger({
   const reduceMotion = useStableReducedMotion()
   const [isHovered, setIsHovered] = React.useState(false)
   const [isFocused, setIsFocused] = React.useState(false)
+  const [magneticOffset, setMagneticOffset] = React.useState({ x: 0, y: 0 })
   const isLocked = active || processing || disabled
   const isInteractiveHover = (isHovered || isFocused) && !isLocked
   const isExpanded = isInteractiveHover || isLocked
@@ -51,8 +52,17 @@ export function ViralClipTrigger({
 
   const handlePointerLeave = React.useCallback(() => {
     setIsHovered(false)
+    setMagneticOffset({ x: 0, y: 0 })
     onLockedHoverChange?.(false)
   }, [onLockedHoverChange])
+
+  const handlePointerMove = React.useCallback((event: React.PointerEvent<HTMLButtonElement>) => {
+    if (reduceMotion || isLocked) return
+    const rect = event.currentTarget.getBoundingClientRect()
+    const x = ((event.clientX - rect.left) / rect.width - 0.5) * 8
+    const y = ((event.clientY - rect.top) / rect.height - 0.5) * 8
+    setMagneticOffset({ x, y })
+  }, [isLocked, reduceMotion])
 
   const handleFocus = React.useCallback(() => {
     setIsFocused(true)
@@ -63,6 +73,7 @@ export function ViralClipTrigger({
 
   const handleBlur = React.useCallback(() => {
     setIsFocused(false)
+    setMagneticOffset({ x: 0, y: 0 })
     onLockedHoverChange?.(false)
   }, [onLockedHoverChange])
 
@@ -76,10 +87,11 @@ export function ViralClipTrigger({
       onClick={isLocked ? undefined : onActivate}
       onMouseEnter={handlePointerEnter}
       onMouseLeave={handlePointerLeave}
+      onPointerMove={handlePointerMove}
       onFocus={handleFocus}
       onBlur={handleBlur}
       className={cn(
-        'group relative inline-flex h-9 shrink-0 items-center overflow-hidden rounded-full border text-left backdrop-blur-xl transition-opacity',
+        'group relative inline-flex h-9 shrink-0 items-center overflow-hidden rounded-full border bg-black text-left backdrop-blur-xl transition-opacity',
         isLocked ? 'cursor-not-allowed' : 'cursor-pointer',
         isLocked ? 'border-white/14 text-white/84 shadow-[0_18px_38px_-28px_rgba(0,0,0,0.82)]' : 'border-white/10 text-white/88 shadow-[0_18px_38px_-28px_rgba(0,0,0,0.9)]',
         className,
@@ -90,13 +102,15 @@ export function ViralClipTrigger({
         reduceMotion
           ? undefined
           : {
+              x: magneticOffset.x,
+              y: magneticOffset.y,
               width: isExpanded ? 122 : 40,
               boxShadow: processing
                 ? '0 22px 42px -30px rgba(0,0,0,0.88), 0 0 0 1px rgba(255,255,255,0.12)'
                 : active
                   ? '0 20px 36px -30px rgba(0,0,0,0.84), 0 0 0 1px rgba(255,255,255,0.1)'
                   : isInteractiveHover
-                    ? '0 22px 40px -28px rgba(38,125,255,0.24), 0 0 0 1px rgba(116,189,255,0.16)'
+                    ? '0 22px 42px -28px rgba(0,0,0,0.98), 0 0 26px -16px rgba(156,134,255,0.58), 0 0 0 1px rgba(156,134,255,0.2)'
                   : '0 18px 38px -28px rgba(0,0,0,0.9)',
             }
       }
@@ -118,8 +132,8 @@ export function ViralClipTrigger({
           isLocked
             ? 'bg-[linear-gradient(135deg,rgba(255,255,255,0.1)_0%,rgba(255,255,255,0.04)_28%,rgba(17,18,24,0.92)_64%,rgba(10,10,14,0.96)_100%)]'
             : isInteractiveHover
-              ? 'bg-[linear-gradient(135deg,rgba(118,194,255,0.22)_0%,rgba(255,255,255,0.1)_22%,rgba(24,30,48,0.88)_62%,rgba(11,12,17,0.96)_100%)]'
-            : 'bg-[linear-gradient(135deg,rgba(255,255,255,0.13)_0%,rgba(255,255,255,0.05)_26%,rgba(15,17,24,0.9)_62%,rgba(10,10,14,0.96)_100%)]',
+              ? 'bg-[linear-gradient(135deg,rgba(156,134,255,0.18)_0%,rgba(255,255,255,0.08)_24%,rgba(0,0,0,1)_70%,rgba(0,0,0,1)_100%)]'
+            : 'bg-[linear-gradient(135deg,rgba(255,255,255,0.08)_0%,rgba(10,10,14,0.98)_36%,rgba(0,0,0,1)_100%)]',
         )}
       />
       <span
@@ -153,7 +167,7 @@ export function ViralClipTrigger({
               }
         }
       />
-      <span className="pointer-events-none absolute inset-0 rounded-full border border-white/10" />
+      <span className="pointer-events-none absolute inset-0 rounded-full border border-white/10 transition-colors duration-300 group-hover:border-[#9c86ff]/24" />
 
       <span className="relative z-[1] inline-flex h-full items-center">
         <motion.span

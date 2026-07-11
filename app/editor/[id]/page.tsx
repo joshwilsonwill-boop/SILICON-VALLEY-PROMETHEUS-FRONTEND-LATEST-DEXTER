@@ -23,10 +23,10 @@ import {
   ImageIcon,
   Lock,
   Layers,
+  MessageCircle,
   MessageSquare,
   Music4,
   Palette,
-  PenSquare,
   Pause,
   Play,
   RefreshCw,
@@ -38,7 +38,6 @@ import {
   Upload,
   Volume2,
   VolumeX,
-  Wand2,
   Instagram,
   Linkedin,
   X,
@@ -49,7 +48,6 @@ import { MusicSpotlightOrb } from '@/components/editor/music-spotlight-orb'
 import { MusicRecommendationShowcase } from '@/components/editor/music-recommendation-showcase'
 import { PrometheusChat, type PrometheusChatMessage } from '@/components/editor/PrometheusChat'
 import { ChatStyleSelector } from '@/components/editor/chat-style-selector'
-import { AiLampDialog } from '@/components/editor/ai-lamp-dialog'
 import { MusicTabPanel } from '@/components/editor/music-tab-panel'
 import { MotionPropertyCanvas } from '@/components/editor/motion-property-canvas'
 import { CinematicTimeline } from '@/components/editor/CinematicTimeline'
@@ -3578,23 +3576,12 @@ function FloatingChatComposer({
               onOpenChange(true)
               onThreadOpenChange(true)
             }}
-            className="group/editorial-chat relative flex h-14 items-center gap-3 overflow-hidden rounded-[22px] border border-[#795cff]/35 bg-[linear-gradient(135deg,rgba(20,10,38,0.96)_0%,rgba(7,8,18,0.98)_54%,rgba(32,54,102,0.92)_100%)] py-1.5 pl-1.5 pr-4 text-white shadow-[0_24px_70px_-34px_rgba(0,0,0,0.96),0_0_36px_-22px_rgba(121,92,255,0.72),inset_0_1px_0_rgba(255,255,255,0.16)] backdrop-blur-2xl transition-[border-color,background-color,color,box-shadow,transform] duration-300 ease-out hover:border-[#9c86ff]/58 hover:text-white hover:shadow-[0_30px_86px_-36px_rgba(0,0,0,0.98),0_0_48px_-24px_rgba(98,135,255,0.78),inset_0_1px_0_rgba(255,255,255,0.22)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9c86ff]/36"
+            className="group/editorial-chat relative flex h-12 items-center gap-2.5 overflow-hidden rounded-full border border-white/12 bg-black/72 py-1.5 pl-2 pr-4 text-white/86 shadow-[0_18px_52px_-34px_rgba(0,0,0,0.98),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-2xl transition-[border-color,color,box-shadow,transform] duration-300 ease-out hover:-translate-y-0.5 hover:border-white/22 hover:text-white hover:shadow-[0_22px_62px_-38px_rgba(0,0,0,1),0_0_28px_-22px_rgba(156,134,255,0.5),inset_0_1px_0_rgba(255,255,255,0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/24"
           >
-            <span
-              aria-hidden
-              className="absolute inset-0 bg-[radial-gradient(circle_at_24%_18%,rgba(255,255,255,0.24)_0%,rgba(255,255,255,0)_34%),linear-gradient(110deg,rgba(127,242,212,0)_0%,rgba(127,242,212,0.12)_46%,rgba(255,255,255,0)_58%)] opacity-75 transition-opacity duration-300 group-hover/editorial-chat:opacity-100"
-            />
-            <span
-              aria-hidden
-              className="absolute -right-10 top-1/2 h-20 w-20 -translate-y-1/2 rounded-full bg-[#7ff2d4]/10 blur-2xl transition-transform duration-500 ease-out group-hover/editorial-chat:-translate-x-2"
-            />
-            <span className="relative grid size-11 shrink-0 place-items-center rounded-[18px] border border-white/14 bg-black/46 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_0_24px_-12px_rgba(156,134,255,0.9)]">
-              <MessageSquare className="size-4 drop-shadow-[0_0_14px_rgba(127,242,212,0.28)]" />
+            <span className="relative grid size-9 shrink-0 place-items-center rounded-full border border-white/10 bg-white/[0.045] text-white/78 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition-colors duration-300 group-hover/editorial-chat:border-white/18 group-hover/editorial-chat:text-white">
+              <MessageCircle className="size-4" strokeWidth={1.75} />
             </span>
-            <span className="relative flex flex-col items-start leading-none">
-              <span className="text-[13px] font-semibold tracking-[0.01em]">Chat</span>
-              <span className="mt-1 text-[9px] uppercase tracking-[0.24em] text-[#d6fff7]/42">Relay</span>
-            </span>
+            <span className="relative text-[13px] font-semibold tracking-[0.01em]">Chat</span>
           </button>
         ) : null}
 
@@ -6478,7 +6465,6 @@ function OriginalEditorPage() {
   const [activeWorkspaceTab, setActiveWorkspaceTab] = React.useState<HeaderNavMode>(
     () => (requestedWorkspaceTab && requestedWorkspaceTab !== 'Motion' ? requestedWorkspaceTab : 'Editor'),
   )
-  const [isAiLampOpen, setIsAiLampOpen] = React.useState(false)
   const [isExporting, setIsExporting] = React.useState(false)
   const [isDownloading, setIsDownloading] = React.useState(false)
   const [isDownloadDialogOpen, setIsDownloadDialogOpen] = React.useState(false)
@@ -6509,16 +6495,7 @@ function OriginalEditorPage() {
         return
       }
 
-      if (command === 'ai') {
-        setIsAiLampOpen(true)
-        return
-      }
-
-      if (command === 'enhance') {
-        setIsAiLampOpen(true)
-        toast.info('Enhance mode ready', {
-          description: 'Use the AI command lamp to describe the enhancement.',
-        })
+      if (command === 'ai' || command === 'enhance') {
         return
       }
 
@@ -7649,32 +7626,6 @@ function OriginalEditorPage() {
     ],
   )
 
-  const handleAiChatOpen = React.useCallback(() => {
-    setIsAiLampOpen(false)
-    setActiveWorkspaceTab('Editor')
-    setBottomMode('Original')
-  }, [])
-
-  const handleAiEditLaunch = React.useCallback(
-    (label: string) => {
-      const styleTemplate = selectEditStyleTemplate(label, videoContext)
-      const editPrompt = buildEditQuickActionPrompt(project?.title ?? 'Untitled Project', videoContext, styleTemplate)
-      const prompt = label === 'Edit this video' ? editPrompt : `${label}. ${editPrompt}`
-
-      setIsAiLampOpen(false)
-      setActiveWorkspaceTab('Editor')
-      setBottomMode('Original')
-      handleEditRequest({ prompt, styleTemplate })
-    },
-    [handleEditRequest, project?.title, videoContext],
-  )
-
-  const handleAiMusicOpen = React.useCallback(() => {
-    setIsAiLampOpen(false)
-    setActiveWorkspaceTab('Music')
-    setBottomMode('Music')
-  }, [])
-
   const handleMotionCanvasPrompt = React.useCallback((prompt: string) => {
     setActiveWorkspaceTab('Editor')
     setComposerAutomationRequest({
@@ -7682,36 +7633,6 @@ function OriginalEditorPage() {
       prompt,
     })
   }, [])
-
-  const aiLampActions = React.useMemo(
-    () => [
-      {
-        label: 'Open chat lane',
-        description: 'Jump into the editorial conversation and steer the next pass directly.',
-        icon: MessageSquare,
-        onSelect: handleAiChatOpen,
-      },
-      {
-        label: 'Edit this video',
-        description: 'Launch a polished first pass tuned to the current project context.',
-        icon: PenSquare,
-        onSelect: () => handleAiEditLaunch('Edit this video'),
-      },
-      {
-        label: 'Generate rough cuts',
-        description: 'Start a faster structure pass focused on trims, hooks, and pacing.',
-        icon: Wand2,
-        onSelect: () => handleAiEditLaunch('Generate rough cuts'),
-      },
-      {
-        label: 'Add music',
-        description: 'Open the soundtrack chamber and shape the emotional lane there.',
-        icon: Music4,
-        onSelect: handleAiMusicOpen,
-      },
-    ],
-    [handleAiChatOpen, handleAiEditLaunch, handleAiMusicOpen],
-  )
 
   React.useEffect(() => {
     setPreviewPlaying(false)
@@ -8141,8 +8062,8 @@ function OriginalEditorPage() {
           >
             <section
               className={cn(
-                'premium-ambient-panel premium-vignette-surface editorial-light-effect relative flex h-full min-h-0 min-w-0 flex-col overflow-hidden border border-white/8 bg-black',
-                activeWorkspaceTab === 'Motion' ? 'rounded-none border-0 bg-black' : 'rounded-[28px]',
+                'premium-ambient-panel premium-vignette-surface editorial-light-effect relative flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-black',
+                activeWorkspaceTab === 'Motion' ? 'rounded-none bg-black' : 'rounded-[28px]',
               )}
             >
               <LuxuryVignette tone={activeWorkspaceTab === 'Music' ? 'music' : 'cool'} />
@@ -8151,7 +8072,7 @@ function OriginalEditorPage() {
                 initial="hidden"
                 whileInView="visible"
                 viewport={{ once: false, amount: 0.45 }}
-                className="shrink-0 border-b border-white/8 px-4 py-3"
+                className="shrink-0 bg-black px-4 py-3"
               >
                 <div className="flex justify-end">
                   <div className="inline-flex items-center gap-2 text-white/48">
@@ -8166,14 +8087,7 @@ function OriginalEditorPage() {
                         }}
                       />
                     ) : null}
-                    <button
-                      type="button"
-                      onClick={() => setIsAiLampOpen(true)}
-                      aria-label="Open AI direction"
-                      className="grid size-9 place-items-center rounded-full border border-white/8 bg-white/[0.02] transition-colors hover:text-white/72"
-                    >
-                      <Sparkles className="size-4" />
-                    </button>
+                    <MagneticSparkleButton />
                   </div>
                 </div>
               </motion.div>
@@ -8321,14 +8235,6 @@ function OriginalEditorPage() {
         </main>
       </div>
       </div>
-      <AiLampDialog
-        open={isAiLampOpen}
-        onOpenChange={setIsAiLampOpen}
-        badge="Prometheus Studio"
-        title="Shape the next pass"
-        description="Call up a directed AI lane for this project without leaving the chamber. Pick the route you want, and Prometheus will move the edit, music, or chat flow forward from there."
-        actions={aiLampActions}
-      />
 
       <Dialog open={isDownloadDialogOpen} onOpenChange={setIsDownloadDialogOpen}>
         <DialogContent className="max-w-[480px] border-white/12 bg-[#0e1016]/95 text-white shadow-[0_32px_64px_-16px_rgba(0,0,0,0.85)] backdrop-blur-2xl">
@@ -8413,6 +8319,39 @@ function OriginalEditorPage() {
   )
 }
 
+function MagneticSparkleButton() {
+  const reduceMotion = useStableReducedMotion()
+  const [offset, setOffset] = React.useState({ x: 0, y: 0 })
+
+  const handlePointerMove = React.useCallback((event: React.PointerEvent<HTMLButtonElement>) => {
+    if (reduceMotion) return
+    const rect = event.currentTarget.getBoundingClientRect()
+    const x = ((event.clientX - rect.left) / rect.width - 0.5) * 9
+    const y = ((event.clientY - rect.top) / rect.height - 0.5) * 9
+    setOffset({ x, y })
+  }, [reduceMotion])
+
+  const resetOffset = React.useCallback(() => {
+    setOffset({ x: 0, y: 0 })
+  }, [])
+
+  return (
+    <motion.button
+      type="button"
+      aria-label="AI direction control inactive"
+      onPointerMove={handlePointerMove}
+      onPointerLeave={resetOffset}
+      onBlur={resetOffset}
+      className="group relative grid size-9 place-items-center rounded-full border border-white/10 bg-black text-white/58 shadow-[0_18px_34px_-26px_rgba(0,0,0,0.98),0_0_0_1px_rgba(156,134,255,0.04),inset_0_1px_0_rgba(255,255,255,0.08)] transition-[border-color,color,box-shadow] duration-300 hover:border-[#9c86ff]/32 hover:text-white hover:shadow-[0_18px_38px_-24px_rgba(0,0,0,1),0_0_24px_-16px_rgba(156,134,255,0.65),inset_0_1px_0_rgba(255,255,255,0.14)]"
+      animate={reduceMotion ? undefined : { x: offset.x, y: offset.y }}
+      transition={{ type: 'spring', stiffness: 320, damping: 24, mass: 0.55 }}
+      whileTap={reduceMotion ? undefined : { scale: 0.96 }}
+    >
+      <span aria-hidden className="absolute inset-0 rounded-full bg-[radial-gradient(circle_at_28%_18%,rgba(255,255,255,0.16)_0%,rgba(255,255,255,0)_42%),radial-gradient(circle_at_75%_88%,rgba(156,134,255,0.18)_0%,rgba(156,134,255,0)_46%)] opacity-70 transition-opacity duration-300 group-hover:opacity-100" />
+      <Sparkles className="relative size-4" />
+    </motion.button>
+  )
+}
 function InspectorField({
   label,
   value,
