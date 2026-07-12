@@ -2,6 +2,7 @@
 
 import * as React from 'react'
 import { CheckCircle2, Sparkles, Undo2, Redo2 } from 'lucide-react'
+import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { WorkspaceNavBar, type WorkspaceNavItem } from '@/components/ui/anime-navbar'
 import { CinematicExportCluster } from '@/components/editor/cinematic-export-cluster'
 import { cn } from '@/lib/utils'
