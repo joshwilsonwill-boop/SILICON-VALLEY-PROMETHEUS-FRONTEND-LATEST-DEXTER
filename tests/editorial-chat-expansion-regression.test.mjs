@@ -21,7 +21,8 @@ function run() {
   assert.match(luxuryChat, /@keyframes prometheusGradientDrift/);
   assert.match(luxuryChat, /aria-label="Scroll to latest response"/);
   assert.match(luxuryChat, /function StreamingResponseText/);
-  assert.match(luxuryChat, /function PrometheusTypingOrbit/);
+  assert.match(luxuryChat, /InlineLoadingAnimation/);
+  assert.doesNotMatch(luxuryChat, /function PrometheusTypingOrbit/);
   assert.match(luxuryChat, /function KineticText/);
 
   assert.match(editorPage, /PrometheusChat/);

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import sharp from "sharp";
 
 const root = process.cwd();
 
@@ -9,26 +9,28 @@ function read(relativePath) {
   return readFileSync(join(root, relativePath), "utf8");
 }
 
-function readLogoAlphaStats(logoPath) {
-  const script = [
-    "import json, sys",
-    "from PIL import Image",
-    'image = Image.open(sys.argv[1]).convert("RGBA")',
-    'alpha = image.getchannel("A")',
-    "values = list(alpha.getdata())",
-    "print(json.dumps({",
-    '  "transparentPixels": sum(1 for value in values if value <= 4),',
-    '  "opaquePixels": sum(1 for value in values if value >= 250),',
-    '  "totalPixels": len(values),',
-    "}))",
-  ].join("\n");
+async function readLogoAlphaStats(logoPath) {
+  const { data, info } = await sharp(logoPath)
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  const alphaOffset = info.channels - 1;
+  let transparentPixels = 0;
+  let opaquePixels = 0;
 
-  return JSON.parse(
-    execFileSync("python", ["-c", script, logoPath], { encoding: "utf8" }),
-  );
+  for (let index = alphaOffset; index < data.length; index += info.channels) {
+    if (data[index] <= 4) transparentPixels += 1;
+    if (data[index] >= 250) opaquePixels += 1;
+  }
+
+  return {
+    transparentPixels,
+    opaquePixels,
+    totalPixels: info.width * info.height,
+  };
 }
 
-function run() {
+async function run() {
   const rootLayout = read("app/layout.tsx");
   assert.equal(rootLayout.includes("@/components/webgl/SceneManager"), false);
   assert.equal(rootLayout.includes("<SceneManager />"), false);
@@ -189,7 +191,7 @@ function run() {
   );
   assert.equal(sourceStagePlaceholder.includes("bg-[#07070a]"), false);
 
-  const logoAlpha = readLogoAlphaStats(
+  const logoAlpha = await readLogoAlphaStats(
     join(root, "public/branding/prometheus-logo-no-bg.png"),
   );
   assert.ok(logoAlpha.transparentPixels / logoAlpha.totalPixels > 0.25);
@@ -234,22 +236,16 @@ function run() {
   assert.equal(inspectorPanel.includes("lg:col-span-1"), false);
   assert.equal(inspectorPanel.includes("lg:col-span-2"), false);
 
-  const sharedLoader = read("components/ui/minimal-typographic-loader.tsx");
-  assert.match(sharedLoader, /PrometheusApertureLoader/);
-  assert.equal(sharedLoader.includes("next/image"), false);
   assert.equal(
-    sharedLoader.includes("/loaders/prometheus-infinity-loader.gif"),
+    existsSync(join(root, "components/ui/minimal-typographic-loader.tsx")),
     false,
   );
-  assert.match(sharedLoader, /prometheus-aperture-loader/);
-  assert.equal(sharedLoader.includes("gsap"), false);
-  assert.equal(sharedLoader.includes("bg-[#000000]"), false);
-  assert.match(sharedLoader, /bg-transparent/);
-  assert.match(sharedLoader, /pointer-events-none/);
-  assert.match(sharedLoader, /ambient = true/);
-  assert.equal(sharedLoader.includes("mix-blend-screen"), false);
-  assert.equal(sharedLoader.includes("mask-image:radial-gradient"), false);
-  assert.equal(sharedLoader.includes("rounded-[28px]"), false);
+  const loadingAnimation = read("components/loading-animation/LoadingAnimation.tsx");
+  const ringRenderer = read("components/loading-animation/RingRenderer.ts");
+  assert.match(loadingAnimation, /CanvasLoadingAnimation/);
+  assert.match(loadingAnimation, /backgroundColor: '#000000'/);
+  assert.match(ringRenderer, /RING_SEGMENTS = 72/);
+  assert.match(ringRenderer, /PALETTE/);
 
   const musicPlayer = read("components/ui/music-player.tsx");
   assert.match(musicPlayer, /overflow-hidden/);
@@ -315,4 +311,4 @@ function run() {
   assert.equal(songScroller.includes("touch-none overflow-hidden"), false);
 }
 
-run();
+await run();

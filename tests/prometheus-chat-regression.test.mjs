@@ -35,10 +35,11 @@ function run() {
   assert.match(luxuryChat, /scrollViewportRef/);
   assert.match(luxuryChat, /aria-label="Scroll to latest response"/);
   assert.match(luxuryChat, /function StreamingResponseText/);
-  assert.match(luxuryChat, /function PrometheusTypingOrbit/);
+  assert.match(luxuryChat, /InlineLoadingAnimation/);
+  assert.doesNotMatch(luxuryChat, /function PrometheusTypingOrbit/);
   assert.match(luxuryChat, /function KineticText/);
   assert.match(luxuryChat, /prometheus-response-gradient-text/);
-  assert.match(luxuryChat, /prometheus-streaming-orbit/);
+  assert.doesNotMatch(luxuryChat, /prometheus-streaming-orbit/);
   assert.match(luxuryChat, /thinking/i);
   assert.match(luxuryChat, /demoMessages/);
   assert.doesNotMatch(luxuryChat, /EDITOR RELAY/);
@@ -84,7 +85,8 @@ function run() {
     false,
   );
 
-  assert.match(editorPage, /AiResponseLoader/);
+  assert.match(editorPage, /InlineLoadingAnimation/);
+  assert.doesNotMatch(editorPage, /AiResponseLoader/);
   assert.match(editorPage, /function ChatToolCallGroup/);
   assert.match(editorPage, /function ChatFrameReferenceStrip/);
   assert.match(editorPage, /function ChatAttachmentStrip/);

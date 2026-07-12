@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 const root = process.cwd()
@@ -17,14 +17,12 @@ function run() {
   assert.match(editorPage, /document\.body/)
   assert.match(editorPage, /createPortal\([\s\S]*resolvedComposerPortalTarget/)
 
-  const loader = read('components/ui/minimal-typographic-loader.tsx')
-  assert.match(loader, /PrometheusApertureLoader/)
-  assert.equal(loader.includes('next/image'), false)
-  assert.equal(loader.includes('/loaders/prometheus-infinity-loader.gif'), false)
-  assert.match(loader, /prometheus-aperture-loader/)
-  assert.equal(loader.includes('mix-blend-screen'), false)
-  assert.equal(loader.includes('standalone'), false)
-  assert.equal(loader.includes('function StandaloneInfinityMark'), false)
+  assert.equal(existsSync(join(root, 'components/ui/minimal-typographic-loader.tsx')), false)
+  const loadingAnimation = read('components/loading-animation/LoadingAnimation.tsx')
+  const ringRenderer = read('components/loading-animation/RingRenderer.ts')
+  assert.match(editorPage, /InlineLoadingAnimation/)
+  assert.match(loadingAnimation, /CanvasLoadingAnimation/)
+  assert.match(ringRenderer, /RING_SEGMENTS = 72/)
 
   const sourceStagePlaceholder = read('components/editor/source-stage-placeholder.tsx')
   assert.match(sourceStagePlaceholder, /!isLoading \? \(/)
