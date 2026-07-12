@@ -15,6 +15,8 @@ function run() {
 
   const component = read(componentPath)
   const editorPage = read('app/editor/[id]/page.tsx')
+  const inlineLoader = read('components/loading-animation/InlineLoadingAnimation.tsx')
+  const canvasLoader = read('components/loading-animation/LoadingAnimation.tsx')
 
   assert.match(component, /export type PrometheusChatMessage/)
   assert.match(component, /messages:\s*PrometheusChatMessage\[\]/)
@@ -37,6 +39,9 @@ function run() {
   assert.doesNotMatch(component, /Build something amazing/)
   assert.doesNotMatch(component, /bg-emerald|emerald-500|#267dff|prometheus-accent-cyan/)
   assert.doesNotMatch(component, /loader-orb|AiResponseLoader/)
+  assert.match(component, /InlineLoadingAnimation/)
+  assert.match(inlineLoader, /CanvasLoadingAnimation/)
+  assert.match(canvasLoader, /<canvas/)
 
   assert.match(editorPage, /PrometheusChat/)
   assert.match(editorPage, /editorOverlayMessages/)
