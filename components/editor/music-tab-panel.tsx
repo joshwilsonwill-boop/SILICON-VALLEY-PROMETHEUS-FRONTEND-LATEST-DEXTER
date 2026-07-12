@@ -9,8 +9,8 @@ import { toast } from 'sonner'
 import { LuxuryVignette } from '@/components/editor/luxury-vignette'
 import { SoundtrackCard } from '@/components/editor/soundtrack-card'
 import { TextReveal } from '@/components/editor/text-reveal'
+import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { MusicPlayer } from '@/components/ui/music-player'
-import { MinimalTypographicLoader } from '@/components/ui/minimal-typographic-loader'
 import { Button } from '@/components/ui/button'
 import { chamberEase, chamberSpring } from '@/lib/chamber-motion'
 import type { MusicRecommendation } from '@/lib/types'
@@ -547,12 +547,15 @@ function NowPlayingBar({
           <button
             type="button"
             onClick={onPlayPause}
-            className={cn(
-              'grid size-10 shrink-0 place-items-center rounded-full bg-accent-blue text-white shadow-[0_0_20px_rgba(59,130,246,0.3)] transition-all active:scale-95',
-              isBuffering && isPlaying && 'animate-pulse',
-            )}
+            className="grid size-10 shrink-0 place-items-center rounded-full bg-accent-blue text-white shadow-[0_0_20px_rgba(59,130,246,0.3)] transition-all active:scale-95"
           >
-            {isPlaying ? <Pause className="size-4 fill-current" /> : <Play className="ml-0.5 size-4 fill-current" />}
+            {isBuffering && isPlaying ? (
+              <InlineLoadingAnimation size={16} label={`Buffering ${track.title}`} />
+            ) : isPlaying ? (
+              <Pause className="size-4 fill-current" />
+            ) : (
+              <Play className="ml-0.5 size-4 fill-current" />
+            )}
           </button>
           
           <button
@@ -806,14 +809,9 @@ export function MusicTabPanel({
     return (
       <section className="premium-ambient-panel premium-vignette-surface flex w-full max-w-[1060px] self-center rounded-[30px] px-5 py-5 shadow-[0_28px_64px_-38px_rgba(0,0,0,0.95)]">
         <LuxuryVignette tone="music" />
-        <div className="relative z-10 flex min-h-[220px] w-full items-center justify-center px-4 text-center">
-          <MinimalTypographicLoader
-            ambient={false}
-            label="Loading catalog"
-            message="Preparing Cloudflare soundtrack imagery."
-            size="sm"
-            variant="inline"
-          />
+        <div className="relative z-10 flex min-h-[220px] w-full flex-col items-center justify-center gap-3 px-4 text-center">
+          <InlineLoadingAnimation size={72} label="Loading music catalog" />
+          <p className="text-sm text-white/52">Preparing Cloudflare soundtrack imagery.</p>
         </div>
       </section>
     )
@@ -908,7 +906,11 @@ export function MusicTabPanel({
               onClick={() => void handleAutoMatch()}
               className="h-11 w-full border-[#6366f1]/80 bg-[#6366f1] text-white shadow-[0_18px_54px_-24px_rgba(99,102,241,0.95)] transition-[box-shadow,transform,border-color,background-color] duration-200 ease-out hover:border-[#818cf8] hover:bg-[#5558e8] hover:shadow-[0_0_34px_rgba(99,102,241,0.42)] disabled:border-white/10 disabled:bg-white/[0.05] disabled:text-white/42 disabled:shadow-none"
             >
-              <Sparkles className={cn('size-4', isAutoMatching && 'animate-pulse')} />
+              {isAutoMatching ? (
+                <InlineLoadingAnimation size={16} label="Matching selected tracks" />
+              ) : (
+                <Sparkles className="size-4" />
+              )}
               {isAutoMatching ? 'Analyzing compatibility...' : 'AI Auto-Match'}
             </Button>
           </div>
@@ -916,14 +918,9 @@ export function MusicTabPanel({
           <div className="min-h-0 flex-1 overflow-y-auto pr-1">
             <div className="space-y-2 pb-4">
               {catalogLoading && !visibleTracks.length ? (
-                <div className="flex min-h-[220px] items-center justify-center px-4 text-center">
-                  <MinimalTypographicLoader
-                    ambient={false}
-                    label="Loading catalog"
-                    message="Preparing soundtrack previews."
-                    size="sm"
-                    variant="inline"
-                  />
+                <div className="flex min-h-[220px] flex-col items-center justify-center gap-3 px-4 text-center">
+                  <InlineLoadingAnimation size={72} label="Loading music catalog" />
+                  <p className="text-sm text-white/52">Preparing soundtrack previews.</p>
                 </div>
               ) : null}
               {visibleTracks.map((track) => (
@@ -1049,14 +1046,9 @@ export function MusicTabPanel({
           <div className="mt-4 min-h-0 flex-1 overflow-y-auto pr-1">
             <div className="space-y-2 pb-4">
               {catalogLoading && !visibleTracks.length ? (
-                <div className="flex min-h-[220px] items-center justify-center px-4 text-center">
-                  <MinimalTypographicLoader
-                    ambient={false}
-                    label="Loading catalog"
-                    message="Preparing soundtrack previews."
-                    size="sm"
-                    variant="inline"
-                  />
+                <div className="flex min-h-[220px] flex-col items-center justify-center gap-3 px-4 text-center">
+                  <InlineLoadingAnimation size={72} label="Loading music catalog" />
+                  <p className="text-sm text-white/52">Preparing soundtrack previews.</p>
                 </div>
               ) : null}
               {visibleTracks.map((track) => (
@@ -1112,7 +1104,11 @@ export function MusicTabPanel({
               onClick={() => void handleAutoMatch()}
               className="border-[#6366f1]/80 bg-[#6366f1] text-white shadow-[0_18px_54px_-24px_rgba(99,102,241,0.95)] transition-[box-shadow,transform,border-color,background-color] duration-200 ease-out hover:-translate-y-0.5 hover:border-[#818cf8] hover:bg-[#5558e8] hover:shadow-[0_0_34px_rgba(99,102,241,0.42)]"
             >
-              <Sparkles className={cn('size-4', isAutoMatching && 'animate-pulse')} />
+              {isAutoMatching ? (
+                <InlineLoadingAnimation size={16} label="Matching selected tracks" />
+              ) : (
+                <Sparkles className="size-4" />
+              )}
               {isAutoMatching ? 'Analyzing compatibility…' : 'AI Auto-Match'}
             </Button>
           </motion.div>

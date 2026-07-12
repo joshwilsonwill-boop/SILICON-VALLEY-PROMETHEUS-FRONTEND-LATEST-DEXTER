@@ -9,6 +9,7 @@ import { RootClientEffects } from '@/components/root-client-effects'
 import { AuthProvider } from '@/components/auth/auth-provider'
 import { ReactQueryProvider } from '@/components/ReactQueryProvider'
 import { RootLayoutFrame } from '@/components/root-layout-frame'
+import { LoadingProvider } from '@/contexts/LoadingContext'
 import './globals.css'
 import './premium-vignette.css'
 
@@ -113,16 +114,18 @@ export default function RootLayout({
     <html lang="en" className="dark" suppressHydrationWarning>
       <body className={`${inter.variable} ${geist.variable} ${jetbrainsMono.variable} ${playfairDisplay.variable} ${spaceGrotesk.variable} ${vogueDisplay.variable} ${migraDisplay.variable} bg-background font-sans text-foreground antialiased`}>
         <ReactQueryProvider>
-          <AuthProvider>
-            <RootSmoothScroll />
-            <CustomCursor />
-            <div className="relative z-10">
-              <RootLayoutFrame>{children}</RootLayoutFrame>
-            </div>
-            <RootClientEffects />
-            <Analytics />
-            <SpeedInsights />
-          </AuthProvider>
+          <LoadingProvider>
+            <AuthProvider>
+              <RootSmoothScroll />
+              <CustomCursor />
+              <div className="relative z-10">
+                <RootLayoutFrame>{children}</RootLayoutFrame>
+              </div>
+              <RootClientEffects />
+              <Analytics />
+              <SpeedInsights />
+            </AuthProvider>
+          </LoadingProvider>
         </ReactQueryProvider>
       </body>
     </html>

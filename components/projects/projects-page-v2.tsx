@@ -3,11 +3,12 @@
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
 import { formatDistanceToNow } from 'date-fns'
-import { AlertTriangle, Clapperboard, FolderOpen, Loader2, Plus, Search, Globe, FileEdit, LoaderCircle, CheckCircle, XCircle } from 'lucide-react'
+import { AlertTriangle, Clapperboard, FolderOpen, Plus, Search, Globe, FileEdit, CheckCircle, XCircle } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { toast } from 'sonner'
 
 import { CreateProjectModal } from '@/components/projects/create-project-modal'
+import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { ProjectCard } from '@/components/projects/project-card'
 import { MenuBar } from '@/components/ui/bottom-menu'
 import { Button } from '@/components/ui/button'
@@ -37,17 +38,6 @@ const SORT_OPTIONS: Array<{ value: SortKey; label: string }> = [
 ]
 
 const FILTER_OPTIONS: StatusFilter[] = ['all', 'draft', 'rendering', 'completed', 'failed']
-
-function ProjectCardSkeleton() {
-  return (
-    <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-      <div className="aspect-video rounded-xl bg-white/[0.06] shimmer" />
-      <div className="mt-4 h-4 w-3/5 rounded-full bg-white/[0.07] shimmer" />
-      <div className="mt-3 h-3 w-2/5 rounded-full bg-white/[0.05] shimmer" />
-      <div className="mt-4 h-10 rounded-xl bg-white/[0.04] shimmer" />
-    </div>
-  )
-}
 
 function sortProjects(projects: ProjectListItem[], sortKey: SortKey) {
   return [...projects].sort((a, b) => {
@@ -171,7 +161,7 @@ export function ProjectsPageV2() {
               items={[
                 { label: 'All', icon: Globe, value: 'all' },
                 { label: 'Draft', icon: FileEdit, value: 'draft' },
-                { label: 'Rendering', icon: LoaderCircle, value: 'rendering' },
+                { label: 'Rendering', icon: Clapperboard, value: 'rendering' },
                 { label: 'Completed', icon: CheckCircle, value: 'completed' },
                 { label: 'Failed', icon: XCircle, value: 'failed' },
               ]}
@@ -194,10 +184,8 @@ export function ProjectsPageV2() {
             ) : null}
 
             {isLoading ? (
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {Array.from({ length: 6 }).map((_, index) => (
-                  <ProjectCardSkeleton key={`project-skeleton-${index}`} />
-                ))}
+              <div className="flex min-h-[28rem] items-center justify-center">
+                <InlineLoadingAnimation size={72} label="Loading projects" />
               </div>
             ) : projects.length === 0 ? (
               <div className="flex min-h-[28rem] flex-col items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03] px-6 text-center">
@@ -272,7 +260,7 @@ export function ProjectsPageV2() {
               disabled={!deleteTarget || isDeleting}
               onClick={() => void handleDeleteConfirm()}
             >
-              {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              {isDeleting ? <InlineLoadingAnimation size={16} label="Deleting project" /> : null}
               Delete
             </Button>
           </DialogFooter>

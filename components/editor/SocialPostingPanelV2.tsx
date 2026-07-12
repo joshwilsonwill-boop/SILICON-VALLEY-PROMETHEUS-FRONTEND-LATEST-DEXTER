@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { SocialPostingStaging, type SocialPostingPlatformV2 } from '@/components/editor/staging/social-posting-staging'
 import { useUserConnections } from '@/hooks/use-user-connections'
 import { cn } from '@/lib/utils'
@@ -30,8 +31,8 @@ export function SocialPostingPanelV2({ platforms = DEFAULT_SOCIAL_PLATFORMS, onC
   return (
     <section className={cn('space-y-3', className)} aria-label="Social publishing status">
       {loading ? (
-        <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4 text-sm text-white/54">
-          Loading connected accounts...
+        <div className="flex min-h-24 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.035] p-4">
+          <InlineLoadingAnimation size={48} label="Loading connected accounts" />
         </div>
       ) : error ? (
         <div className="rounded-2xl border border-rose-300/20 bg-rose-300/[0.06] p-4 text-sm leading-6 text-rose-100">

@@ -5,6 +5,7 @@ import { motion, useReducedMotion } from 'framer-motion'
 import { Music, Pause, Play, X } from 'lucide-react'
 
 import { useAudioStore } from '@/app/editor/stores/audio-store'
+import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { cn } from '@/lib/utils'
 
 export function MiniPlayer() {
@@ -29,7 +30,16 @@ export function MiniPlayer() {
         <div className="relative grid size-12 shrink-0 place-items-center overflow-hidden rounded-xl border border-white/10 bg-white/10">
           {currentTrack.coverUrl ? (
             <>
-              {!imageLoaded ? <div className="absolute inset-0 animate-pulse bg-gray-700" /> : null}
+              {!imageLoaded ? (
+                <>
+                  <span className="absolute inset-0 bg-gray-700" aria-hidden="true" />
+                  <InlineLoadingAnimation
+                    className="absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2"
+                    size={20}
+                    label={`Loading artwork for ${currentTrack.title}`}
+                  />
+                </>
+              ) : null}
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={currentTrack.coverUrl}

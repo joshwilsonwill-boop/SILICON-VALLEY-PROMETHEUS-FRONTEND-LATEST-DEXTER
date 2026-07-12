@@ -2,6 +2,7 @@
 
 import * as React from 'react'
 import { Download, CheckCircle2 } from 'lucide-react'
+import { InlineLoadingAnimation } from '@/components/loading-animation'
 import {
   Dialog,
   DialogContent,
@@ -79,7 +80,12 @@ export function DownloadDialog({
             disabled={isDownloading}
             className="h-11 flex-1 rounded-xl bg-white text-sm font-medium text-black transition-all hover:bg-white/90 hover:shadow-[0_0_20px_rgba(255,255,255,0.15)] active:scale-[0.98]"
           >
-            {isDownloading ? 'Downloading...' : 'Download MP4'}
+            {isDownloading ? (
+              <>
+                <InlineLoadingAnimation size={16} label="Downloading export" />
+                <span>Downloading...</span>
+              </>
+            ) : 'Download MP4'}
           </Button>
         </DialogFooter>
       </DialogContent>

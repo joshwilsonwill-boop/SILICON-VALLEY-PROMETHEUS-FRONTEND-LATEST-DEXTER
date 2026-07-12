@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion'
 
+import { InlineLoadingAnimation } from '@/components/loading-animation'
 import type { FinalResultsData, MotionNode } from '../../types/motion-editor'
 
 export function FinalResultsNode({ node }: { node: MotionNode }) {
@@ -11,7 +12,7 @@ export function FinalResultsNode({ node }: { node: MotionNode }) {
     <div className="relative h-[230px]">
       {data.loading ? (
         <div className="absolute inset-2 grid place-items-center rounded-xl border border-white/10 bg-white/[0.035]">
-          <div className="size-9 animate-spin rounded-full border-2 border-white/10 border-t-[#22c55e]" />
+          <InlineLoadingAnimation size={40} label="Generating final results" />
         </div>
       ) : null}
       {(data.images.length ? data.images : ['a', 'b', 'c']).slice(0, 3).map((image, index) => (

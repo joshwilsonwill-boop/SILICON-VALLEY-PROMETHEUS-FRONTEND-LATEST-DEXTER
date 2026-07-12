@@ -6,7 +6,6 @@ import {
   BarChart3,
   Clock3,
   GitBranch,
-  Loader2,
   Menu,
   MessageSquare,
   Music,
@@ -21,6 +20,7 @@ import {
 } from "lucide-react";
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 
+import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { MiniPlayer } from "@/app/editor/components/mini-player";
 import { useR2Music } from "@/app/editor/hooks/use-r2-music";
 import { useAudioStore } from "@/app/editor/stores/audio-store";
@@ -366,10 +366,7 @@ function MobileMusicTool({ projectId }: { projectId: string | null }) {
       <div className="max-h-[calc(68svh-12rem)] space-y-2 overflow-y-auto overscroll-contain pr-1 will-change-transform">
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2
-              className="size-7 animate-spin text-prometheus-accent-cyan"
-              aria-hidden="true"
-            />
+            <InlineLoadingAnimation size={40} label="Loading music library" />
           </div>
         ) : error ? (
           <div className="rounded-xl border border-red-400/20 bg-red-400/10 p-4 text-sm text-red-100">
@@ -441,7 +438,14 @@ function MobileTrackButton({
         {track.coverUrl && !imageFailed ? (
           <>
             {!imageLoaded ? (
-              <span className="absolute inset-0 animate-pulse bg-gray-700" />
+              <>
+                <span className="absolute inset-0 bg-gray-700" aria-hidden="true" />
+                <InlineLoadingAnimation
+                  className="absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2"
+                  size={20}
+                  label={`Loading artwork for ${track.title}`}
+                />
+              </>
             ) : null}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img

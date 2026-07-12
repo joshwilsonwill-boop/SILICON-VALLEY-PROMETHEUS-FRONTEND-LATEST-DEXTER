@@ -97,11 +97,11 @@ export function EditorHeader({
               <div
                 className={cn(
                   'flex items-center gap-1.5 text-[10px] uppercase tracking-widest',
-                  saveStatus === 'saving' ? 'text-accent-blue animate-pulse' : 'text-white/20'
+                  saveStatus === 'saving' ? 'text-accent-blue' : 'text-white/20'
                 )}
               >
                 {saveStatus === 'saving' ? (
-                  <Sparkles className="size-3" />
+                  <InlineLoadingAnimation size={14} label="Saving project" />
                 ) : (
                   <CheckCircle2 className="size-3" />
                 )}
@@ -150,7 +150,9 @@ export function EditorHeader({
                 isDownloading={isDownloading}
               />
             ) : (
-              <div className="h-9 w-[180px] rounded-full border border-white/8 bg-white/[0.03]" />
+              <div className="flex h-9 w-[180px] items-center justify-center">
+                <InlineLoadingAnimation size={20} label="Loading export controls" />
+              </div>
             )}
           </div>
         </div>
@@ -160,4 +162,3 @@ export function EditorHeader({
     </header>
   )
 }
-

@@ -57,8 +57,7 @@ import { IterationModal } from '@/components/editor/IterationModal'
 import { ContinueBanner } from '@/components/editor/ContinueBanner'
 import gsap from 'gsap'
 import { TextReveal } from '@/components/editor/text-reveal'
-import { MinimalTypographicLoader } from '@/components/ui/minimal-typographic-loader'
-import { AiResponseLoader } from '@/components/ui/ai-response-loader'
+import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { LuxuryVignette } from '@/components/editor/luxury-vignette'
 import { EditorNewProjectUploadDialog } from '@/components/editor/editor-new-project-upload-dialog'
 import { EditorHeader } from '@/components/editor/EditorHeader'
@@ -70,7 +69,7 @@ import { MobileVideoPlayer } from '@/app/editor/components/mobile-video-player'
 const LivingCanvas = safeDynamic(() => import('@/components/living-canvas').then((mod) => ({ default: mod.LivingCanvas })), {
   loading: () => (
     <div className="flex h-full w-full items-center justify-center bg-[#050505] p-6">
-      <MinimalTypographicLoader label="Loading..." message="Preparing the live AI canvas." size="sm" variant="inline" />
+      <InlineLoadingAnimation size={120} label="Preparing the live AI canvas" />
     </div>
   ),
 })
@@ -2081,19 +2080,11 @@ function ChatClipProcessingCard({
         </div>
       </div>
 
-      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/[0.055]">
-        <motion.div
-          className={cn(
-            'h-full rounded-full',
-            failed
-              ? 'bg-rose-300/70'
-              : 'bg-[linear-gradient(90deg,rgba(159,246,227,0.92),rgba(143,183,255,0.94),rgba(255,255,255,0.72))]',
-          )}
-          initial={false}
-          animate={{ width: `${Math.max(4, Math.min(100, clip.progressPercent))}%` }}
-          transition={{ duration: reduceMotion ? 0 : 0.42, ease: [0.22, 1, 0.36, 1] }}
-        />
-      </div>
+      {loading ? (
+        <div className="mt-3">
+          <InlineLoadingAnimation size={32} label={`Processing clips: ${clip.stageLabel}`} />
+        </div>
+      ) : null}
 
       <div className="mt-3 grid gap-2 sm:grid-cols-2">
         {clip.variants.slice(0, 4).map((variant, index) => (
@@ -2466,7 +2457,11 @@ function SocialPostingCard({
               onClick={() => onGenerateCaptions?.(entryId)}
               className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-white/76"
             >
-              <RefreshCw className={cn('size-3.5', posting.captionGenerating && 'animate-spin')} />
+              {posting.captionGenerating ? (
+                <InlineLoadingAnimation size={14} label="Generating all captions" />
+              ) : (
+                <RefreshCw className="size-3.5" />
+              )}
               Generate All
             </button>
           </div>
@@ -2651,9 +2646,10 @@ function SocialPostingCard({
                     <span className="inline-flex items-center gap-2"><Icon className="size-3.5" />{platform.label}</span>
                     <span>{Math.round(result?.progress ?? 0)}%</span>
                   </div>
-                  <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
-                    <div className="h-full rounded-full bg-emerald-400 transition-all" style={{ width: `${result?.progress ?? 0}%` }} />
-                  </div>
+                  <span className="inline-flex items-center gap-2">
+                    <InlineLoadingAnimation size={16} label={`Posting to ${platform.label}`} />
+                    <span>{Math.round(result?.progress ?? 0)}%</span>
+                  </span>
                 </div>
               )
             })}
@@ -2934,7 +2930,9 @@ function CurvedThreadPill({
             <ChatTaskProcess task={entry.task} reduceMotion={reduceMotion} loading={isLoading} />
           ) : null}
           {isLoading && !entry.clip ? (
-            <AiResponseLoader label="Prometheus" variant="vapour" className="min-w-[min(22rem,72vw)] py-1" />
+            <div className="min-w-[min(22rem,72vw)] py-1">
+              <InlineLoadingAnimation size={40} label="Prometheus is responding" />
+            </div>
           ) : (
             <span className="whitespace-pre-wrap">{entry.text}</span>
           )}
@@ -3833,7 +3831,11 @@ function FloatingChatComposer({
                       whileHover={reduceMotion ? undefined : { y: -1, scale: 1.04 }}
                       whileTap={reduceMotion ? undefined : { scale: 0.95 }}
                     >
-                      {loading ? <span className="loader-orb !size-[18px]" aria-hidden="true" /> : <ArrowUp className="size-5" />}
+                      {loading ? (
+                        <InlineLoadingAnimation size={18} label="Prometheus is responding" />
+                      ) : (
+                        <ArrowUp className="size-5" />
+                      )}
                     </motion.button>
                   </div>
                 </form>
@@ -4008,7 +4010,11 @@ function FloatingChatComposer({
                     whileHover={reduceMotion ? undefined : { y: -1, scale: 1.04 }}
                     whileTap={reduceMotion ? undefined : { scale: 0.95 }}
                   >
-                    {loading ? <span className="loader-orb !size-[18px]" aria-hidden="true" /> : <ArrowUp className="size-4" />}
+                    {loading ? (
+                      <InlineLoadingAnimation size={18} label="Prometheus is responding" />
+                    ) : (
+                      <ArrowUp className="size-4" />
+                    )}
                   </motion.button>
                 </div>
               </motion.div>
@@ -5919,7 +5925,7 @@ const ChatWorkspacePanel = React.memo(function ChatWorkspacePanel({
               {entry.role === 'assistant' ? (
                 <div className="space-y-3">
                   {entry.status === 'loading' && !entry.music ? (
-                    <AiResponseLoader label="Prometheus" variant="vapour" className="justify-start py-1" />
+                    <InlineLoadingAnimation className="justify-start py-1" size={40} label="Prometheus is responding" />
                   ) : (
                     <p className="whitespace-pre-wrap text-sm leading-6 tracking-[0.01em] text-white/74">
                       {entry.text}
@@ -6297,7 +6303,11 @@ function MobileEditorView({
               onClick={() => onStartExport({ quality: exportQuality, format: exportFormat })}
               className="mt-6 h-12 w-full border-[#6366f1]/80 bg-[#6366f1] text-white shadow-[0_18px_54px_-24px_rgba(99,102,241,0.95)]"
             >
-              {isExporting ? <Sparkles className="size-4" /> : <Download className="size-4" />}
+              {isExporting ? (
+                <InlineLoadingAnimation size={16} label="Starting export" />
+              ) : (
+                <Download className="size-4" />
+              )}
               {isExporting ? 'Starting export' : 'Start Export'}
             </Button>
 
@@ -6307,8 +6317,11 @@ function MobileEditorView({
                   <span>Export progress</span>
                   <span>{latestExport?.status ?? 'queued'}</span>
                 </div>
-                <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10">
-                  <div className="h-full w-2/5 rounded-full bg-[#6366f1]" />
+                <div className="mt-3">
+                  <InlineLoadingAnimation
+                    size={40}
+                    label={`Export ${latestExport?.status ?? 'queued'}`}
+                  />
                 </div>
               </div>
             ) : null}
@@ -6325,10 +6338,10 @@ function MobileEditorView({
                     <div className="truncate text-sm font-medium text-white">{activeJobStep?.title ?? activeJobStep?.key ?? 'AI task running'}</div>
                     <div className="mt-1 truncate text-xs text-white/52">{activeJobStep?.status ?? 'Processing'}</div>
                   </div>
-                  <div className="text-sm text-white/72">{progressPercent}%</div>
-                </div>
-                <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-white/10">
-                  <div className="h-full rounded-full bg-[#6366f1]" style={{ width: `${Math.max(4, progressPercent)}%` }} />
+                  <div className="flex items-center gap-2">
+                    <InlineLoadingAnimation size={24} label="AI task running" />
+                    <div className="text-sm text-white/72">{progressPercent}%</div>
+                  </div>
                 </div>
               </div>
             ) : null}
@@ -6375,7 +6388,11 @@ function MobileEditorView({
             <div className="min-w-0 flex-1">
               <div className="truncate text-base font-semibold text-white">{projectTitle}</div>
               <div className="mt-0.5 flex items-center gap-2 text-xs text-white/42">
-                {saveStatus === 'saving' ? <Sparkles className="size-3" /> : <CheckCircle2 className="size-3" />}
+                {saveStatus === 'saving' ? (
+                  <InlineLoadingAnimation size={14} label="Saving project" />
+                ) : (
+                  <CheckCircle2 className="size-3" />
+                )}
                 {saveStatus === 'saving' ? 'Saving' : saveStatus === 'error' ? 'Save issue' : 'Saved'}
               </div>
             </div>

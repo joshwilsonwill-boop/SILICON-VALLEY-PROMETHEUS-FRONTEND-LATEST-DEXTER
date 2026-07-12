@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
 
+import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { normalizeUxError } from '@/lib/ux/errors'
@@ -143,6 +144,7 @@ export function VerifyForm() {
               }
             }}
           >
+            {submitting ? <InlineLoadingAnimation size={16} label="Sending verification email" /> : null}
             {submitting ? 'Sending...' : cooldownActive ? `Resend in ${formatCooldown(cooldownRemainingMs)}` : 'Resend'}
           </Button>
         </div>

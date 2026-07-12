@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { useEditor } from './EditorContext'
 import { Check, AlertCircle, RefreshCw, WifiOff } from 'lucide-react'
 
@@ -36,11 +37,6 @@ const ToastItem: React.FC<{
     }
   }, [task.status, onDismiss])
 
-  const radius = 18
-  const circumference = 2 * Math.PI * radius
-  const offset = circumference - (task.progress / 100) * circumference
-  const strokeColor = task.status === 'complete' ? '#00ff88' : task.status === 'error' ? '#ff2a6d' : '#00f0ff'
-
   return (
     <motion.div
       layout
@@ -49,25 +45,13 @@ const ToastItem: React.FC<{
       exit={{ opacity: 0, x: 40, scale: 0.9 }}
       className="pointer-events-auto w-[280px] rounded-xl bg-[#0c0c10]/90 backdrop-blur-[24px] border border-white/[0.08] shadow-2xl p-3 flex items-center gap-3"
     >
-      <div className="relative w-12 h-12 flex-shrink-0">
-        <svg className="w-full h-full -rotate-90" viewBox="0 0 48 48">
-          <circle cx="24" cy="24" r={radius} fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="3" />
-          <circle
-            cx="24"
-            cy="24"
-            r={radius}
-            fill="none"
-            stroke={strokeColor}
-            strokeWidth="3"
-            strokeLinecap="round"
-            strokeDasharray={circumference}
-            strokeDashoffset={task.status === 'complete' ? 0 : offset}
-            style={{
-              transition: 'stroke-dashoffset 0.3s ease-out',
-              filter: task.status === 'complete' ? 'drop-shadow(0 0 6px rgba(0,255,136,0.5))' : task.status === 'error' ? 'drop-shadow(0 0 6px rgba(255,42,109,0.5))' : 'drop-shadow(0 0 6px rgba(0,240,255,0.3))',
-            }}
+      <div className="relative flex h-12 w-12 flex-shrink-0 items-center justify-center">
+        {task.status === 'uploading' ? (
+          <InlineLoadingAnimation
+            size={44}
+            label={`Uploading to ${task.destination}: ${Math.floor(task.progress)}% complete`}
           />
-        </svg>
+        ) : null}
         <div className="absolute inset-0 flex items-center justify-center">
           {task.status === 'complete' && <Check size={16} className="text-emerald-400" />}
           {task.status === 'error' && <AlertCircle size={16} className="text-rose-400" />}

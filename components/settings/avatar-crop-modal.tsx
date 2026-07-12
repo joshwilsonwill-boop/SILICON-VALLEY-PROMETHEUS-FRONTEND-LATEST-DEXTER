@@ -2,8 +2,8 @@
 
 import * as React from 'react'
 import Cropper, { type Area } from 'react-easy-crop'
-import { Loader2 } from 'lucide-react'
 
+import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -160,7 +160,7 @@ export function AvatarCropModal({
             disabled={!croppedAreaPixels || isSaving}
             className="bg-[var(--theme-accent)] text-black hover:opacity-90"
           >
-            {isSaving ? <Loader2 className="size-4 animate-spin" /> : null}
+            {isSaving ? <InlineLoadingAnimation size={16} label="Saving cropped avatar" /> : null}
             Save
           </Button>
         </DialogFooter>

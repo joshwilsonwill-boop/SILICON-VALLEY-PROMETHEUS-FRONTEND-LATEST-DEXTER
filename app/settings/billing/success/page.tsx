@@ -1,4 +1,5 @@
 import { BillingSuccessPanel } from '@/components/billing/billing-success-panel'
+import { LoadingAnimation } from '@/components/loading-animation'
 import { PageHeader } from '@/components/page-header'
 import { PrometheusShell } from '@/components/prometheus-shell'
 import { Badge } from '@/components/ui/badge'
@@ -19,7 +20,7 @@ export default function BillingSuccessPage() {
         />
       }
     >
-      <Suspense fallback={null}>
+      <Suspense fallback={<LoadingAnimation message="Confirming billing..." />}>
         <BillingSuccessPanel />
       </Suspense>
     </PrometheusShell>

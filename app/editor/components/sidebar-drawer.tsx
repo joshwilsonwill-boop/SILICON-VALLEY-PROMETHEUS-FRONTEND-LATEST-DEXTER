@@ -6,7 +6,6 @@ import {
   Activity,
   ChevronDown,
   GitBranch,
-  Loader2,
   MessageSquare,
   Music,
   Pause,
@@ -20,6 +19,7 @@ import {
 
 import { useR2Music } from '@/app/editor/hooks/use-r2-music'
 import { useAudioStore } from '@/app/editor/stores/audio-store'
+import { InlineLoadingAnimation } from '@/components/loading-animation'
 import type { EditorSidebarPanel } from '@/app/editor/hooks/use-sidebar'
 import type { R2Track } from '@/lib/music/r2-sync'
 import { cn } from '@/lib/utils'
@@ -167,7 +167,7 @@ function MusicPanel() {
 
       {isLoading ? (
         <div className="flex items-center justify-center py-8">
-          <Loader2 className="size-5 animate-spin text-accent-cyan" />
+          <InlineLoadingAnimation size={40} label="Loading music library" />
         </div>
       ) : error ? (
         <div className="rounded-lg border border-red-400/20 bg-red-400/10 p-3 text-sm text-red-100">{error}</div>
@@ -214,7 +214,16 @@ function TrackItem({ onSelect, selected, track }: { onSelect: () => void; select
       >
         {track.coverUrl && !imageFailed ? (
           <>
-            {!imageLoaded ? <span className="absolute inset-0 animate-pulse bg-gray-700" /> : null}
+            {!imageLoaded ? (
+              <>
+                <span className="absolute inset-0 bg-gray-700" aria-hidden="true" />
+                <InlineLoadingAnimation
+                  className="absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2"
+                  size={20}
+                  label={`Loading artwork for ${track.title}`}
+                />
+              </>
+            ) : null}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={track.coverUrl}

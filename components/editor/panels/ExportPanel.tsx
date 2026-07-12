@@ -8,7 +8,6 @@ import {
   HardDrive,
   Instagram,
   Linkedin,
-  Loader2,
   Twitter,
   Upload,
   Youtube,
@@ -16,6 +15,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 
+import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { cn } from '@/lib/utils'
 
 const resolutions = [
@@ -104,7 +104,7 @@ export function ExportPanel() {
         </div>
         {exportStatus !== 'idle' ? (
           <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-black/24 px-3 py-2 text-xs text-white/68">
-            {exportStatus === 'loading' ? <Loader2 className="size-3.5 animate-spin text-prometheus-accent-cyan" aria-hidden="true" /> : null}
+            {exportStatus === 'loading' ? <InlineLoadingAnimation size={12} label="Preparing export" /> : null}
             {exportStatus === 'loading' ? 'Preparing export...' : `${exportMode === 'cinematic' ? 'Cinematic' : 'Fast'} export is queued.`}
           </div>
         ) : null}
@@ -161,7 +161,7 @@ export function ExportPanel() {
         onClick={() => startExportFeedback('fast')}
         className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-prometheus-accent-cyan/25 bg-prometheus-accent-cyan/18 text-sm font-medium text-prometheus-accent-cyan transition-colors hover:bg-prometheus-accent-cyan/28"
       >
-        {exportStatus === 'loading' ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Upload className="size-4" aria-hidden="true" />}
+        {exportStatus === 'loading' ? <InlineLoadingAnimation size={16} label="Preparing export download" /> : <Upload className="size-4" aria-hidden="true" />}
         {exportStatus === 'loading' ? 'Preparing export...' : 'Download to Device'}
       </button>
     </section>

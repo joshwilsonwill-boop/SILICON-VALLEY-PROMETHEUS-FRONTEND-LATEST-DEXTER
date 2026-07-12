@@ -4,7 +4,6 @@ import * as React from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import {
   Check,
-  Loader2,
   Maximize,
   Minimize2,
   MoreVertical,
@@ -17,6 +16,7 @@ import {
 } from 'lucide-react'
 
 import { usePlayerGestures } from '@/lib/hooks/use-gestures'
+import { InlineLoadingAnimation } from '@/components/loading-animation'
 import {
   formatPlayerTime,
   getProgressPercent,
@@ -265,7 +265,7 @@ export function MobileVideoPlayer({ className, poster, src }: MobileVideoPlayerP
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
-            <Loader2 className="size-8 animate-spin text-white" aria-hidden="true" />
+            <InlineLoadingAnimation size={40} label="Buffering video" />
           </motion.div>
         ) : null}
       </AnimatePresence>

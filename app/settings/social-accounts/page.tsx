@@ -2,9 +2,9 @@
 
 import * as React from 'react'
 import { useSearchParams } from 'next/navigation'
-import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 
+import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { ConnectedAccountsPanel } from '@/components/settings/connected-accounts-panel'
 import { getProviderMetadata } from '@/lib/oauth/provider-metadata'
 
@@ -66,7 +66,7 @@ export default function SocialAccountsPage() {
         <React.Suspense
           fallback={
             <div className="flex justify-center p-10">
-              <Loader2 className="h-6 w-6 animate-spin text-white/40" />
+              <InlineLoadingAnimation size={120} label="Loading connected accounts" />
             </div>
           }
         >

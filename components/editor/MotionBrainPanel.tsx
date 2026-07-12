@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Brain, Pause, Play, Sparkles } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 
+import { InlineLoadingAnimation } from "@/components/loading-animation";
 import { cn } from "@/lib/utils";
 import { useDeviceTier } from "@/hooks/useDeviceTier";
 
@@ -81,7 +82,7 @@ export function MotionBrainPanel() {
         >
           {processing ? (
             <>
-              <Sparkles className={cn("h-4 w-4", !staticFallback && "animate-pulse")} /> Analyzing...
+              <InlineLoadingAnimation size={16} label="Analyzing motion beats" /> Analyzing...
             </>
           ) : (
             <>

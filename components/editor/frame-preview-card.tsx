@@ -4,6 +4,7 @@ import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { ArrowUpRight, Clock3, Sparkles, X } from 'lucide-react'
 
+import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { FrameTokenChip } from './frame-token-chip'
 import { cn } from '@/lib/utils'
 import { useStableReducedMotion } from '@/hooks/use-stable-reduced-motion'
@@ -125,7 +126,7 @@ export function FramePreviewCard({
             ) : null}
             {isQueueing ? (
               <span className="inline-flex items-center gap-1 rounded-full border border-[#7ff2d4]/16 bg-[#7ff2d4]/10 px-2.5 py-1 text-[11px] text-[#c8fff2]">
-                <Sparkles className="size-3 animate-pulse" />
+                <InlineLoadingAnimation size={12} label="Preparing frame preview" />
                 Preparing preview
               </span>
             ) : isQueued ? (

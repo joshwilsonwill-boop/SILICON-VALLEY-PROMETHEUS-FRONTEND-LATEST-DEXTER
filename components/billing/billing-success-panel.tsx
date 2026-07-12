@@ -3,7 +3,7 @@
 import * as React from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { CheckCircle2, CreditCard, LoaderCircle } from 'lucide-react'
+import { CheckCircle2, CreditCard } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { normalizeNextPath } from '@/lib/auth/redirect'
@@ -13,6 +13,7 @@ import { updateUserStorageTier } from '@/lib/user-storage-tier'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { InlineLoadingAnimation } from '@/components/loading-animation'
 
 type CheckoutSessionStatus = {
   status: string | null
@@ -108,7 +109,11 @@ export function BillingSuccessPanel() {
         <div className="flex flex-col gap-6">
           <div className="flex items-center gap-3">
             <div className="grid size-12 place-items-center rounded-full border border-emerald-400/25 bg-emerald-400/10 text-emerald-200">
-              {isReady ? <CheckCircle2 className="size-6" /> : <LoaderCircle className="size-6 animate-spin" />}
+              {isReady ? (
+                <CheckCircle2 className="size-6" />
+              ) : (
+                <InlineLoadingAnimation size={20} label="Confirming subscription" />
+              )}
             </div>
             <div>
               <div className="text-2xl font-semibold tracking-tight text-white">

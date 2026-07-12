@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { ArrowUpRight, Loader2, Sparkles } from 'lucide-react'
+import { ArrowUpRight, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
 import { initializePaddle, type Paddle } from '@paddle/paddle-js'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import type { BillingPlanId } from '@/lib/billing'
 import { cn } from '@/lib/utils'
 
+import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { Button } from '@/components/ui/button'
 
 type PaddleCheckoutButtonProps = {
@@ -179,12 +180,14 @@ export function PaddleCheckoutButton({
         <div className="relative z-10 flex items-center justify-center gap-2">
           {isLoading ? (
             <>
-              <Loader2 className="size-4 animate-spin text-white/50" />
+              <InlineLoadingAnimation size={16} label="Opening Paddle checkout" />
               <span>Opening Checkout...</span>
             </>
           ) : (
             <>
-              {isInitializing && <Loader2 className="size-3 animate-spin text-white/30" />}
+              {isInitializing ? (
+                <InlineLoadingAnimation size={12} label="Connecting to Paddle" />
+              ) : null}
               <span>{ctaLabel}</span>
               {!isInitializing && (
                 <motion.div

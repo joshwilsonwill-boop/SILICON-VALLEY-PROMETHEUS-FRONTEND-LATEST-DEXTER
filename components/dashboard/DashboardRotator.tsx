@@ -3,8 +3,8 @@
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 
+import { LoadingAnimation } from "@/components/loading-animation";
 import { useDashboardRotation } from "@/hooks/useDashboardRotation";
-import { MinimalTypographicLoader } from "@/components/ui/minimal-typographic-loader";
 
 import { PinButton } from "./PinButton";
 import { BlobGreeting } from "./views/BlobGreeting";
@@ -26,9 +26,7 @@ export function DashboardRotator() {
   const View = viewMap[preset] || ExistingDashboard;
 
   if (!ready) {
-    return (
-      <MinimalTypographicLoader label="Loading..." message="Preparing the studio." size="md" variant="screen" />
-    );
+    return <LoadingAnimation message="Loading... Preparing the studio." />;
   }
 
   return (

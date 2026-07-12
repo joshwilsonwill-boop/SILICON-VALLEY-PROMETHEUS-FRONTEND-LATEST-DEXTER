@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation'
 import { AtSignIcon, LockIcon } from 'lucide-react'
 import { toast } from 'sonner'
 
+import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { writePendingVerificationEmail } from '@/lib/auth/pending-verification'
@@ -151,6 +152,7 @@ export function LoginForm() {
         className="w-full"
         disabled={submitting}
       >
+        {submitting ? <InlineLoadingAnimation size={16} label="Signing in" /> : null}
         {submitting ? 'Signing in...' : 'Sign in'}
       </Button>
 

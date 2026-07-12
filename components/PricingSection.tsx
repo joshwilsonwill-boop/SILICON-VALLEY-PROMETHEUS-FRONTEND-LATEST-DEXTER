@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation'
 
 import { useAuth } from '@/components/auth/auth-provider'
+import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { PremiumPricingPlans } from '@/components/premium-pricing-plans'
 
 export function PricingSection() {
@@ -28,10 +29,14 @@ export function PricingSection() {
             type="button"
             onClick={handleClick}
             aria-label={context.ctaAriaLabel}
-            className={context.buttonClassName}
-            disabled={isLoading}
-          >
-            <span className="flex h-full items-center justify-center">{context.ctaLabel}</span>
+          className={context.buttonClassName}
+          disabled={isLoading}
+        >
+            <span className="flex h-full items-center justify-center">
+              {isLoading ? (
+                <InlineLoadingAnimation size={16} label="Checking account" />
+              ) : context.ctaLabel}
+            </span>
           </button>
         )
       }}

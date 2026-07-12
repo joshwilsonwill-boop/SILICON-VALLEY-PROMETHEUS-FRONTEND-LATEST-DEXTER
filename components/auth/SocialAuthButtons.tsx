@@ -4,6 +4,7 @@ import * as React from 'react'
 import { GithubIcon } from 'lucide-react'
 import { useSearchParams } from 'next/navigation'
 
+import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { Button } from '@/components/ui/button'
 import { getSiteOrigin, normalizeNextPath } from '@/lib/auth/redirect'
 import { createClient } from '@/lib/supabase/client'
@@ -127,6 +128,12 @@ export function SocialAuthButtons({ providers }: SocialAuthButtonsProps) {
           }}
         >
           <Icon className="size-4 me-2" />
+          {busyProvider === provider ? (
+            <InlineLoadingAnimation
+              size={16}
+              label={slowProvider === provider ? `Still connecting to ${provider}` : `Redirecting to ${provider}`}
+            />
+          ) : null}
           {busyProvider === provider ? (slowProvider === provider ? 'Still connecting...' : 'Redirecting...') : label}
         </Button>
       ))}

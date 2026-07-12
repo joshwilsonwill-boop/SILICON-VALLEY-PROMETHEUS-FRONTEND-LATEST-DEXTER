@@ -1,13 +1,14 @@
 'use client'
 
 import * as React from 'react'
-import { CheckCircle2, Loader2, ShieldCheck, XCircle } from 'lucide-react'
+import { CheckCircle2, ShieldCheck, XCircle } from 'lucide-react'
 import { DodoPayments, type CheckoutEvent } from 'dodopayments-checkout'
 import { toast } from 'sonner'
 
 import type { BillingPlanId } from '@/lib/billing'
 import { cn } from '@/lib/utils'
 
+import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -233,7 +234,7 @@ export function DodoCheckoutModal({
             >
               {state === 'loading' ? (
                 <>
-                  <Loader2 className="size-4 animate-spin" />
+                  <InlineLoadingAnimation size={16} label="Preparing checkout" />
                   Preparing Checkout...
                 </>
               ) : (

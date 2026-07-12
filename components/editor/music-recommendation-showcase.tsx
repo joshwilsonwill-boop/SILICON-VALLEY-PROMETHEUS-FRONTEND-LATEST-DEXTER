@@ -14,7 +14,8 @@ import {
   Wind
 } from 'lucide-react'
 
-import { MusicRecommendationCard, MusicRecommendationSkeleton } from '@/components/editor/music-recommendation-card'
+import { InlineLoadingAnimation } from '@/components/loading-animation'
+import { MusicRecommendationCard } from '@/components/editor/music-recommendation-card'
 import { MusicDirectionCard } from '@/components/editor/music-direction-card'
 import { useStableReducedMotion } from '@/hooks/use-stable-reduced-motion'
 import { buildRevealVariants } from '@/lib/motion'
@@ -248,19 +249,14 @@ export function MusicRecommendationShowcase({
                         <div className="mt-1 text-[12px] font-bold text-white/60 truncate max-w-[200px]">{phase.detail}</div>
                       </div>
                       <div className={cn(
-                        "mt-0.5 rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-widest",
+                        "mt-0.5 flex min-h-7 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-widest",
                         phase.status === 'running' ? "border-[#7ff2d4]/30 text-[#7ff2d4]" : "border-white/10 text-white/30"
                       )}>
+                        {phase.status === 'running' ? (
+                          <InlineLoadingAnimation size={14} label={`${phase.label} in progress`} />
+                        ) : null}
                         {phase.status === 'running' ? 'Live' : phase.status === 'completed' ? 'Done' : 'Queued'}
                       </div>
-                    </div>
-                    <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/[0.05] shadow-inner">
-                      <motion.div
-                        className="h-full rounded-full bg-gradient-to-r from-[#7ff2d4]/60 to-[#7ff2d4]"
-                        animate={reduceMotion ? undefined : { width: phase.status === 'pending' ? '5%' : `${Math.max(5, Math.round(phase.progress * 100))}%` }}
-                        transition={{ duration: reduceMotion ? 0 : 0.45, ease: [0.22, 1, 0.36, 1] }}
-                        style={{ width: phase.status === 'pending' ? '5%' : `${Math.max(5, Math.round(phase.progress * 100))}%` }}
-                      />
                     </div>
                   </motion.div>
                 ))}
@@ -276,10 +272,9 @@ export function MusicRecommendationShowcase({
                   initial={reduceMotion ? false : { opacity: 0, y: 10 }}
                   animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
                   exit={reduceMotion ? undefined : { opacity: 0, y: -10 }}
-                  className="space-y-3"
+                  className="flex min-h-36 items-center justify-center"
                 >
-                  <MusicRecommendationSkeleton />
-                  <MusicRecommendationSkeleton />
+                  <InlineLoadingAnimation size={72} label="Ranking soundtrack recommendations" />
                 </motion.div>
               ) : (
                 <motion.div

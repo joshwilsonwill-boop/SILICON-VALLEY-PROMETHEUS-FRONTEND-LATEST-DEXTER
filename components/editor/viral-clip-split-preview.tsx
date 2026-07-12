@@ -4,6 +4,7 @@ import * as React from 'react'
 import { motion } from 'framer-motion'
 import { Pause, Play, RotateCcw } from 'lucide-react'
 
+import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { useStableReducedMotion } from '@/hooks/use-stable-reduced-motion'
 import { cn } from '@/lib/utils'
 
@@ -381,26 +382,7 @@ export function ViralClipSplitPreview({
               ease: reduceMotion ? undefined : [0.22, 1, 0.36, 1],
             }}
           >
-            {[0, 1, 2].map((index) => (
-              <motion.span
-                key={index}
-                className="block size-1.5 rounded-full bg-[#ffd1c7]"
-                animate={
-                  reduceMotion
-                    ? undefined
-                    : {
-                        opacity: [0.22, 1, 0.22],
-                        scale: [0.75, 1.08, 0.75],
-                      }
-                }
-                transition={{
-                  duration: reduceMotion ? 0 : 0.84,
-                  delay: reduceMotion ? 0 : index * 0.12,
-                  repeat: reduceMotion ? 0 : Number.POSITIVE_INFINITY,
-                  ease: 'easeInOut',
-                }}
-              />
-            ))}
+            <InlineLoadingAnimation size={20} label="Preparing split preview" />
           </motion.div>
         </div>
       </motion.div>
@@ -808,15 +790,9 @@ function PanelReadyLoader({
   return (
     <div className="pointer-events-none absolute inset-0 z-20 flex items-end justify-center pb-4">
       <div className="inline-flex items-center gap-2 rounded-full border border-[#ff937d]/20 bg-black/72 px-3 py-1.5 text-[10px] font-medium tracking-[0.16em] text-white/84 shadow-[0_18px_34px_-24px_rgba(0,0,0,0.95)] backdrop-blur-md">
-        {status !== 'error'
-          ? [0, 1, 2].map((index) => (
-              <span
-                key={index}
-                className="block size-1.5 animate-pulse rounded-full bg-[#ffd1c7]"
-                style={{ animationDelay: `${index * 120}ms` }}
-              />
-            ))
-          : null}
+        {status !== 'error' ? (
+          <InlineLoadingAnimation size={16} label={label} />
+        ) : null}
         <span>{label}</span>
       </div>
     </div>

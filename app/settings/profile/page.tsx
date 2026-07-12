@@ -14,7 +14,6 @@ import {
   EyeOff,
   KeyRound,
   Laptop,
-  Loader2,
   Lock,
   Monitor,
   Moon,
@@ -29,6 +28,7 @@ import { toast } from 'sonner'
 import { z } from 'zod'
 
 import { useAuth } from '@/components/auth/auth-provider'
+import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { AvatarCropModal } from '@/components/settings/avatar-crop-modal'
 import { PrometheusShell } from '@/components/prometheus-shell'
 import { Button } from '@/components/ui/button'
@@ -786,7 +786,11 @@ export default function ProfileSettingsPage() {
                       initials
                     )}
                     <span className="absolute inset-0 flex items-center justify-center bg-black/45 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-disabled:opacity-100">
-                      {isAvatarUploading ? <Loader2 className="size-5 animate-spin" /> : <Upload className="size-5" />}
+                      {isAvatarUploading ? (
+                        <InlineLoadingAnimation size={20} label="Uploading avatar" />
+                      ) : (
+                        <Upload className="size-5" />
+                      )}
                     </span>
                   </button>
                   <input
@@ -799,16 +803,6 @@ export default function ProfileSettingsPage() {
                   <div id="avatar-upload-status" className="text-xs text-white/42">
                     {isAvatarUploading ? `Uploading avatar: ${avatarUploadProgress}%` : 'JPG, PNG, or WebP under 5MB'}
                   </div>
-                  {isAvatarUploading ? (
-                    <div className="w-full max-w-[10rem]" aria-hidden="true">
-                      <div className="h-2 overflow-hidden rounded-full bg-white/10">
-                        <div
-                          className="h-full rounded-full bg-[var(--theme-accent)] transition-[width] duration-200 ease-out"
-                          style={{ width: `${avatarUploadProgress}%` }}
-                        />
-                      </div>
-                    </div>
-                  ) : null}
                   <p className="sr-only" aria-live="polite">
                     {isAvatarUploading ? `Uploading avatar, ${avatarUploadProgress}% complete.` : ''}
                   </p>
@@ -828,7 +822,9 @@ export default function ProfileSettingsPage() {
                         onClick={() => void saveTextField('username')}
                         className="h-10 rounded-[16px] border-[#6366f1]/80 bg-[#6366f1] px-4 text-white shadow-[0_18px_54px_-24px_rgba(99,102,241,0.95)] hover:border-[#818cf8] hover:bg-[#5558e8]"
                       >
-                        {savingTarget === 'username' ? <Loader2 className="size-4 animate-spin" /> : null}
+                        {savingTarget === 'username' ? (
+                          <InlineLoadingAnimation size={16} label="Saving username" />
+                        ) : null}
                         {savedTarget === 'username' ? 'Saved ✓' : 'Change Username'}
                       </Button>
                     </div>
@@ -836,7 +832,12 @@ export default function ProfileSettingsPage() {
 
                   <FieldRow label="Email Address">
                     <div className="rounded-[14px] border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-white/42">
-                      {authLoading ? 'Loading email...' : email || 'No email available'}
+                      {authLoading ? (
+                        <span className="inline-flex items-center gap-2">
+                          <InlineLoadingAnimation size={16} label="Loading email" />
+                          <span>Loading email...</span>
+                        </span>
+                      ) : email || 'No email available'}
                     </div>
                   </FieldRow>
 
@@ -862,7 +863,6 @@ export default function ProfileSettingsPage() {
                         disabled={savingTarget === 'displayName'}
                         onClick={() => void saveTextField('displayName')}
                       >
-                        {savingTarget === 'displayName' ? <Loader2 className="size-4 animate-spin" /> : null}
                         {savedTarget === 'displayName' ? 'Saved ✓' : 'Save Name'}
                       </LiquidChromeButton>
                     </div>
@@ -1045,7 +1045,9 @@ export default function ProfileSettingsPage() {
                   value="••••••••"
                   action={
                     <Button type="button" size="sm" variant="ghost" disabled={savingTarget === 'resetPassword'} onClick={() => void handleResetPassword()}>
-                      {savingTarget === 'resetPassword' ? <Loader2 className="size-4 animate-spin" /> : null}
+                      {savingTarget === 'resetPassword' ? (
+                        <InlineLoadingAnimation size={16} label="Requesting password reset" />
+                      ) : null}
                       Reset Password
                     </Button>
                   }
@@ -1227,7 +1229,7 @@ function PreferenceBlock({
         <div className="text-sm font-medium text-white/82">{label}</div>
         {saving ? (
           <span className="inline-flex items-center gap-1.5 text-[11px] text-white/42">
-            <Loader2 className="size-3 animate-spin" />
+            <InlineLoadingAnimation size={12} label={`Saving ${label}`} />
             Saving
           </span>
         ) : null}
@@ -1525,7 +1527,11 @@ function ApiKeyField({
             Copy
           </Button>
           <Button type="button" size="sm" variant="secondary" disabled={saving} onClick={onRegenerate}>
-            {saving ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
+            {saving ? (
+              <InlineLoadingAnimation size={16} label="Regenerating API key" />
+            ) : (
+              <RefreshCw className="size-4" />
+            )}
             Regenerate
           </Button>
         </div>
@@ -1664,8 +1670,17 @@ function DeactivateModal({
 function StatusPill({ accent, saving }: { accent: string; saving: boolean }) {
   return (
     <div className="inline-flex h-9 items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3 text-xs text-white/50">
-      <span className="size-2 rounded-full" style={{ background: accent }} />
-      {saving ? 'Saving preferences' : 'Synced preferences'}
+      {saving ? (
+        <>
+          <InlineLoadingAnimation size={16} label="Saving preferences" />
+          <span>Saving preferences</span>
+        </>
+      ) : (
+        <>
+          <span className="size-2 rounded-full" style={{ background: accent }} />
+          <span>Synced preferences</span>
+        </>
+      )}
     </div>
   )
 }

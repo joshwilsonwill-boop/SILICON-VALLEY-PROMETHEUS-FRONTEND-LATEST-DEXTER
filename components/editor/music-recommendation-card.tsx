@@ -226,26 +226,6 @@ export function MusicRecommendationCard({
   )
 }
 
-export function MusicRecommendationSkeleton() {
-  return (
-    <div className="flex w-full items-center gap-2 rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(12,12,16,0.98)_0%,rgba(8,8,12,0.96)_100%)] p-3 shadow-[0_18px_48px_-32px_rgba(0,0,0,0.88)]">
-      <div className="flex h-14 min-w-0 flex-1 items-center overflow-hidden rounded-full bg-black px-3">
-        <div className="h-9 w-9 shrink-0 rounded-full bg-white/[0.07]" />
-        <div className="min-w-0 flex-1 pl-3">
-          <div className="h-3.5 w-28 rounded-full bg-white/[0.08]" />
-          <div className="mt-2 h-2.5 w-20 rounded-full bg-white/[0.06]" />
-          <div className="mt-2 h-1.5 w-32 rounded-full bg-white/[0.05]" />
-        </div>
-      </div>
-      <div className="grid h-14 w-14 shrink-0 place-items-center rounded-[15px] border border-white/10 bg-black text-white/42">
-        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" aria-hidden="true">
-          <path d="M12 5V19M5 12H19" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </div>
-    </div>
-  )
-}
-
 function MetaChip({ label, tone }: { label: string; tone: 'emerald' | 'cyan' | 'amber' | 'rose' | 'slate' | 'ice' }) {
   const toneClass =
     tone === 'emerald'

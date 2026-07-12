@@ -3,6 +3,7 @@
 import * as React from 'react'
 import { motion, AnimatePresence, useSpring, useTransform, useMotionValueEvent } from 'framer-motion'
 import { CheckCircle2, AlertCircle, Sparkles } from 'lucide-react'
+import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { cn } from '@/lib/utils'
 import type { DurableJobStatus, DurableJobType } from '@/lib/types/jobs'
 
@@ -92,7 +93,14 @@ export function DurableJobProgress({
                     ) : status === 'failed' ? (
                       <AlertCircle className="size-4 text-rose-400" />
                     ) : (
-                      <Sparkles className="size-4 animate-pulse text-blue-400" />
+                      <InlineLoadingAnimation
+                        size={24}
+                        label={
+                          status === 'pending'
+                            ? `Queued ${type ? (JOB_LABELS[type] || type) : 'job'}`
+                            : `Processing ${type ? (JOB_LABELS[type] || type) : 'active job'}`
+                        }
+                      />
                     )}
                   </div>
                   <div>
@@ -114,24 +122,7 @@ export function DurableJobProgress({
                 <div className="rounded-lg bg-rose-500/10 border border-rose-500/20 p-2 text-[11px] text-rose-300">
                   {errorMessage}
                 </div>
-              ) : (
-                <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-white/5">
-                  {/* The actual progress track */}
-                  <motion.div
-                    className="absolute inset-y-0 left-0 bg-[linear-gradient(90deg,#3b82f6,#60a5fa)] shadow-[0_0_12px_rgba(59,130,246,0.5)]"
-                    style={{ width: `${roundedProgress}%` }}
-                  />
-
-                  {/* Animated Shimmer Over Progress */}
-                  {status === 'processing' && (
-                    <motion.div
-                      animate={{ translateX: ['-100%', '100%'] }}
-                      transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                      className="absolute inset-0 bg-[linear-gradient(90deg,transparent_0%,rgba(255,255,255,0.2)_50%,transparent_100%)]"
-                    />
-                  )}
-                </div>
-              )}
+              ) : null}
 
               {status === 'completed' && (
                 <motion.div

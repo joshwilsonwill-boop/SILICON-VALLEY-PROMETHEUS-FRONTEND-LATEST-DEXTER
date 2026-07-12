@@ -4,6 +4,7 @@ import * as React from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { ArrowDown, ArrowUp, ImageIcon, PanelLeft, Video, X } from 'lucide-react'
 
+import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { cn } from '@/lib/utils'
 
 const PROMETHEUS_LOGO_SRC = '/branding/prometheus-logo-no-bg.png'
@@ -384,7 +385,11 @@ function PrometheusMessageBubble({
             : 'rounded-[4px_16px_16px_16px] border-l border-[rgba(255,255,255,0.04)] bg-[rgba(255,255,255,0.02)] text-[#EAEAEA]',
         )}
       >
-        {isThinking ? <PrometheusTypingOrbit /> : <StreamingResponseText content={message.content} active={!isUser && isLatestAssistant} />}
+        {isThinking ? (
+          <InlineLoadingAnimation size={32} label="Prometheus is thinking" />
+        ) : (
+          <StreamingResponseText content={message.content} active={!isUser && isLatestAssistant} />
+        )}
       </div>
       {message.pills?.length ? (
         <div className="mt-3 flex flex-wrap gap-2">
@@ -454,22 +459,7 @@ function StreamingResponseText({ content, active }: { content: string; active: b
 }
 
 function StreamingPulseDot() {
-  return (
-    <span className="prometheus-streaming-orbit ml-1 inline-grid size-4 translate-y-[2px] place-items-center" aria-hidden>
-      <span />
-    </span>
-  )
-}
-
-function PrometheusTypingOrbit() {
-  return (
-    <span className="prometheus-typing-orbit inline-flex items-center gap-2" aria-label="Thinking">
-      <span className="prometheus-typing-orbit__dot" />
-      <span className="prometheus-typing-orbit__track">
-        <span />
-      </span>
-    </span>
-  )
+  return <InlineLoadingAnimation className="ml-1 inline-flex translate-y-[2px]" size={14} label="Streaming response" />
 }
 
 function KineticText({ text, active }: { text: string; active: boolean }) {
@@ -596,59 +586,6 @@ function PrometheusChatStyles() {
         animation: prometheusMetalSweep 3.6s ease-in-out infinite;
       }
 
-      .prometheus-streaming-orbit {
-        position: relative;
-      }
-
-      .prometheus-streaming-orbit::before {
-        content: '';
-        position: absolute;
-        inset: 2px;
-        border-radius: 9999px;
-        border: 1px solid rgba(214,255,247,0.34);
-        animation: prometheusOrbitRing 1.05s ease-in-out infinite;
-      }
-
-      .prometheus-streaming-orbit > span {
-        width: 5px;
-        height: 5px;
-        border-radius: 9999px;
-        background: rgba(214,255,247,0.9);
-        box-shadow: 0 0 16px rgba(156,134,255,0.62);
-        animation: prometheusStreamingDot 0.95s cubic-bezier(0.45, 0, 0.2, 1) infinite;
-      }
-
-      .prometheus-typing-orbit__dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 9999px;
-        background: rgba(214,255,247,0.78);
-        box-shadow: 0 0 22px rgba(156,134,255,0.55);
-        animation: prometheusTypingPulse 1.1s ease-in-out infinite;
-      }
-
-      .prometheus-typing-orbit__track {
-        position: relative;
-        width: 36px;
-        height: 16px;
-        border-radius: 9999px;
-        border: 1px solid rgba(255,255,255,0.08);
-        background: rgba(255,255,255,0.025);
-        overflow: hidden;
-      }
-
-      .prometheus-typing-orbit__track > span {
-        position: absolute;
-        top: 50%;
-        left: 3px;
-        width: 8px;
-        height: 8px;
-        border-radius: 9999px;
-        background: rgba(255,255,255,0.8);
-        transform: translate3d(0,-50%,0);
-        animation: prometheusTypingTravel 1.25s cubic-bezier(0.45, 0, 0.2, 1) infinite;
-      }
-
       @keyframes prometheusTextGradientPass {
         0%, 100% { background-position: 0% 50%; }
         50% { background-position: 100% 50%; }
@@ -679,25 +616,6 @@ function PrometheusChatStyles() {
         50% { transform: translateX(120%); opacity: 0.86; }
       }
 
-      @keyframes prometheusOrbitRing {
-        0%, 100% { opacity: 0.28; transform: scale(0.86); }
-        50% { opacity: 0.72; transform: scale(1.08); }
-      }
-
-      @keyframes prometheusStreamingDot {
-        0%, 100% { transform: translate3d(-2px, 1px, 0) scale(0.86); opacity: 0.56; }
-        50% { transform: translate3d(3px, -2px, 0) scale(1.08); opacity: 1; }
-      }
-
-      @keyframes prometheusTypingPulse {
-        0%, 100% { transform: scale(0.86); opacity: 0.48; }
-        50% { transform: scale(1.14); opacity: 1; }
-      }
-
-      @keyframes prometheusTypingTravel {
-        0%, 100% { transform: translate3d(0,-50%,0) scale(0.8); opacity: 0.5; }
-        50% { transform: translate3d(22px,-50%,0) scale(1); opacity: 1; }
-      }
     `}</style>
   )
 }

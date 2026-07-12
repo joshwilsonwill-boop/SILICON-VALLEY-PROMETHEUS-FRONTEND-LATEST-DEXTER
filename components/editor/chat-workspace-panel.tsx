@@ -37,7 +37,7 @@ import type {
 
 import { StagedMusicRail } from '@/components/editor/staged-music-rail'
 import { MusicSpotlightOrb } from '@/components/editor/music-spotlight-orb'
-import { AiResponseLoader } from '@/components/ui/ai-response-loader'
+import { InlineLoadingAnimation } from '@/components/loading-animation'
 
 export interface ChatEntry {
   id: string
@@ -227,7 +227,7 @@ export const ChatWorkspacePanel = React.memo(function ChatWorkspacePanel({
               animate={{ opacity: 1, y: 0 }}
               className="px-2"
             >
-              <AiResponseLoader />
+              <InlineLoadingAnimation size={40} label="Generating assistant response" />
             </motion.div>
           )}
         </div>

@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 
-import { MinimalTypographicLoader } from '@/components/ui/minimal-typographic-loader'
+import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { cn } from '@/lib/utils'
 import type { CinematicTemplateAsset, ExplainerCue } from '@/lib/types'
 
@@ -66,7 +66,10 @@ export function CinematicTemplateHost({
         />
       ) : (
         <div className="grid h-full w-full place-items-center bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0)_58%)] text-center">
-          <MinimalTypographicLoader label="Loading explainer" message="Preparing the selected template." size="sm" variant="inline" />
+          <div className="flex flex-col items-center gap-3">
+            <InlineLoadingAnimation size={72} label="Loading explainer template" />
+            <p className="text-xs text-white/52">Preparing the selected template.</p>
+          </div>
         </div>
       )}
     </div>

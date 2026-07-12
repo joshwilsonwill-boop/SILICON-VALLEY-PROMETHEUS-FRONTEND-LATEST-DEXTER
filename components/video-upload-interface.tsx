@@ -48,7 +48,7 @@ import { GlassUploadModalView } from "@/components/ui/glass-upload-modal-view";
 import { DynamicFrameLayout } from "@/components/ui/dynamic-frame-layout";
 import { TextEffect } from "@/components/ui/text-effect";
 import { GooeyText } from "@/components/ui/gooey-text-morphing";
-import { MinimalTypographicLoader } from "@/components/ui/minimal-typographic-loader";
+import { InlineLoadingAnimation, LoadingAnimation } from "@/components/loading-animation";
 import type { DynamicFrame } from "@/components/ui/dynamic-frame-layout";
 import { InteractiveOrb } from "@/components/ui/interactive-orb";
 import { ChatStyleSelector } from "@/components/editor/chat-style-selector";
@@ -1304,7 +1304,7 @@ const PromptComposer = React.memo(function PromptComposer({
                         {uploadStatus === 'error' ? (
                             <ArrowUpIcon className="h-4 w-4" />
                         ) : isSubmitting ? (
-                            <Sparkles className="h-4 w-4" />
+                            <InlineLoadingAnimation size={16} label="Sending request" />
                         ) : (
                             <SendIcon className="h-4 w-4" />
                         )}
@@ -2920,9 +2920,12 @@ export function VideoUploadInterface() {
                         </SheetDescription>
                         {process.env.NODE_ENV === "development" && (
                             <div className="mt-1 text-[11px] leading-tight text-white/45">
-                                {isLoadingAirtableStylePreviews
-                                    ? "Loading Airtable previews on demand..."
-                                    : hasLoadedAirtableStylePreviews
+                                {isLoadingAirtableStylePreviews ? (
+                                    <span className="inline-flex items-center gap-2">
+                                        <InlineLoadingAnimation size={14} label="Loading Airtable previews" />
+                                        <span>Loading Airtable previews on demand...</span>
+                                    </span>
+                                ) : hasLoadedAirtableStylePreviews
                                         ? `Airtable previews loaded: ${Object.keys(airtableStylePreviews).length} styles`
                                         : "Airtable previews stay dormant until this panel is opened."}
                                 {hasLoadedAirtableStylePreviews && Object.keys(airtableStylePreviews).length === 0 && (
@@ -3074,99 +3077,44 @@ export function VideoUploadInterface() {
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.18, ease: "easeOut" }}
-                        className="fixed inset-0 z-[90] flex items-center justify-center bg-[rgba(3,3,8,0.68)] px-4 backdrop-blur-xl"
+                        className="fixed inset-0 z-[90] bg-black"
                     >
-                        <div
-                            aria-hidden
-                            className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_28%,rgba(142,104,255,0.24)_0%,rgba(142,104,255,0.08)_22%,rgba(3,3,8,0)_58%),radial-gradient(circle_at_20%_80%,rgba(38,125,255,0.16)_0%,rgba(38,125,255,0)_28%)]"
+                        <LoadingAnimation
+                            message={`Opening ${editorLaunchOverlay.title}. ${editorLaunchOverlay.detail}`}
+                            zIndex={90}
                         />
-                        <motion.div
-                            initial={{ opacity: 0, y: 16, scale: 0.98 }}
-                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                            exit={{ opacity: 0, y: 8, scale: 0.99 }}
-                            transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
-                            className="relative w-full max-w-[620px]"
-                        >
-                            <div
-                                aria-hidden
-                                className="pointer-events-none absolute inset-x-[12%] top-1/2 h-40 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.12)_0%,rgba(145,110,255,0.12)_34%,rgba(3,3,8,0)_74%)] blur-[58px]"
-                            />
-                            <MinimalTypographicLoader
-                                label={`Opening ${editorLaunchOverlay.title}`}
-                                message={editorLaunchOverlay.detail}
-                                size="lg"
-                                variant="panel"
-                                className="w-full"
-                            />
-                            {(uploadStatus === 'presigning' || uploadStatus === 'uploading' || uploadStatus === 'retrying' || uploadStatus === 'paused') ? (
-                                <div className="mt-6 overflow-hidden rounded-[24px] border border-white/10 bg-white/[0.045] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-xl">
-                                    <div className="flex items-center justify-between gap-4 text-xs text-white/62">
-                                        <span>
-                                            {uploadPartLabel ?? `Chunk size ${formatFileSize(R2_MULTIPART_CLIENT_PART_SIZE)}`}
-                                        </span>
-                                        <span className="font-semibold text-white">{uploadProgress}%</span>
-                                    </div>
-                                    <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
-                                        <motion.div
-                                            className="h-full rounded-full bg-[#6366f1] shadow-[0_0_26px_rgba(99,102,241,0.55)]"
-                                            animate={{ width: `${Math.max(0, Math.min(100, uploadProgress))}%` }}
-                                            transition={{ duration: 0.25, ease: "easeOut" }}
-                                        />
-                                    </div>
-                                    {uploadStatus === 'retrying' ? (
-                                        <div className="mt-3 text-xs text-[#c7d2fe]">
-                                            Network timeout — retrying the failed chunk.
-                                        </div>
-                                    ) : null}
-                                    <div className="pointer-events-auto mt-4 flex justify-center">
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            className="h-9 rounded-full border-white/12 bg-transparent px-4 text-xs text-white/72 hover:bg-white/[0.08] hover:text-white"
-                                            onClick={cancelActiveUpload}
-                                        >
-                                            Cancel Upload
-                                        </Button>
-                                    </div>
+                        {(uploadStatus === 'presigning' || uploadStatus === 'uploading' || uploadStatus === 'retrying' || uploadStatus === 'paused') ? (
+                            <div className="fixed inset-x-4 bottom-8 z-[91] mx-auto max-w-[620px] text-center text-xs text-white/62">
+                                <div>
+                                    {uploadPartLabel ?? `Chunk size ${formatFileSize(R2_MULTIPART_CLIENT_PART_SIZE)}`}
                                 </div>
-                            ) : null}
-                            {uploadStatus === 'error' && uploadErrorDetail ? (
-                                <div className="mt-5 rounded-[18px] border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-100">
-                                    {uploadErrorDetail}
+                                <div className="mt-1 font-semibold text-white">{uploadProgress}%</div>
+                                {uploadStatus === 'retrying' ? (
+                                    <div className="mt-2 text-[#c7d2fe]">
+                                        Network timeout — retrying the failed chunk.
+                                    </div>
+                                ) : null}
+                                <div className="pointer-events-auto mt-4 flex justify-center">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        className="h-9 rounded-full border-white/12 bg-transparent px-4 text-xs text-white/72 hover:bg-white/[0.08] hover:text-white"
+                                        onClick={cancelActiveUpload}
+                                    >
+                                        Cancel Upload
+                                    </Button>
                                 </div>
-                            ) : null}
-                        </motion.div>
+                            </div>
+                        ) : null}
+                        {uploadStatus === 'error' && uploadErrorDetail ? (
+                            <div className="fixed inset-x-4 bottom-8 z-[91] mx-auto max-w-[620px] text-center text-sm text-red-100">
+                                {uploadErrorDetail}
+                            </div>
+                        ) : null}
                     </motion.div>
                 ) : null}
             </AnimatePresence>
 
-        </div>
-    );
-}
-
-function TypingDots() {
-    return (
-        <div className="flex items-center ml-1">
-            {[1, 2, 3].map((dot) => (
-                <motion.div
-                    key={dot}
-                    className="w-1.5 h-1.5 bg-white/90 rounded-full mx-0.5"
-                    initial={{ opacity: 0.3 }}
-                    animate={{ 
-                        opacity: [0.3, 0.9, 0.3],
-                        scale: [0.85, 1.1, 0.85]
-                    }}
-                    transition={{
-                        duration: 1.2,
-                        repeat: Infinity,
-                        delay: dot * 0.15,
-                        ease: "easeInOut",
-                    }}
-                    style={{
-                        boxShadow: "0 0 4px rgba(255, 255, 255, 0.3)"
-                    }}
-                />
-            ))}
         </div>
     );
 }

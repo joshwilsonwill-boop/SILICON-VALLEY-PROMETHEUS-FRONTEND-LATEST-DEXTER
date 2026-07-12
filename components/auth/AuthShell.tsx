@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import React, { Suspense } from 'react';
 import Image from 'next/image';
+import { InlineLoadingAnimation } from '@/components/loading-animation';
 import { Button } from '@/components/ui/button';
 import { ChevronLeftIcon } from 'lucide-react';
 import { FloatingPaths, AuthSeparator } from './auth-visuals';
@@ -120,7 +121,15 @@ export function AuthShell({
 
             {showSocialAuth ? (
               <>
-                <Suspense fallback={null}>
+                <Suspense
+                  fallback={
+                    <InlineLoadingAnimation
+                      size={120}
+                      label="Loading sign-in options"
+                      className="mx-auto"
+                    />
+                  }
+                >
                   <SocialAuthButtons />
                 </Suspense>
 
@@ -128,7 +137,17 @@ export function AuthShell({
               </>
             ) : null}
 
-            <Suspense fallback={null}>{children}</Suspense>
+            <Suspense
+              fallback={
+                <InlineLoadingAnimation
+                  size={120}
+                  label="Loading authentication form"
+                  className="mx-auto"
+                />
+              }
+            >
+              {children}
+            </Suspense>
 
             {showLegalCopy ? (
             <p className={compact ? 'mt-3 text-xs leading-5 text-white/38' : 'mt-8 text-sm leading-6 text-white/38'}>
@@ -149,4 +168,3 @@ export function AuthShell({
     </AuthInteractionProvider>
   );
 }
-

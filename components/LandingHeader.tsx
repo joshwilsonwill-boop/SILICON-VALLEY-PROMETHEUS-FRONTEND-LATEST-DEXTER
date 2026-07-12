@@ -6,6 +6,7 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 // import { Button } from '@/components/ui/button' // kept for safe rollback; LiquidChromeButton wraps Button internally.
 import { useAuth } from '@/components/auth/auth-provider'
+import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { LiquidChromeButton } from '@/components/ui/liquid-chrome-button'
 
 interface LandingHeaderProps {
@@ -45,7 +46,9 @@ export function LandingHeader({ mobileNavControl }: LandingHeaderProps = {}) {
           </Link>
           
           {isLoading ? (
-            <div className="h-4 w-12 animate-pulse rounded bg-white/5" />
+            <div className="flex h-4 w-12 items-center justify-center">
+              <InlineLoadingAnimation size={16} label="Loading account navigation" />
+            </div>
           ) : !isAuthenticated ? (
             <>
               <Link
@@ -74,7 +77,9 @@ export function LandingHeader({ mobileNavControl }: LandingHeaderProps = {}) {
             Pricing
           </Link>
           {isLoading ? (
-             <div className="h-4 w-10 animate-pulse rounded bg-white/5" />
+            <div className="flex h-4 w-10 items-center justify-center">
+              <InlineLoadingAnimation size={16} label="Loading account navigation" />
+            </div>
           ) : isAuthenticated ? null : (
             <Link href="/login" className="text-xs font-medium uppercase tracking-widest text-white">
               Login

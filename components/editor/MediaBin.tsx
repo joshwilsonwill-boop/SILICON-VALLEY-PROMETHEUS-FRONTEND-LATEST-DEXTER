@@ -14,6 +14,7 @@ import {
   ChevronRight,
   GripVertical
 } from 'lucide-react'
+import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { cn } from '@/lib/utils'
 
 interface MediaItem {
@@ -147,7 +148,10 @@ export const MediaBin: React.FC = () => {
         {/* Bottom Status */}
         <div className="p-3 border-t border-white/5 bg-black/20 flex items-center justify-between text-[9px] font-bold uppercase tracking-widest text-white/20">
           <span>Storage: 4.2GB / 100GB</span>
-          <span className="text-accent-cyan animate-pulse">Syncing...</span>
+          <span className="inline-flex items-center gap-1.5 text-accent-cyan">
+            <InlineLoadingAnimation size={12} label="Syncing media assets" />
+            Syncing...
+          </span>
         </div>
       </div>
 

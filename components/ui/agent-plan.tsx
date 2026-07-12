@@ -1,10 +1,9 @@
 'use client'
 
 import * as React from 'react'
-import { motion } from 'framer-motion'
-import { CheckCircle2, Circle, Sparkles, XCircle } from 'lucide-react'
+import { CheckCircle2, Circle, XCircle } from 'lucide-react'
 
-import { useStableReducedMotion } from '@/hooks/use-stable-reduced-motion'
+import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { cn } from '@/lib/utils'
 
 export type PlanStatus = 'pending' | 'running' | 'completed' | 'error'
@@ -23,8 +22,6 @@ export interface PlanProps {
 }
 
 export function Plan({ items, className }: PlanProps) {
-  const reduced = useStableReducedMotion()
-
   return (
     <div className={cn('space-y-3', className)}>
       {items.map((item) => {
@@ -34,7 +31,7 @@ export function Plan({ items, className }: PlanProps) {
           ) : item.status === 'error' ? (
             <XCircle className="size-4 text-red-300" />
           ) : item.status === 'running' ? (
-            <Sparkles className="size-4 animate-pulse text-white/70" />
+            <InlineLoadingAnimation size={16} label={`Running ${item.title}`} />
           ) : (
             <Circle className="size-4 text-white/25" />
           )
@@ -65,22 +62,6 @@ export function Plan({ items, className }: PlanProps) {
                     ? `${Math.round(progress * 100)}%`
                     : ''}
               </div>
-            </div>
-
-            <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10">
-              {reduced ? (
-                <div
-                  className="h-full bg-gradient-to-r from-violet-400/70 via-indigo-400/70 to-fuchsia-400/70"
-                  style={{ width: `${Math.round(progress * 100)}%` }}
-                />
-              ) : (
-                <motion.div
-                  className="h-full bg-gradient-to-r from-violet-400/70 via-indigo-400/70 to-fuchsia-400/70"
-                  initial={false}
-                  animate={{ width: `${Math.round(progress * 100)}%` }}
-                  transition={{ type: 'spring', stiffness: 120, damping: 18 }}
-                />
-              )}
             </div>
           </div>
         )

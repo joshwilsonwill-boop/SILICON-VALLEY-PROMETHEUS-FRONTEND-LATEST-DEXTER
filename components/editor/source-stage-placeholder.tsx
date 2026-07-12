@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 
 import { useStableReducedMotion } from '@/hooks/use-stable-reduced-motion'
 import { cn } from '@/lib/utils'
+import { InlineLoadingAnimation } from '@/components/loading-animation'
 
 export type SourceStageStatus = 'empty' | 'loading' | 'error'
 
@@ -107,7 +108,9 @@ export function SourceStagePlaceholder({
       )}
     >
       {isLoading ? (
-        <div className="pointer-events-none absolute inset-0 z-0 bg-transparent" />
+        <div className="pointer-events-none absolute inset-0 z-0 bg-transparent flex items-center justify-center">
+          <InlineLoadingAnimation size={120} label="Restoring source preview" />
+        </div>
       ) : null}
       {!isLoading ? (
         <>

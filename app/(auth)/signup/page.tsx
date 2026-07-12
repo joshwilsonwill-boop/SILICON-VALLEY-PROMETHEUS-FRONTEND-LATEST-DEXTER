@@ -1,5 +1,6 @@
 import { AuthShell } from '@/components/auth/AuthShell'
 import { SignupForm } from '@/components/auth/SignupForm'
+import { LoadingAnimation } from '@/components/loading-animation'
 import { Suspense } from 'react'
 
 export default function SignupPage() {
@@ -11,10 +12,9 @@ export default function SignupPage() {
       showLegalCopy={false}
       showSocialAuth={false}
     >
-      <Suspense fallback={null}>
+      <Suspense fallback={<LoadingAnimation message="Loading account setup..." />}>
         <SignupForm compact />
       </Suspense>
     </AuthShell>
   )
 }
-

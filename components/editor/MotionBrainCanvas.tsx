@@ -15,6 +15,7 @@ import {
   Wand2,
   ChevronRight
 } from 'lucide-react'
+import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { cn } from '@/lib/utils'
 import { useDeviceTier } from '@/hooks/useDeviceTier'
 
@@ -118,11 +119,12 @@ export const MotionBrainCanvas: React.FC = () => {
 
         {/* Central Intelligence Node */}
         <div className="flex justify-center my-4">
-          <div className={cn(
-            "node-brain w-20 h-20 rounded-2xl bg-void border-2 border-accent-cyan flex items-center justify-center shadow-[0_0_20px_rgba(0,240,255,0.2)]",
-            isProcessing && "animate-pulse"
-          )}>
-            <BrainCircuit className="size-10 text-accent-cyan" />
+          <div className="node-brain w-20 h-20 rounded-2xl bg-void border-2 border-accent-cyan flex items-center justify-center shadow-[0_0_20px_rgba(0,240,255,0.2)]">
+            {isProcessing ? (
+              <InlineLoadingAnimation size={40} label="Processing motion analysis" />
+            ) : (
+              <BrainCircuit className="size-10 text-accent-cyan" />
+            )}
           </div>
         </div>
 

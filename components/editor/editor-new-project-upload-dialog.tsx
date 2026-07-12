@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 
 import { GlassUploadModalView } from '@/components/ui/glass-upload-modal-view'
-import { MinimalTypographicLoader } from '@/components/ui/minimal-typographic-loader'
+import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogClose, DialogContent } from '@/components/ui/dialog'
 import {
@@ -387,24 +387,25 @@ export function EditorNewProjectUploadDialog({ open, onOpenChange }: EditorNewPr
               transition={{ duration: 0.2 }}
             >
               <div className="w-full max-w-[620px]">
-                <MinimalTypographicLoader
-                  label={uploadStatus === 'error' ? 'Upload paused' : 'Loading...'}
-                  message={uploadMessage ?? 'Preparing your video for the editor.'}
-                  size="lg"
-                  variant="panel"
-                />
+                <div className="flex flex-col items-center text-center">
+                  {isUploading ? (
+                    <InlineLoadingAnimation
+                      size={96}
+                      label={uploadMessage ?? 'Preparing video upload'}
+                    />
+                  ) : null}
+                  <p className="mt-4 text-lg font-medium text-white">
+                    {uploadStatus === 'error' ? 'Upload paused' : 'Preparing upload'}
+                  </p>
+                  <p className="mt-2 text-sm text-white/58">
+                    {uploadMessage ?? 'Preparing your video for the editor.'}
+                  </p>
+                </div>
                 {isUploading ? (
                   <div className="mt-5 rounded-[24px] border border-white/10 bg-white/[0.045] p-4 backdrop-blur-xl">
                     <div className="flex items-center justify-between gap-4 text-xs text-white/62">
                       <span>{uploadPartLabel ?? 'Preparing upload'}</span>
                       <span className="font-semibold text-white">{uploadProgress}%</span>
-                    </div>
-                    <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
-                      <motion.div
-                        className="h-full rounded-full bg-[#6366f1] shadow-[0_0_26px_rgba(99,102,241,0.55)]"
-                        animate={{ width: `${Math.max(0, Math.min(100, uploadProgress))}%` }}
-                        transition={{ duration: 0.25, ease: 'easeOut' }}
-                      />
                     </div>
                     <div className="mt-4 flex justify-center">
                       <Button

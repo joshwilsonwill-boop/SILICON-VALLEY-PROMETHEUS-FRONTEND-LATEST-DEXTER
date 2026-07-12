@@ -14,7 +14,6 @@ import {
   Building2,
   History,
   XCircle,
-  Loader2,
   Download,
   Database,
 } from 'lucide-react'
@@ -23,11 +22,11 @@ import { toast } from 'sonner'
 
 import { DodoCheckoutButton } from '@/components/billing/dodo-checkout-button'
 import { DodoCheckoutModal } from '@/components/billing/dodo-checkout-modal'
+import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { PremiumPricingPlans } from '@/components/premium-pricing-plans'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { Skeleton } from '@/components/ui/skeleton'
 import {
   Dialog,
   DialogContent,
@@ -73,7 +72,7 @@ export function BillingDashboard() {
   }
 
   if (isLoading) {
-    return <BillingDashboardSkeleton />
+    return <BillingDashboardLoading />
   }
 
   const hasAccess = subscription?.status === 'active'
@@ -460,7 +459,11 @@ export function BillingDashboard() {
                           className="h-9 px-4 rounded-xl text-xs font-bold uppercase tracking-widest text-red-300 hover:bg-red-400/10 transition-all"
                           disabled={removingPaymentMethodId === method.id}
                         >
-                          {removingPaymentMethodId === method.id ? <Loader2 className="size-3 animate-spin" /> : 'Remove'}
+                          {removingPaymentMethodId === method.id ? (
+                            <InlineLoadingAnimation size={12} label="Removing payment method" />
+                          ) : (
+                            'Remove'
+                          )}
                         </Button>
                       </DialogTrigger>
                       <DialogContent className="border-white/10 bg-[#0a0a0b] text-white">
@@ -501,7 +504,11 @@ export function BillingDashboard() {
               onClick={handleAddPaymentMethod}
               disabled={isAddingPaymentMethod}
             >
-              {isAddingPaymentMethod ? <Loader2 className="size-3 animate-spin" /> : <CreditCard className="size-3.5" />}
+              {isAddingPaymentMethod ? (
+                <InlineLoadingAnimation size={12} label="Adding payment method" />
+              ) : (
+                <CreditCard className="size-3.5" />
+              )}
               Add New Card
             </Button>
           </CardContent>
@@ -540,7 +547,11 @@ export function BillingDashboard() {
                     <XCircle className="size-5 text-white/30 group-hover:text-red-400 transition-colors" />
                   </div>
                   <span className="text-[11px] font-black uppercase tracking-[0.1em] text-white/40 group-hover:text-red-400 transition-colors">
-                    {isCancelling ? <Loader2 className="size-3 animate-spin" /> : 'Cancel Plan'}
+                    {isCancelling ? (
+                      <InlineLoadingAnimation size={12} label="Cancelling subscription" />
+                    ) : (
+                      'Cancel Plan'
+                    )}
                   </span>
                 </Button>
               </DialogTrigger>
@@ -709,31 +720,10 @@ export function BillingDashboard() {
   )
 }
 
-function BillingDashboardSkeleton() {
+function BillingDashboardLoading() {
   return (
-    <div className="mx-auto max-w-7xl space-y-12 px-4 py-8 md:px-8 md:py-12">
-      <div className="grid gap-8 lg:grid-cols-[1fr_400px]">
-        <div className="space-y-6">
-          <Skeleton className="h-4 w-32 bg-white/5" />
-          <div className="space-y-4">
-            <Skeleton className="h-16 w-3/4 bg-white/5" />
-            <Skeleton className="h-16 w-1/2 bg-white/5" />
-          </div>
-          <Skeleton className="h-12 w-48 rounded-[18px] bg-white/5" />
-        </div>
-        <Card className="border-white/10 bg-white/[0.03]">
-          <CardHeader><Skeleton className="h-8 w-full bg-white/5" /></CardHeader>
-          <CardContent className="space-y-8">
-            <Skeleton className="h-12 w-1/2 bg-white/5" />
-            <Skeleton className="h-24 w-full bg-white/5" />
-          </CardContent>
-        </Card>
-      </div>
-      <div className="grid gap-8 lg:grid-cols-3">
-        {[1, 2, 3].map((i) => (
-          <Skeleton key={i} className="h-[600px] w-full rounded-3xl bg-white/5" />
-        ))}
-      </div>
+    <div className="mx-auto flex min-h-[520px] max-w-7xl items-center justify-center px-4 py-8 md:px-8 md:py-12">
+      <InlineLoadingAnimation size={120} label="Loading billing dashboard" />
     </div>
   )
 }

@@ -5,6 +5,7 @@ import { AnimatePresence, motion, useAnimationFrame, useMotionValue } from 'fram
 import { Music, Pause, Play, Repeat, Shuffle, SkipBack, SkipForward } from 'lucide-react'
 import Image from 'next/image'
 
+import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { chamberEase } from '@/lib/chamber-motion'
 import { cn } from '@/lib/utils'
 import { useStableReducedMotion } from '@/hooks/use-stable-reduced-motion'
@@ -317,8 +318,13 @@ export function MusicPlayer({
             >
               {artistName}
             </p>
-            <div aria-live="polite" className="mt-2 min-h-4 text-[11px] uppercase tracking-[0.18em] text-white/38">
-              {isBuffering && isPlaying ? 'Buffering...' : null}
+            <div aria-live="polite" className="mt-2 flex min-h-4 items-center justify-center gap-1.5 text-[11px] uppercase tracking-[0.18em] text-white/38">
+              {isBuffering && isPlaying ? (
+                <>
+                  <InlineLoadingAnimation size={12} label="Buffering track" />
+                  <span>Buffering...</span>
+                </>
+              ) : null}
             </div>
           </div>
         </motion.div>
@@ -371,10 +377,7 @@ export function MusicPlayer({
             onClick={() => setPlayingState(!isPlaying)}
             whileHover={reduceMotion ? undefined : { scale: 1.04 }}
             whileTap={reduceMotion ? undefined : { scale: 0.96 }}
-            className={cn(
-              'flex h-10 w-10 items-center justify-center rounded-full text-white transition-[box-shadow,background-color] duration-200 ease-out',
-              isBuffering && isPlaying && 'animate-pulse bg-white/[0.08] shadow-[0_0_30px_rgba(99,102,241,0.24)]',
-            )}
+            className="flex h-10 w-10 items-center justify-center rounded-full text-white transition-[box-shadow,background-color] duration-200 ease-out"
             aria-label={isPlaying ? 'Pause track' : 'Play track'}
           >
             <AnimatePresence mode="wait" initial={false}>

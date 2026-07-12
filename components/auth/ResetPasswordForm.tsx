@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { LockIcon } from 'lucide-react'
 import { toast } from 'sonner'
 
+import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { createClient } from '@/lib/supabase/client'
@@ -101,6 +102,7 @@ export function ResetPasswordForm() {
       {success ? <div className="text-xs text-emerald-500/90">Password updated. Redirecting...</div> : null}
 
       <Button type="submit" size="lg" className="w-full" disabled={submitting}>
+        {submitting ? <InlineLoadingAnimation size={16} label="Saving new password" /> : null}
         {submitting ? 'Saving...' : 'Update password'}
       </Button>
 

@@ -7,8 +7,9 @@ import {
   type HTMLMotionProps,
   type Variants,
 } from 'motion/react'
-import { Loader2, Plus } from 'lucide-react'
+import { Plus } from 'lucide-react'
 
+import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { cn } from '@/lib/utils'
 
 type MicroExpanderVariant = 'default' | 'outline' | 'ghost' | 'destructive'
@@ -154,13 +155,13 @@ export const MicroExpander = React.forwardRef<HTMLButtonElement, MicroExpanderPr
           <AnimatePresence mode="popLayout" initial={false}>
             {isLoading ? (
               <motion.span
-                key="spinner"
+                key="loading-animation"
                 initial={{ opacity: 0, scale: 0.6, rotate: -90 }}
                 animate={{ opacity: 1, scale: 1, rotate: 0 }}
                 exit={{ opacity: 0, scale: 0.6 }}
                 transition={{ duration: 0.18 }}
               >
-                <Loader2 className="size-5 animate-spin" />
+                <InlineLoadingAnimation size={20} label={`${text} in progress`} />
               </motion.span>
             ) : (
               <motion.span

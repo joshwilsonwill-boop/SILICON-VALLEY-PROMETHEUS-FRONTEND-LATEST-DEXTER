@@ -2,7 +2,6 @@
 
 import React from 'react'
 import { SocialPlatform } from '@/lib/social/types'
-import { Progress } from '@/components/ui/progress'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   CheckCircle2, 
@@ -13,9 +12,9 @@ import {
   Twitter,
   Linkedin,
   Music2,
-  Facebook,
-  Loader2
+  Facebook
 } from 'lucide-react'
+import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { cn } from '@/lib/utils'
 
 export interface PostStatus {
@@ -57,12 +56,6 @@ export function PostStatusTracker({ statuses }: PostStatusTrackerProps) {
               transition={{ delay: index * 0.1 }}
               className="relative p-4 rounded-2xl bg-white/5 border border-white/5 overflow-hidden group"
             >
-              {/* Progress Background */}
-              <div 
-                className="absolute inset-0 bg-lime-400/5 transition-all duration-500 ease-out"
-                style={{ width: `${item.progress}%`, opacity: isDone ? 0 : 0.1 }}
-              />
-
               <div className="relative flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
                   <div className={cn(
@@ -90,7 +83,7 @@ export function PostStatusTracker({ statuses }: PostStatusTrackerProps) {
                     ) : isFailed ? (
                       <AlertCircle className="w-5 h-5 text-red-400" />
                     ) : isWorking ? (
-                      <Loader2 className="w-4 h-4 text-lime-400 animate-spin" />
+                      <InlineLoadingAnimation size={16} label={`${item.status} ${item.platform} post`} />
                     ) : (
                       <CircleDashed className="w-4 h-4 text-zinc-600" />
                     )}
@@ -104,12 +97,6 @@ export function PostStatusTracker({ statuses }: PostStatusTrackerProps) {
                 </div>
               </div>
 
-              {!isDone && !isFailed && (
-                <div className="mt-4">
-                  <Progress value={item.progress} className="h-1 bg-white/5" />
-                </div>
-              )}
-              
               {isFailed && item.error && (
                 <motion.div 
                   initial={{ height: 0, opacity: 0 }}

@@ -2,10 +2,11 @@
 
 import * as React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Upload, FileVideo, CheckCircle2, Sparkles, X } from 'lucide-react'
+import { Upload, FileVideo, CheckCircle2, X } from 'lucide-react'
 import Uppy, { type UppyFile } from '@uppy/core'
 // @ts-ignore - Uppy types can be finicky in certain environments
 import AwsS3Multipart from '@uppy/aws-s3-multipart'
+import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 
@@ -220,34 +221,14 @@ export function VideoUploader({ onUploadSuccess, onCancel, className }: VideoUpl
             className="relative overflow-hidden rounded-[32px] border border-white/10 bg-black/40 p-10 backdrop-blur-3xl shadow-2xl"
           >
             <div className="relative flex flex-col items-center">
-              <div className="relative mb-8 size-48">
-                <svg className="size-full -rotate-90 transform">
-                  <circle
-                    cx="96"
-                    cy="96"
-                    r="88"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                    fill="transparent"
-                    className="text-white/5"
+              <div className="mb-8 flex h-48 w-48 flex-col items-center justify-center gap-2">
+                {uploadState.status === 'uploading' ? (
+                  <InlineLoadingAnimation
+                    size={120}
+                    label={`Uploading ${uploadState.fileName ?? 'video'}: ${uploadState.progress}% complete`}
                   />
-                  <motion.circle
-                    cx="96"
-                    cy="96"
-                    r="88"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                    fill="transparent"
-                    strokeDasharray="552.92"
-                    initial={{ strokeDashoffset: 552.92 }}
-                    animate={{ strokeDashoffset: 552.92 - (552.92 * uploadState.progress) / 100 }}
-                    transition={{ duration: 0.5, ease: "easeOut" }}
-                    className="text-[#9ff6e3]"
-                    strokeLinecap="round"
-                  />
-                </svg>
-
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                ) : null}
+                <div className="flex flex-col items-center justify-center">
                   <div className="text-4xl font-bold tracking-tighter text-white">
                     {uploadState.progress}%
                   </div>
@@ -255,17 +236,6 @@ export function VideoUploader({ onUploadSuccess, onCancel, className }: VideoUpl
                     Uploaded
                   </div>
                 </div>
-
-                {uploadState.status === 'uploading' && (
-                  <motion.div
-                    animate={{
-                      scale: [1, 1.2, 1],
-                      opacity: [0.1, 0.3, 0.1]
-                    }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                    className="absolute inset-4 -z-10 rounded-full bg-[#9ff6e3]/20 blur-2xl"
-                  />
-                )}
               </div>
 
               <div className="w-full space-y-6 text-center">
@@ -278,7 +248,12 @@ export function VideoUploader({ onUploadSuccess, onCancel, className }: VideoUpl
                   </div>
                   <div className="mt-2 flex items-center justify-center gap-4 text-[11px] font-medium uppercase tracking-[0.2em] text-white/25">
                     <span className="flex items-center gap-1.5">
-                      <Sparkles className="size-3 animate-pulse" />
+                      {uploadState.status === 'uploading' ? (
+                        <InlineLoadingAnimation
+                          size={12}
+                          label={`Uploading at ${uploadState.speed}`}
+                        />
+                      ) : null}
                       {uploadState.speed}
                     </span>
                     <div className="size-1 rounded-full bg-white/10" />

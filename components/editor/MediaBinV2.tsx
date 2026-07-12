@@ -4,6 +4,7 @@ import * as React from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Box, Clock, Film, GripVertical, MoreVertical, Music, Search, Type } from 'lucide-react'
 import { AccessibleLabel } from '@/components/editor/a11y/accessible-label'
+import { InlineLoadingAnimation } from '@/components/loading-animation'
 import {
   formatBytes,
   getSourceAssetDisplayName,
@@ -147,10 +148,8 @@ export function MediaBinV2({ projectId, className }: MediaBinV2Props) {
 
         <div className="scrollbar-thin scrollbar-thumb-white/10 flex-1 space-y-2 overflow-y-auto p-3">
           {loading ? (
-            <div className="space-y-2" aria-label="Loading media assets">
-              {Array.from({ length: 4 }).map((_, index) => (
-                <div key={index} className="h-16 rounded-xl border border-white/5 bg-white/[0.025] motion-safe:animate-pulse" />
-              ))}
+            <div className="flex min-h-[17.5rem] items-center justify-center" aria-label="Loading media assets">
+              <InlineLoadingAnimation size={40} label="Loading media assets" />
             </div>
           ) : error ? (
             <div className="rounded-xl border border-rose-300/20 bg-rose-300/[0.06] p-3 text-xs leading-5 text-rose-100">
@@ -235,9 +234,14 @@ export function MediaBinV2({ projectId, className }: MediaBinV2Props) {
           <span>
             Storage: {storageUsedLabel} / {storageQuotaLabel}
           </span>
-          <span className={cn(activeUpload ? 'animate-pulse text-accent-cyan' : 'text-white/24')}>
-            {activeUpload ? 'Syncing...' : 'Ready'}
-          </span>
+          {activeUpload ? (
+            <span className="inline-flex items-center gap-1.5 text-accent-cyan">
+              <InlineLoadingAnimation size={12} label="Syncing media assets" />
+              Syncing...
+            </span>
+          ) : (
+            <span className="text-white/24">Ready</span>
+          )}
         </div>
       </div>
 

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Bell, ChevronLeft, ChevronRight, Link2, Shield, User } from 'lucide-react'
 
+import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { PrometheusShell } from '@/components/prometheus-shell'
 import { Button } from '@/components/ui/button'
 import {
@@ -194,6 +195,7 @@ export default function SettingsPage() {
                   }
                 }}
               >
+                {signingOut ? <InlineLoadingAnimation size={16} label="Signing out" /> : null}
                 {signingOut ? 'Signing out...' : 'Sign out'}
               </Button>
             </div>

@@ -3,10 +3,10 @@
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Loader2 } from 'lucide-react'
 import { useForm, useWatch } from 'react-hook-form'
 import { z } from 'zod'
 
+import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -162,7 +162,7 @@ export function CreateProjectModal({ open, onClose }: CreateProjectModalProps) {
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting} className="bg-white text-black hover:bg-white/90">
-              {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              {isSubmitting ? <InlineLoadingAnimation size={16} label="Creating project" /> : null}
               Create
             </Button>
           </DialogFooter>

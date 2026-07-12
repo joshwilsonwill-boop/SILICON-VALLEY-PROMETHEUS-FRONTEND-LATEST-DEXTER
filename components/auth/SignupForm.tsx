@@ -7,6 +7,7 @@ import { Turnstile, type TurnstileInstance } from '@marsidev/react-turnstile'
 import { AtSignIcon, EyeIcon, EyeOffIcon, LockIcon, UserIcon } from 'lucide-react'
 import { toast } from 'sonner'
 
+import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { SocialAuthButtons } from '@/components/auth/SocialAuthButtons'
@@ -258,6 +259,7 @@ export function SignupForm({ compact = false }: SignupFormProps) {
         className={compact ? 'h-10 w-full rounded-[10px]' : 'h-11 w-full rounded-[10px]'}
         disabled={submitting || !captchaToken}
       >
+        {submitting ? <InlineLoadingAnimation size={16} label="Creating account" /> : null}
         {submitting ? 'Creating account...' : 'Create account'}
       </Button>
 

@@ -24,10 +24,10 @@ import {
 import { toast } from 'sonner'
 
 import { ProjectsPageV2 } from '@/components/projects/projects-page-v2'
+import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { BackButton } from '@/components/navigation/BackButton'
 import { PrometheusShell } from '@/components/prometheus-shell'
 import { Button } from '@/components/ui/button'
-import { MinimalTypographicLoader } from '@/components/ui/minimal-typographic-loader'
 import {
   Dialog,
   DialogContent,
@@ -37,7 +37,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import { Skeleton } from '@/components/ui/skeleton'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { useBillingData } from '@/hooks/use-billing-data'
 import { rememberCurrentPathForEditorReturn } from '@/lib/editor-navigation'
@@ -285,25 +284,10 @@ function isInputTarget(target: EventTarget | null) {
   return ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) || target.isContentEditable
 }
 
-function ProjectCardSkeleton() {
+function ProjectsLoadingState() {
   return (
-    <div className="rounded-[26px] border border-white/[0.06] bg-[#111116]/[0.82] p-3 supports-[backdrop-filter]:bg-white/[0.03] supports-[backdrop-filter]:backdrop-blur-[24px]">
-      <Skeleton className="aspect-video rounded-[18px] bg-white/[0.06]" />
-      <div className="mt-4 space-y-3">
-        <Skeleton className="h-4 w-2/3 rounded-full bg-white/[0.07]" />
-        <Skeleton className="h-3 w-1/2 rounded-full bg-white/[0.05]" />
-        <Skeleton className="h-8 rounded-full bg-white/[0.04]" />
-      </div>
-    </div>
-  )
-}
-
-function SkeletonGrid() {
-  return (
-    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-      {Array.from({ length: 6 }).map((_, index) => (
-        <ProjectCardSkeleton key={index} />
-      ))}
+    <div className="flex min-h-[28rem] items-center justify-center">
+      <InlineLoadingAnimation size={72} label="Loading projects" />
     </div>
   )
 }
@@ -649,7 +633,7 @@ function OriginalProjectsPage() {
 
                 <div className="mt-5">
                   {isLoading ? (
-                    <SkeletonGrid />
+                    <ProjectsLoadingState />
                   ) : isEmpty ? (
                     <EmptyState onUpload={() => router.push('/')} />
                   ) : isFilteredEmpty ? (
@@ -1097,13 +1081,7 @@ function ProjectCard({
           ) : (
             <div className="flex h-full items-center justify-center bg-[radial-gradient(circle_at_20%_15%,rgba(255,255,255,0.26)_0%,rgba(255,255,255,0)_52%),linear-gradient(165deg,rgba(255,255,255,0.1)_0%,rgba(255,255,255,0.02)_68%)]">
               {status === 'processing' ? (
-                <MinimalTypographicLoader
-                  label="Loading..."
-                  message="AI task processing this project."
-                  size="sm"
-                  variant="inline"
-                  className="w-full"
-                />
+                <InlineLoadingAnimation size={20} label={`Processing ${project.title}`} />
               ) : (
                 <Film className="size-12 text-white/20" />
               )}
@@ -1271,13 +1249,16 @@ function AiTaskRow({
               className="flex items-center gap-1.5 rounded-full text-[11px] text-white/58 transition-colors duration-150 ease-out hover:text-white"
               title={`Open ${task.label} task`}
             >
-              <span
-                className={cn(
-                  'size-2.5 rounded-full border border-white/20 bg-transparent',
-                  state === 'complete' && 'border-[#6366f1]/36 bg-[#6366f1] shadow-[0_0_30px_rgba(99,102,241,0.24)]',
-                  state === 'processing' && 'border-amber-500/20 bg-amber-500/10 shadow-[0_0_30px_rgba(99,102,241,0.24)] animate-pulse',
-                )}
-              />
+              {state === 'processing' ? (
+                <InlineLoadingAnimation size={12} label={`Processing ${task.label} task`} />
+              ) : (
+                <span
+                  className={cn(
+                    'size-2.5 rounded-full border border-white/20 bg-transparent',
+                    state === 'complete' && 'border-[#6366f1]/36 bg-[#6366f1] shadow-[0_0_30px_rgba(99,102,241,0.24)]',
+                  )}
+                />
+              )}
               {task.label}
             </button>
           )

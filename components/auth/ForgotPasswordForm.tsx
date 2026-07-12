@@ -6,6 +6,7 @@ import { AtSignIcon } from 'lucide-react'
 import { useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
 
+import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { normalizeUxError } from '@/lib/ux/errors'
@@ -90,6 +91,7 @@ export function ForgotPasswordForm() {
       ) : null}
 
       <Button type="submit" size="lg" className="w-full" disabled={submitting}>
+        {submitting ? <InlineLoadingAnimation size={16} label="Sending recovery link" /> : null}
         {submitting ? 'Sending link...' : 'Send recovery link'}
       </Button>
 

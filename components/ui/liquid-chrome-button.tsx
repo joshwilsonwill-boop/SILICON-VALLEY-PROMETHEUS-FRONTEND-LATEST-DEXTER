@@ -1,8 +1,9 @@
 'use client'
 
 import * as React from 'react'
-import { Check, Loader2 } from 'lucide-react'
+import { Check } from 'lucide-react'
 
+import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { Button } from '@/components/ui/button'
 import { useReducedMotion } from '@/hooks/useReducedMotion'
 import {
@@ -152,7 +153,7 @@ export function LiquidChromeButton({
         asChild={asChild}
         {...props}
       >
-        {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+        {loading ? <InlineLoadingAnimation size={16} label="Loading" /> : null}
         {children}
       </Button>
     )
@@ -263,7 +264,7 @@ export function LiquidChromeButton({
 
         {loading ? (
           <span className="absolute inset-0 z-10 flex items-center justify-center">
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <InlineLoadingAnimation size={16} label="Loading" />
           </span>
         ) : null}
 

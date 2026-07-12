@@ -9,7 +9,6 @@ import {
   Instagram,
   Link2,
   Linkedin,
-  Loader2,
   Music2,
   Twitter,
   Youtube,
@@ -18,6 +17,7 @@ import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 import { GlassCard } from '@/components/ui/glass-card'
+import { InlineLoadingAnimation } from '@/components/loading-animation'
 import {
   Dialog,
   DialogContent,
@@ -127,16 +127,11 @@ export function ConnectedAccountsPanel({ onConnect }: ConnectedAccountsPanelProp
 
       <div className="grid gap-4 md:grid-cols-2">
         {loading
-          ? Array.from({ length: 4 }).map((_, index) => (
-              <div
-                key={`connection-skeleton-${index}`}
-                className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 backdrop-blur-md"
-              >
-                <div className="h-5 w-32 rounded-full bg-white/10" />
-                <div className="mt-3 h-4 w-24 rounded-full bg-white/8" />
-                <div className="mt-5 h-10 rounded-xl bg-white/6" />
+          ? (
+              <div className="flex min-h-64 items-center justify-center md:col-span-2">
+                <InlineLoadingAnimation size={120} label="Loading connected accounts" />
               </div>
-            ))
+            )
           : PLATFORMS.map((platform) => {
               const Icon = platform.icon
               const connection = connections.find((entry) => entry.provider === platform.id)
@@ -233,7 +228,12 @@ export function ConnectedAccountsPanel({ onConnect }: ConnectedAccountsPanelProp
               disabled={!disconnectTarget || isDisconnecting === disconnectTarget.id}
               onClick={() => void handleDisconnectConfirm()}
             >
-              {isDisconnecting === disconnectTarget?.id ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              {isDisconnecting === disconnectTarget?.id ? (
+                <InlineLoadingAnimation
+                  size={16}
+                  label={`Disconnecting ${disconnectTarget?.name ?? 'account'}`}
+                />
+              ) : null}
               Disconnect
             </Button>
           </DialogFooter>

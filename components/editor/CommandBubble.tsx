@@ -2,7 +2,8 @@
 
 import React, { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Send, X, Sparkles, Loader2 } from 'lucide-react'
+import { Send, X, Sparkles } from 'lucide-react'
+import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { useEditor } from './EditorContext'
 
 const SUGGESTIONS = [
@@ -107,7 +108,7 @@ export const CommandBubble: React.FC = () => {
                 disabled={!prompt.trim() || isSubmitting}
                 className="px-4 py-2 rounded-lg bg-cyan-500 text-black text-sm font-medium hover:bg-cyan-400 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2 active:scale-95"
               >
-                {isSubmitting ? <><Loader2 size={14} className="animate-spin" /> Processing...</> : <><Send size={14} /> DONE</>}
+                {isSubmitting ? <><InlineLoadingAnimation size={14} label="Processing edit request" /> Processing...</> : <><Send size={14} /> DONE</>}
               </button>
             </div>
           </div>
