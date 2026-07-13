@@ -11,9 +11,10 @@ import { LiquidChromeButton } from '@/components/ui/liquid-chrome-button'
 
 interface LandingHeaderProps {
   mobileNavControl?: ReactNode
+  showPricing?: boolean
 }
 
-export function LandingHeader({ mobileNavControl }: LandingHeaderProps = {}) {
+export function LandingHeader({ mobileNavControl, showPricing = true }: LandingHeaderProps = {}) {
   const router = useRouter()
   const { session, isLoading } = useAuth()
   const isAuthenticated = !!session
@@ -38,12 +39,14 @@ export function LandingHeader({ mobileNavControl }: LandingHeaderProps = {}) {
         </div>
 
         <nav className="hidden items-center gap-8 md:flex">
-          <Link
-            href="/pricing"
-            className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-semibold uppercase tracking-widest text-white transition-colors hover:border-white/20 hover:bg-white/[0.08]"
-          >
-            Pricing
-          </Link>
+          {showPricing && (
+            <Link
+              href="/pricing"
+              className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-semibold uppercase tracking-widest text-white transition-colors hover:border-white/20 hover:bg-white/[0.08]"
+            >
+              Pricing
+            </Link>
+          )}
           
           {isLoading ? (
             <div className="flex h-4 w-12 items-center justify-center">
@@ -73,9 +76,11 @@ export function LandingHeader({ mobileNavControl }: LandingHeaderProps = {}) {
         </nav>
 
         <div className="flex items-center gap-4 md:hidden">
-          <Link href="/pricing" className="text-xs font-semibold uppercase tracking-widest text-white">
-            Pricing
-          </Link>
+          {showPricing && (
+            <Link href="/pricing" className="text-xs font-semibold uppercase tracking-widest text-white">
+              Pricing
+            </Link>
+          )}
           {isLoading ? (
             <div className="flex h-4 w-10 items-center justify-center">
               <InlineLoadingAnimation size={16} label="Loading account navigation" />
