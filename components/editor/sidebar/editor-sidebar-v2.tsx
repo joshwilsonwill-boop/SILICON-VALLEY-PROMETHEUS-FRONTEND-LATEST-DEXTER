@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { Activity, Download, Folder, Monitor, Music, PenLine, Plus, Settings } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -152,16 +153,22 @@ export function EditorSidebarV2({
         }}
       >
         <div className="flex min-h-14 items-center gap-3 border-b border-white/[0.06] px-4 group-data-[sidebar-state=closed]/editor-sidebar:justify-center group-data-[sidebar-state=closed]/editor-sidebar:px-2">
-          <div className="min-w-0 flex-1 group-data-[sidebar-state=closed]/editor-sidebar:sr-only lg:max-xl:sr-only">
-            <p className="truncate text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45">Prometheus</p>
-            <p className="truncate text-sm font-semibold text-white">Editor</p>
+          <div className="editor-sidebar-brand relative flex h-9 w-9 shrink-0 items-center justify-center" aria-label="Prometheus">
+            <Image
+              src="/branding/prometheus-logo-no-bg.png"
+              alt=""
+              width={36}
+              height={36}
+              className="editor-sidebar-brand__mark h-9 w-9 object-contain"
+            />
+            <span aria-hidden="true" className="editor-sidebar-brand__shader" />
           </div>
           <button
             type="button"
             role="button"
             aria-label="Create new project"
             onClick={handleNewProject}
-            className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 text-white/70 outline-none transition-colors duration-150 hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-accent-cyan"
+            className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 text-white/70 outline-none transition-colors duration-150 hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-accent-cyan group-data-[sidebar-state=closed]/editor-sidebar:hidden lg:max-xl:hidden"
           >
             <Plus className="h-5 w-5" aria-hidden="true" />
           </button>

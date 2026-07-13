@@ -1,4 +1,10 @@
 @layer components {
+  .editorial-chamber-shell {
+    position: relative;
+    isolation: isolate;
+    background: radial-gradient(ellipse at 50% 42%, #080808 0%, #000 68%);
+  }
+
   .editor-display {
     font-family: var(--font-vogue-display), var(--font-ui);
     letter-spacing: -0.055em;

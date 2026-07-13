@@ -1773,3 +1773,35 @@ html[data-prometheus-reduce-motion='true'] *::after {
 
 .tooltip-content.slide-in { animation: slideIn 150ms ease-out; }
 .tooltip-content.slide-out { animation: slideOut 150ms ease-out; }
+
+@layer components {
+  .editor-sidebar-brand__mark {
+    filter: saturate(0.85) brightness(1.12) contrast(1.08);
+  }
+
+  .editor-sidebar-brand__shader {
+    position: absolute;
+    inset: -7%;
+    pointer-events: none;
+    background: linear-gradient(112deg, transparent 24%, rgba(255, 255, 255, 0.82) 44%, rgba(174, 214, 255, 0.58) 50%, transparent 66%);
+    background-size: 240% 100%;
+    background-position: 140% 0;
+    opacity: 0.7;
+    -webkit-mask: var(--prometheus-logo-mask) center / contain no-repeat;
+    mask: var(--prometheus-logo-mask) center / contain no-repeat;
+    mix-blend-mode: screen;
+    animation: editor-sidebar-logo-shader 5.8s cubic-bezier(0.45, 0, 0.2, 1) infinite;
+  }
+
+  @keyframes editor-sidebar-logo-shader {
+    0%, 24% { background-position: 140% 0; }
+    56%, 100% { background-position: -42% 0; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .editor-sidebar-brand__shader {
+      animation: none;
+      background-position: 52% 0;
+    }
+  }
+}

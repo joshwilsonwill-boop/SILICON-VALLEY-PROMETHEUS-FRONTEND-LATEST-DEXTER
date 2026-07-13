@@ -8079,11 +8079,10 @@ function OriginalEditorPage() {
           >
             <section
               className={cn(
-                'premium-ambient-panel premium-vignette-surface editorial-light-effect relative flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-black',
-                activeWorkspaceTab === 'Motion' ? 'rounded-none bg-black' : 'rounded-[28px]',
+                'editorial-chamber-shell relative flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-black',
+                'rounded-none',
               )}
             >
-              <LuxuryVignette tone={activeWorkspaceTab === 'Music' ? 'music' : 'cool'} />
               <motion.div
                 variants={buildRevealVariants({ delay: 0.08, distance: 12, blur: 8, duration: 0.26 })}
                 initial="hidden"
