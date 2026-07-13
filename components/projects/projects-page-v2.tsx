@@ -132,9 +132,9 @@ export function ProjectsPageV2() {
 
   return (
     <PrometheusShell>
-      <div className="min-h-full px-4 py-6 text-white md:px-6">
+      <div className="min-h-full px-4 py-6 text-white max-lg:overflow-x-hidden md:px-6">
         <div className="mx-auto max-w-7xl">
-          <header className="flex flex-col gap-4 border-b border-white/10 pb-6 md:flex-row md:items-end md:justify-between">
+          <header className="flex flex-col gap-4 border-b border-white/10 pb-6 max-lg:items-stretch md:flex-row md:items-end md:justify-between">
             <div>
               <h1 className="text-3xl font-semibold tracking-tight text-white">Projects</h1>
               <p className="mt-2 text-sm text-white/48">{subtitle}</p>
@@ -146,18 +146,29 @@ export function ProjectsPageV2() {
               liquid
               magnetic
               ripple
+              containerClassName="max-lg:hidden"
               className="min-h-12 bg-white text-black hover:bg-white/90"
               onClick={() => setCreateOpen(true)}
             >
               <Plus className="h-4 w-4" />
               New Project
             </LiquidChromeButton>
+            <Button
+              type="button"
+              className="hidden min-h-11 w-full rounded-full bg-white px-6 py-3 font-medium text-black hover:bg-white/90 max-lg:inline-flex"
+              onClick={() => setCreateOpen(true)}
+            >
+              <Plus className="h-4 w-4" />
+              New Project
+            </Button>
           </header>
 
-          <div className="mt-6 flex justify-center">
+          <div className="mt-6 flex justify-center max-lg:-mx-4 max-lg:overflow-x-auto max-lg:px-4">
             <MenuBar
+              className="max-lg:min-w-max max-lg:justify-start"
               activeValue={statusFilter}
               onItemClick={(value) => setStatusFilter(value as StatusFilter)}
+              touchOptimized
               items={[
                 { label: 'All', icon: Globe, value: 'all' },
                 { label: 'Draft', icon: FileEdit, value: 'draft' },
@@ -216,9 +227,9 @@ export function ProjectsPageV2() {
                 </Button>
               </div>
             ) : (
-              <motion.div layout className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              <motion.div layout className="grid gap-4 max-lg:!grid-cols-1 max-lg:w-full md:grid-cols-2 xl:grid-cols-3">
                 {filteredProjects.map((project) => (
-                  <motion.div key={project.id} layout>
+                  <motion.div key={project.id} layout className="max-lg:min-w-0">
                     <ProjectCard
                       project={project}
                       onEdit={(id) => router.push(`/editor/${id}`)}

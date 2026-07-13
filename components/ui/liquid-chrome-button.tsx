@@ -21,6 +21,7 @@ type ButtonSize = 'sm' | 'md' | 'lg'
 export interface LiquidChromeButtonProps extends Omit<React.ComponentProps<typeof Button>, 'variant' | 'size'> {
   variant?: ButtonVariant
   size?: ButtonSize
+  containerClassName?: string
   loading?: boolean
   success?: boolean
   magnetic?: boolean
@@ -74,6 +75,7 @@ export function LiquidChromeButton({
   liquid = true,
   ripple = true,
   className,
+  containerClassName,
   children,
   disabled,
   disabledTooltip,
@@ -160,7 +162,7 @@ export function LiquidChromeButton({
   }
 
   return (
-    <span ref={containerRef} className="inline-flex">
+    <span ref={containerRef} className={cn('inline-flex', containerClassName)}>
       <Button
         data-cursor="pointer"
         variant={VARIANT_CLASS_MAP[variant]}

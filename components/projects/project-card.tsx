@@ -59,14 +59,14 @@ export function ProjectCard({ project, onEdit, onDuplicate, onDelete, onShare }:
   ]
 
   return (
-    <article className="group relative overflow-visible rounded-[18px] border border-white/[0.09] bg-[#0d0d13] shadow-[0_24px_70px_-56px_rgba(0,0,0,0.95)] transition-[border-color,background-color,box-shadow,transform] duration-200 ease-out hover:-translate-y-0.5 hover:border-white/[0.16] hover:bg-[#11121a] hover:shadow-[0_30px_90px_-62px_rgba(0,0,0,0.98)] focus-within:border-white/[0.18]">
-      <div className="absolute inset-x-0 top-0 h-px bg-white/[0.14]" aria-hidden="true" />
+    <article className="group relative overflow-visible rounded-[18px] border border-white/[0.09] bg-[#0d0d13] shadow-[0_24px_70px_-56px_rgba(0,0,0,0.95)] transition-[border-color,background-color,box-shadow,transform] duration-200 ease-out hover:-translate-y-0.5 hover:border-white/[0.16] hover:bg-[#11121a] hover:shadow-[0_30px_90px_-62px_rgba(0,0,0,0.98)] focus-within:border-white/[0.18] max-lg:rounded-2xl max-lg:bg-white/[0.05] max-lg:p-4">
+      <div className="absolute inset-x-0 top-0 h-px bg-white/[0.14] max-lg:hidden" aria-hidden="true" />
 
       <button
         type="button"
         aria-label={`Open ${project.title}`}
         onClick={() => onEdit(project.id)}
-        className="relative block aspect-video w-full overflow-hidden rounded-t-[17px] bg-[#151622] text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/28"
+        className="relative block aspect-video w-full overflow-hidden rounded-t-[17px] bg-[#151622] text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/28 max-lg:rounded-xl max-lg:border max-lg:border-white/5"
       >
         {project.thumbnailUrl && !thumbnailFailed ? (
           // R2/public thumbnails can be external or blob/data URLs, so next/image is not guaranteed to fit.
@@ -79,7 +79,7 @@ export function ProjectCard({ project, onEdit, onDuplicate, onDelete, onShare }:
           />
         ) : (
           <div
-            className="flex h-full w-full items-center justify-center"
+            className="relative flex h-full w-full items-center justify-center"
             style={{
               background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.025) 42%, rgba(0, 0, 0, 0.12) 100%)',
             }}
@@ -87,34 +87,40 @@ export function ProjectCard({ project, onEdit, onDuplicate, onDelete, onShare }:
             <div className="grid h-16 w-16 place-items-center rounded-[10px] border border-white/10 bg-black/18 text-lg font-semibold tracking-[0.14em] text-white/78 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
               {initialsFromTitle(project.title)}
             </div>
+            <div className="absolute inset-0 hidden items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900 max-lg:flex" aria-hidden="true">
+              <span className="text-2xl font-bold text-gray-600">{project.title.charAt(0).toUpperCase()}</span>
+            </div>
           </div>
         )}
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/62 via-black/20 to-transparent" />
-        <div className="absolute bottom-3 left-3 flex items-center gap-2 rounded-full border border-white/10 bg-black/44 px-2.5 py-1 text-[11px] font-medium text-white/72 backdrop-blur-md">
+        <div className="absolute bottom-3 left-3 flex items-center gap-2 rounded-full border border-white/10 bg-black/44 px-2.5 py-1 text-[11px] font-medium text-white/72 backdrop-blur-md max-lg:hidden">
           <Film className="size-3.5" />
+          {resolutionLabel ?? 'Source'}
+        </div>
+        <div className="absolute left-3 top-3 hidden rounded-full border border-white/10 bg-black/60 px-2.5 py-1 text-[11px] font-medium text-white/90 backdrop-blur-md max-lg:block">
           {resolutionLabel ?? 'Source'}
         </div>
       </button>
 
-      <div className="p-4">
+      <div className="p-4 max-lg:px-0 max-lg:pb-0 max-lg:pt-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <button
               type="button"
               aria-label={`Open ${project.title}`}
               onClick={() => onEdit(project.id)}
-              className="block max-w-full truncate text-left text-base font-semibold leading-6 text-white transition-colors hover:text-white/86 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/24"
+              className="block max-w-full truncate text-left text-base font-semibold leading-6 text-white transition-colors hover:text-white/86 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/24 max-lg:text-lg"
             >
               {project.title}
             </button>
             {project.description ? (
-              <p className="mt-1 truncate text-sm text-white/50">{project.description}</p>
+              <p className="mt-1 truncate text-sm text-white/50 max-lg:line-clamp-2 max-lg:whitespace-normal">{project.description}</p>
             ) : null}
           </div>
           <div
             role={project.status === 'rendering' ? 'status' : undefined}
             className={cn(
-              'inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium',
+              'inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium max-lg:hidden',
               badgeClass(project.status),
             )}
           >
@@ -125,7 +131,7 @@ export function ProjectCard({ project, onEdit, onDuplicate, onDelete, onShare }:
           </div>
         </div>
 
-        <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-white/44 sm:grid-cols-3">
+        <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-white/44 max-lg:flex max-lg:flex-wrap max-lg:gap-x-3 max-lg:gap-y-1 sm:grid-cols-3">
           <span className="flex min-w-0 items-center gap-1.5 truncate">
             <Clock3 className="size-3.5 shrink-0 text-white/28" />
             <span className="truncate">{lastEdited}</span>
@@ -142,6 +148,10 @@ export function ProjectCard({ project, onEdit, onDuplicate, onDelete, onShare }:
               {project.fps}fps
             </span>
           ) : null}
+          <span className="hidden items-center gap-1.5 capitalize max-lg:flex">
+            <span className="size-1.5 rounded-full bg-white/45" aria-hidden="true" />
+            {project.status}
+          </span>
         </div>
 
         {project.status === 'rendering' ? (
@@ -160,7 +170,7 @@ export function ProjectCard({ project, onEdit, onDuplicate, onDelete, onShare }:
           <button
             type="button"
             onClick={() => onEdit(project.id)}
-            className="inline-flex min-h-10 items-center gap-2 rounded-full border border-white/10 bg-white/[0.055] px-3 text-xs font-semibold text-white/78 transition-colors hover:border-white/18 hover:bg-white/[0.085] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/24"
+            className="inline-flex min-h-10 items-center gap-2 rounded-full border border-white/10 bg-white/[0.055] px-3 text-xs font-semibold text-white/78 transition-colors hover:border-white/18 hover:bg-white/[0.085] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/24 max-lg:min-h-11 max-lg:flex-1 max-lg:justify-center max-lg:px-4 max-lg:py-2"
           >
             <Pencil className="size-3.5" />
             Open
@@ -172,7 +182,7 @@ export function ProjectCard({ project, onEdit, onDuplicate, onDelete, onShare }:
               aria-label={`Project actions for ${project.title}`}
               aria-expanded={actionMenuOpen}
               onClick={() => setActionMenuOpen((open) => !open)}
-              className="grid size-10 place-items-center rounded-full border border-white/10 bg-white/[0.045] text-white/64 transition-colors hover:border-white/18 hover:bg-white/[0.08] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/24"
+              className="grid size-10 place-items-center rounded-full border border-white/10 bg-white/[0.045] text-white/64 transition-colors hover:border-white/18 hover:bg-white/[0.08] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/24 max-lg:size-11"
             >
               <MoreHorizontal className="size-4" />
             </button>

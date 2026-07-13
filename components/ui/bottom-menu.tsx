@@ -16,6 +16,7 @@ interface MenuBarProps extends React.HTMLAttributes<HTMLDivElement> {
   items: MenuBarItem[];
   activeValue?: string | number; // To highlight the currently active tab
   onItemClick?: (value: string | number) => void;
+  touchOptimized?: boolean;
 }
 
 const springConfig: Transition = {
@@ -28,6 +29,7 @@ export function MenuBar({
   className,
   activeValue,
   onItemClick,
+  touchOptimized = false,
   ...props
 }: MenuBarProps) {
   const [hoveredIndex, setHoveredIndex] = React.useState<number | null>(null);
@@ -97,6 +99,7 @@ export function MenuBar({
         ref={menuRef}
         className={cn(
           "h-10 px-1.5 inline-flex justify-center items-center gap-[3px] overflow-hidden z-10",
+          touchOptimized && "max-lg:h-12 max-lg:overflow-visible",
           "rounded-full bg-background/95 backdrop-blur",
           "border border-border/50",
           "shadow-[0_0_0_1px_rgba(0,0,0,0.08),0_8px_16px_-4px_rgba(0,0,0,0.1)]",
@@ -108,6 +111,7 @@ export function MenuBar({
             key={index}
             className={cn(
               "w-8 h-8 px-3 py-1 rounded-full flex justify-center items-center gap-2 transition-colors",
+              touchOptimized && "max-lg:size-11",
               activeValue === item.value && "bg-muted/30"
             )}
             onMouseEnter={() => setHoveredIndex(index)}
