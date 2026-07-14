@@ -141,26 +141,18 @@ export function ProjectsPageV2() {
             </div>
             <LiquidChromeButton
               type="button"
-              variant="primary"
+              variant="secondary"
               size="md"
-              liquid
+              liquid={false}
               magnetic
               ripple
-              containerClassName="max-lg:hidden"
-              className="min-h-12 bg-white text-black hover:bg-white/90"
+              containerClassName="max-lg:flex max-lg:w-full"
+              className="min-h-12 border-white/14 bg-white/[0.08] px-5 text-white shadow-[0_18px_36px_-24px_rgba(0,0,0,0.8)] hover:border-white/22 hover:bg-white/[0.14] max-lg:min-h-11 max-lg:w-full max-lg:justify-center"
               onClick={() => setCreateOpen(true)}
             >
               <Plus className="h-4 w-4" />
               New Project
             </LiquidChromeButton>
-            <Button
-              type="button"
-              className="hidden min-h-11 w-full rounded-full bg-white px-6 py-3 font-medium text-black hover:bg-white/90 max-lg:inline-flex"
-              onClick={() => setCreateOpen(true)}
-            >
-              <Plus className="h-4 w-4" />
-              New Project
-            </Button>
           </header>
 
           <div className="mt-6 flex justify-center max-lg:-mx-4 max-lg:overflow-x-auto max-lg:px-4">

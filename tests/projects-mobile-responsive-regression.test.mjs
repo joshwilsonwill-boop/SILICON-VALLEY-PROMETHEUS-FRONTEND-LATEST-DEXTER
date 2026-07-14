@@ -11,7 +11,9 @@ const liquidChromeButton = readFileSync(join(root, 'components/ui/liquid-chrome-
 assert.match(projectsPage, /max-lg:overflow-x-hidden/, 'Projects must prevent page-level horizontal overflow below desktop width.')
 assert.match(projectsPage, /max-lg:!grid-cols-1/, 'Projects must override the tablet grid with a single mobile column.')
 assert.match(projectsPage, /touchOptimized/, 'The projects filter menu must opt into mobile touch targets.')
-assert.match(projectsPage, /containerClassName="max-lg:hidden"/, 'The desktop New Project control must be hidden by its existing wrapper on mobile.')
+assert.match(projectsPage, /containerClassName="max-lg:flex max-lg:w-full"/, 'New Project must remain rendered and fill the mobile header width.')
+assert.match(projectsPage, /max-lg:justify-center/, 'New Project content must stay centered when the control expands on mobile.')
+assert.doesNotMatch(projectsPage, /containerClassName="max-lg:hidden"/, 'New Project must not depend on a hidden desktop control.')
 
 assert.match(projectCard, /max-lg:p-4/, 'Mobile cards must have an inset, touch-friendly media layout.')
 assert.match(projectCard, /bg-gradient-to-br from-gray-800 to-gray-900/, 'Missing or failed thumbnails must show a visible mobile gradient placeholder.')
