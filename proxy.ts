@@ -3,6 +3,7 @@ import { type NextRequest, NextResponse } from 'next/server'
 
 import { normalizeNextPath } from '@/lib/auth/redirect'
 import { getSupabaseConfig, isSupabaseConfigured } from '@/lib/supabase/config'
+import { DEV_AUTH_BYPASS_COOKIE, isDevBypassActive } from '@/lib/supabase/dev-bypass'
 
 const AUTH_PAGE_PREFIXES = ['/login', '/signup', '/verify', '/forgot-password', '/reset-password', '/auth']
 const PUBLIC_ROUTES = ['/', '/pricing', '/terms', '/privacy', '/refund']
@@ -23,16 +24,16 @@ const PROTECTED_PREFIXES = [
   '/brand-kit',
 ]
 
-function shouldBypassAuth(req: NextRequest) {
-  const envToggle = process.env.DEV_AUTH_BYPASS
-  if (envToggle === '1') return true
-  if (envToggle === '0') return false
+function devBypassResponse(request: NextRequest) {
+  const response = NextResponse.next({ request })
+  response.cookies.set(DEV_AUTH_BYPASS_COOKIE, '1', {
+    httpOnly: false,
+    maxAge: 60 * 60,
+    path: '/',
+    sameSite: 'lax',
+  })
 
-  const queryOverride = req.nextUrl.searchParams.get('devAuthBypass')
-  if (queryOverride === '1') return true
-  if (queryOverride === '0') return false
-
-  return process.env.NODE_ENV !== 'production' && !isSupabaseConfigured()
+  return response
 }
 
 function isPublicPath(pathname: string) {
@@ -75,8 +76,8 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next()
   }
 
-  if (shouldBypassAuth(request)) {
-    return NextResponse.next()
+  if (isDevBypassActive()) {
+    return devBypassResponse(request)
   }
 
   if (!isSupabaseConfigured()) {

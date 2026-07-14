@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "build": "next build --webpack",
+    "prebuild": "NODE_ENV=production node scripts/verify-no-dev-bypass-in-build.mjs",
+    "postbuild": "NODE_ENV=production node scripts/verify-no-dev-bypass-in-build.mjs",
     "dev": "next dev --webpack",
     "dev:turbopack": "next dev",
     "dev:webpack": "next dev --webpack",
