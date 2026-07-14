@@ -30,8 +30,8 @@ export default function ContactPage() {
           <p>Official Registered Business Address: {REGISTERED_BUSINESS_ADDRESS}</p>
           <p>Business Hours: Monday–Friday, 9:00 AM–5:00 PM WAT</p>
           <p>
-            For billing and subscription support, you can also manage your account through Paddle&apos;s customer
-            portal.
+            For billing and subscription support, contact us first or use the Dodo Payments buyer-support
+            details in your payment receipt.
           </p>
         </div>
       </section>

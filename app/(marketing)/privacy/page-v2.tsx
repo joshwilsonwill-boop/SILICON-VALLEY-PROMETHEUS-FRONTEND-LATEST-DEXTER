@@ -1,3 +1,4 @@
+// DEPRECATED — replaced by PRIVACY_POLICY.md on 2026-07-14.
 import type { Metadata } from 'next'
 import { LegalPageSection, LegalPageShell, LegalTable } from '@/components/marketing/legal-page-shell'
 

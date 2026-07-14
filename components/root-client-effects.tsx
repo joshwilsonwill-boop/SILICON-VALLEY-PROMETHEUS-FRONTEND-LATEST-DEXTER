@@ -18,7 +18,7 @@ const CinematicClickRipple = dynamic(
   },
 )
 
-const AUTH_ROUTE_REGEX = /^\/(?:login|signup|verify|forgot-password|reset-password|terms|privacy|refund)(?:\/|$)/
+const AUTH_ROUTE_REGEX = /^\/(?:login|signup|verify|forgot-password|reset-password|terms|privacy|refund|cookie-policy)(?:\/|$)/
 
 export function RootClientEffects() {
   const pathname = usePathname()

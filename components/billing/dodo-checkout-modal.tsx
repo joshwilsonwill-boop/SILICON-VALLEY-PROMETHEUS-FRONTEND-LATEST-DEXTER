@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import Link from 'next/link'
 import { CheckCircle2, ShieldCheck, XCircle } from 'lucide-react'
 import { DodoPayments, type CheckoutEvent } from 'dodopayments-checkout'
 import { toast } from 'sonner'
@@ -56,6 +57,7 @@ export function DodoCheckoutModal({
   onSuccess,
 }: Props) {
   const [savePaymentMethod, setSavePaymentMethod] = React.useState(true)
+  const [hasAcceptedPolicies, setHasAcceptedPolicies] = React.useState(false)
   const [state, setState] = React.useState<CheckoutState>('summary')
   const [error, setError] = React.useState<string | null>(null)
   const checkoutElementId = React.useId().replace(/:/g, '')
@@ -66,6 +68,7 @@ export function DodoCheckoutModal({
       setState('summary')
       setError(null)
       setSavePaymentMethod(true)
+      setHasAcceptedPolicies(false)
       try {
         DodoPayments.Checkout.close()
       } catch {
@@ -204,6 +207,31 @@ export function DodoCheckoutModal({
             <span>Save card for future payments</span>
           </label>
 
+          <label className="flex cursor-pointer items-start gap-3 rounded-[18px] border border-white/10 bg-black/20 px-4 py-3 text-sm leading-6 text-white/70">
+            <input
+              type="checkbox"
+              checked={hasAcceptedPolicies}
+              disabled={state === 'loading' || state === 'ready' || state === 'success'}
+              onChange={(event) => setHasAcceptedPolicies(event.target.checked)}
+              className="mt-1 size-4 shrink-0 rounded border-white/20 bg-white/10 accent-[#38BDF8]"
+            />
+            <span>
+              I agree to the{' '}
+              <Link href="/terms" target="_blank" rel="noopener noreferrer" className="text-sky-200 underline underline-offset-4 hover:text-white">
+                Terms of Service
+              </Link>
+              {', '}
+              <Link href="/privacy" target="_blank" rel="noopener noreferrer" className="text-sky-200 underline underline-offset-4 hover:text-white">
+                Privacy Policy
+              </Link>
+              {', and '}
+              <Link href="/refund" target="_blank" rel="noopener noreferrer" className="text-sky-200 underline underline-offset-4 hover:text-white">
+                Refund Policy
+              </Link>
+              . Dodo Payments will present its own buyer terms before payment.
+            </span>
+          </label>
+
           {error ? (
             <div className="flex items-start gap-3 rounded-[18px] border border-red-400/25 bg-red-500/10 px-4 py-3 text-sm text-red-100">
               <XCircle className="mt-0.5 size-4 shrink-0 text-red-300" />
@@ -229,7 +257,7 @@ export function DodoCheckoutModal({
           {state !== 'ready' && state !== 'success' ? (
             <Button
               onClick={startCheckout}
-              disabled={state === 'loading'}
+              disabled={state === 'loading' || !hasAcceptedPolicies}
               className="h-12 w-full rounded-[18px] bg-[#38BDF8] text-sm font-black uppercase tracking-[0.14em] text-slate-950 hover:bg-sky-300"
             >
               {state === 'loading' ? (
@@ -238,7 +266,7 @@ export function DodoCheckoutModal({
                   Preparing Checkout...
                 </>
               ) : (
-                `Pay ${priceDisplay}/month`
+                hasAcceptedPolicies ? `Continue to Dodo Checkout` : 'Accept policies to continue'
               )}
             </Button>
           ) : null}

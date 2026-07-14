@@ -1,3 +1,4 @@
+// DEPRECATED — replaced by TERMS_OF_SERVICE.md on 2026-07-14.
 import type { Metadata } from 'next'
 import { LegalPageSection, LegalPageShell, LegalPageSubsection } from '@/components/marketing/legal-page-shell'
 

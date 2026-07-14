@@ -8,6 +8,7 @@ import { Bell, ChevronLeft, ChevronRight, Link2, Shield, User } from 'lucide-rea
 import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { PrometheusShell } from '@/components/prometheus-shell'
 import { StorageIntegrationsPanel } from '@/components/settings/storage-integrations-panel'
+import { CookieSettingsButton } from '@/components/cookie-consent/cookie-settings-button'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -65,6 +66,24 @@ export default function SettingsPage() {
             </div>
             <ChevronRight className="size-4 shrink-0 text-white/42" />
           </Link>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Shield className="size-4 text-white/60" />
+              Privacy & cookies
+            </CardTitle>
+            <CardDescription>Control optional analytics and preference technologies.</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3 pt-0 sm:flex-row">
+            <CookieSettingsButton className="min-h-11 rounded-lg border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30">
+              Manage cookie preferences
+            </CookieSettingsButton>
+            <Link href="/cookie-policy" className="inline-flex min-h-11 items-center justify-center rounded-lg border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30">
+              View Cookie Policy
+            </Link>
+          </CardContent>
         </Card>
 
         <Card>

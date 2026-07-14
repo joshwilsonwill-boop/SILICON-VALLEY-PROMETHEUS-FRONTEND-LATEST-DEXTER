@@ -7,6 +7,17 @@ import {
   type FontId,
   type ThemeId,
 } from './theme-tokens'
+import { hasPreferenceConsent } from '@/lib/cookies/cookie-config'
+
+const consentAwareThemeStorage = {
+  getItem: (name: string) => (hasPreferenceConsent() ? localStorage.getItem(name) : null),
+  setItem: (name: string, value: string) => {
+    if (hasPreferenceConsent()) localStorage.setItem(name, value)
+  },
+  removeItem: (name: string) => {
+    if (hasPreferenceConsent()) localStorage.removeItem(name)
+  },
+}
 
 type ThemePreferenceState = {
   themeId: ThemeId
@@ -31,7 +42,7 @@ export const useThemePreferenceStore = create<ThemePreferenceState>()(
     }),
     {
       name: 'prometheus.theme.preferences.v1',
-      storage: createJSONStorage(() => localStorage),
+      storage: createJSONStorage(() => consentAwareThemeStorage),
     },
   ),
 )

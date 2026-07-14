@@ -1,10 +1,13 @@
 import Link from 'next/link'
 
+import { CookieSettingsButton } from '@/components/cookie-consent/cookie-settings-button'
+
 const FOOTER_LINKS = [
   { href: '/pricing', label: 'Pricing' },
   { href: '/terms', label: 'Terms & Conditions' },
   { href: '/privacy', label: 'Privacy Policy' },
   { href: '/refund', label: 'Refund Policy' },
+  { href: '/cookie-policy', label: 'Cookie Policy' },
   { href: '/contact', label: 'Contact' },
 ]
 
@@ -41,6 +44,12 @@ export function Footer() {
               {link.label}
             </Link>
           ))}
+          <CookieSettingsButton className="text-sm font-medium text-white/56 transition-colors hover:text-white">
+            Cookie Settings
+          </CookieSettingsButton>
+          <CookieSettingsButton className="text-sm font-medium text-white/56 transition-colors hover:text-white">
+            Do Not Sell or Share My Personal Information
+          </CookieSettingsButton>
           <a
             href="mailto:support@prometheusstudio.tech"
             className="text-sm font-medium text-white/56 transition-colors hover:text-white"

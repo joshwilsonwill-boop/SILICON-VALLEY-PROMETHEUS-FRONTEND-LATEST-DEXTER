@@ -1,3 +1,4 @@
+// DEPRECATED — replaced by REFUND_POLICY.md on 2026-07-14.
 import type { Metadata } from 'next'
 import { LegalPageSection, LegalPageShell } from '@/components/marketing/legal-page-shell'
 
