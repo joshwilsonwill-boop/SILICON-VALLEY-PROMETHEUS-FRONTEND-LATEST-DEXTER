@@ -13,6 +13,7 @@ export default function SettingsBillingPage() {
           title="Workspace Billing & Plans"
           description="Production Capability"
           showBackButton
+          backHref="/settings"
         />
       }
     >

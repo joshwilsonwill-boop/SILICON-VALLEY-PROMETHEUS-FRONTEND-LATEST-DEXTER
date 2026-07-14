@@ -12,9 +12,10 @@ export interface PageHeaderProps {
   title: string
   description?: string
   showBackButton?: boolean
+  backHref?: string
 }
 
-export function PageHeader({ title, description, actions, className, showBackButton = false }: PageHeaderProps) {
+export function PageHeader({ title, description, actions, className, showBackButton = false, backHref = '/studio' }: PageHeaderProps) {
   const pathname = usePathname()
   const shouldShowBackButton = showBackButton && pathname !== '/'
 
@@ -26,7 +27,7 @@ export function PageHeader({ title, description, actions, className, showBackBut
       )}
     >
       <div className="flex min-w-0 items-center gap-3">
-        {shouldShowBackButton ? <BackButton /> : null}
+        {shouldShowBackButton ? <BackButton fallbackHref={backHref} /> : null}
         <div className="min-w-0">
           <h1 className="truncate text-2xl font-semibold tracking-[-0.03em] text-white/96 md:text-3xl">
             {title}

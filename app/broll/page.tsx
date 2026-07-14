@@ -12,7 +12,7 @@ import {
 
 export default function BRollPage() {
   return (
-    <PrometheusShell header={<PageHeader title="B-roll Finder" description="Search + suggestions (mock)." />}>
+    <PrometheusShell header={<PageHeader title="B-roll Finder" description="Search + suggestions (mock)." showBackButton />}>
       <div className="px-8 py-6 grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
@@ -40,4 +40,3 @@ export default function BRollPage() {
     </PrometheusShell>
   )
 }
-

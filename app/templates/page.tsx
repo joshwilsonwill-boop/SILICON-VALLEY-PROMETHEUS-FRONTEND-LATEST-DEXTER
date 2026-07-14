@@ -76,6 +76,7 @@ export default function TemplatesPage() {
         <PageHeader
           title="Templates"
           description="Template Gallery demo. Images are local references; missing files fall back deterministically."
+          showBackButton
         />
       }
     >

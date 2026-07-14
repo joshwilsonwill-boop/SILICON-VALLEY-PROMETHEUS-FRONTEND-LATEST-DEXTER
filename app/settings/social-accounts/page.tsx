@@ -5,6 +5,8 @@ import { useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
 
 import { InlineLoadingAnimation } from '@/components/loading-animation'
+import { PageHeader } from '@/components/page-header'
+import { PrometheusShell } from '@/components/prometheus-shell'
 import { ConnectedAccountsPanel } from '@/components/settings/connected-accounts-panel'
 import { getProviderMetadata } from '@/lib/oauth/provider-metadata'
 
@@ -54,14 +56,18 @@ function SocialAccountsContent() {
 
 export default function SocialAccountsPage() {
   return (
-    <div className="min-h-screen bg-[#050505] px-6 py-8 text-white md:px-12">
-      <div className="mx-auto max-w-5xl">
-        <div className="mb-8">
-          <h1 className="text-3xl font-semibold tracking-tight">Connected Accounts</h1>
-          <p className="mt-2 text-sm text-white/42">
-            Real-time OAuth connection status for every publishing and storage platform.
-          </p>
-        </div>
+    <PrometheusShell
+      header={
+        <PageHeader
+          title="Connected Accounts"
+          description="OAuth connection status for publishing and storage platforms."
+          showBackButton
+          backHref="/settings"
+        />
+      }
+    >
+      <div className="min-h-full bg-[#050505] px-6 py-8 text-white md:px-12">
+        <div className="mx-auto max-w-5xl">
 
         <React.Suspense
           fallback={
@@ -73,6 +79,7 @@ export default function SocialAccountsPage() {
           <SocialAccountsContent />
         </React.Suspense>
       </div>
-    </div>
+      </div>
+    </PrometheusShell>
   )
 }

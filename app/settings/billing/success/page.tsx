@@ -12,6 +12,8 @@ export default function BillingSuccessPage() {
         <PageHeader
           title="Billing Confirmed"
           description="Dodo returned from checkout. We are validating the subscription and restoring workspace access."
+          showBackButton
+          backHref="/settings/billing"
           actions={
             <Badge variant="secondary" className="border-[#5ea8ff]/25 bg-[#5ea8ff]/10 text-[#cfe6ff]">
               Dodo checkout

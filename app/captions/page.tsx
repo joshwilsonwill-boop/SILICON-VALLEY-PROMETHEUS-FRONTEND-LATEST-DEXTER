@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge'
 
 export default function CaptionsPage() {
   return (
-    <PrometheusShell header={<PageHeader title="Captions Studio" description="UI-only scaffolding." />}>
+    <PrometheusShell header={<PageHeader title="Captions Studio" description="UI-only scaffolding." showBackButton />}>
       <div className="px-8 py-6 grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>

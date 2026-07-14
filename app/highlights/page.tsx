@@ -13,7 +13,7 @@ import {
 export default function HighlightsPage() {
   return (
     <PrometheusShell
-      header={<PageHeader title="Auto Highlights" description="Find moments worth clipping (mock)." />}
+      header={<PageHeader title="Auto Highlights" description="Find moments worth clipping (mock)." showBackButton />}
     >
       <div className="px-8 py-6">
         <Card>
@@ -31,4 +31,3 @@ export default function HighlightsPage() {
     </PrometheusShell>
   )
 }
-

@@ -9,6 +9,7 @@ import { toast } from 'sonner'
 
 import { CreateProjectModal } from '@/components/projects/create-project-modal'
 import { InlineLoadingAnimation } from '@/components/loading-animation'
+import { BackButton } from '@/components/navigation/BackButton'
 import { ProjectCard } from '@/components/projects/project-card'
 import { MenuBar } from '@/components/ui/bottom-menu'
 import { Button } from '@/components/ui/button'
@@ -135,9 +136,15 @@ export function ProjectsPageV2() {
       <div className="min-h-full px-4 py-6 text-white max-lg:overflow-x-hidden md:px-6">
         <div className="mx-auto max-w-7xl">
           <header className="flex flex-col gap-4 border-b border-white/10 pb-6 max-lg:items-stretch md:flex-row md:items-end md:justify-between">
-            <div>
-              <h1 className="text-3xl font-semibold tracking-tight text-white">Projects</h1>
-              <p className="mt-2 text-sm text-white/48">{subtitle}</p>
+            <div className="flex min-w-0 items-start gap-3">
+              <BackButton
+                fallbackHref="/studio"
+                className="border border-white/12 bg-black/20 shadow-[0_14px_28px_-20px_rgba(0,0,0,0.9)]"
+              />
+              <div className="min-w-0 pt-0.5">
+                <h1 className="text-3xl font-semibold tracking-tight text-white">Projects</h1>
+                <p className="mt-2 text-sm text-white/48">{subtitle}</p>
+              </div>
             </div>
             <LiquidChromeButton
               type="button"

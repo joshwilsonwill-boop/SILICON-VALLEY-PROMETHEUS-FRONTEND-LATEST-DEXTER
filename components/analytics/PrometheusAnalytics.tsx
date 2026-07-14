@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { LayoutGroup, motion, useReducedMotion } from 'framer-motion'
 import { Activity, Eye, Heart, PlayCircle, Share2 } from 'lucide-react'
 
+import { BackButton } from '@/components/navigation/BackButton'
 import { cn } from '@/lib/utils'
 
 type AnalyticsRange = '7D' | '30D' | '90D'
@@ -223,20 +224,23 @@ export function PrometheusAnalytics() {
       <SpectraNoise />
 
       <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-[1600px] flex-col">
-        <header className="px-8 pt-8">
-          <p className="text-[10px] uppercase tracking-[0.25em] text-[#444]">PERFORMANCE</p>
-          <div className="mt-4">
-            <TypewriterCustomFallback
-              text="Analytics"
-              onComplete={handleTitleComplete}
-              delayMs={400}
-              className="text-[48px] font-light leading-none text-[#EAEAEA]"
-            />
-            <TextIlluminateFallback
-              text="Cross-platform telemetry, distilled."
-              delayMs={titleComplete ? 500 : 0}
-              className="mt-3 block text-[14px] font-normal leading-6 text-[#555]"
-            />
+        <header className="flex items-start gap-3 px-4 pt-5 sm:px-8 sm:pt-8">
+          <BackButton fallbackHref="/studio" className="border border-white/8 bg-white/[0.02]" />
+          <div className="min-w-0 pt-0.5">
+            <p className="text-[10px] uppercase tracking-[0.25em] text-[#444]">PERFORMANCE</p>
+            <div className="mt-4">
+              <TypewriterCustomFallback
+                text="Analytics"
+                onComplete={handleTitleComplete}
+                delayMs={400}
+                className="text-[48px] font-light leading-none text-[#EAEAEA]"
+              />
+              <TextIlluminateFallback
+                text="Cross-platform telemetry, distilled."
+                delayMs={titleComplete ? 500 : 0}
+                className="mt-3 block text-[14px] font-normal leading-6 text-[#555]"
+              />
+            </div>
           </div>
         </header>
 

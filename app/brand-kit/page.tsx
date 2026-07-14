@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge'
 
 export default function BrandKitPage() {
   return (
-    <PrometheusShell header={<PageHeader title="Brand Kit" description="Fonts, colors, watermark (mock)." />}>
+    <PrometheusShell header={<PageHeader title="Brand Kit" description="Fonts, colors, watermark (mock)." showBackButton />}>
       <div className="px-8 py-6 grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
@@ -47,4 +47,3 @@ export default function BrandKitPage() {
     </PrometheusShell>
   )
 }
-
