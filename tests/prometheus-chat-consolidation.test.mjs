@@ -11,6 +11,7 @@ function read(relativePath) {
 function run() {
   const chat = read("components/editor/PrometheusChat.tsx");
   const shell = read("components/editor/EditorRouteShell.tsx");
+  const mobileChat = read("components/editor/prometheus-chat-mobile.tsx");
   const hook = read("hooks/use-ai-chat.ts");
 
   assert.equal(existsSync(join(root, "components/editor/prometheus-chat-mobile.tsx")), true);
@@ -31,6 +32,14 @@ function run() {
   assert.doesNotMatch(shell, /AIChatOverlay/);
   assert.doesNotMatch(shell, /AIChatTriggerDesktop/);
   assert.doesNotMatch(hook, /ai-chat-new-session/);
+  assert.match(mobileChat, /useAIChat/);
+  assert.match(mobileChat, /AIChatStreamingText/);
+  assert.match(mobileChat, /getChatGreeting/);
+  assert.match(mobileChat, /AIChatOrb/);
+  assert.match(mobileChat, /PrometheusChatThinkingProcess/);
+  assert.match(mobileChat, /Mic/);
+  assert.match(shell, /if \(activeTool === "chat"\)/);
+  assert.doesNotMatch(shell, /ChatPanel/);
 }
 
 run();

@@ -20,6 +20,7 @@ import {
 import { useR2Music } from '@/app/editor/hooks/use-r2-music'
 import { useAudioStore } from '@/app/editor/stores/audio-store'
 import { InlineLoadingAnimation } from '@/components/loading-animation'
+import { PrometheusChatMobile } from '@/components/editor/prometheus-chat-mobile'
 import type { EditorSidebarPanel } from '@/app/editor/hooks/use-sidebar'
 import type { R2Track } from '@/lib/music/r2-sync'
 import { cn } from '@/lib/utils'
@@ -115,7 +116,7 @@ export function SidebarDrawer({ activePanel, isOpen, onClose, onTogglePanel }: S
                   <div className="border-t border-white/10 px-3 pb-3 pt-3">
                     {panel.id === 'music' ? <MusicPanel /> : null}
                     {panel.id === 'motion' ? <MotionPanel /> : null}
-                    {panel.id === 'chat' ? <ChatPanel /> : null}
+                    {panel.id === 'chat' ? <PrometheusChatMobile projectId={null} onClose={onClose} /> : null}
                     {panel.id === 'versions' ? <VersionsPanel /> : null}
                     {panel.id === 'status' ? <StatusPanel /> : null}
                   </div>
@@ -267,21 +268,6 @@ function MotionPanel() {
       <Metric label="Scene intelligence" value="Hook lift detected" />
       <Metric label="Suggested move" value="Push-in at 0:02.4" />
       <Metric label="Animation engine" value="Beat-synced captions ready" />
-    </div>
-  )
-}
-
-function ChatPanel() {
-  return (
-    <div className="space-y-3">
-      <div className="rounded-lg border border-white/10 bg-black/25 p-3 text-sm text-white/60">
-        Ask for a tighter hook, caption rewrite, or export variant.
-      </div>
-      <textarea
-        rows={3}
-        placeholder="Message Prometheus..."
-        className="w-full resize-none rounded-lg border border-white/10 bg-black/35 p-3 text-sm text-white outline-none placeholder:text-white/35 focus:border-accent-cyan/70"
-      />
     </div>
   )
 }

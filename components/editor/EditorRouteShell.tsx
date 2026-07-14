@@ -32,7 +32,6 @@ import {
 import type { EditorSettingsPanelKey } from "@/app/components/editor/mobile/EditorSettingsSubmenu";
 import { AwwwardsSidebar } from "@/components/sidebar/AwwwardsSidebar";
 import { AnalyticsPanel } from "@/components/editor/panels/AnalyticsPanel";
-import { ChatPanel } from "@/components/editor/panels/ChatPanel";
 import { ExportPanel } from "@/components/editor/panels/ExportPanel";
 import { MotionBrainPanel } from "@/components/editor/panels/MotionBrainPanel";
 import { StatusPanel } from "@/components/editor/panels/StatusPanel";
@@ -47,6 +46,7 @@ import { EditorTopBar } from "./EditorTopBar";
 import { FocusModeToggle } from "./FocusModeToggle";
 import { KeyboardShortcuts } from "./KeyboardShortcuts";
 import { SettingsPanel } from "./SettingsPanel";
+import { PrometheusChatMobile } from "./prometheus-chat-mobile";
 
 export function EditorRouteShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -252,6 +252,10 @@ function EditorMobileToolPanel({
   onSelectTool: (tool: EditorSidebarPanelKey) => void;
   projectId: string | null;
 }) {
+  if (activeTool === "chat") {
+    return <PrometheusChatMobile projectId={projectId} onClose={onClose} />;
+  }
+
   const meta = mobileToolMeta[activeTool];
   const Icon = meta.icon;
 
@@ -298,7 +302,6 @@ function EditorMobileToolPanel({
           ) : null}
           {activeTool === "analytics" ? <AnalyticsPanel /> : null}
           {activeTool === "timeline" ? <TimelinePanel /> : null}
-          {activeTool === "chat" ? <ChatPanel /> : null}
           {activeTool === "versions" ? <VersionsPanel /> : null}
           {activeTool === "status" ? <StatusPanel /> : null}
           {activeTool === "export" ? <ExportPanel /> : null}
