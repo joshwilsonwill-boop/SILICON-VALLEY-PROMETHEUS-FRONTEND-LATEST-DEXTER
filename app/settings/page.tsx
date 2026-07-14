@@ -7,6 +7,7 @@ import { Bell, ChevronLeft, ChevronRight, Link2, Shield, User } from 'lucide-rea
 
 import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { PrometheusShell } from '@/components/prometheus-shell'
+import { StorageIntegrationsPanel } from '@/components/settings/storage-integrations-panel'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -16,7 +17,6 @@ import {
   CardDescription,
 } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
-import { Badge } from '@/components/ui/badge'
 
 export default function SettingsPage() {
   const router = useRouter()
@@ -48,7 +48,7 @@ export default function SettingsPage() {
         </header>
       }
     >
-      <div className="px-8 py-6 grid gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 px-8 py-6 lg:grid-cols-2">
         <Card className="lg:col-span-2">
           <Link
             href="/settings/profile"
@@ -99,16 +99,10 @@ export default function SettingsPage() {
               <Link2 className="size-4 text-white/60" />
               Integrations
             </CardTitle>
-            <CardDescription>Mock connect states.</CardDescription>
+            <CardDescription>Connect cloud storage for source media and completed edits.</CardDescription>
           </CardHeader>
           <CardContent className="pt-0 space-y-3">
-            <div className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-4">
-              <div className="min-w-0">
-                <div className="text-sm font-medium text-white/85">Google Drive</div>
-                <div className="mt-1 text-xs text-white/45 truncate">Connect to import sources.</div>
-              </div>
-              <Badge variant="secondary">Mock</Badge>
-            </div>
+            <StorageIntegrationsPanel />
             <Link
               href="/settings/social-accounts"
               className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-4 transition-all duration-150 ease-out hover:-translate-y-1 hover:border-white/[0.12] hover:bg-white/[0.06]"
@@ -119,13 +113,6 @@ export default function SettingsPage() {
               </div>
               <ChevronRight className="size-4 shrink-0 text-white/42" />
             </Link>
-            <div className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-4">
-              <div className="min-w-0">
-                <div className="text-sm font-medium text-white/85">Dropbox</div>
-                <div className="mt-1 text-xs text-white/45 truncate">Connect to import sources.</div>
-              </div>
-              <Badge variant="secondary">Mock</Badge>
-            </div>
           </CardContent>
         </Card>
 

@@ -41,6 +41,14 @@ const PLATFORMS = [
   { id: 'dropbox', name: 'Dropbox', icon: Cloud, color: '#0061FF', scopes: ['Export to Dropbox', 'Read files'] },
 ] as const
 
+type Platform = (typeof PLATFORMS)[number]
+
+const STORAGE_PROVIDER_IDS = ['google_drive', 'dropbox'] as const
+// Storage integrations moved to /settings — see Integrations section
+const SOCIAL_PLATFORMS = PLATFORMS.filter(
+  (platform) => !STORAGE_PROVIDER_IDS.includes(platform.id as (typeof STORAGE_PROVIDER_IDS)[number]),
+)
+
 type ConnectedAccountsPanelProps = {
   onConnect: (provider: string) => void
 }
@@ -74,9 +82,9 @@ function statusCopy(status: ConnectionStatus) {
 export function ConnectedAccountsPanel({ onConnect }: ConnectedAccountsPanelProps) {
   const { connections, loading, error, refresh, getStatus } = useConnectionStatus()
   const { disconnect, isDisconnecting } = useDisconnectPlatform()
-  const [disconnectTarget, setDisconnectTarget] = React.useState<(typeof PLATFORMS)[number] | null>(null)
+  const [disconnectTarget, setDisconnectTarget] = React.useState<Platform | null>(null)
   const [disconnectError, setDisconnectError] = React.useState<string | null>(null)
-  const hasConnections = connections.length > 0
+  const hasConnections = connections.some((connection) => SOCIAL_PLATFORMS.some((platform) => platform.id === connection.provider))
 
   async function handleDisconnectConfirm() {
     if (!disconnectTarget) return
@@ -119,7 +127,7 @@ export function ConnectedAccountsPanel({ onConnect }: ConnectedAccountsPanelProp
           <p className="mt-2 text-sm text-white/52">
             Connect your social platforms to export directly from Prometheus.
           </p>
-          <Button type="button" className="mt-5 bg-white text-black hover:bg-white/90" onClick={() => onConnect(PLATFORMS[0].id)}>
+          <Button type="button" className="mt-5 bg-white text-black hover:bg-white/90" onClick={() => onConnect(SOCIAL_PLATFORMS[0].id)}>
             Connect your first account
           </Button>
         </GlassCard>
@@ -132,7 +140,7 @@ export function ConnectedAccountsPanel({ onConnect }: ConnectedAccountsPanelProp
                 <InlineLoadingAnimation size={120} label="Loading connected accounts" />
               </div>
             )
-          : PLATFORMS.map((platform) => {
+          : SOCIAL_PLATFORMS.map((platform) => {
               const Icon = platform.icon
               const connection = connections.find((entry) => entry.provider === platform.id)
               const { status, accountName } = getStatus(platform.id)
@@ -174,10 +182,10 @@ export function ConnectedAccountsPanel({ onConnect }: ConnectedAccountsPanelProp
                       variant={status === 'disconnected' ? 'default' : 'outline'}
                       className={
                         status === 'disconnected'
-                          ? 'min-h-12 bg-white text-black hover:bg-white/90'
+                          ? 'min-h-11 bg-white/10 hover:bg-white/20 border border-white/20 text-white font-medium rounded-lg px-4 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30'
                           : status === 'active'
-                            ? 'min-h-12 border-white/10 bg-transparent text-white/72 hover:border-rose-300/30 hover:bg-rose-300/[0.08] hover:text-rose-100'
-                            : 'min-h-12 border-amber-300/20 bg-amber-300/[0.08] text-amber-100 hover:bg-amber-300/[0.12]'
+                            ? 'min-h-11 bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 font-medium rounded-lg px-4 py-2 hover:bg-emerald-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30'
+                            : 'min-h-11 border border-amber-300/40 bg-amber-300/15 px-4 py-2 font-medium text-amber-100 hover:bg-amber-300/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30'
                       }
                       onClick={() => {
                         if (status === 'disconnected' || status === 'expired' || status === 'expiring_soon') {

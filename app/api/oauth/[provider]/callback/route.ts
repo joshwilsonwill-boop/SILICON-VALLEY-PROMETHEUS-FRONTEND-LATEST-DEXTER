@@ -13,7 +13,10 @@ export async function GET(request: NextRequest, { params }: any) {
   const state = searchParams.get("state");
   const error = searchParams.get("error");
   const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim() || request.nextUrl.origin
-  const settingsUrl = new URL('/settings/social-accounts', appUrl)
+  const settingsUrl = new URL(
+    provider === 'google_drive' || provider === 'dropbox' ? '/settings' : '/settings/social-accounts',
+    appUrl,
+  )
 
   if (error) {
     settingsUrl.searchParams.set('error', 'oauth_failed')

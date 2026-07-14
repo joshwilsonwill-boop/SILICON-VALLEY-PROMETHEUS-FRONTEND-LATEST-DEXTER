@@ -60,7 +60,7 @@ export default function SocialAccountsPage() {
       header={
         <PageHeader
           title="Connected Accounts"
-          description="OAuth connection status for publishing and storage platforms."
+          description="OAuth connection status for publishing platforms."
           showBackButton
           backHref="/settings"
         />
