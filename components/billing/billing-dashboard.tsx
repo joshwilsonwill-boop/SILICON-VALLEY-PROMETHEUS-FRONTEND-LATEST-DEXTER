@@ -26,7 +26,7 @@ import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { PremiumPricingPlans } from '@/components/premium-pricing-plans'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Dialog,
   DialogContent,
@@ -174,209 +174,95 @@ export function BillingDashboard() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl space-y-12 px-4 py-8 md:px-8 md:py-12">
-      {/* 1. Header & Current Subscription */}
-      <div className="grid gap-8 lg:grid-cols-[1fr_400px]">
-        <div className="flex flex-col justify-center space-y-6">
+    <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 md:px-8 md:py-8">
+      <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-end">
+        <div className="space-y-3">
           <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-white/30">
             <Building2 className="size-3.5" />
             <span>Workspace</span>
             <ChevronRight className="size-3 opacity-50" />
             <span className="text-blue-400/80">Billing & Plans</span>
           </div>
-          <div className="space-y-4">
-            <h1 className="text-4xl font-bold tracking-tight text-white md:text-6xl">
-              Production <span className="text-transparent bg-clip-text bg-[linear-gradient(90deg,#60a5fa,#3b82f6)]">Capability.</span>
-            </h1>
-            <p className="max-w-xl text-lg leading-relaxed text-white/50">
-              Scale your creative output with high-performance AI editing. Manage your workspace access and subscription details below.
-            </p>
-          </div>
-          
+          <h1 className="text-3xl font-semibold tracking-normal text-white md:text-4xl">
+            Production <span className="text-white/55">capability</span>
+          </h1>
+          <p className="max-w-2xl text-sm leading-6 text-white/52">
+            Manage workspace access, plan capacity, and payment details in one place.
+          </p>
+        </div>
           {hasAccess && nextPath && (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="pt-2"
             >
-              <Button asChild size="lg" className="h-12 rounded-[18px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.02)_100%)] px-8 text-[15px] font-semibold text-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.15)] hover:border-white/25 hover:bg-[linear-gradient(180deg,rgba(255,255,255,0.12)_0%,rgba(255,255,255,0.04)_100%)] hover:shadow-[0_8px_20px_-6px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.2)] transition-all">
+              <Button asChild size="lg" className="min-h-12 rounded-2xl bg-white px-6 text-sm font-semibold text-black shadow-lg shadow-white/5 transition-all duration-200 hover:scale-[1.02] hover:bg-white/90 active:scale-[0.98]">
                 <Link href={nextPath} className="flex items-center gap-2">
                   Return to Editor <ArrowRight className="size-4" />
                 </Link>
               </Button>
             </motion.div>
           )}
-        </div>
-
-        <Card className="relative overflow-hidden border-white/10 bg-white/[0.03] shadow-[var(--glass-shadow-lg)]">
-          <div className="absolute -right-20 -top-20 size-64 rounded-full bg-blue-600/10 blur-[100px]" />
-          <CardHeader className="pb-4">
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-white/40">
-                <ShieldCheck className="size-4 text-blue-400" />
-                Status
-              </CardTitle>
-              <Badge 
-                variant={hasAccess ? "default" : "outline"} 
-                className={cn(
-                  "rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-tighter",
-                  hasAccess 
-                    ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" 
-                    : "bg-white/5 text-white/40 border-white/10"
-                )}
-              >
-                {subscription?.status === 'active'
-                  ? 'Active'
-                  : subscription?.status === 'on_hold'
-                    ? 'On Hold'
-                    : subscription?.status === 'cancelled'
-                      ? 'Cancelled'
-                      : 'Inactive'}
-              </Badge>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-8">
-            <div>
-              <div className="text-4xl font-bold tracking-tighter text-white">
-                {subscription && currentPlan ? currentPlan.name : 'Free Tier'}
-              </div>
-              <div className="mt-2 flex items-center gap-2 text-sm text-white/30">
-                <Calendar className="size-4" />
-                <span>Next renewal: {nextBillingDate}</span>
-              </div>
-            </div>
-
-            <div className="space-y-6">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between text-[11px] font-black uppercase tracking-[0.1em] text-white/30">
-                  <span className="flex items-center gap-1.5"><Zap className="size-3" /> Monthly Credits</span>
-                  <span className="text-white/60">{usage.renders.toLocaleString()} / {usage.renderLimit.toLocaleString()}</span>
-                </div>
-                <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-white/5">
-                  <motion.div 
-                    initial={{ width: 0 }}
-                    animate={{ width: `${Math.min(renderProgress, 100)}%` }}
-                    transition={{ duration: 1, ease: "circOut" }}
-                    className={cn("h-full transition-colors duration-500", creditBarClassName)}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <div className="flex items-center justify-between text-[11px] font-black uppercase tracking-[0.1em] text-white/30">
-                  <span className="flex items-center gap-1.5"><Database className="size-3" /> Media Storage</span>
-                  <span className="text-white/60">{formatStorage(usage.storageBytes)} / {formatStorage(usage.storageLimit)}</span>
-                </div>
-                <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-white/5">
-                  <motion.div 
-                    initial={{ width: 0 }}
-                    animate={{ width: `${Math.min(storageProgress, 100)}%` }}
-                    transition={{ duration: 1, ease: "circOut" }}
-                    className={cn(
-                      "h-full transition-colors duration-500",
-                      storageProgress > 90 ? "bg-red-500" : "bg-[linear-gradient(90deg,#3b82f6,#60a5fa)]"
-                    )}
-                  />
-                </div>
-              </div>
-            </div>
-          </CardContent>
-          <CardFooter className="border-t border-white/5 bg-white/[0.01] p-0">
-            <Button
-              variant="ghost"
-              className="h-12 w-full rounded-none text-xs font-bold uppercase tracking-widest text-white/20 hover:bg-white/[0.04] hover:text-white/60 transition-all"
-              onClick={() => setIsBillingHistoryOpen(true)}
-            >
-              <History className="mr-2 size-3.5" />
-              Usage History
-            </Button>
-          </CardFooter>
-        </Card>
       </div>
 
-      <div className="grid gap-8 md:grid-cols-2">
-        <Card className="border-white/10 bg-white/[0.015] shadow-xl">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-3 text-lg font-bold text-white">
-              <div className="grid size-8 place-items-center rounded-xl bg-white/5">
-                <Zap className="size-4 text-[#38BDF8]" />
-              </div>
-              AI Generation Credits
+      <Card className="border-white/[0.1] bg-white/[0.035] shadow-[0_24px_70px_-44px_rgba(0,0,0,0.95)]">
+        <CardHeader className="flex flex-row items-center justify-between gap-4 p-4 pb-3 sm:p-5 sm:pb-4">
+          <div>
+            <CardTitle className="flex items-center gap-2 text-lg font-semibold text-white">
+              <ShieldCheck className="size-4 text-emerald-400" />
+              Account Overview
             </CardTitle>
-            <CardDescription className="text-white/40">Monthly credit usage for AI generation tasks.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-5">
-            <div className="flex items-end justify-between gap-4">
-              <div>
-                <div className="text-3xl font-bold text-white">
-                  {usage.renders.toLocaleString()} / {usage.renderLimit.toLocaleString()}
-                </div>
-                <div className="mt-1 text-xs font-black uppercase tracking-[0.18em] text-white/30">credits used this cycle</div>
-              </div>
-              {nextTier ? (
-                <Button
-                  variant="ghost"
-                  className="rounded-xl text-xs font-bold uppercase tracking-widest text-[#38BDF8] hover:bg-sky-400/10"
-                  onClick={() => setCheckoutPlan(nextTier)}
-                >
-                  Upgrade to {nextTier.name}
-                </Button>
-              ) : null}
+            <CardDescription className="mt-1 text-sm text-white/45">Current plan capacity and billing status.</CardDescription>
+          </div>
+          <Badge
+            variant="outline"
+            className={cn(
+              'rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em]',
+              hasAccess ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300' : 'border-white/10 bg-white/[0.03] text-white/50',
+            )}
+          >
+            {subscription?.status === 'active' ? 'Active' : subscription?.status === 'on_hold' ? 'On Hold' : subscription?.status === 'cancelled' ? 'Cancelled' : 'Inactive'}
+          </Badge>
+        </CardHeader>
+        <CardContent className="p-4 pt-0 sm:p-5 sm:pt-0">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            <div className="rounded-xl border border-white/[0.08] bg-black/20 p-4">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40">Plan</p>
+              <p className="mt-2 truncate text-2xl font-semibold text-white">{subscription && currentPlan ? currentPlan.name : 'Free Tier'}</p>
+              <p className="mt-1 text-xs text-white/45">Workspace access</p>
             </div>
-            <div className="relative h-2 w-full overflow-hidden rounded-full bg-white/5">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${Math.min(renderProgress, 100)}%` }}
-                transition={{ duration: 1, ease: "circOut" }}
-                className={cn("h-full transition-colors duration-500", creditBarClassName)}
-              />
+            <div className="rounded-xl border border-white/[0.08] bg-black/20 p-4">
+              <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40"><Zap className="size-3 text-blue-300" /> Credits</p>
+              <p className="mt-2 text-2xl font-semibold text-white">{usage.renders.toLocaleString()}<span className="text-sm text-white/40"> / {usage.renderLimit.toLocaleString()}</span></p>
+              <div className="mt-3 h-1 overflow-hidden rounded-full bg-white/[0.08]"><motion.div initial={{ width: 0 }} animate={{ width: `${Math.min(renderProgress, 100)}%` }} transition={{ duration: 0.3, ease: 'easeOut' }} className={cn('h-full', creditBarClassName)} /></div>
             </div>
-            <div className="text-sm text-white/40">
-              Credits reset on <span className="font-semibold text-white/65">{nextBillingDate}</span>.
+            <div className="rounded-xl border border-white/[0.08] bg-black/20 p-4">
+              <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40"><Database className="size-3 text-blue-300" /> Storage</p>
+              <p className="mt-2 truncate text-lg font-semibold text-white">{formatStorage(usage.storageBytes)}<span className="text-sm text-white/40"> / {formatStorage(usage.storageLimit)}</span></p>
+              <div className="mt-3 h-1 overflow-hidden rounded-full bg-white/[0.08]"><motion.div initial={{ width: 0 }} animate={{ width: `${Math.min(storageProgress, 100)}%` }} transition={{ duration: 0.3, ease: 'easeOut' }} className={cn('h-full', storageProgress > 90 ? 'bg-red-400' : 'bg-blue-400')} /></div>
             </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-white/10 bg-white/[0.015] shadow-xl">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-3 text-lg font-bold text-white">
-              <div className="grid size-8 place-items-center rounded-xl bg-white/5">
-                <Calendar className="size-4 text-white/40" />
-              </div>
-              Next Billing Date
-            </CardTitle>
-            <CardDescription className="text-white/40">Upcoming charge and default payment method.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="rounded-2xl border border-white/5 bg-black/20 p-5">
-              <div className="text-xs font-black uppercase tracking-[0.18em] text-white/25">Next charge</div>
-              <div className="mt-2 text-2xl font-bold text-white">{nextCharge}</div>
-              <div className="mt-1 text-sm text-white/40">on {nextBillingDate}</div>
+            <div className="rounded-xl border border-white/[0.08] bg-black/20 p-4">
+              <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40"><Calendar className="size-3 text-blue-300" /> Next billing</p>
+              <p className="mt-2 truncate text-2xl font-semibold text-white">{nextCharge}</p>
+              <p className="mt-1 truncate text-xs text-white/45">{nextBillingDate}</p>
             </div>
-            <div className="flex items-center gap-3 rounded-2xl border border-white/5 bg-white/[0.02] p-4">
-              <CreditCard className="size-5 text-white/35" />
-              <div>
-                <div className="text-sm font-semibold text-white">
-                  {defaultPaymentMethod
-                    ? `${defaultPaymentMethod.brand ?? defaultPaymentMethod.type} •••• ${defaultPaymentMethod.last_four ?? '----'}`
-                    : 'No payment method on file'}
-                </div>
-                <div className="text-xs text-white/30">Payment method</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+          {nextTier ? (
+            <button type="button" className="mt-4 text-sm font-medium text-blue-400 underline-offset-4 hover:text-blue-300 hover:underline" onClick={() => setCheckoutPlan(nextTier)}>
+              Upgrade to {nextTier.name}
+            </button>
+          ) : null}
+        </CardContent>
+      </Card>
 
       {/* 2. Pricing Plans Section */}
-      <div className="space-y-8">
-        <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
-          <div className="space-y-3 text-center md:text-left">
+      <div className="space-y-5">
+        <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
+          <div className="space-y-2 text-center md:text-left">
             <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-white/36">
               PRICING
             </p>
-            <h2 className="text-3xl font-semibold text-white md:text-4xl">Choose your plan</h2>
-            <p className="max-w-2xl text-base leading-7 text-white/52">
+            <h2 className="text-xl font-semibold text-white md:text-2xl">Choose your plan</h2>
+            <p className="max-w-2xl text-sm leading-6 text-white/52">
               Premium AI video infrastructure with monthly pricing, cloud-backed storage, and export-ready rendering workflows.
             </p>
           </div>
@@ -409,6 +295,7 @@ export function BillingDashboard() {
               <DodoCheckoutButton
                 ctaLabel={context.ctaLabel}
                 className={context.buttonClassName}
+                featured={plan.featured}
                 onClick={() => setCheckoutPlan(plan)}
               />
             )
@@ -416,29 +303,28 @@ export function BillingDashboard() {
         />
       </div>
 
-      {/* 3. Actions & Payment Panel */}
-      <div className="grid gap-8 md:grid-cols-2">
-        <Card className="border-white/10 bg-white/[0.015] shadow-xl">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-3 text-lg font-bold text-white">
-              <div className="grid size-8 place-items-center rounded-xl bg-white/5">
+      <div className="grid gap-5 lg:grid-cols-[1.4fr_1fr]">
+        <Card className="border-white/[0.1] bg-white/[0.025] shadow-[0_18px_55px_-42px_rgba(0,0,0,0.95)]">
+          <CardHeader className="p-4 pb-2 sm:p-5 sm:pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg font-semibold text-white">
+              <div className="grid size-8 place-items-center rounded-lg bg-white/[0.05]">
                 <Wallet className="size-4 text-white/40" />
               </div>
               Payment Method
             </CardTitle>
-            <CardDescription className="text-white/40">Manage your default payment provider.</CardDescription>
+            <CardDescription className="text-sm text-white/40">Manage your default payment provider.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3 p-4 pt-0 sm:p-5 sm:pt-0">
             {paymentMethods.length > 0 ? (
               <div className="space-y-3">
                 {paymentMethods.map((method) => (
-                  <div key={method.id} className="flex items-center justify-between gap-4 rounded-2xl border border-white/5 bg-black/20 p-5 hover:border-white/10 transition-colors">
-                    <div className="flex items-center gap-4">
-                      <div className="flex h-11 w-16 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03]">
-                        <CreditCard className="size-6 text-white/60" />
+                  <div key={method.id} className="flex items-center justify-between gap-3 rounded-xl border border-white/[0.08] bg-black/20 p-3 transition-colors hover:border-white/[0.14]">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/[0.03]">
+                        <CreditCard className="size-5 text-white/60" />
                       </div>
                       <div>
-                        <div className="flex flex-wrap items-center gap-2 text-[15px] font-bold text-white tracking-tight">
+                        <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-white">
                           <span>{method.brand ?? method.type} •••• {method.last_four ?? '----'}</span>
                           {method.is_default ? (
                             <Badge variant="outline" className="rounded-full border-[#38BDF8]/25 bg-[#38BDF8]/10 text-[10px] text-[#BFEFFF]">
@@ -446,7 +332,7 @@ export function BillingDashboard() {
                             </Badge>
                           ) : null}
                         </div>
-                        <div className="text-xs font-medium text-white/20 uppercase tracking-widest mt-0.5">
+                        <div className="mt-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-white/35">
                           Exp: {String(method.expiry_month ?? '--').padStart(2, '0')}/{method.expiry_year ? String(method.expiry_year).slice(-2) : '--'}
                         </div>
                       </div>
@@ -456,7 +342,7 @@ export function BillingDashboard() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-9 px-4 rounded-xl text-xs font-bold uppercase tracking-widest text-red-300 hover:bg-red-400/10 transition-all"
+                          className="min-h-10 rounded-lg px-3 text-xs font-semibold text-red-300 hover:bg-red-400/10"
                           disabled={removingPaymentMethodId === method.id}
                         >
                           {removingPaymentMethodId === method.id ? (
@@ -493,14 +379,14 @@ export function BillingDashboard() {
                 ))}
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center space-y-4 rounded-2xl border border-dashed border-white/10 bg-white/[0.01] p-8 text-center">
-                <CreditCard className="size-8 text-white/10" />
-                <p className="text-sm text-white/30">No payment method on file. Subscribe to a plan to add one.</p>
+              <div className="flex items-center gap-3 rounded-xl border border-dashed border-white/10 bg-white/[0.01] p-4">
+                <CreditCard className="size-5 text-white/25" />
+                <p className="text-sm text-white/45">No payment method on file.</p>
               </div>
             )}
             <Button
               variant="outline"
-              className="h-11 w-full rounded-2xl border-white/5 bg-white/[0.02] text-xs font-black uppercase tracking-[0.14em] text-white/45 hover:bg-white/[0.05] hover:text-white"
+              className="min-h-11 w-full rounded-xl border-white/10 bg-white/[0.05] text-sm font-medium text-white hover:border-white/[0.15] hover:bg-white/[0.08]"
               onClick={handleAddPaymentMethod}
               disabled={isAddingPaymentMethod}
             >
@@ -514,26 +400,24 @@ export function BillingDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="border-white/10 bg-white/[0.015] shadow-xl">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-3 text-lg font-bold text-white">
-               <div className="grid size-8 place-items-center rounded-xl bg-white/5">
+        <Card className="border-white/[0.1] bg-white/[0.025] shadow-[0_18px_55px_-42px_rgba(0,0,0,0.95)]">
+          <CardHeader className="p-4 pb-2 sm:p-5 sm:pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg font-semibold text-white">
+               <div className="grid size-8 place-items-center rounded-lg bg-white/[0.05]">
                 <Zap className="size-4 text-white/40" />
               </div>
               Quick Actions
             </CardTitle>
-            <CardDescription className="text-white/40">Subscription and account management.</CardDescription>
+            <CardDescription className="text-sm text-white/40">Subscription and account management.</CardDescription>
           </CardHeader>
-          <CardContent className="grid grid-cols-2 gap-4">
+          <CardContent className="grid grid-cols-2 gap-3 p-4 pt-0 sm:p-5 sm:pt-0">
             <Button
               variant="outline"
-              className="h-24 flex-col items-center justify-center gap-3 rounded-2xl border-white/5 bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/10 transition-all group"
+              className="min-h-11 rounded-xl border-white/10 bg-white/[0.05] text-sm font-medium text-white hover:border-white/[0.15] hover:bg-white/[0.08]"
               onClick={() => setIsBillingHistoryOpen(true)}
             >
-              <div className="grid size-10 place-items-center rounded-full bg-white/5 group-hover:bg-blue-400/10 transition-colors">
-                <History className="size-5 text-white/30 group-hover:text-blue-400 transition-colors" />
-              </div>
-              <span className="text-[11px] font-black uppercase tracking-[0.1em] text-white/40 group-hover:text-white transition-colors">Billing History</span>
+              <History className="size-4" />
+              Billing History
             </Button>
             
             <Dialog>
@@ -541,12 +425,10 @@ export function BillingDashboard() {
                 <Button 
                   variant="outline" 
                   disabled={!hasAccess || isCancelling}
-                  className="h-24 flex-col items-center justify-center gap-3 rounded-2xl border-white/5 bg-white/[0.02] hover:bg-red-400/[0.03] hover:border-red-400/20 transition-all group"
+                  className="min-h-11 rounded-xl border-white/10 bg-white/[0.05] text-sm font-medium text-white hover:border-red-400/25 hover:bg-red-400/[0.06]"
                 >
-                  <div className="grid size-10 place-items-center rounded-full bg-white/5 group-hover:bg-red-400/10 transition-colors">
-                    <XCircle className="size-5 text-white/30 group-hover:text-red-400 transition-colors" />
-                  </div>
-                  <span className="text-[11px] font-black uppercase tracking-[0.1em] text-white/40 group-hover:text-red-400 transition-colors">
+                  <XCircle className="size-4" />
+                  <span>
                     {isCancelling ? (
                       <InlineLoadingAnimation size={12} label="Cancelling subscription" />
                     ) : (

@@ -12,6 +12,7 @@ type DodoCheckoutButtonProps = {
   ctaLabel: string
   className?: string
   disabled?: boolean
+  featured?: boolean
   onClick: () => void
 }
 
@@ -19,6 +20,7 @@ export function DodoCheckoutButton({
   ctaLabel,
   className,
   disabled,
+  featured = false,
   onClick,
 }: DodoCheckoutButtonProps) {
   return (
@@ -31,13 +33,14 @@ export function DodoCheckoutButton({
         size="lg"
         disabled={disabled}
         className={cn(
-          'relative h-12 w-full overflow-hidden rounded-[18px] text-[15px] font-semibold tracking-tight text-white transition-all duration-300',
-          !disabled
-            ? 'bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.02)_100%)] shadow-[0_2px_10px_-4px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.15)]'
-            : 'bg-white/5 text-white/20 border-white/5 shadow-none opacity-50',
-          'border border-white/10',
-          !disabled && 'hover:border-white/25 hover:bg-[linear-gradient(180deg,rgba(255,255,255,0.12)_0%,rgba(255,255,255,0.04)_100%)] hover:shadow-[0_8px_20px_-6px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.2)]',
           className,
+          'relative min-h-12 w-full overflow-hidden rounded-2xl px-6 text-sm font-semibold tracking-wide transition-all duration-200 focus-visible:ring-2 focus-visible:ring-white/40',
+          !disabled
+            ? featured
+              ? 'border-blue-300/45 bg-[linear-gradient(135deg,#60a5fa_0%,#2563eb_55%,#1d4ed8_100%)] text-white shadow-[0_16px_36px_-18px_rgba(59,130,246,0.95),inset_0_1px_0_rgba(255,255,255,0.3)] hover:brightness-110 hover:shadow-[0_18px_42px_-18px_rgba(59,130,246,1)]'
+              : 'border-white/30 bg-white text-black shadow-lg shadow-white/5 hover:scale-[1.02] hover:bg-white/90'
+            : 'bg-white/5 text-white/20 border-white/5 shadow-none opacity-50',
+          'border active:scale-[0.98]',
         )}
         onClick={onClick}
       >
