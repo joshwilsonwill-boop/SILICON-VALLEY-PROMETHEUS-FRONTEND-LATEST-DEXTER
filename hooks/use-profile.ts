@@ -8,6 +8,8 @@ export type ProfileV2 = {
   full_name?: string | null
   name?: string | null
   display_name?: string | null
+  first_name?: string | null
+  last_name?: string | null
   email?: string | null
   avatar_url?: string | null
   bio?: string | null
@@ -59,7 +61,7 @@ export function useProfile() {
         const { data, error: queryError } = await supabase
           .from('profiles')
           .select(
-            'id, full_name, name, display_name, email, avatar_url, bio, pronouns, location, theme_preference, font_preference, notification_preferences, storage_quota_bytes',
+            'id, full_name, name, display_name, first_name, last_name, email, avatar_url, bio, pronouns, location, theme_preference, font_preference, notification_preferences, storage_quota_bytes',
           )
           .eq('id', user.id)
           .maybeSingle()

@@ -5,7 +5,17 @@ import { motion } from "framer-motion";
 import type { AIChatMessage as AIChatMessageType } from "@/hooks/use-ai-chat";
 import { cn } from "@/lib/utils";
 
-export function AIChatMessage({ message }: { message: AIChatMessageType }) {
+import { AIChatStreamingText } from "./ai-chat-streaming-text";
+
+export function AIChatMessage({
+  message,
+  onStreamingComplete,
+  onStreamingProgress,
+}: {
+  message: AIChatMessageType;
+  onStreamingComplete?: (messageId: string) => void;
+  onStreamingProgress?: () => void;
+}) {
   const isUser = message.role === "user";
   const label = message.platform
     ? `${message.platform === "twitter" ? "Twitter/X" : message.platform}${message.postType ? ` / ${message.postType}` : ""}`
@@ -31,7 +41,14 @@ export function AIChatMessage({ message }: { message: AIChatMessageType }) {
             : "rounded-tl-sm border border-white/[0.06] bg-white/[0.04] text-white/90",
         )}
       >
-        {message.content}
+          {isUser ? message.content : (
+            <AIChatStreamingText
+              text={message.content}
+              isComplete={message.isComplete ?? true}
+              onComplete={() => onStreamingComplete?.(message.id)}
+              onProgress={onStreamingProgress}
+            />
+          )}
       </div>
       <time className="px-1 text-[10px] text-white/30" dateTime={message.createdAt}>
         {new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" }).format(

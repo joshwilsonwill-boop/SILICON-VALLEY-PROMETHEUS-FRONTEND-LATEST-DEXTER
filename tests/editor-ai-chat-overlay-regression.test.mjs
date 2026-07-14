@@ -36,7 +36,7 @@ function run() {
   assert.match(sidebar, /item\.panel === "chat"/);
   assert.match(overlay, /fixed inset-0 z-\[60\]/);
   assert.match(overlay, /backdrop-blur-\[24px\]/);
-  assert.match(overlay, /What would you like to create/);
+  assert.match(overlay, /getChatGreeting/);
   assert.match(hook, /fetch\("\/api\/prometheus-chat"/);
   assert.match(hook, /projectId/);
   assert.match(hook, /social media content strategist/i);

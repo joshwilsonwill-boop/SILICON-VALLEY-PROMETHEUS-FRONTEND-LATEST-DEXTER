@@ -3,11 +3,15 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { Sparkles, X } from "lucide-react";
 import { createPortal } from "react-dom";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useAuth } from "@/components/auth/auth-provider";
 import { useAIChat } from "@/hooks/use-ai-chat";
+import { useProfile } from "@/hooks/use-profile";
+import { getChatGreeting } from "@/lib/user/display-name";
 
+import { AIChatHistoryButton } from "./ai-chat-history-button";
+import { AIChatHistoryPanel } from "./ai-chat-history-panel";
 import { AIChatInput } from "./ai-chat-input";
 import { AIChatMessage } from "./ai-chat-message";
 import { AIChatOrb } from "./ai-chat-orb";
@@ -24,23 +28,47 @@ export function AIChatOverlay({
   projectId: string | null;
 }) {
   const { session } = useAuth();
+  const { profile } = useProfile();
   const [mounted, setMounted] = useState(false);
   const [showTopics, setShowTopics] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const messagesContainerRef = useRef<HTMLDivElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
-  const { clearError, draft, error, isSending, messages, sendMessage, setDraft } = useAIChat({ projectId });
-  const userName = useMemo(() => {
-    const metadataName = session?.user.user_metadata?.full_name;
-    if (typeof metadataName === "string" && metadataName.trim()) return metadataName.trim().split(" ")[0];
-    const email = session?.user.email;
-    return email ? email.split("@")[0] : "Creator";
-  }, [session?.user.email, session?.user.user_metadata?.full_name]);
+  const isNearBottomRef = useRef(true);
+  const {
+    clearError,
+    completeAssistantMessage,
+    createNewSession,
+    currentSessionId,
+    draft,
+    error,
+    isAwaitingResponse,
+    isHistoryLoading,
+    isSending,
+    messages,
+    removeSession,
+    selectSession,
+    sendMessage,
+    sessions,
+    setDraft,
+  } = useAIChat({ projectId, enabled: isOpen });
+
+  const scrollToBottomIfNeeded = useCallback(() => {
+    if (!isNearBottomRef.current) return;
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, []);
+
+  const handleMessagesScroll = useCallback(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+    isNearBottomRef.current = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+  }, []);
 
   useEffect(() => setMounted(true), []);
 
   useEffect(() => {
-    if (!isOpen) return;
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [isOpen, isSending, messages]);
+    if (isOpen) scrollToBottomIfNeeded();
+  }, [isAwaitingResponse, isOpen, isSending, messages, scrollToBottomIfNeeded]);
 
   const requestClose = () => {
     if (draft.trim() && !window.confirm("Discard your unsent message?")) return;
@@ -81,7 +109,7 @@ export function AIChatOverlay({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
             transition={{ type: "spring", stiffness: 300, damping: 25 }}
-            className="flex h-[100dvh] w-full flex-col overflow-hidden border border-white/[0.06] bg-[#1c1c1e]/95 text-white shadow-2xl shadow-black/60 md:h-auto md:max-h-[85vh] md:max-w-lg md:rounded-3xl"
+            className={`relative flex h-[100dvh] w-full flex-col overflow-hidden border border-white/[0.06] bg-[#1c1c1e]/95 text-white shadow-2xl shadow-black/60 md:h-auto md:max-h-[85vh] ${showHistory ? "md:max-w-4xl" : "md:max-w-lg"} md:rounded-3xl`}
             onMouseDown={(event) => event.stopPropagation()}
           >
             <header className="flex h-[60px] shrink-0 items-center justify-between border-b border-white/[0.06] px-5">
@@ -89,22 +117,25 @@ export function AIChatOverlay({
                 <Sparkles className="size-4 text-green-400" aria-hidden="true" />
                 <h2 className="text-sm font-semibold text-white">AI Assistant</h2>
               </div>
-              <button
-                type="button"
-                onClick={requestClose}
-                className="grid size-10 place-items-center rounded-full text-white/60 transition-colors hover:bg-white/[0.06] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
-                aria-label="Close AI Assistant"
-              >
-                <X className="size-5" aria-hidden="true" />
-              </button>
+              <div className="flex items-center gap-1">
+                <AIChatHistoryButton onClick={() => setShowHistory(true)} />
+                <button
+                  type="button"
+                  onClick={requestClose}
+                  className="grid size-10 place-items-center rounded-full text-white/60 transition-colors hover:bg-white/[0.06] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+                  aria-label="Close AI Assistant"
+                >
+                  <X className="size-5" aria-hidden="true" />
+                </button>
+              </div>
             </header>
 
-            <div className="min-h-0 flex-1 overflow-y-auto scroll-smooth px-5 py-5">
+            <div ref={messagesContainerRef} onScroll={handleMessagesScroll} className="min-h-0 flex-1 overflow-y-auto scroll-smooth px-5 py-5">
               {messages.length === 0 ? (
                 <div className="flex min-h-full flex-col items-center justify-center py-6">
                   <AIChatOrb />
                   <p className="mt-5 max-w-xs text-center text-lg leading-relaxed text-white/50">
-                    What would you like to create, {userName}?
+                    {getChatGreeting(session?.user, profile)}
                   </p>
                   <div className="mt-6 w-full max-w-sm">
                     <AIChatSuggestions
@@ -117,9 +148,14 @@ export function AIChatOverlay({
               ) : (
                 <div className="space-y-3">
                   {messages.map((message) => (
-                    <AIChatMessage key={message.id} message={message} />
+                    <AIChatMessage
+                      key={message.id}
+                      message={message}
+                      onStreamingComplete={completeAssistantMessage}
+                      onStreamingProgress={scrollToBottomIfNeeded}
+                    />
                   ))}
-                  {isSending ? <AIChatTypingIndicator /> : null}
+                  {isAwaitingResponse ? <AIChatTypingIndicator /> : null}
                   {error ? (
                     <div className="rounded-xl border border-red-400/20 bg-red-400/10 p-3 text-sm text-red-100" role="alert">
                       <div className="flex items-center justify-between gap-3">
@@ -147,6 +183,19 @@ export function AIChatOverlay({
                 <AIChatSuggestions expanded onSelect={(suggestion) => void sendMessage(suggestion)} />
               </div>
             ) : null}
+            <AnimatePresence>
+              {showHistory ? (
+                <AIChatHistoryPanel
+                  currentSessionId={currentSessionId}
+                  isLoading={isHistoryLoading}
+                  sessions={sessions}
+                  onClose={() => setShowHistory(false)}
+                  onNewSession={() => void createNewSession()}
+                  onSelectSession={selectSession}
+                  onDeleteSession={(sessionId) => void removeSession(sessionId)}
+                />
+              ) : null}
+            </AnimatePresence>
           </motion.section>
         </motion.div>
       ) : null}

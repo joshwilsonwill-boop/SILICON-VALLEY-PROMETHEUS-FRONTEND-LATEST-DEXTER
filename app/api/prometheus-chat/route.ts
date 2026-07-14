@@ -142,6 +142,19 @@ const PROMETHEUS_TOOLS = [
 export async function POST(req: Request) {
   const abortController = new AbortController()
   const timeoutId = setTimeout(() => abortController.abort(), REQUEST_TIMEOUT_MS)
+  let fallbackContext: {
+    attachments: ChatAttachment[]
+    frameReferences: ChatFrameReference[]
+    knowledge: PrometheusKnowledgeMatch[]
+    maxChars: number
+    query: string
+  } = {
+    attachments: [],
+    frameReferences: [],
+    knowledge: [],
+    maxChars: 760,
+    query: '',
+  }
 
   try {
     const body = (await req.json().catch(() => null)) as PrometheusChatRequest | null
@@ -159,6 +172,13 @@ export async function POST(req: Request) {
     const retrievalQuery = buildRetrievalQuery(latestMessage, projectContext, frameReferences)
     const knowledge = retrievePrometheusKnowledge(retrievalQuery, 7)
     const maxChars = verbosity === 'deep' ? 1800 : verbosity === 'normal' ? 1200 : 760
+    fallbackContext = {
+      attachments,
+      frameReferences,
+      knowledge,
+      maxChars,
+      query: latestMessage,
+    }
 
     const apiKey = cleanInline(process.env.GROQ_API_KEY)
     if (!apiKey) {
@@ -274,11 +294,50 @@ export async function POST(req: Request) {
       attachments: attachments.map(toPublicAttachment),
     })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Prometheus chat failed.'
-    return NextResponse.json({ error: message }, { status: message.includes('aborted') ? 504 : 500 })
+    const toolUseFailed = isToolUseFailed(error)
+    const fallback = buildFallbackPayload({
+      query: fallbackContext.query || 'Help me create something for my audience.',
+      knowledge: fallbackContext.knowledge,
+      frameReferences: fallbackContext.frameReferences,
+      attachments: fallbackContext.attachments,
+      toolCalls: [],
+      maxChars: fallbackContext.maxChars,
+      model: 'local-fallback',
+    })
+    const recoveredReply = toolUseFailed
+      ? recoverToolFailureText(asRecord(error).failed_generation, fallbackContext.maxChars)
+      : ''
+    const reply = toolUseFailed
+      ? `${recoveredReply || fallback.reply}\n\n(Note: I couldn't search live data for this response.)`
+      : fallback.reply
+
+    // Provider-side tool errors must never surface as raw model failures in the editor.
+    return NextResponse.json({ ...fallback, reply }, { status: 200 })
   } finally {
     clearTimeout(timeoutId)
   }
+}
+
+function isToolUseFailed(error: unknown) {
+  const record = asRecord(error)
+  const details = [
+    error instanceof Error ? error.message : '',
+    cleanInline(record.code),
+    cleanInline(record.message),
+    cleanInline(record.failed_generation),
+  ]
+    .join(' ')
+    .toLowerCase()
+
+  return details.includes('tool_use_failed') || details.includes('<function=')
+}
+
+function recoverToolFailureText(value: unknown, maxChars: number) {
+  if (typeof value !== 'string') return ''
+  const withoutMalformedToolCalls = value
+    .replace(/<function=[^>]*>[\s\S]*?<\/function>/g, '')
+    .trim()
+  return normalizeAssistantText(withoutMalformedToolCalls, maxChars)
 }
 
 function buildSystemPrompt({
