@@ -3607,6 +3607,7 @@ function FloatingChatComposer({
                 exit={reduceMotion ? undefined : 'exit'}
               >
                 <PrometheusChat
+                  projectId={projectId}
                   title="Current Chat"
                   messages={editorOverlayMessages}
                   draft={draft}

@@ -118,14 +118,12 @@ export function EditorHamburgerSidebar({
   activePanel,
   isOpen,
   onClose,
-  onOpenChatOverlay,
   onOpenPanel,
   onOpenSettings,
 }: {
   activePanel: EditorSidebarPanelKey | null;
   isOpen: boolean;
   onClose: () => void;
-  onOpenChatOverlay?: () => void;
   onOpenPanel: (panel: EditorSidebarPanelKey) => void;
   onOpenSettings: () => void;
 }) {
@@ -249,10 +247,6 @@ export function EditorHamburgerSidebar({
                   }
                   if (item.action === "settings") {
                     onOpenSettings();
-                    return;
-                  }
-                  if (item.panel === "chat" && onOpenChatOverlay) {
-                    onOpenChatOverlay();
                     return;
                   }
                   onOpenPanel(item.panel);

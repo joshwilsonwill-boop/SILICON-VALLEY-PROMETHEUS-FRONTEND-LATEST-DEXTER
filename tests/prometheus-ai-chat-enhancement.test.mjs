@@ -15,9 +15,9 @@ function run() {
     "lib/supabase/chat-messages.ts",
     "components/editor/ai-chat-streaming-text.tsx",
     "components/editor/ai-chat-history-button.tsx",
-    "components/editor/ai-chat-history-panel.tsx",
-    "components/editor/ai-chat-session-item.tsx",
-    "components/editor/ai-chat-new-session.tsx",
+    "components/editor/PrometheusChat.tsx",
+    "components/editor/prometheus-chat-thinking-process.tsx",
+    "components/editor/prometheus-chat-session-menu.tsx",
     "supabase/migrations/202607141630_add_chat_history_profile_fields.sql",
   ];
 
@@ -29,8 +29,8 @@ function run() {
   const sessions = read("lib/supabase/chat-sessions.ts");
   const messages = read("lib/supabase/chat-messages.ts");
   const streamingText = read("components/editor/ai-chat-streaming-text.tsx");
-  const historyPanel = read("components/editor/ai-chat-history-panel.tsx");
-  const overlay = read("components/editor/ai-chat-overlay.tsx");
+  const historyPanel = read("components/editor/PrometheusChat.tsx");
+  const overlay = read("components/editor/PrometheusChat.tsx");
   const hook = read("hooks/use-ai-chat.ts");
   const route = read("app/api/prometheus-chat/route.ts");
   const migration = read("supabase/migrations/202607141630_add_chat_history_profile_fields.sql");
@@ -42,8 +42,8 @@ function run() {
   assert.match(messages, /chat_messages/);
   assert.match(streamingText, /requestAnimationFrame/);
   assert.match(streamingText, /isComplete/);
-  assert.match(historyPanel, /Chat History/);
-  assert.match(overlay, /AIChatHistoryButton/);
+  assert.match(historyPanel, /Chat history/);
+  assert.match(overlay, /PrometheusChatSessionMenu/);
   assert.match(overlay, /getChatGreeting/);
   assert.match(hook, /currentSessionId/);
   assert.match(hook, /insertChatMessage/);

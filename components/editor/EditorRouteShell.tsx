@@ -47,8 +47,6 @@ import { EditorTopBar } from "./EditorTopBar";
 import { FocusModeToggle } from "./FocusModeToggle";
 import { KeyboardShortcuts } from "./KeyboardShortcuts";
 import { SettingsPanel } from "./SettingsPanel";
-import { AIChatOverlay } from "./ai-chat-overlay";
-import { AIChatTriggerDesktop } from "./ai-chat-trigger-desktop";
 
 export function EditorRouteShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -64,7 +62,6 @@ export function EditorRouteShell({ children }: { children: ReactNode }) {
     useState<EditorSettingsPanelKey>("appearance");
   const [activeMobileTool, setActiveMobileTool] =
     useState<EditorSidebarPanelKey | null>(null);
-  const [isAIChatOpen, setIsAIChatOpen] = useState(false);
   const toggleSidebar = useCallback(() => setSidebarOpen((open) => !open), []);
   const closeMobileSidebar = useCallback(() => setMobileSidebarOpen(false), []);
   const openMobileSidebar = useCallback(() => setMobileSidebarOpen(true), []);
@@ -76,7 +73,6 @@ export function EditorRouteShell({ children }: { children: ReactNode }) {
     setSettingsOpen(false);
     setMobileSidebarOpen(false);
     setActiveMobileTool(null);
-    setIsAIChatOpen(false);
   }, []);
   const openSettingsPanel = useCallback((panel: EditorSettingsPanelKey) => {
     setSettingsInitialTab(panel);
@@ -86,11 +82,6 @@ export function EditorRouteShell({ children }: { children: ReactNode }) {
     () => openSettingsPanel("appearance"),
     [openSettingsPanel],
   );
-  const openAIChat = useCallback(() => {
-    setMobileSidebarOpen(false);
-    setActiveMobileTool(null);
-    setIsAIChatOpen(true);
-  }, []);
 
   if (pathname === "/editor" || isStandaloneMobileEditorRoute(pathname)) {
     return <>{children}</>;
@@ -170,12 +161,10 @@ export function EditorRouteShell({ children }: { children: ReactNode }) {
       </main>
 
       <FocusModeToggle active={focusMode} onToggle={toggleFocusMode} />
-      {!isAIChatOpen ? <AIChatTriggerDesktop onOpen={openAIChat} /> : null}
       <EditorHamburgerSidebar
         activePanel={activeMobileTool}
         isOpen={mobileSidebarOpen}
         onClose={closeMobileSidebar}
-        onOpenChatOverlay={openAIChat}
         onOpenPanel={setActiveMobileTool}
         onOpenSettings={openMobileSettingsPanel}
       />
@@ -191,11 +180,6 @@ export function EditorRouteShell({ children }: { children: ReactNode }) {
         onCloseOverlays={closeOverlays}
         onToggleFocusMode={toggleFocusMode}
         onToggleSidebar={toggleSidebar}
-      />
-      <AIChatOverlay
-        isOpen={isAIChatOpen}
-        onClose={() => setIsAIChatOpen(false)}
-        projectId={projectId}
       />
     </div>
   );

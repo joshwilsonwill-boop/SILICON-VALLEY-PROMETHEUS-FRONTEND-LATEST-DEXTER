@@ -2,10 +2,19 @@
 
 import * as React from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
-import { ArrowDown, ArrowUp, ImageIcon, PanelLeft, Video, X } from 'lucide-react'
+import { ArrowDown, ArrowUp, ImageIcon, Mic, PanelLeft, Plus, Trash2, Video, X } from 'lucide-react'
 
+import { useAuth } from '@/components/auth/auth-provider'
 import { InlineLoadingAnimation } from '@/components/loading-animation'
+import { useAIChat } from '@/hooks/use-ai-chat'
+import { useProfile } from '@/hooks/use-profile'
+import { getChatGreeting } from '@/lib/user/display-name'
 import { cn } from '@/lib/utils'
+
+import { AIChatOrb } from './ai-chat-orb'
+import { AIChatStreamingText } from './ai-chat-streaming-text'
+import { PrometheusChatSessionMenu } from './prometheus-chat-session-menu'
+import { PrometheusChatThinkingProcess } from './prometheus-chat-thinking-process'
 
 const PROMETHEUS_LOGO_SRC = '/branding/prometheus-logo-no-bg.png'
 const PROMETHEUS_ORIGINAL_LOGO_ASSET = 'prometheus original logo.png'
@@ -14,6 +23,7 @@ export type PrometheusChatMessage = {
   id: string
   role: 'user' | 'assistant' | 'system'
   content: string
+  isComplete?: boolean
   status?: 'ready' | 'thinking'
   pills?: Array<{
     id: string
@@ -74,6 +84,7 @@ export function PrometheusChat({
   onAttachVideo,
   onClose,
   className,
+  projectId = null,
 }: {
   messages: PrometheusChatMessage[]
   onSend: (message: string) => void | Promise<void>
@@ -87,37 +98,57 @@ export function PrometheusChat({
   onAttachVideo?: () => void
   onClose?: () => void
   className?: string
+  projectId?: string | null
 }) {
   const reduceMotion = Boolean(useReducedMotion())
+  const { session } = useAuth()
+  const { profile } = useProfile()
+  const persistentChat = useAIChat({ projectId, enabled: Boolean(projectId) })
   const [internalDraft, setInternalDraft] = React.useState('')
   const [historyExpanded, setHistoryExpanded] = React.useState(false)
   const [showJumpToLatest, setShowJumpToLatest] = React.useState(false)
   const scrollViewportRef = React.useRef<HTMLDivElement | null>(null)
   const latestMessageRef = React.useRef<HTMLDivElement | null>(null)
   const pinnedToBottomRef = React.useRef(true)
-  const composedDraft = draft ?? internalDraft
+  const persistedMessages = React.useMemo<PrometheusChatMessage[]>(
+    () => persistentChat.messages.map((message) => ({
+      id: message.id,
+      role: message.role,
+      content: message.content,
+      isComplete: message.isComplete,
+    })),
+    [persistentChat.messages],
+  )
+  const renderedMessages = projectId ? persistedMessages : messages
+  const composedDraft = projectId ? persistentChat.draft : draft ?? internalDraft
   const hasDraft = composedDraft.trim().length > 0
-  const showingThinking = thinking || messages.some((message) => message.status === 'thinking')
-  const lastMessage = messages[messages.length - 1]
+  const showingThinking = projectId
+    ? persistentChat.isAwaitingResponse
+    : thinking || renderedMessages.some((message) => message.status === 'thinking')
+  const lastMessage = renderedMessages[renderedMessages.length - 1]
   const latestAssistantMessageId = React.useMemo(() => {
-    for (let index = messages.length - 1; index >= 0; index -= 1) {
-      const message = messages[index]
+    for (let index = renderedMessages.length - 1; index >= 0; index -= 1) {
+      const message = renderedMessages[index]
       if (message?.role === 'assistant' && message.status !== 'thinking' && message.content.trim().length > 0) {
         return message.id
       }
     }
     return null
-  }, [messages])
+  }, [renderedMessages])
 
   const setDraft = React.useCallback(
     (value: string) => {
+      if (projectId) {
+        persistentChat.setDraft(value)
+        return
+      }
       if (onDraftChange) {
         onDraftChange(value)
         return
       }
       setInternalDraft(value)
     },
-    [onDraftChange],
+    [onDraftChange, persistentChat, projectId],
   )
 
   const scrollToLatest = React.useCallback(
@@ -142,11 +173,11 @@ export function PrometheusChat({
     const distanceFromBottom = viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight
     const isPinned = distanceFromBottom < 112
     pinnedToBottomRef.current = isPinned
-    setShowJumpToLatest(!isPinned && messages.length > 0)
-  }, [messages.length])
+    setShowJumpToLatest(!isPinned && renderedMessages.length > 0)
+  }, [renderedMessages.length])
 
   React.useEffect(() => {
-    if (!messages.length && !showingThinking) return
+    if (!renderedMessages.length && !showingThinking) return
 
     const rafId = window.requestAnimationFrame(() => {
       if (pinnedToBottomRef.current || lastMessage?.role === 'user') {
@@ -158,7 +189,7 @@ export function PrometheusChat({
     })
 
     return () => window.cancelAnimationFrame(rafId)
-  }, [lastMessage?.content, lastMessage?.id, lastMessage?.role, messages.length, reduceMotion, scrollToLatest, showingThinking])
+  }, [lastMessage?.content, lastMessage?.id, lastMessage?.role, renderedMessages.length, reduceMotion, scrollToLatest, showingThinking])
 
   React.useEffect(() => {
     const rafId = window.requestAnimationFrame(handleThreadScroll)
@@ -169,11 +200,21 @@ export function PrometheusChat({
     const message = composedDraft.trim()
     if (!message) return
 
-    if (!onDraftChange) setInternalDraft('')
+    if (!projectId && !onDraftChange) setInternalDraft('')
     pinnedToBottomRef.current = true
     setShowJumpToLatest(false)
+    if (projectId) {
+      await persistentChat.sendMessage(message)
+      return
+    }
     await onSend(message)
-  }, [composedDraft, onDraftChange, onSend])
+  }, [composedDraft, onDraftChange, onSend, persistentChat, projectId])
+
+  const handleStreamingProgress = React.useCallback(() => {
+    if (pinnedToBottomRef.current) scrollToLatest('auto')
+  }, [scrollToLatest])
+
+  const currentSession = persistentChat.sessions.find((item) => item.id === persistentChat.currentSessionId)
 
   return (
     <section
@@ -212,26 +253,73 @@ export function PrometheusChat({
           <PanelLeft className="size-4" strokeWidth={1.5} />
         </button>
         <nav className="mt-8 space-y-1 px-4" aria-label="Previous chats">
-          {historyItems.map((item) => (
+          {projectId && historyExpanded ? (
             <button
-              key={item.id}
               type="button"
+              onClick={() => void persistentChat.createNewSession()}
+              className="mb-3 inline-flex items-center gap-2 text-xs text-[#999] transition-colors hover:text-white"
+            >
+              <Plus className="size-3.5" /> New chat
+            </button>
+          ) : null}
+          {(projectId ? persistentChat.sessions.map((session) => ({ id: session.id, title: session.title, active: session.id === persistentChat.currentSessionId })) : historyItems).map((item) => (
+            <div
+              key={item.id}
               className={cn(
-                'block w-full truncate py-2 text-left text-[13px] text-[#777] transition-colors duration-300 hover:text-[#CCC]',
-                item.active && 'border-l border-[rgba(255,255,255,0.15)] pl-3 text-[#DDD]',
+                'group flex w-full items-center gap-1 border-l border-transparent py-2 text-[13px] text-[#777] transition-colors duration-300 hover:text-[#CCC]',
+                item.active && 'border-[rgba(255,255,255,0.15)] pl-3 text-[#DDD]',
                 !historyExpanded && 'opacity-0',
+              )}
+              onContextMenu={(event) => {
+                if (!projectId) return
+                event.preventDefault()
+                const nextTitle = window.prompt('Rename chat', item.title)
+                if (nextTitle) void persistentChat.renameSession(item.id, nextTitle)
+              }}
+            >
+            <button
+              type="button"
+              onClick={() => {
+                if (projectId) persistentChat.selectSession(item.id)
+              }}
+              className={cn(
+                'min-w-0 flex-1 truncate text-left',
               )}
               tabIndex={historyExpanded ? 0 : -1}
             >
               <KineticText text={item.title} active={historyExpanded} />
             </button>
+            {projectId ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (window.confirm(`Delete ${item.title}? This cannot be undone.`)) void persistentChat.removeSession(item.id)
+                  }}
+                  className="grid size-7 place-items-center rounded-md text-red-300 opacity-100 hover:bg-red-400/10 md:opacity-0 md:group-hover:opacity-100"
+                  aria-label={`Delete ${item.title}`}
+                >
+                  <Trash2 className="size-3.5" />
+                </button>
+                <PrometheusChatSessionMenu
+                  onRename={() => {
+                    const nextTitle = window.prompt('Rename chat', item.title)
+                    if (nextTitle) void persistentChat.renameSession(item.id, nextTitle)
+                  }}
+                  onDelete={() => {
+                    if (window.confirm(`Delete ${item.title}? This cannot be undone.`)) void persistentChat.removeSession(item.id)
+                  }}
+                />
+              </>
+            ) : null}
+            </div>
           ))}
         </nav>
       </aside>
 
       <div className="relative z-10 flex min-w-0 flex-1 flex-col">
         <p className="pt-6 text-center text-xs font-normal uppercase tracking-[0.2em] text-[#555]">
-          <KineticText text={title} active />
+          <KineticText text={currentSession?.title ?? title} active />
         </p>
 
         <div
@@ -239,14 +327,16 @@ export function PrometheusChat({
           onScroll={handleThreadScroll}
           className="prometheus-luxury-scroll min-h-0 flex-1 overflow-y-auto px-8 pb-32 pt-12 md:px-24 lg:px-32"
         >
-          {messages.length === 0 ? <EmptyChatWatermark /> : null}
+          {renderedMessages.length === 0 ? <EmptyChatGreeting greeting={getChatGreeting(session?.user, profile)} /> : null}
           <div className="flex flex-col gap-6">
-            {messages.map((message, index) => (
+            {renderedMessages.map((message, index) => (
               <PrometheusMessageBubble
                 key={message.id}
                 message={message}
                 index={index}
                 isLatestAssistant={message.id === latestAssistantMessageId}
+                onStreamingComplete={persistentChat.completeAssistantMessage}
+                onStreamingProgress={handleStreamingProgress}
               />
             ))}
             <div ref={latestMessageRef} aria-hidden className="h-px w-full" />
@@ -333,6 +423,13 @@ export function PrometheusChat({
               >
                 <Video className="size-5" strokeWidth={1.5} />
               </button>
+              <button
+                type="button"
+                className="text-[#555] transition-colors hover:text-[#AAA]"
+                aria-label="Voice command"
+              >
+                <Mic className="size-5" strokeWidth={1.5} />
+              </button>
               <input
                 value={composedDraft}
                 onChange={(event) => setDraft(event.target.value)}
@@ -362,10 +459,14 @@ function PrometheusMessageBubble({
   message,
   index,
   isLatestAssistant,
+  onStreamingComplete,
+  onStreamingProgress,
 }: {
   message: PrometheusChatMessage
   index: number
   isLatestAssistant: boolean
+  onStreamingComplete: (messageId: string) => void
+  onStreamingProgress: () => void
 }) {
   const isUser = message.role === 'user'
   const isThinking = message.status === 'thinking'
@@ -388,7 +489,21 @@ function PrometheusMessageBubble({
         {isThinking ? (
           <InlineLoadingAnimation size={32} label="Prometheus is thinking" />
         ) : (
-          <StreamingResponseText content={message.content} active={!isUser && isLatestAssistant} />
+          <>
+            {!isUser && message.isComplete === false ? <PrometheusChatThinkingProcess active /> : null}
+            {isUser ? (
+              <p className="whitespace-pre-wrap">{message.content}</p>
+            ) : (
+              <p className="prometheus-response-gradient-text whitespace-pre-wrap">
+                <AIChatStreamingText
+                  text={message.content}
+                  isComplete={message.isComplete ?? true}
+                  onComplete={() => onStreamingComplete(message.id)}
+                  onProgress={onStreamingProgress}
+                />
+              </p>
+            )}
+          </>
         )}
       </div>
       {message.pills?.length ? (
@@ -518,10 +633,11 @@ function LiquidMetalFallback({ size = 48 }: { size?: number }) {
   )
 }
 
-function EmptyChatWatermark() {
+function EmptyChatGreeting({ greeting }: { greeting: string }) {
   return (
-    <div className="pointer-events-none absolute inset-0 grid select-none place-items-center text-[40vh] font-normal leading-none text-white/[0.03]">
-      P
+    <div className="absolute inset-0 flex select-none flex-col items-center justify-center gap-5 px-8 text-center">
+      <AIChatOrb className="size-14 md:size-16" />
+      <p className="max-w-xs text-sm leading-relaxed text-white/50">{greeting}</p>
     </div>
   )
 }

@@ -10,13 +10,9 @@ function read(relativePath) {
 
 function run() {
   const requiredFiles = [
-    "components/editor/ai-chat-overlay.tsx",
-    "components/editor/ai-chat-trigger-desktop.tsx",
+    "components/editor/PrometheusChat.tsx",
     "components/editor/ai-chat-orb.tsx",
-    "components/editor/ai-chat-message.tsx",
-    "components/editor/ai-chat-input.tsx",
-    "components/editor/ai-chat-suggestions.tsx",
-    "components/editor/ai-chat-typing-indicator.tsx",
+    "components/editor/ai-chat-streaming-text.tsx",
     "hooks/use-ai-chat.ts",
   ];
 
@@ -26,17 +22,15 @@ function run() {
 
   const shell = read("components/editor/EditorRouteShell.tsx");
   const sidebar = read("components/editor/EditorHamburgerSidebar.tsx");
-  const overlay = read("components/editor/ai-chat-overlay.tsx");
+  const overlay = read("components/editor/PrometheusChat.tsx");
   const hook = read("hooks/use-ai-chat.ts");
 
-  assert.match(shell, /AIChatOverlay/);
-  assert.match(shell, /AIChatTriggerDesktop/);
-  assert.match(shell, /onOpenChatOverlay/);
-  assert.match(sidebar, /onOpenChatOverlay\??:/);
-  assert.match(sidebar, /item\.panel === "chat"/);
-  assert.match(overlay, /fixed inset-0 z-\[60\]/);
-  assert.match(overlay, /backdrop-blur-\[24px\]/);
+  assert.doesNotMatch(shell, /AIChatOverlay/);
+  assert.doesNotMatch(shell, /AIChatTriggerDesktop/);
+  assert.doesNotMatch(shell, /onOpenChatOverlay/);
+  assert.match(sidebar, /panel: "chat"/);
   assert.match(overlay, /getChatGreeting/);
+  assert.match(overlay, /useAIChat/);
   assert.match(hook, /fetch\("\/api\/prometheus-chat"/);
   assert.match(hook, /projectId/);
   assert.match(hook, /social media content strategist/i);

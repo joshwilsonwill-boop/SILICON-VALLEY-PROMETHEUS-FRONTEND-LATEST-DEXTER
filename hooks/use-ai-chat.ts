@@ -2,13 +2,14 @@
 
 import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
 
-import { createAndActivateAIChatSession } from "@/components/editor/ai-chat-new-session";
 import { getChatMessages, insertChatMessage } from "@/lib/supabase/chat-messages";
 import {
+  createChatSession,
   deleteChatSession,
   getProjectChatSessions,
   getUserChatSessions,
   type ChatSession,
+  updateChatSessionTitle,
 } from "@/lib/supabase/chat-sessions";
 
 export type AIChatPlatform =
@@ -73,9 +74,10 @@ export function useAIChat({ projectId, enabled = true }: { projectId: string | n
   const ensureSession = useCallback(async () => {
     if (currentSessionIdRef.current) return currentSessionIdRef.current;
     if (!creatingSessionRef.current) {
-      creatingSessionRef.current = createAndActivateAIChatSession(projectId, (session) => {
+      creatingSessionRef.current = createChatSession(projectId).then((session) => {
         setActiveSessionId(session.id);
         setSessions((current) => [session, ...current.filter((entry) => entry.id !== session.id)]);
+        return session;
       });
     }
 
@@ -273,10 +275,9 @@ export function useAIChat({ projectId, enabled = true }: { projectId: string | n
   const createNewSession = useCallback(async () => {
     setIsHistoryLoading(true);
     try {
-      const session = await createAndActivateAIChatSession(projectId, (newSession) => {
-        setActiveSessionId(newSession.id);
-        setSessions((current) => [newSession, ...current.filter((entry) => entry.id !== newSession.id)]);
-      });
+      const session = await createChatSession(projectId);
+      setActiveSessionId(session.id);
+      setSessions((current) => [session, ...current.filter((entry) => entry.id !== session.id)]);
       setMessages([]);
       return session;
     } catch {
@@ -307,6 +308,15 @@ export function useAIChat({ projectId, enabled = true }: { projectId: string | n
     }
   }, [createNewSession, currentSessionId, selectSession, sessions]);
 
+  const renameSession = useCallback(async (sessionId: string, title: string) => {
+    try {
+      const session = await updateChatSessionTitle(sessionId, title);
+      setSessions((current) => current.map((entry) => entry.id === sessionId ? session : entry));
+    } catch {
+      setError("Unable to rename this chat right now.");
+    }
+  }, []);
+
   const clearError = useCallback(() => setError(null), []);
 
   return {
@@ -321,6 +331,7 @@ export function useAIChat({ projectId, enabled = true }: { projectId: string | n
     isSending,
     messages,
     removeSession,
+    renameSession,
     sendMessage,
     selectSession,
     setDraft,
