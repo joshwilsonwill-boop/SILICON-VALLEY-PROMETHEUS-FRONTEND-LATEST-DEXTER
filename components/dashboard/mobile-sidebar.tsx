@@ -2,16 +2,19 @@
 
 import * as React from 'react'
 import { usePathname, useRouter } from 'next/navigation'
-import { ChevronLeft, Edit3, Folder, Home, LogOut, Monitor, Plus, Settings, User } from 'lucide-react'
+import { BarChart3, ChevronLeft, Edit3, Folder, Home, LogOut, Monitor, Plus, Settings, User } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useBodyScrollLock } from '@/hooks/use-body-scroll-lock'
 import { useSwipeClose } from '@/hooks/use-swipe-close'
-import { HamburgerIcon } from '@/components/ui/hamburger-icon'
+import { GlassSphereAvatar } from '@/components/ui/glass-sphere-avatar'
+import { LiquidGlassButton } from '@/components/ui/liquid-glass-button'
+import { UserProfilePopup } from '@/components/ui/user-profile-popup'
 import { MobileNavItem } from './mobile-nav-item'
 
 export interface DashboardMobileSidebarProps {
   userName?: string | null
   userEmail?: string | null
+  userAvatar?: string | null
   studioHref?: string
   profileHref?: string
   onNewProject?: () => void
@@ -33,6 +36,7 @@ function dispatchDashboardEvent(name: string) {
 export function DashboardMobileSidebar({
   userName,
   userEmail,
+  userAvatar,
   studioHref = '/',
   profileHref = '/settings/profile',
   onNewProject,
@@ -47,6 +51,8 @@ export function DashboardMobileSidebar({
   const openRef = React.useRef(false)
   const closeTimerRef = React.useRef<number | null>(null)
   const { lockBodyScroll, unlockBodyScroll } = useBodyScrollLock(false)
+  const [isOpen, setIsOpen] = React.useState(false)
+  const [isUserPopupOpen, setIsUserPopupOpen] = React.useState(false)
 
   const displayName = userName?.trim() || 'Account'
   const displayEmail = userEmail?.trim() || 'Signed in'
@@ -55,6 +61,7 @@ export function DashboardMobileSidebar({
   const applyOpenState = React.useCallback(
     (open: boolean) => {
       openRef.current = open
+      setIsOpen(open)
 
       const drawer = drawerRef.current
       if (drawer) {
@@ -150,7 +157,7 @@ export function DashboardMobileSidebar({
 
   return (
     <div className={cn('md:hidden', className)}>
-      <HamburgerIcon ref={hamburgerRef} onClick={() => (openRef.current ? closeSidebar() : openSidebar())} />
+      <LiquidGlassButton ref={hamburgerRef} isOpen={isOpen} onClick={() => (openRef.current ? closeSidebar() : openSidebar())} aria-label={isOpen ? 'Close mobile navigation' : 'Open mobile navigation'} aria-expanded={isOpen} className="fixed left-4 top-4 z-50 md:hidden" />
 
       <button
         ref={overlayRef}
@@ -205,6 +212,7 @@ export function DashboardMobileSidebar({
             <MobileNavItem label="Projects" icon={Folder} active={isPathActive(pathname, '/projects')} onSelect={() => navigateTo('/projects')} />
             <MobileNavItem label="Studio" icon={Monitor} active={isPathActive(pathname, studioHref)} onSelect={() => navigateTo(studioHref)} />
             <MobileNavItem label="Editor" icon={Edit3} active={isPathActive(pathname, '/editor')} onSelect={() => navigateTo('/editor')} />
+            <MobileNavItem label="Analytics" icon={BarChart3} active={isPathActive(pathname, '/analytics')} onSelect={() => navigateTo('/analytics')} />
           </div>
 
           <div className="my-3 border-t border-white/[0.06]" />
@@ -217,18 +225,17 @@ export function DashboardMobileSidebar({
         </nav>
 
         <footer className="border-t border-white/[0.06] p-3">
-          <div className="mb-3 flex min-w-0 items-center gap-3 rounded-2xl border border-white/[0.08] bg-white/[0.035] p-3">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-xs font-semibold text-white">
-              {avatarLabel}
-            </div>
+          <button type="button" onClick={() => { closeSidebar(); window.setTimeout(() => setIsUserPopupOpen(true), CLOSE_ANIMATION_MS) }} className="mb-3 flex w-full min-w-0 items-center gap-3 rounded-2xl border border-white/[0.08] bg-white/[0.035] p-3 text-left transition-colors hover:bg-white/[0.06]">
+            <GlassSphereAvatar src={userAvatar} alt={displayName} fallback={avatarLabel} size={32} />
             <div className="min-w-0 flex-1">
               <p className="truncate text-xs font-medium text-white/86">{displayName}</p>
               <p className="truncate text-xs text-white/42">{displayEmail}</p>
             </div>
-          </div>
+          </button>
           <MobileNavItem label="Logout" icon={LogOut} destructive onSelect={handleLogout} />
         </footer>
       </aside>
+      <UserProfilePopup isOpen={isUserPopupOpen} onClose={() => setIsUserPopupOpen(false)} onLogout={handleLogout} user={{ avatar: userAvatar, email: displayEmail, name: displayName, plan: 'Free' }} />
     </div>
   )
 }

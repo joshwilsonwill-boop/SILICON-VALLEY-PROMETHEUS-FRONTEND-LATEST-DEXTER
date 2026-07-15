@@ -3,8 +3,6 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   FileText,
-  Link as LinkIcon,
-  MonitorIcon,
   Music2,
   PlusIcon,
   Send,
@@ -25,9 +23,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { GlassBubbleCard, GlassUploadBackdrop } from '@/components/ui/glass-upload-shell';
-import { Input } from '@/components/ui/input';
 import { MediaUpscaleComparison } from '@/components/ui/media-upscale-comparison';
-import { SourceRetentionNotice } from '@/components/source-retention-notice';
 
 type PendingUploadKind = 'video' | 'image' | 'audio' | 'file';
 
@@ -64,17 +60,13 @@ type GlassUploadModalViewProps = {
 };
 
 export function GlassUploadModalView({
-  addSourceMode,
   isSourceDragOver,
   onApplyUploadToPrompt,
   onClearPendingUpload,
-  onImportSourceLink,
-  onModeChange,
   onSourceDragLeave,
   onSourceDragOver,
   onSourceDrop,
   onSourceFileInputChange,
-  onSourceUrlChange,
   pendingUpload,
   sourceDetail,
   sourceDisplayName,
@@ -82,11 +74,9 @@ export function GlassUploadModalView({
   sourceFileInputRef,
   sourcePrimaryBadge,
   sourceReady,
-  sourceUrl,
-  sourceUrlValue,
 }: GlassUploadModalViewProps) {
-  const handleAttach = addSourceMode === 'link' ? onImportSourceLink : onApplyUploadToPrompt;
-  const showSendAction = addSourceMode === 'upload' && !!pendingUpload;
+  const handleAttach = onApplyUploadToPrompt;
+  const showSendAction = !!pendingUpload;
   const openSourcePicker = () => sourceFileInputRef.current?.click();
   const sourceMetrics = pendingUpload?.sourceProfile ? formatSourceProfileMetric(pendingUpload.sourceProfile) : null;
   const previewStageClassName =
@@ -119,33 +109,8 @@ export function GlassUploadModalView({
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3 lg:justify-end">
-                  <div className="inline-flex rounded-full border border-white/12 bg-white/[0.04] p-1 backdrop-blur-md">
-                    <button
-                      type="button"
-                      onClick={() => onModeChange('upload')}
-                      className={cn(
-                        'inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm transition-all duration-300',
-                        addSourceMode === 'upload'
-                          ? 'bg-white text-black'
-                          : 'text-white/62 hover:text-white',
-                      )}
-                    >
-                      <Upload className="h-4 w-4" />
-                      Upload
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => onModeChange('link')}
-                      className={cn(
-                        'inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm transition-all duration-300',
-                        addSourceMode === 'link'
-                          ? 'bg-white text-black'
-                          : 'text-white/62 hover:text-white',
-                      )}
-                    >
-                      <LinkIcon className="h-4 w-4" />
-                      Link
-                    </button>
+                  <div className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/[0.07] px-4 py-2 text-sm font-medium text-white">
+                    <Upload className="h-4 w-4" /> Upload
                   </div>
 
                   {showSendAction ? (
@@ -176,7 +141,7 @@ export function GlassUploadModalView({
                   />
 
                   <AnimatePresence mode="wait">
-                    {addSourceMode === 'upload' ? (
+                    {(
                       <motion.div
                         key="upload-mode"
                         initial={{ opacity: 0, y: 8 }}
@@ -234,41 +199,8 @@ export function GlassUploadModalView({
                           </Button>
                         </div>
                       </motion.div>
-                    ) : (
-                      <motion.div
-                        key="link-mode"
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -6 }}
-                        transition={{ duration: 0.2, ease: 'easeOut' }}
-                        className="rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(19,20,26,0.9)_0%,rgba(9,10,13,0.94)_100%)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
-                      >
-                        <div className="text-[10px] uppercase tracking-[0.24em] text-white/38">
-                          Link
-                        </div>
-                        <div className="mt-2 text-base font-medium text-white">Paste source</div>
-                        <div className="mt-4 rounded-[20px] border border-white/10 bg-white/[0.03] p-4">
-                          <Input
-                            value={sourceUrl}
-                            onChange={(event) => onSourceUrlChange(event.target.value)}
-                            onKeyDown={(event) => {
-                              if (event.key === 'Enter' && sourceUrlValue) {
-                                event.preventDefault();
-                                onImportSourceLink();
-                              }
-                            }}
-                            placeholder="https://"
-                            className="h-12 rounded-[18px] border-white/10 bg-black/30 text-white placeholder:text-white/28"
-                          />
-                          <div className="mt-3 text-sm leading-6 text-white/48">
-                            Stage a remote video or reference link.
-                          </div>
-                        </div>
-                      </motion.div>
                     )}
                   </AnimatePresence>
-
-                  <SourceRetentionNotice className="border-white/8 bg-white/[0.01]" />
 
                   {pendingUpload && (
                     <div className="rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(17,18,24,0.88)_0%,rgba(9,10,13,0.94)_100%)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
@@ -293,9 +225,7 @@ export function GlassUploadModalView({
                             />
                           ) : (
                             <div className="flex h-full w-full items-center justify-center text-white/58">
-                              {addSourceMode === 'link' ? (
-                                <LinkIcon className="h-4 w-4" />
-                              ) : pendingUpload?.kind === 'audio' ? (
+                              {pendingUpload?.kind === 'audio' ? (
                                 <Music2 className="h-4 w-4" />
                               ) : pendingUpload?.kind === 'file' ? (
                                 <FileText className="h-4 w-4" />
@@ -320,7 +250,7 @@ export function GlassUploadModalView({
                 <div className="text-xs text-white/42">Ready to edit.</div>
 
                 <div className="flex flex-wrap items-center gap-3">
-                  {pendingUpload && addSourceMode === 'upload' && (
+                  {pendingUpload && (
                     <Button
                       type="button"
                       variant="outline"

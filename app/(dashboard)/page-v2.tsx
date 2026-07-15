@@ -2,10 +2,10 @@
 
 import * as React from 'react'
 
-import { DashboardMobileSidebar } from '@/components/dashboard/mobile-sidebar'
+import { DashboardMobileSidebarProfileV2 } from '@/components/dashboard/dashboard-mobile-sidebar-profile-v2'
 import { DashboardRotator } from '@/components/dashboard/DashboardRotator'
 import { AmbientGlow } from '@/components/editor/AmbientGlow'
-import { AwwwardsSidebar } from '@/components/sidebar/AwwwardsSidebar'
+import { PrometheusDashboardSidebar } from '@/components/sidebar/prometheus-dashboard-sidebar'
 import { useDeviceTier } from '@/hooks/useDeviceTier'
 
 function dispatchDashboardEvent(name: string) {
@@ -28,17 +28,17 @@ export default function DashboardPageV2() {
       <AmbientGlow />
 
       <div className="hidden lg:block">
-        <AwwwardsSidebar />
+        <PrometheusDashboardSidebar />
       </div>
 
-      <DashboardMobileSidebar
+      <DashboardMobileSidebarProfileV2
         className="lg:hidden"
         onNewProject={handleNewProject}
         profileHref="/settings/profile"
         studioHref="/studio"
       />
 
-      <main className="relative flex min-h-screen min-w-0 flex-col lg:ml-[280px]">
+      <main className="relative flex min-h-screen min-w-0 flex-col lg:ml-0">
         <DashboardRotator />
       </main>
     </div>

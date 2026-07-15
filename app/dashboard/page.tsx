@@ -3,7 +3,7 @@
 import { DashboardRotator } from "@/components/dashboard/DashboardRotator";
 import { AmbientGlow } from "@/components/editor/AmbientGlow";
 import { MobileLanding } from "@/components/mobile/MobileLanding";
-import { AwwwardsSidebar } from "@/components/sidebar/AwwwardsSidebar";
+import { PrometheusDashboardSidebar } from "@/components/sidebar/prometheus-dashboard-sidebar";
 import { useDeviceTier } from "@/hooks/useDeviceTier";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 
@@ -21,7 +21,7 @@ export default function DashboardPage() {
       data-device-tier={tier}
     >
       <AmbientGlow />
-      <AwwwardsSidebar />
+      <PrometheusDashboardSidebar />
       <main className="relative flex min-w-0 flex-1 flex-col">
         <DashboardRotator />
       </main>

@@ -459,7 +459,7 @@ function describeMultipartUploadProgress(progress: MultipartUploadProgress, file
         : "Single part";
 
     if (progress.phase === "initiating") {
-        return "Preparing secure multipart upload channel...";
+        return "Preparing video...";
     }
 
     if (progress.phase === "retrying") {
@@ -467,15 +467,15 @@ function describeMultipartUploadProgress(progress: MultipartUploadProgress, file
     }
 
     if (progress.phase === "completing") {
-        return "Finalizing uploaded parts in Cloudflare R2...";
+        return "Finalizing upload...";
     }
 
     if (progress.phase === "aborting") {
-        return "Cancelling incomplete upload and cleaning up R2 parts...";
+        return "Cancelling upload...";
     }
 
     if (progress.phase === "done") {
-        return "Upload complete. Registering asset metadata...";
+        return "Upload complete. Saving your video...";
     }
 
     return `Uploading ${fileName} (${progress.percentage}%) — ${partLabel}.`;
@@ -1792,7 +1792,7 @@ export function VideoUploadInterface() {
             if (selectedSourceFile) {
                 setEditorLaunchOverlay({
                     title: launchProjectTitle,
-                    detail: "Preparing secure upload channel...",
+                    detail: "Preparing video...",
                 });
 
                 currentStage = 'R2_MULTIPART_UPLOAD';

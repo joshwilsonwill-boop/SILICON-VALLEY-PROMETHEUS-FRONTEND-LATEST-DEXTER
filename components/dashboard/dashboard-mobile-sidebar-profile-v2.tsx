@@ -4,7 +4,7 @@ import * as React from 'react'
 import { DashboardMobileSidebar, type DashboardMobileSidebarProps } from '@/components/dashboard/mobile-sidebar'
 import { useProfile } from '@/hooks/use-profile'
 
-export type DashboardMobileSidebarProfileV2Props = Omit<DashboardMobileSidebarProps, 'userName' | 'userEmail'> & {
+export type DashboardMobileSidebarProfileV2Props = Omit<DashboardMobileSidebarProps, 'userName' | 'userEmail' | 'userAvatar'> & {
   userName?: string | null
   userEmail?: string | null
 }
@@ -21,6 +21,7 @@ export function DashboardMobileSidebarProfileV2({
       {...props}
       userName={userName ?? displayName}
       userEmail={userEmail ?? profile?.email ?? null}
+      userAvatar={profile?.avatar_url ?? null}
     />
   )
 }
