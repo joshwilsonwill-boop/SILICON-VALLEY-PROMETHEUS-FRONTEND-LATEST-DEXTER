@@ -646,7 +646,8 @@ export default function ProfileSettingsPage() {
 
     try {
       const updatedProfile = await updateAvatar(croppedFile)
-      const avatarUrl = updatedProfile?.avatar_url || optimisticPreviewUrl
+      const avatarUrl = updatedProfile?.avatar_url
+      if (!avatarUrl) throw new Error('Avatar upload succeeded but no persisted URL was returned.')
       setValue('avatarUrl', avatarUrl, { shouldDirty: true, shouldValidate: true })
       setAvatarPreview(avatarUrl)
       clearSelectedAvatarSource()

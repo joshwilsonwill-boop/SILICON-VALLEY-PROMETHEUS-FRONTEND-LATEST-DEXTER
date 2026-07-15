@@ -26,7 +26,7 @@ function getAvatarR2Config() {
     (process.env.R2_ACCOUNT_ID ? `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com` : undefined)
   const accessKeyId = process.env.R2_ACCESS_KEY_ID
   const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY
-  const bucketName = process.env.R2_AVATAR_BUCKET || 'prometheus-avatars-avatars'
+  const bucketName = process.env.R2_AVATAR_BUCKET
   const publicBaseUrl = process.env.R2_PUBLIC_URL || process.env.R2_PUBLIC_BASE_URL
 
   const missing: string[] = []
@@ -42,10 +42,10 @@ function getAvatarR2Config() {
   }
 
   return {
-    endpoint: endpoint || 'https://invalid.r2.local',
+    endpoint,
     accessKeyId: accessKeyId || 'missing',
     secretAccessKey: secretAccessKey || 'missing',
-    bucketName: bucketName || '',
+    bucketName,
     publicBaseUrl: publicBaseUrl || '',
     missing,
   }
@@ -53,6 +53,8 @@ function getAvatarR2Config() {
 
 function createAvatarR2Client() {
   const config = getAvatarR2Config()
+  if (!config.endpoint) throw new Error('R2_ENDPOINT not set')
+  if (!config.bucketName) throw new Error('R2_AVATAR_BUCKET not set')
 
   return new S3Client({
     region: 'auto',
@@ -116,10 +118,20 @@ export async function uploadAvatarObject({
   const config = getAvatarR2Config()
   if (config.missing.length > 0) throw new Error(`Avatar upload storage is not configured: ${config.missing.join(', ')}`)
 
-  await avatarR2Client.send(new PutObjectCommand({
-    Bucket: config.bucketName,
-    Key: key,
-    Body: body,
-    ContentType: contentType,
-  }))
+  try {
+    const result = await avatarR2Client.send(new PutObjectCommand({
+      Bucket: config.bucketName,
+      Key: key,
+      Body: body,
+      ContentType: contentType,
+    }))
+    console.log('[R2] Upload success:', config.bucketName, key, {
+      etag: result.ETag ?? null,
+      versionId: result.VersionId ?? null,
+    })
+    return result
+  } catch (error) {
+    console.error('[R2] Upload FAILED:', config.bucketName, key, error)
+    throw error
+  }
 }

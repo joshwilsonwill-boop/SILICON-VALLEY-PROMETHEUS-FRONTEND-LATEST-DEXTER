@@ -22,15 +22,17 @@ export async function POST(request: Request) {
 
   const key = buildAvatarObjectKey(user.id)
   const publicUrl = getAvatarPublicUrl(key)
+  console.log('[R2] Upload request:', { size: file.size, type: file.type, key })
   try {
-    await uploadAvatarObject({
+    const result = await uploadAvatarObject({
       body: new Uint8Array(await file.arrayBuffer()),
       contentType: file.type,
       key,
     })
+    console.log('[R2] Upload response:', { key, etag: result.ETag ?? null, versionId: result.VersionId ?? null })
   } catch (error) {
     console.error('R2 avatar upload failed:', error)
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Failed to upload avatar' }, { status: 500 })
+    return NextResponse.json({ error: `R2 upload failed: ${error instanceof Error ? error.message : 'Failed to upload avatar'}` }, { status: 500 })
   }
   const { data, error } = await supabase
     .from('profiles')
