@@ -2,6 +2,7 @@ import type { User } from "@supabase/supabase-js";
 
 export type DisplayNameProfile = {
   display_name?: string | null;
+  username?: string | null;
   first_name?: string | null;
   full_name?: string | null;
 } | null | undefined;
@@ -29,7 +30,7 @@ export function getUserDisplayName(user: User | null | undefined, profile?: Disp
   if (!user) return "Creator";
 
   const metadata = user.user_metadata ?? {};
-  const displayName = cleanName(profile?.display_name) || cleanName(metadata.display_name);
+  const displayName = cleanName(profile?.display_name) || cleanName(profile?.username) || cleanName(metadata.display_name);
   if (displayName && !isDefaultUsername(displayName, user.email)) return firstWord(displayName);
 
   const firstName = cleanName(profile?.first_name) || cleanName(metadata.first_name);

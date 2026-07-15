@@ -12,7 +12,7 @@ import { useAIChat } from "@/hooks/use-ai-chat";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { useProfile } from "@/hooks/use-profile";
 import { useVoiceInput } from "@/hooks/use-voice-input";
-import { getChatGreeting } from "@/lib/user/display-name";
+import { getChatGreeting, getUserDisplayName } from "@/lib/user/display-name";
 
 import { AIChatOrb } from "./ai-chat-orb";
 import { AIChatSuggestions } from "./ai-chat-suggestions";
@@ -25,7 +25,7 @@ function formatTimestamp(value: string) {
 
 export function PrometheusChatMobile({ projectId, onClose }: { projectId: string | null; onClose: () => void }) {
   const { session } = useAuth();
-  const { profile } = useProfile();
+  const { profile, loading: isProfileLoading } = useProfile();
   const chat = useAIChat({ projectId });
   const { copy } = useCopyToClipboard();
   const voice = useVoiceInput(
@@ -41,6 +41,8 @@ export function PrometheusChatMobile({ projectId, onClose }: { projectId: string
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
   const longPressRef = useRef<number | null>(null);
   const ignoreNextSessionSelectRef = useRef(false);
+  const greetingName = getUserDisplayName(session?.user, profile);
+  const hasPersonalGreeting = greetingName !== "Creator";
 
   const scrollToLatest = useCallback(() => {
     if (!pinnedToBottomRef.current) return;
@@ -107,7 +109,14 @@ export function PrometheusChatMobile({ projectId, onClose }: { projectId: string
         {chat.messages.length === 0 ? (
           <div className="flex min-h-full flex-col items-center justify-center pb-6 text-center">
             <AIChatOrb className="size-14" />
-            <p className="mt-5 max-w-xs text-sm leading-relaxed text-white/55">{getChatGreeting(session?.user, profile)}</p>
+            {isProfileLoading || !hasPersonalGreeting ? (
+              <p className="mt-5 max-w-xs text-sm leading-relaxed text-white/55">{getChatGreeting(session?.user, profile)}</p>
+            ) : (
+              <div className="mt-5 flex max-w-xs items-center justify-center gap-3 text-left">
+                {profile?.avatar_url ? <img src={profile.avatar_url} alt="" className="size-10 rounded-full object-cover" /> : null}
+                <p className="text-sm leading-relaxed text-white/55">Hi, {greetingName}, let&apos;s build something.</p>
+              </div>
+            )}
             <div className="mt-6 w-full max-w-sm">
               <AIChatSuggestions
                 expanded={expandedSuggestions}

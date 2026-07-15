@@ -44,7 +44,6 @@ import {
 import { Input } from '@/components/ui/input'
 import { LiquidChromeButton } from '@/components/ui/liquid-chrome-button'
 import { Textarea } from '@/components/ui/textarea'
-import { useAvatarUpload } from '@/hooks/use-avatar-upload'
 import { useProfile } from '@/hooks/use-profile'
 import {
   DEFAULT_NOTIFICATION_PREFERENCES,
@@ -55,7 +54,7 @@ import {
 import { syncNotificationPreferences, syncProfilePreferences } from '@/lib/profile/preferences-client'
 import { useThemePreferenceStore } from '@/lib/theme/theme-store'
 import { FONT_PRESETS, THEME_PRESETS } from '@/lib/theme/theme-tokens'
-import { AvatarUploadError, validateAvatarFile } from '@/lib/upload/avatar-upload'
+import { validateAvatarFile } from '@/lib/upload/avatar-upload'
 import { cn } from '@/lib/utils'
 
 const SAVE_DELAY_MS = 800
@@ -264,7 +263,7 @@ function getEmailUsername(email: string | undefined | null) {
 }
 
 function getInitial(email: string | undefined | null, username: string) {
-  return (getEmailUsername(email) || username || 'P').charAt(0).toUpperCase()
+  return (username || getEmailUsername(email) || 'P').charAt(0).toUpperCase()
 }
 
 function safeRead(key: string) {
@@ -308,6 +307,7 @@ function loadSettings(
   email: string | undefined | null,
   profile?: {
     avatar_url?: string | null
+    username?: string | null
     bio?: string | null
     display_name?: string | null
     font_preference?: string | null
@@ -330,7 +330,7 @@ function loadSettings(
 
   const candidate = {
     ...DEFAULT_VALUES,
-    username: safeRead('prometheus_username') || emailUsername,
+    username: profile?.username ?? safeRead('prometheus_username') ?? emailUsername,
     displayName: profile?.display_name ?? safeRead('prometheus_display_name') ?? emailUsername,
     avatarUrl: profile?.avatar_url ?? safeRead('prometheus_avatar_url') ?? DEFAULT_VALUES.avatarUrl,
     bio: profile?.bio ?? safeRead('prometheus_profile_bio') ?? DEFAULT_VALUES.bio,
@@ -398,13 +398,11 @@ function getMaskedApiKey(apiKey: string, revealed: boolean) {
 export default function ProfileSettingsPage() {
   const router = useRouter()
   const { session, isLoading: authLoading } = useAuth()
-  const { profile } = useProfile()
-  const { upload: uploadAvatarToR2, isUploading: isAvatarUploading, progress: avatarUploadProgress, reset: resetAvatarUploadError } = useAvatarUpload()
+  const { profile, updateAvatar, updateDisplayName, updateUsername } = useProfile()
   const setThemeAndFont = useThemePreferenceStore((state) => state.setThemeAndFont)
   const setNotificationPreferences = useNotificationPreferenceStore((state) => state.setPreferences)
   const email = session?.user?.email ?? ''
   const fileInputRef = React.useRef<HTMLInputElement | null>(null)
-  const previousAvatarUrlRef = React.useRef('')
 
   const form = useForm<ProfileSettingsFormValues>({
     resolver: zodResolver(profileSettingsSchema),
@@ -527,7 +525,9 @@ export default function ProfileSettingsPage() {
     try {
       await delay()
       if (target === 'username') {
-        persistCurrentSettings()
+        await updateUsername(getValues('username'))
+      } else if (target === 'displayName') {
+        await updateDisplayName(getValues('displayName'))
       } else {
         await saveProfilePreferencesForCurrentValues(target)
       }
@@ -622,8 +622,6 @@ export default function ProfileSettingsPage() {
 
     try {
       validateAvatarFile(file)
-      resetAvatarUploadError()
-
       const previewUrl = URL.createObjectURL(file)
       setAvatarCropSource(previewUrl)
       setIsAvatarCropOpen(true)
@@ -637,8 +635,6 @@ export default function ProfileSettingsPage() {
 
   async function handleAvatarCropComplete(croppedImageBlob: Blob) {
     const previousAvatarUrl = watchedValues.avatarUrl || ''
-    previousAvatarUrlRef.current = previousAvatarUrl
-
     const optimisticPreviewUrl = URL.createObjectURL(croppedImageBlob)
     const croppedFile = new File([croppedImageBlob], 'avatar.webp', {
       type: 'image/webp',
@@ -649,32 +645,17 @@ export default function ProfileSettingsPage() {
     setValue('avatarUrl', optimisticPreviewUrl, { shouldDirty: true, shouldValidate: true })
 
     try {
-      const { publicUrl } = await uploadAvatarToR2(croppedFile)
-      setValue('avatarUrl', publicUrl, { shouldDirty: true, shouldValidate: true })
-      setAvatarPreview(publicUrl)
+      const updatedProfile = await updateAvatar(croppedFile)
+      const avatarUrl = updatedProfile?.avatar_url || optimisticPreviewUrl
+      setValue('avatarUrl', avatarUrl, { shouldDirty: true, shouldValidate: true })
+      setAvatarPreview(avatarUrl)
       clearSelectedAvatarSource()
-
-      try {
-        await saveProfilePreferencesForCurrentValues('avatar')
-        toast.success('Avatar updated')
-      } catch (error) {
-        toast.error(
-          error instanceof Error
-            ? `Avatar saved to storage but profile not updated. ${error.message}`
-            : 'Avatar saved to storage but profile not updated.',
-        )
-      }
+      toast.success('Avatar updated')
     } catch (error) {
       setValue('avatarUrl', previousAvatarUrl, { shouldDirty: true, shouldValidate: true })
       setAvatarPreview(previousAvatarUrl)
 
-      if (error instanceof AvatarUploadError && error.code === 'SESSION_EXPIRED') {
-        toast.error(error.message)
-        clearSelectedAvatarSource()
-        router.push('/login')
-      } else {
-        toast.error(error instanceof Error ? error.message : 'Upload failed. Check your connection.')
-      }
+      toast.error(error instanceof Error ? error.message : 'Upload failed. Check your connection.')
 
       throw error
     } finally {
@@ -772,7 +753,7 @@ export default function ProfileSettingsPage() {
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    disabled={isAvatarUploading}
+                    disabled={savingTarget === 'avatar'}
                     className="group relative flex size-20 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-[#6366f1] text-2xl font-bold text-white shadow-[0_18px_54px_-24px_rgba(99,102,241,0.95)]"
                     style={{ background: avatarImage ? undefined : 'var(--accent, #6366f1)' }}
                     aria-label="Upload avatar"
@@ -786,7 +767,7 @@ export default function ProfileSettingsPage() {
                       initials
                     )}
                     <span className="absolute inset-0 flex items-center justify-center bg-black/45 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-disabled:opacity-100">
-                      {isAvatarUploading ? (
+                      {savingTarget === 'avatar' ? (
                         <InlineLoadingAnimation size={20} label="Uploading avatar" />
                       ) : (
                         <Upload className="size-5" />
@@ -801,10 +782,10 @@ export default function ProfileSettingsPage() {
                     onChange={handleAvatarChange}
                   />
                   <div id="avatar-upload-status" className="text-xs text-white/42">
-                    {isAvatarUploading ? `Uploading avatar: ${avatarUploadProgress}%` : 'JPG, PNG, or WebP under 5MB'}
+                    {savingTarget === 'avatar' ? 'Uploading avatar...' : 'JPG, PNG, or WebP under 5MB'}
                   </div>
                   <p className="sr-only" aria-live="polite">
-                    {isAvatarUploading ? `Uploading avatar, ${avatarUploadProgress}% complete.` : ''}
+                    {savingTarget === 'avatar' ? 'Uploading avatar.' : ''}
                   </p>
                 </div>
 
