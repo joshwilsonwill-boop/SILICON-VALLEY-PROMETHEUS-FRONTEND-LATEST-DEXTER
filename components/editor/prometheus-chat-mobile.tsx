@@ -1,16 +1,20 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronLeft, History, Mic, Plus, Send, Trash2, X } from "lucide-react";
+import { ChevronLeft, History, Plus, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type TouchEvent } from "react";
+import { toast } from "sonner";
 
 import { useAuth } from "@/components/auth/auth-provider";
+import { ChatMessageBubble } from "@/components/chat/chat-message-bubble";
+import { MobileChatInput } from "@/components/chat/mobile-chat-input";
 import { useAIChat } from "@/hooks/use-ai-chat";
+import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { useProfile } from "@/hooks/use-profile";
+import { useVoiceInput } from "@/hooks/use-voice-input";
 import { getChatGreeting } from "@/lib/user/display-name";
 
 import { AIChatOrb } from "./ai-chat-orb";
-import { AIChatStreamingText } from "./ai-chat-streaming-text";
 import { AIChatSuggestions } from "./ai-chat-suggestions";
 import { PrometheusChatSessionMenu } from "./prometheus-chat-session-menu";
 import { PrometheusChatThinkingProcess } from "./prometheus-chat-thinking-process";
@@ -23,13 +27,20 @@ export function PrometheusChatMobile({ projectId, onClose }: { projectId: string
   const { session } = useAuth();
   const { profile } = useProfile();
   const chat = useAIChat({ projectId });
+  const { copy } = useCopyToClipboard();
+  const voice = useVoiceInput(
+    chat.setDraft,
+    () => window.setTimeout(() => void chat.sendMessage(), 2_000),
+  );
   const [historyOpen, setHistoryOpen] = useState(false);
   const [expandedSuggestions, setExpandedSuggestions] = useState(false);
+  const [historyActionSession, setHistoryActionSession] = useState<{ id: string; title: string } | null>(null);
   const messagesViewportRef = useRef<HTMLDivElement | null>(null);
   const pinnedToBottomRef = useRef(true);
   const dismissTouchStartRef = useRef<number | null>(null);
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
   const longPressRef = useRef<number | null>(null);
+  const ignoreNextSessionSelectRef = useRef(false);
 
   const scrollToLatest = useCallback(() => {
     if (!pinnedToBottomRef.current) return;
@@ -111,17 +122,16 @@ export function PrometheusChatMobile({ projectId, onClose }: { projectId: string
               const isUser = message.role === "user";
               return (
                 <article key={message.id} className={isUser ? "ml-auto max-w-[82%]" : "max-w-[88%]"}>
-                  <div className={isUser ? "rounded-[16px_16px_4px_16px] bg-white/[0.09] px-4 py-3 text-sm" : "rounded-[4px_16px_16px_16px] bg-white/[0.04] px-4 py-3 text-sm leading-relaxed text-white/90"}>
-                    {!isUser && message.isComplete === false ? <PrometheusChatThinkingProcess active /> : null}
-                    {isUser ? message.content : (
-                      <AIChatStreamingText
-                        text={message.content}
-                        isComplete={message.isComplete ?? true}
-                        onComplete={() => chat.completeAssistantMessage(message.id)}
-                        onProgress={scrollToLatest}
-                      />
-                    )}
-                  </div>
+                  {!isUser && message.isComplete === false ? <PrometheusChatThinkingProcess active /> : null}
+                  <ChatMessageBubble
+                    role={message.role}
+                    content={message.content}
+                    isStreaming={!isUser && message.isComplete === false}
+                    onStreamingProgress={(content) => chat.reportStreamingProgress(message.id, content)}
+                    onStreamingComplete={() => chat.completeAssistantMessage(message.id)}
+                    onCopy={() => void copy(message.content).then((copied) => copied ? toast.success("Copied to clipboard") : toast.error("Unable to copy message"))}
+                    onEdit={isUser ? (content) => void chat.editAndResendMessage(message.id, content) : undefined}
+                  />
                 </article>
               );
             })}
@@ -130,23 +140,15 @@ export function PrometheusChatMobile({ projectId, onClose }: { projectId: string
         )}
       </div>
 
-      <form
-        className="shrink-0 border-t border-white/[0.06] bg-black/20 px-4 py-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]"
-        onSubmit={(event) => {
-          event.preventDefault();
-          void chat.sendMessage();
-        }}
-      >
-        <div className="flex items-end gap-2 rounded-2xl border border-white/[0.08] bg-white/[0.04] px-3 py-2">
-          <textarea value={chat.draft} onChange={(event) => chat.setDraft(event.target.value)} rows={1} placeholder="Ask Prometheus..." className="max-h-24 min-h-8 flex-1 resize-none bg-transparent text-sm leading-6 outline-none placeholder:text-white/35" />
-          <button type="button" className="grid size-8 place-items-center text-white/45 hover:text-white" aria-label="Voice command">
-            <Mic className="size-4" />
-          </button>
-          <button type="submit" disabled={!chat.draft.trim() || chat.isSending} className="grid size-8 place-items-center rounded-full bg-white text-black disabled:opacity-30" aria-label="Send message">
-            <Send className="size-3.5" />
-          </button>
-        </div>
-      </form>
+      <MobileChatInput
+        isListening={voice.isListening}
+        isStreaming={chat.isSending}
+        value={chat.draft}
+        onChange={chat.setDraft}
+        onSend={() => void chat.sendMessage()}
+        onStop={chat.stopStreaming}
+        onVoice={() => voice.isListening ? voice.stopListening() : voice.startListening()}
+      />
 
       <AnimatePresence>
         {historyOpen ? (
@@ -164,7 +166,10 @@ export function PrometheusChatMobile({ projectId, onClose }: { projectId: string
                   onTouchStart={(event) => {
                     const touch = event.touches[0];
                     touchStartRef.current = touch ? { x: touch.clientX, y: touch.clientY } : null;
-                    longPressRef.current = window.setTimeout(() => renameSession(item.id, item.title), 550);
+                    longPressRef.current = window.setTimeout(() => {
+                      ignoreNextSessionSelectRef.current = true;
+                      setHistoryActionSession({ id: item.id, title: item.title });
+                    }, 550);
                   }}
                   onTouchEnd={(event) => {
                     if (longPressRef.current) window.clearTimeout(longPressRef.current);
@@ -174,15 +179,30 @@ export function PrometheusChatMobile({ projectId, onClose }: { projectId: string
                     touchStartRef.current = null;
                   }}
                 >
-                  <button type="button" onClick={() => { chat.selectSession(item.id); setHistoryOpen(false); }} className="min-w-0 flex-1 text-left">
+                  <button type="button" onClick={() => {
+                    if (ignoreNextSessionSelectRef.current) {
+                      ignoreNextSessionSelectRef.current = false;
+                      return;
+                    }
+                    chat.selectSession(item.id);
+                    setHistoryOpen(false);
+                  }} className="min-w-0 flex-1 text-left">
                     <p className="truncate text-sm text-white">{item.title}</p>
                     <p className="mt-1 text-xs text-white/40">{formatTimestamp(item.updated_at)}</p>
                   </button>
-                  <button type="button" onClick={() => deleteSession(item.id, item.title)} className="grid size-8 place-items-center text-red-300 opacity-100 md:opacity-0 md:group-hover:opacity-100" aria-label={`Delete ${item.title}`}><Trash2 className="size-4" /></button>
                   <PrometheusChatSessionMenu onRename={() => renameSession(item.id, item.title)} onDelete={() => deleteSession(item.id, item.title)} />
                 </div>
               ))}
             </div>
+            {historyActionSession ? (
+              <div className="absolute inset-0 z-10 flex items-end bg-black/45 p-3" onClick={() => setHistoryActionSession(null)}>
+                <div className="w-full rounded-xl border border-white/[0.1] bg-[#1b1b1e] p-2" onClick={(event) => event.stopPropagation()}>
+                  <p className="px-3 py-2 text-xs text-white/45">{historyActionSession.title}</p>
+                  <button type="button" onClick={() => { renameSession(historyActionSession.id, historyActionSession.title); setHistoryActionSession(null); }} className="w-full rounded-lg px-3 py-2.5 text-left text-sm text-white hover:bg-white/[0.08]">Rename</button>
+                  <button type="button" onClick={() => { deleteSession(historyActionSession.id, historyActionSession.title); setHistoryActionSession(null); }} className="w-full rounded-lg px-3 py-2.5 text-left text-sm text-red-300 hover:bg-red-400/10">Delete</button>
+                </div>
+              </div>
+            ) : null}
           </motion.aside>
         ) : null}
       </AnimatePresence>

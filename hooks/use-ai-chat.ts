@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
 
-import { getChatMessages, insertChatMessage } from "@/lib/supabase/chat-messages";
+import { deleteChatMessages, getChatMessages, insertChatMessage, insertChatMessages } from "@/lib/supabase/chat-messages";
 import {
   createChatSession,
   deleteChatSession,
@@ -53,10 +53,16 @@ export function useAIChat({ projectId, enabled = true }: { projectId: string | n
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
+  const messagesRef = useRef<AIChatMessage[]>([]);
   const abortControllerRef = useRef<AbortController | null>(null);
   const currentSessionIdRef = useRef<string | null>(null);
   const creatingSessionRef = useRef<Promise<ChatSession> | null>(null);
   const pendingAssistantMessagesRef = useRef(new Map<string, { message: AIChatMessage; sessionId: string | null }>());
+  const streamedContentRef = useRef(new Map<string, string>());
+
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   const setActiveSessionId = useCallback((sessionId: string | null) => {
     currentSessionIdRef.current = sessionId;
@@ -163,20 +169,20 @@ export function useAIChat({ projectId, enabled = true }: { projectId: string | n
   }, [currentSessionId, enabled]);
 
   const sendMessage = useCallback(
-    async (message?: string) => {
+    async (message?: string, options?: { history?: AIChatMessage[]; persistUser?: boolean; reuseMessage?: AIChatMessage }) => {
       const text = (message ?? draft).trim();
       if (!text || isSending) return;
 
-      const userMessage: AIChatMessage = {
+      const userMessage = options?.reuseMessage ?? {
         id: `user-${crypto.randomUUID()}`,
         role: "user",
         content: text,
         createdAt: new Date().toISOString(),
         isComplete: true,
-      };
-      const history = messages.map(({ role, content }) => ({ role, content }));
+      } satisfies AIChatMessage;
+      const history = (options?.history ?? messagesRef.current).map(({ role, content }) => ({ role, content }));
 
-      setMessages((current) => [...current, userMessage]);
+      if (!options?.reuseMessage) setMessages((current) => [...current, userMessage]);
       setDraft("");
       setError(null);
       setIsSending(true);
@@ -189,7 +195,7 @@ export function useAIChat({ projectId, enabled = true }: { projectId: string | n
 
       try {
         const sessionId = await ensureSession().catch(() => null);
-        if (sessionId) {
+        if (sessionId && options?.persistUser !== false) {
           void insertChatMessage(sessionId, {
             role: "user",
             content: text,
@@ -225,6 +231,7 @@ export function useAIChat({ projectId, enabled = true }: { projectId: string | n
           ...inferPostMetadata(`${text}\n${reply}`),
         };
         pendingAssistantMessagesRef.current.set(assistantMessage.id, { message: assistantMessage, sessionId });
+        streamedContentRef.current.set(assistantMessage.id, "");
         setMessages((current) => [...current, assistantMessage]);
         awaitStreamingCompletion = true;
         setIsAwaitingResponse(false);
@@ -249,6 +256,7 @@ export function useAIChat({ projectId, enabled = true }: { projectId: string | n
   const completeAssistantMessage = useCallback((messageId: string) => {
     const pending = pendingAssistantMessagesRef.current.get(messageId);
     pendingAssistantMessagesRef.current.delete(messageId);
+    streamedContentRef.current.delete(messageId);
     setMessages((current) => current.map((message) => message.id === messageId ? { ...message, isComplete: true } : message));
     setIsSending(false);
     setIsAwaitingResponse(false);
@@ -262,6 +270,64 @@ export function useAIChat({ projectId, enabled = true }: { projectId: string | n
       }).then(() => refreshSessions()).catch(() => undefined);
     }
   }, [refreshSessions]);
+
+  const reportStreamingProgress = useCallback((messageId: string, content: string) => {
+    streamedContentRef.current.set(messageId, content);
+  }, []);
+
+  const stopStreaming = useCallback(() => {
+    abortControllerRef.current?.abort();
+    const pendingMessages = [...pendingAssistantMessagesRef.current.values()];
+    pendingAssistantMessagesRef.current.clear();
+    setMessages((current) => current.map((message) => {
+      if (message.isComplete !== false) return message;
+      const content = streamedContentRef.current.get(message.id) ?? message.content;
+      return { ...message, content: `${content}\n\n[Stopped]`, isComplete: true };
+    }));
+    setIsSending(false);
+    setIsAwaitingResponse(false);
+
+    for (const pending of pendingMessages) {
+      if (!pending.sessionId) continue;
+      const content = streamedContentRef.current.get(pending.message.id) ?? pending.message.content;
+      streamedContentRef.current.delete(pending.message.id);
+      void insertChatMessage(pending.sessionId, {
+        role: "assistant",
+        content: `${content}\n\n[Stopped]`,
+        platform: pending.message.platform,
+        post_type: pending.message.postType,
+      }).then(() => refreshSessions()).catch(() => undefined);
+    }
+  }, [refreshSessions]);
+
+  const editAndResendMessage = useCallback(async (messageId: string, content: string) => {
+    if (isSending) return;
+    const source = messagesRef.current;
+    const messageIndex = source.findIndex((message) => message.id === messageId && message.role === "user");
+    if (messageIndex < 0) return;
+
+    const editedMessage = { ...source[messageIndex], content, isComplete: true };
+    const retainedMessages = [...source.slice(0, messageIndex), editedMessage];
+    setMessages(retainedMessages);
+
+    const sessionId = currentSessionIdRef.current;
+    if (sessionId) {
+      try {
+        await deleteChatMessages(sessionId);
+        await insertChatMessages(sessionId, retainedMessages.map((message) => ({ role: message.role, content: message.content, platform: message.platform, post_type: message.postType })));
+        await refreshSessions();
+      } catch {
+        setError("Unable to update this chat right now.");
+        return;
+      }
+    }
+
+    await sendMessage(content, {
+      history: retainedMessages.slice(0, -1),
+      persistUser: false,
+      reuseMessage: editedMessage,
+    });
+  }, [isSending, refreshSessions, sendMessage]);
 
   const selectSession = useCallback((sessionId: string) => {
     abortControllerRef.current?.abort();
@@ -324,6 +390,7 @@ export function useAIChat({ projectId, enabled = true }: { projectId: string | n
     draft,
     error,
     completeAssistantMessage,
+    editAndResendMessage,
     createNewSession,
     currentSessionId,
     isAwaitingResponse,
@@ -332,7 +399,9 @@ export function useAIChat({ projectId, enabled = true }: { projectId: string | n
     messages,
     removeSession,
     renameSession,
+    reportStreamingProgress,
     sendMessage,
+    stopStreaming,
     selectSession,
     setDraft,
     sessions,
