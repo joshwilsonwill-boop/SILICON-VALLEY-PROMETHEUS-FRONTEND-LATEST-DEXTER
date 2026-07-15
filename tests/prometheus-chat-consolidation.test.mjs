@@ -38,6 +38,9 @@ function run() {
   assert.match(mobileChat, /AIChatOrb/);
   assert.match(mobileChat, /PrometheusChatThinkingProcess/);
   assert.match(mobileChat, /Mic/);
+  assert.match(mobileChat, /Close mobile chat backdrop/);
+  assert.match(mobileChat, /handleDismissTouchEnd/);
+  assert.match(mobileChat, /onTouchMove=\{\(event\) => event\.stopPropagation\(\)\}/);
   assert.match(shell, /if \(activeTool === "chat"\)/);
   assert.doesNotMatch(shell, /ChatPanel/);
 }

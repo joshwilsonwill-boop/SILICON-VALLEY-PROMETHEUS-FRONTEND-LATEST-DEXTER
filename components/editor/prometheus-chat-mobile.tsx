@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronLeft, History, Mic, Plus, Send, Trash2, X } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type TouchEvent } from "react";
 
 import { useAuth } from "@/components/auth/auth-provider";
 import { useAIChat } from "@/hooks/use-ai-chat";
@@ -27,6 +27,7 @@ export function PrometheusChatMobile({ projectId, onClose }: { projectId: string
   const [expandedSuggestions, setExpandedSuggestions] = useState(false);
   const messagesViewportRef = useRef<HTMLDivElement | null>(null);
   const pinnedToBottomRef = useRef(true);
+  const dismissTouchStartRef = useRef<number | null>(null);
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
   const longPressRef = useRef<number | null>(null);
 
@@ -54,26 +55,33 @@ export function PrometheusChatMobile({ projectId, onClose }: { projectId: string
     if (window.confirm(`Delete ${title}? This cannot be undone.`)) void chat.removeSession(sessionId);
   };
 
+  const handleDismissTouchEnd = (event: TouchEvent<HTMLButtonElement>) => {
+    const startY = dismissTouchStartRef.current;
+    const endY = event.changedTouches[0]?.clientY;
+    if (startY !== null && endY !== undefined && endY - startY > 72) onClose();
+    dismissTouchStartRef.current = null;
+  };
+
   return (
-    <motion.section
+    <>
+      <button type="button" className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm" onClick={onClose} aria-label="Close mobile chat backdrop" />
+      <motion.section
       className="fixed inset-x-0 bottom-0 z-[60] flex h-[82dvh] max-h-[760px] flex-col overflow-hidden rounded-t-2xl border-t border-white/10 bg-[#101012]/95 text-white shadow-[0_-24px_80px_rgba(0,0,0,0.55)] backdrop-blur-2xl"
       initial={{ y: "100%" }}
       animate={{ y: 0 }}
       exit={{ y: "100%" }}
       transition={{ type: "spring", stiffness: 330, damping: 32 }}
-      onTouchStart={(event) => {
-        const touch = event.touches[0];
-        touchStartRef.current = touch ? { x: touch.clientX, y: touch.clientY } : null;
-      }}
-      onTouchEnd={(event) => {
-        const touch = event.changedTouches[0];
-        const start = touchStartRef.current;
-        if (touch && start && touch.clientY - start.y > 100) onClose();
-        touchStartRef.current = null;
-      }}
       aria-label="Prometheus chat"
     >
-      <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-white/20" aria-hidden="true" />
+      <button
+        type="button"
+        className="mx-auto mt-2 h-4 w-16 touch-none"
+        aria-label="Drag down to close chat"
+        onTouchStart={(event) => { dismissTouchStartRef.current = event.touches[0]?.clientY ?? null; }}
+        onTouchEnd={handleDismissTouchEnd}
+      >
+        <span className="mx-auto block h-1 w-10 rounded-full bg-white/20" aria-hidden="true" />
+      </button>
       <header className="flex h-12 shrink-0 items-center border-b border-white/[0.06] px-4">
         <button type="button" onClick={() => setHistoryOpen(true)} className="grid size-9 place-items-center text-white/60 hover:text-white" aria-label="Open chat history">
           <History className="size-4" />
@@ -84,7 +92,7 @@ export function PrometheusChatMobile({ projectId, onClose }: { projectId: string
         </button>
       </header>
 
-      <div ref={messagesViewportRef} onScroll={handleScroll} className="min-h-0 flex-1 overflow-y-auto px-4 py-5">
+      <div ref={messagesViewportRef} onScroll={handleScroll} onTouchMove={(event) => event.stopPropagation()} className="min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-contain px-4 py-5">
         {chat.messages.length === 0 ? (
           <div className="flex min-h-full flex-col items-center justify-center pb-6 text-center">
             <AIChatOrb className="size-14" />
@@ -178,6 +186,7 @@ export function PrometheusChatMobile({ projectId, onClose }: { projectId: string
           </motion.aside>
         ) : null}
       </AnimatePresence>
-    </motion.section>
+      </motion.section>
+    </>
   );
 }
