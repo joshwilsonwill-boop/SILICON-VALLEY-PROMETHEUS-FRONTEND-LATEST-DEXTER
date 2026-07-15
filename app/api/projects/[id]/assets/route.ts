@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { ProjectService } from '@/lib/projects/service'
 import { getPresignedGetUrl } from '@/lib/r2/presigned-url'
+import { requireOwnedProjectSourceKey } from '@/lib/r2/project-source-multipart'
 import { startAssemblyAITranscription } from '@/lib/api/assemblyai'
 import { formatStorage, getStorageLimit, getStorageTierFromPlan } from '@/lib/storage-limits'
 
@@ -74,7 +75,7 @@ export async function POST(
   try {
     const { id: projectId } = await params
     const body = await req.json().catch(() => ({}))
-    const { 
+    const {
       assetId,
       storageProvider = 'r2',
       bucket,
@@ -88,7 +89,7 @@ export async function POST(
       profile
     } = body
 
-    if (!assetId || !objectKey) {
+    if (typeof assetId !== 'string' || typeof objectKey !== 'string' || !assetId || !objectKey) {
       return NextResponse.json({ error: 'Missing assetId or objectKey' }, { status: 400 })
     }
 
@@ -97,6 +98,15 @@ export async function POST(
     
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    if (typeof mimeType !== 'string' || !mimeType.trim()) {
+      return NextResponse.json({ error: 'Missing source mime type' }, { status: 400 })
+    }
+
+    const keyContext = await requireOwnedProjectSourceKey(projectId, objectKey)
+    if ('error' in keyContext) {
+      return NextResponse.json({ error: keyContext.error }, { status: keyContext.status })
     }
 
     // Confirm user owns the project
@@ -139,14 +149,25 @@ export async function POST(
     }
 
     // Insert source asset metadata
+    const { data: existingAsset, error: existingAssetError } = await supabase
+      .from('source_assets')
+      .select('id, project_id, user_id')
+      .eq('id', assetId)
+      .maybeSingle()
+
+    if (existingAssetError) throw existingAssetError
+    if (existingAsset && (existingAsset.project_id !== projectId || existingAsset.user_id !== user.id)) {
+      return NextResponse.json({ error: 'Asset belongs to a different project' }, { status: 409 })
+    }
+
     const { data: asset, error: assetError } = await supabase
       .from('source_assets')
-      .insert({
+      .upsert({
         id: assetId,
         project_id: projectId,
         user_id: user.id,
-        storage_bucket: bucket,
-        storage_path: objectKey,
+        storage_bucket: keyContext.bucket,
+        storage_path: keyContext.key,
         original_filename: filename,
         mime_type: mimeType,
         size_bytes: sizeBytes,
@@ -154,7 +175,7 @@ export async function POST(
         width: width,
         height: height,
         profile: profile || {},
-      })
+      }, { onConflict: 'id' })
       .select()
       .single()
 

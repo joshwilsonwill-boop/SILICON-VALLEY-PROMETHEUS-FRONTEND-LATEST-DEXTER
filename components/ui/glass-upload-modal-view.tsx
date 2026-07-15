@@ -37,17 +37,13 @@ type PendingUpload = {
 };
 
 type GlassUploadModalViewProps = {
-  addSourceMode: 'link' | 'upload';
   isSourceDragOver: boolean;
   onApplyUploadToPrompt: () => void;
   onClearPendingUpload: () => void;
-  onImportSourceLink: () => void;
-  onModeChange: (mode: 'link' | 'upload') => void;
   onSourceDragLeave: () => void;
   onSourceDragOver: React.DragEventHandler<HTMLDivElement>;
   onSourceDrop: React.DragEventHandler<HTMLDivElement>;
   onSourceFileInputChange: React.ChangeEventHandler<HTMLInputElement>;
-  onSourceUrlChange: (value: string) => void;
   pendingUpload: PendingUpload | null;
   sourceDetail: string;
   sourceDisplayName: string;
@@ -55,8 +51,6 @@ type GlassUploadModalViewProps = {
   sourceFileInputRef: React.RefObject<HTMLInputElement | null>;
   sourcePrimaryBadge: string;
   sourceReady: boolean;
-  sourceUrl: string;
-  sourceUrlValue: string;
 };
 
 export function GlassUploadModalView({

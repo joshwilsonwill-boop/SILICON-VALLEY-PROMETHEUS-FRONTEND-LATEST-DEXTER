@@ -64,12 +64,8 @@ function describeMultipartUploadProgress(progress: MultipartUploadProgress, file
     ? `part ${Math.max(1, progress.currentPart)} of ${progress.totalParts}`
     : 'single part'
 
-  if (progress.phase === 'initiating') return 'Preparing secure upload channel...'
-  if (progress.phase === 'retrying') return `Network timeout. Retrying ${partLabel} for ${fileName}.`
-  if (progress.phase === 'completing') return 'Finalizing uploaded parts in Cloudflare R2...'
-  if (progress.phase === 'aborting') return 'Cancelling incomplete upload and cleaning up R2 parts...'
-  if (progress.phase === 'done') return 'Upload complete. Registering asset metadata...'
-  return `Uploading ${fileName} (${progress.percentage}%).`
+  if (progress.phase === 'completing' || progress.phase === 'done') return 'Processing...'
+  return 'Uploading video...'
 }
 
 export function EditorNewProjectUploadDialog({ open, onOpenChange }: EditorNewProjectUploadDialogProps) {
@@ -77,13 +73,10 @@ export function EditorNewProjectUploadDialog({ open, onOpenChange }: EditorNewPr
   const sourceFileInputRef = React.useRef<HTMLInputElement | null>(null)
   const abortControllerRef = React.useRef<AbortController | null>(null)
   const inspectionRunRef = React.useRef(0)
-  const [addSourceMode, setAddSourceMode] = React.useState<'link' | 'upload'>('upload')
   const [isSourceDragOver, setIsSourceDragOver] = React.useState(false)
   const [pendingUpload, setPendingUpload] = React.useState<PendingUpload | null>(null)
-  const [sourceUrl, setSourceUrl] = React.useState('')
   const [uploadStatus, setUploadStatus] = React.useState<UploadStatus>('idle')
   const [uploadProgress, setUploadProgress] = React.useState(0)
-  const [uploadPartLabel, setUploadPartLabel] = React.useState<string | null>(null)
   const [uploadMessage, setUploadMessage] = React.useState<string | null>(null)
 
   const isUploading = uploadStatus === 'presigning' || uploadStatus === 'uploading' || uploadStatus === 'retrying'
@@ -118,7 +111,6 @@ export function EditorNewProjectUploadDialog({ open, onOpenChange }: EditorNewPr
     })
     setUploadStatus('idle')
     setUploadProgress(0)
-    setUploadPartLabel(null)
     setUploadMessage(null)
   }, [])
 
@@ -126,8 +118,6 @@ export function EditorNewProjectUploadDialog({ open, onOpenChange }: EditorNewPr
     if (isUploading) return
     onOpenChange(false)
     clearPendingUpload()
-    setSourceUrl('')
-    setAddSourceMode('upload')
   }, [clearPendingUpload, isUploading, onOpenChange])
 
   const handleUploadSelection = React.useCallback(async (files: File[]) => {
@@ -261,9 +251,6 @@ export function EditorNewProjectUploadDialog({ open, onOpenChange }: EditorNewPr
                     : 'uploading'
           setUploadStatus(nextStatus)
           setUploadProgress(progress.percentage)
-          setUploadPartLabel(progress.totalParts > 1
-            ? `Uploading part ${Math.max(1, progress.currentPart)} of ${progress.totalParts}`
-            : `Uploading ${formatFileSize(file.size)}`)
           setUploadMessage(describeMultipartUploadProgress(progress, file.name))
         },
       })
@@ -352,12 +339,9 @@ export function EditorNewProjectUploadDialog({ open, onOpenChange }: EditorNewPr
         </DialogClose>
 
         <GlassUploadModalView
-          addSourceMode={addSourceMode}
           isSourceDragOver={isSourceDragOver}
           onApplyUploadToPrompt={() => void startUpload()}
           onClearPendingUpload={clearPendingUpload}
-          onImportSourceLink={() => toast.info('Upload a video file to create a new editor project.')}
-          onModeChange={setAddSourceMode}
           onSourceDragLeave={() => setIsSourceDragOver(false)}
           onSourceDragOver={(event) => {
             event.preventDefault()
@@ -365,7 +349,6 @@ export function EditorNewProjectUploadDialog({ open, onOpenChange }: EditorNewPr
           }}
           onSourceDrop={handleSourceDrop}
           onSourceFileInputChange={handleSourceFileInputChange}
-          onSourceUrlChange={setSourceUrl}
           pendingUpload={pendingUpload}
           sourceDetail={sourceDetail}
           sourceDisplayName={sourceDisplayName}
@@ -373,8 +356,6 @@ export function EditorNewProjectUploadDialog({ open, onOpenChange }: EditorNewPr
           sourceFileInputRef={sourceFileInputRef}
           sourcePrimaryBadge={sourcePrimaryBadge}
           sourceReady={Boolean(pendingUpload)}
-          sourceUrl={sourceUrl}
-          sourceUrlValue={sourceUrl.trim()}
         />
 
         <AnimatePresence>
@@ -394,30 +375,10 @@ export function EditorNewProjectUploadDialog({ open, onOpenChange }: EditorNewPr
                       label={uploadMessage ?? 'Preparing video upload'}
                     />
                   ) : null}
-                  <p className="mt-4 text-lg font-medium text-white">
-                    {uploadStatus === 'error' ? 'Upload paused' : 'Preparing upload'}
-                  </p>
-                  <p className="mt-2 text-sm text-white/58">
-                    {uploadMessage ?? 'Preparing your video for the editor.'}
-                  </p>
+                  <p className="mt-4 text-lg font-medium text-white">{uploadStatus === 'error' ? 'Upload failed' : uploadMessage ?? 'Uploading video...'}</p>
                 </div>
                 {isUploading ? (
-                  <div className="mt-5 rounded-[24px] border border-white/10 bg-white/[0.045] p-4 backdrop-blur-xl">
-                    <div className="flex items-center justify-between gap-4 text-xs text-white/62">
-                      <span>{uploadPartLabel ?? 'Preparing upload'}</span>
-                      <span className="font-semibold text-white">{uploadProgress}%</span>
-                    </div>
-                    <div className="mt-4 flex justify-center">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="h-9 rounded-full border-white/12 bg-transparent px-4 text-xs text-white/72 hover:bg-white/[0.08] hover:text-white"
-                        onClick={cancelActiveUpload}
-                      >
-                        Cancel Upload
-                      </Button>
-                    </div>
-                  </div>
+                  <button type="button" aria-label="Cancel upload" onClick={cancelActiveUpload} className="mt-5 grid size-10 place-items-center rounded-full border border-red-400/20 bg-red-500/10 text-red-300/70 transition-colors hover:bg-red-500/20 hover:text-red-200"><XIcon className="size-4" /></button>
                 ) : null}
                 {uploadStatus === 'error' ? (
                   <div className="mt-4 flex justify-center">

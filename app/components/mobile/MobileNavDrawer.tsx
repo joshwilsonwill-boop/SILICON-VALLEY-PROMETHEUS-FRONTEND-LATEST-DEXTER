@@ -2,32 +2,25 @@
 
 import * as React from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { FolderKanban, LibraryBig, LayoutDashboard, Settings, Wand2, X } from 'lucide-react'
+import { X } from 'lucide-react'
 import { usePathname, useRouter } from 'next/navigation'
 
-import { HamburgerButton } from '@/app/components/mobile/HamburgerButton'
+import { LiquidGlassButton } from '@/components/ui/liquid-glass-button'
+import { GlassSphereAvatar } from '@/components/ui/glass-sphere-avatar'
+import { UserProfilePopup } from '@/components/ui/user-profile-popup'
 import { NavDrawerHeader } from '@/app/components/mobile/NavDrawerHeader'
 import { NavDrawerItem } from '@/app/components/mobile/NavDrawerItem'
 import { useLockBodyScroll } from '@/app/hooks/useLockBodyScroll'
 import { useSwipeGesture } from '@/app/hooks/useSwipeGesture'
 import { rememberCurrentPathForEditorReturn } from '@/lib/editor-navigation'
+import { prometheusNavItems } from '@/lib/navigation'
+import { getProfileDisplayName, useProfile } from '@/hooks/use-profile'
 
 interface MobileNavDrawerProps {
   children: (controls: { hamburger: React.ReactNode; isOpen: boolean }) => React.ReactNode
 }
 
-const drawerTransition = {
-  duration: 0.35,
-  ease: [0.32, 0.72, 0, 1] as const,
-}
-
-const navItems = [
-  { key: 'studio', label: 'Studio', href: '/', icon: LayoutDashboard },
-  { key: 'projects', label: 'Projects', href: '/projects', icon: FolderKanban },
-  { key: 'library', label: 'Library', href: '/assets', icon: LibraryBig },
-  { key: 'editor', label: 'Editor', href: '/editor', icon: Wand2 },
-  { key: 'settings', label: 'Settings', href: '/settings', icon: Settings },
-]
+const drawerTransition = { type: 'spring' as const, stiffness: 300, damping: 30 }
 
 export function MobileNavDrawer({ children }: MobileNavDrawerProps) {
   const [isOpen, setIsOpen] = React.useState(false)
@@ -37,6 +30,9 @@ export function MobileNavDrawer({ children }: MobileNavDrawerProps) {
   const drawerDragRef = React.useRef<{ startX: number; startY: number; triggered: boolean } | null>(null)
   const pathname = usePathname()
   const router = useRouter()
+  const { profile } = useProfile()
+  const [isProfileOpen, setIsProfileOpen] = React.useState(false)
+  const displayName = getProfileDisplayName(profile)
 
   useLockBodyScroll(isOpen)
 
@@ -98,7 +94,7 @@ export function MobileNavDrawer({ children }: MobileNavDrawerProps) {
   }, [isOpen])
 
   const activeHref = React.useMemo(() => {
-    return navItems.find((item) => isPathActive(pathname, item.href))?.href ?? null
+    return prometheusNavItems.find((item) => isPathActive(pathname, item.href))?.href ?? null
   }, [pathname])
 
   const handleSelect = React.useCallback(
@@ -143,7 +139,7 @@ export function MobileNavDrawer({ children }: MobileNavDrawerProps) {
   return (
     <>
       {children({
-        hamburger: <HamburgerButton isOpen={isOpen} onToggle={() => setIsOpen((current) => !current)} />,
+        hamburger: <LiquidGlassButton isOpen={isOpen} onToggle={() => setIsOpen((current) => !current)} />,
         isOpen,
       })}
 
@@ -171,7 +167,7 @@ export function MobileNavDrawer({ children }: MobileNavDrawerProps) {
             />
 
             <div className="fixed left-4 top-[calc(env(safe-area-inset-top)+10px)] z-[60] md:hidden">
-              <HamburgerButton isOpen={isOpen} onToggle={() => setIsOpen(false)} />
+              <LiquidGlassButton isOpen={isOpen} onToggle={() => setIsOpen(false)} />
             </div>
 
             <motion.aside
@@ -217,28 +213,30 @@ export function MobileNavDrawer({ children }: MobileNavDrawerProps) {
 
               <nav className="min-h-0 flex-1 overflow-y-auto px-3 py-5 scrollbar-hidden" aria-label="Prometheus mobile navigation">
                 <div className="space-y-1">
-                  {navItems.map((item) => (
-                    <NavDrawerItem
+                  {prometheusNavItems.map((item, index) => (
+                    <motion.div key={item.key} initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: index * 0.04 }}><NavDrawerItem
                       key={item.key}
                       href={item.href}
                       icon={item.icon}
                       isActive={item.href === activeHref}
                       label={item.label}
                       onSelect={handleSelect}
-                    />
+                    /></motion.div>
                   ))}
                 </div>
               </nav>
+              <button type="button" onClick={() => { setIsOpen(false); window.setTimeout(() => setIsProfileOpen(true), 180) }} className="mx-3 mb-4 flex min-h-12 items-center gap-3 rounded-2xl border border-white/8 bg-white/[0.03] p-2.5 text-left"><GlassSphereAvatar alt={displayName} src={profile?.avatar_url} size={32} /><span className="min-w-0 flex-1"><span className="block truncate text-sm text-white/80">{displayName}</span><span className="block text-[11px] text-white/35">Free Plan</span></span></button>
 
             </motion.aside>
           </>
         ) : null}
       </AnimatePresence>
+      <UserProfilePopup isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} onLogout={() => { setIsProfileOpen(false); void fetch('/api/auth/logout', { method: 'POST' }).finally(() => router.push('/login')) }} user={{ name: displayName, email: profile?.email, avatar: profile?.avatar_url, plan: 'Free' }} />
     </>
   )
 }
 
 function isPathActive(pathname: string, href: string) {
-  if (href === '/') return pathname === '/' || pathname === '/dashboard'
+  if (href === '/studio') return pathname === '/' || pathname === '/studio'
   return pathname === href || pathname.startsWith(`${href}/`)
 }

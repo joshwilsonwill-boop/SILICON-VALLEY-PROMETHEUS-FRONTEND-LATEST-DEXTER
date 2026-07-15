@@ -70,7 +70,6 @@ import { createProcessingJob, getActiveStyleId, getMostRecentProject, startProce
 import { buildBillingHref, hasBillingAccess } from "@/lib/billing";
 import { setSessionSourcePreview } from "@/lib/source-preview-session";
 import type { SourceProfile } from "@/lib/types";
-import { SourceRetentionNotice } from "./source-retention-notice";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { normalizeUxError } from "@/lib/ux/errors";
@@ -1314,7 +1313,6 @@ const PromptComposer = React.memo(function PromptComposer({
                     </motion.button>
                 </div>
 
-                <SourceRetentionNotice variant="minimal" />
             </motion.div>
 
             <div className="flex flex-wrap items-center justify-center gap-2">
@@ -2311,12 +2309,9 @@ export function VideoUploadInterface() {
 
                     {useGlassUploadPopup ? (
                         <GlassUploadModalView
-                            addSourceMode={addSourceMode}
                             isSourceDragOver={isSourceDragOver}
                             onApplyUploadToPrompt={applyUploadToPrompt}
                             onClearPendingUpload={clearPendingUpload}
-                            onImportSourceLink={importSourceLink}
-                            onModeChange={setAddSourceMode}
                             onSourceDragLeave={() => setIsSourceDragOver(false)}
                             onSourceDragOver={(event) => {
                                 event.preventDefault();
@@ -2324,7 +2319,6 @@ export function VideoUploadInterface() {
                             }}
                             onSourceDrop={handleSourceDrop}
                             onSourceFileInputChange={handleSourceFileInputChange}
-                            onSourceUrlChange={setSourceUrl}
                             pendingUpload={pendingUpload}
                             sourceDetail={sourceDetail}
                             sourceDisplayName={sourceDisplayName}
@@ -2332,8 +2326,6 @@ export function VideoUploadInterface() {
                             sourceFileInputRef={sourceFileInputRef}
                             sourcePrimaryBadge={sourcePrimaryBadge}
                             sourceReady={sourceReady}
-                            sourceUrl={sourceUrl}
-                            sourceUrlValue={sourceUrlValue}
                         />
                     ) : (
                     <div className="relative flex max-h-[calc(100svh-1rem)] flex-col overflow-hidden rounded-[40px] border border-[#6d685f] bg-[linear-gradient(180deg,#67625b_0%,#5b5650_100%)] p-2 shadow-[0_56px_140px_-54px_rgba(0,0,0,0.98)] sm:max-h-[calc(100svh-2rem)] sm:rounded-[54px] sm:p-3">

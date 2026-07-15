@@ -6,26 +6,18 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
-import {
-  BarChart3,
-  ChevronsLeft,
-  ChevronsRight,
-  FolderKanban,
-  LibraryBig,
-  LayoutDashboard,
-  Settings,
-  Wand2,
-} from 'lucide-react'
+import { ChevronsLeft, ChevronsRight } from 'lucide-react'
 
 import { rememberCurrentPathForEditorReturn } from '@/lib/editor-navigation'
 import { getMostRecentProject, PROJECTS_UPDATED_EVENT } from '@/lib/mock'
 import { cn } from '@/lib/utils'
+import { prometheusNavItems } from '@/lib/navigation'
 
 interface MenuItem {
   key: string
   label: string
   href: string
-  icon: ComponentType<{ className?: string }>
+  icon: ComponentType<{ className?: string; strokeWidth?: number }>
 }
 
 interface BladeMetrics {
@@ -55,18 +47,11 @@ interface NavItemProps extends Omit<React.ComponentPropsWithoutRef<typeof Link>,
   collapsed: boolean
 }
 
-const BASE_MENU_ITEMS: MenuItem[] = [
-  { key: 'studio', label: 'Studio', href: '/', icon: LayoutDashboard },
-  { key: 'projects', label: 'Projects', href: '/projects', icon: FolderKanban },
-  { key: 'library', label: 'Library', href: '/assets', icon: LibraryBig },
-  { key: 'editor', label: 'Editor', href: '/editor', icon: Wand2 },
-  { key: 'analytics', label: 'Analytics', href: '/analytics', icon: BarChart3 },
-  { key: 'settings', label: 'Settings', href: '/settings', icon: Settings },
-]
+const BASE_MENU_ITEMS: MenuItem[] = prometheusNavItems
 
 const ACTIVE_CUTOUT_COLOR = '#0f0b17'
-const SIDEBAR_EXPANDED_WIDTH = 290
-const SIDEBAR_COLLAPSED_WIDTH = 104
+const SIDEBAR_EXPANDED_WIDTH = 260
+const SIDEBAR_COLLAPSED_WIDTH = 72
 const COLLAPSE_CONTENT_TRANSITION = {
   duration: 0.16,
   ease: [0.22, 1, 0.36, 1] as const,
@@ -391,7 +376,7 @@ const NavItem = forwardRef<HTMLAnchorElement, NavItemProps>(function NavItem(
             : 'border-white/8 bg-white/[0.03] text-white/58 group-hover:border-white/14 group-hover:bg-white/[0.06] group-hover:text-white/82',
         )}
       >
-        <Icon className="size-[17px]" />
+        <Icon className={collapsed ? 'size-5' : 'size-[18px]'} strokeWidth={1.5} />
       </span>
 
       <AnimatePresence initial={false} mode="popLayout">
@@ -429,6 +414,6 @@ const NavItem = forwardRef<HTMLAnchorElement, NavItemProps>(function NavItem(
 })
 
 function isPathActive(pathname: string, href: string) {
-  if (href === '/') return pathname === '/' || pathname === '/dashboard'
+  if (href === '/studio') return pathname === '/' || pathname === '/studio'
   return pathname === href || pathname.startsWith(`${href}/`)
 }
