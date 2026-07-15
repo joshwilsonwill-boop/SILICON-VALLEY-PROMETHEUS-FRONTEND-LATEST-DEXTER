@@ -100,23 +100,6 @@
   --prometheus-text-tertiary: #64748b;
   --prometheus-border-subtle: rgba(148,163,184,0.08);
   --prometheus-border-glass: rgba(255,255,255,0.06);
-  --prom-bg-deep: #0a0a0f;
-  --prom-bg-surface: #111118;
-  --prom-bg-elevated: #16161f;
-  --prom-glass-bg: rgba(17, 17, 24, 0.72);
-  --prom-glass-border: rgba(255, 255, 255, 0.06);
-  --prom-glass-highlight: rgba(255, 255, 255, 0.08);
-  --prom-text-primary: rgba(255, 255, 255, 0.92);
-  --prom-text-secondary: rgba(255, 255, 255, 0.45);
-  --prom-text-tertiary: rgba(255, 255, 255, 0.25);
-  --prom-accent: #6366f1;
-  --prom-accent-glow: rgba(99, 102, 241, 0.25);
-  --prom-danger: #ef4444;
-  --prom-success: #22c55e;
-  --liquid-blur: blur(24px) saturate(150%);
-  --liquid-bg: rgba(20, 20, 28, 0.65);
-  --liquid-border: rgba(255, 255, 255, 0.08);
-  --liquid-shine: radial-gradient(ellipse 80% 50% at 50% 0%, rgba(255,255,255,0.12), transparent);
 }
 
 html,
