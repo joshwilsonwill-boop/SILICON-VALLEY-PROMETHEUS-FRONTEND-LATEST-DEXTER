@@ -25,7 +25,7 @@ import { MiniPlayer } from "@/app/editor/components/mini-player";
 import { useR2Music } from "@/app/editor/hooks/use-r2-music";
 import { useAudioStore } from "@/app/editor/stores/audio-store";
 import { cn } from "@/lib/utils";
-import { useEditorSourceStatus } from '@/lib/editor/source-status-store';
+import { useEditorSourceStatus, useEditorSourceUrl } from '@/lib/editor/source-status-store';
 import type { SourceStatus } from '@/lib/editor/media-metadata';
 import {
   EditorHamburgerSidebar,
@@ -52,6 +52,7 @@ import { PrometheusChatMobile } from "./prometheus-chat-mobile";
 
 export function EditorRouteShell({ children }: { children: ReactNode }) {
   const sourceStatus = useEditorSourceStatus();
+  const sourceUrl = useEditorSourceUrl();
   const pathname = usePathname();
   const projectId = useMemo(
     () => getEditorProjectIdFromPathname(pathname),
@@ -148,6 +149,7 @@ export function EditorRouteShell({ children }: { children: ReactNode }) {
                   activeTool={activeMobileTool}
                   projectId={projectId}
                   sourceStatus={sourceStatus}
+                  sourceUrl={sourceUrl}
                   onClose={() => setActiveMobileTool(null)}
                   onSelectTool={setActiveMobileTool}
                 />
@@ -251,12 +253,14 @@ function EditorMobileToolPanel({
   onSelectTool,
   projectId,
   sourceStatus,
+  sourceUrl,
 }: {
   activeTool: EditorSidebarPanelKey;
   onClose: () => void;
   onSelectTool: (tool: EditorSidebarPanelKey) => void;
   projectId: string | null;
   sourceStatus: SourceStatus | undefined;
+  sourceUrl: string | null;
 }) {
   if (activeTool === "chat") {
     return <PrometheusChatMobile projectId={projectId} onClose={onClose} />;
@@ -310,7 +314,7 @@ function EditorMobileToolPanel({
           {activeTool === "timeline" ? <TimelinePanel /> : null}
           {activeTool === "versions" ? <VersionsPanel /> : null}
           {activeTool === "status" ? <StatusPanel status={sourceStatus} /> : null}
-          {activeTool === "export" ? <ExportPanel /> : null}
+          {activeTool === "export" ? <ExportPanel mediaUrl={sourceUrl} /> : null}
         </div>
       </div>
     </aside>
@@ -320,7 +324,7 @@ function EditorMobileToolPanel({
 function MobileMusicTool({ projectId }: { projectId: string | null }) {
   const [query, setQuery] = useState("");
   const [selectedTrackId, setSelectedTrackId] = useState("");
-  const { error, isLoading, tracks } = useR2Music();
+  const { error, fetchTracks, isLoading, tracks } = useR2Music();
   const { currentTrack, isPlaying, pause, toggleTrack } = useAudioStore();
 
   const filteredTracks = useMemo(() => {
@@ -360,7 +364,7 @@ function MobileMusicTool({ projectId }: { projectId: string | null }) {
       <div className="flex items-center justify-between gap-3">
         <span className="text-sm text-prometheus-text-secondary">
           {isLoading
-            ? "Syncing R2 library"
+            ? "Loading music library..."
             : `${tracks.length} songs available`}
         </span>
         <button
@@ -379,7 +383,8 @@ function MobileMusicTool({ projectId }: { projectId: string | null }) {
           </div>
         ) : error ? (
           <div className="rounded-xl border border-red-400/20 bg-red-400/10 p-4 text-sm text-red-100">
-            {error}
+            <p>{error}</p>
+            <button type="button" onClick={fetchTracks} className="mt-3 rounded-lg border border-red-200/30 px-3 py-1.5 text-xs font-medium">Retry</button>
           </div>
         ) : filteredTracks.length === 0 ? (
           <div className="rounded-xl border border-prometheus-border-subtle bg-white/[0.025] p-4 text-sm text-prometheus-text-secondary">

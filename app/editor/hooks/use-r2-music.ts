@@ -16,9 +16,9 @@ export function useR2Music() {
       const nextTracks = await fetchR2Tracks()
       setTracks(nextTracks)
       setError(null)
-    } catch (nextError: unknown) {
+    } catch {
       setTracks([])
-      setError(nextError instanceof Error ? nextError.message : 'Unable to load R2 tracks')
+      setError("Couldn't load music.")
     } finally {
       setIsLoading(false)
     }

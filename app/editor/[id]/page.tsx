@@ -65,7 +65,7 @@ import { PreviewCanvas } from '@/components/editor/PreviewCanvas'
 import { TimelinePanel } from '@/components/editor/TimelinePanel'
 import { MobileVideoPlayer } from '@/app/editor/components/mobile-video-player'
 import { stopEditorMedia } from '@/app/editor/stores/audio-store'
-import { setEditorSourceStatus } from '@/lib/editor/source-status-store'
+import { setEditorSourceStatus, setEditorSourceUrl } from '@/lib/editor/source-status-store'
 
 // Always-Fast Lobe System
 const LivingCanvas = safeDynamic(() => import('@/components/living-canvas').then((mod) => ({ default: mod.LivingCanvas })), {
@@ -7696,6 +7696,7 @@ function OriginalEditorPage() {
       height: video.videoHeight,
       width: video.videoWidth,
     })
+    setEditorSourceUrl(previewUrl)
     if (Number.isFinite(video.videoWidth) && Number.isFinite(video.videoHeight) && video.videoWidth > 0 && video.videoHeight > 0) {
       setPreviewIntrinsicAspectRatio(video.videoWidth / video.videoHeight)
     }

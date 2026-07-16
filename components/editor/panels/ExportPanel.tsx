@@ -17,6 +17,7 @@ import {
 
 import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { cn } from '@/lib/utils'
+import { downloadMedia } from '@/lib/editor/browser-download'
 
 const resolutions = [
   { id: 'original', label: 'Original Source', desc: 'Keep source resolution' },
@@ -41,7 +42,7 @@ const socialPlatforms: Array<{
   { id: 'dropbox', label: 'Dropbox', icon: HardDrive, connected: false },
 ]
 
-export function ExportPanel() {
+export function ExportPanel({ mediaUrl }: { mediaUrl?: string | null }) {
   const [selectedResolution, setSelectedResolution] = useState('1080p')
   const [exportMode, setExportMode] = useState<'cinematic' | 'fast'>('cinematic')
   const [exportStatus, setExportStatus] = useState<'idle' | 'loading' | 'success'>('idle')
@@ -158,7 +159,7 @@ export function ExportPanel() {
 
       <button
         type="button"
-        onClick={() => startExportFeedback('fast')}
+        onClick={() => { if (mediaUrl) void downloadMedia(mediaUrl, 'prometheus-export.mp4') }}
         className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-prometheus-accent-cyan/25 bg-prometheus-accent-cyan/18 text-sm font-medium text-prometheus-accent-cyan transition-colors hover:bg-prometheus-accent-cyan/28"
       >
         {exportStatus === 'loading' ? <InlineLoadingAnimation size={16} label="Preparing export download" /> : <Upload className="size-4" aria-hidden="true" />}

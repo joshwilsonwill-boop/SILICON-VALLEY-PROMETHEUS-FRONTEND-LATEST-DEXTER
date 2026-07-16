@@ -132,7 +132,7 @@ export function SidebarDrawer({ activePanel, isOpen, onClose, onTogglePanel }: S
 }
 
 function MusicPanel() {
-  const { error, isLoading, tracks } = useR2Music()
+  const { error, fetchTracks, isLoading, tracks } = useR2Music()
   const [query, setQuery] = React.useState('')
   const [selectedTrackId, setSelectedTrackId] = React.useState<string | null>(null)
   const filteredTracks = React.useMemo(() => {
@@ -156,7 +156,7 @@ function MusicPanel() {
       </label>
 
       <div className="flex items-center justify-between gap-3 text-xs text-white/45">
-        <span>{isLoading ? 'Syncing R2 library' : `${tracks.length} songs available`}</span>
+        <span>{isLoading ? 'Loading music library...' : `${tracks.length} songs available`}</span>
         <button
           type="button"
           className="flex items-center gap-1.5 rounded-full border border-accent-purple/25 bg-accent-purple/10 px-2.5 py-1 font-medium text-accent-purple"
@@ -171,9 +171,9 @@ function MusicPanel() {
           <InlineLoadingAnimation size={40} label="Loading music library" />
         </div>
       ) : error ? (
-        <div className="rounded-lg border border-red-400/20 bg-red-400/10 p-3 text-sm text-red-100">{error}</div>
+        <div className="rounded-lg border border-red-400/20 bg-red-400/10 p-3 text-sm text-red-100"><p>{error}</p><button type="button" onClick={fetchTracks} className="mt-3 rounded border border-red-200/30 px-2 py-1 text-xs">Retry</button></div>
       ) : filteredTracks.length === 0 ? (
-        <div className="py-8 text-center text-sm text-white/40">No tracks found in R2 bucket</div>
+        <div className="py-8 text-center text-sm text-white/40">No music is available yet.</div>
       ) : (
         <div className="space-y-2">
           {filteredTracks.map((track) => (
