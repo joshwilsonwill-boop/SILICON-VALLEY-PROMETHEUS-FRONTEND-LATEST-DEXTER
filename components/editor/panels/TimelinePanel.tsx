@@ -1,9 +1,9 @@
 'use client'
 
 const rows = [
-  { label: 'Current duration', value: '00:18' },
-  { label: 'Beat markers', value: '3 active' },
-  { label: 'Transcript segments', value: '5 synced' },
+  { label: 'Current duration', value: '—' },
+  { label: 'Beat markers', value: '—' },
+  { label: 'Transcript segments', value: '—' },
 ]
 
 export function TimelinePanel() {
