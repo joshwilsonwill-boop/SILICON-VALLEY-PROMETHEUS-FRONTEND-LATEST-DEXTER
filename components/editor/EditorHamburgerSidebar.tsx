@@ -178,12 +178,12 @@ export function EditorHamburgerSidebar({
         )}
       >
         <header className="flex items-center justify-between border-b border-white/10 px-4 py-4">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-white/72">
-              Prometheus
-            </p>
-            <p className="mt-1 text-xs text-white/38">Editor navigation</p>
-          </div>
+          <span
+            aria-label="Prometheus"
+            className="grid size-9 place-items-center rounded-lg border border-white/10 bg-white/[0.04] text-base font-semibold text-prometheus-accent-cyan"
+          >
+            P
+          </span>
           <button
             ref={closeButtonRef}
             type="button"

@@ -236,6 +236,7 @@ export function MobileVideoPlayer({ className, poster, src }: MobileVideoPlayerP
             ref={videoRef}
             className="absolute inset-0 h-full w-full object-cover"
             controls={false}
+            loop={autoplayEnabled}
             playsInline
             poster={poster}
             preload="metadata"
@@ -382,7 +383,8 @@ export function MobileVideoPlayer({ className, poster, src }: MobileVideoPlayerP
                   'flex h-8 items-center gap-2 rounded-full border border-white/12 px-3 text-[11px] font-medium text-white',
                   autoplayEnabled ? 'bg-white/15' : 'bg-black/20',
                 )}
-                aria-pressed={autoplayEnabled}
+                role="switch"
+                aria-checked={autoplayEnabled}
                 aria-label="Toggle autoplay"
               >
                 <span>Autoplay</span>
