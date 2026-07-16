@@ -36,3 +36,17 @@ assert.match(command, /fixed bottom-\[calc\(env\(safe-area-inset-bottom\)\+1\.5r
 assert.match(shell, /pb-\[calc\(env\(safe-area-inset-bottom\)\+5\.5rem\)\]/)
 assert.match(player, /role="switch"/)
 assert.match(player, /loop=\{autoplayEnabled\}/)
+
+const analytics = read('components/editor/panels/AnalyticsPanel.tsx')
+const status = read('components/editor/panels/StatusPanel.tsx')
+const audioStore = read('app/editor/stores/audio-store.ts')
+const editorPage = read('app/editor/[id]/page.tsx')
+const editorShell = read('components/editor/EditorRouteShell.tsx')
+
+assert.match(analytics, /No analytics available yet\. Post your video to see performance metrics\./)
+assert.doesNotMatch(analytics, /Hook strength|Retention forecast|Export health/)
+assert.doesNotMatch(status, /00:18|Source adaptive|42 MB/)
+assert.match(status, /SourceStatus/)
+assert.match(audioStore, /export function stopEditorMedia\(\)/)
+assert.match(editorPage, /setEditorSourceStatus\(/)
+assert.match(editorShell, /useEditorSourceStatus\(/)

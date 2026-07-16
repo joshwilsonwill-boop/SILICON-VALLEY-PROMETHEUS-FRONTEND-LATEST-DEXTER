@@ -25,6 +25,8 @@ import { MiniPlayer } from "@/app/editor/components/mini-player";
 import { useR2Music } from "@/app/editor/hooks/use-r2-music";
 import { useAudioStore } from "@/app/editor/stores/audio-store";
 import { cn } from "@/lib/utils";
+import { useEditorSourceStatus } from '@/lib/editor/source-status-store';
+import type { SourceStatus } from '@/lib/editor/media-metadata';
 import {
   EditorHamburgerSidebar,
   type EditorSidebarPanelKey,
@@ -49,6 +51,7 @@ import { SettingsPanel } from "./SettingsPanel";
 import { PrometheusChatMobile } from "./prometheus-chat-mobile";
 
 export function EditorRouteShell({ children }: { children: ReactNode }) {
+  const sourceStatus = useEditorSourceStatus();
   const pathname = usePathname();
   const projectId = useMemo(
     () => getEditorProjectIdFromPathname(pathname),
@@ -144,6 +147,7 @@ export function EditorRouteShell({ children }: { children: ReactNode }) {
                 <EditorMobileToolPanel
                   activeTool={activeMobileTool}
                   projectId={projectId}
+                  sourceStatus={sourceStatus}
                   onClose={() => setActiveMobileTool(null)}
                   onSelectTool={setActiveMobileTool}
                 />
@@ -246,11 +250,13 @@ function EditorMobileToolPanel({
   onClose,
   onSelectTool,
   projectId,
+  sourceStatus,
 }: {
   activeTool: EditorSidebarPanelKey;
   onClose: () => void;
   onSelectTool: (tool: EditorSidebarPanelKey) => void;
   projectId: string | null;
+  sourceStatus: SourceStatus | undefined;
 }) {
   if (activeTool === "chat") {
     return <PrometheusChatMobile projectId={projectId} onClose={onClose} />;
@@ -303,7 +309,7 @@ function EditorMobileToolPanel({
           {activeTool === "analytics" ? <AnalyticsPanel /> : null}
           {activeTool === "timeline" ? <TimelinePanel /> : null}
           {activeTool === "versions" ? <VersionsPanel /> : null}
-          {activeTool === "status" ? <StatusPanel /> : null}
+          {activeTool === "status" ? <StatusPanel status={sourceStatus} /> : null}
           {activeTool === "export" ? <ExportPanel /> : null}
         </div>
       </div>

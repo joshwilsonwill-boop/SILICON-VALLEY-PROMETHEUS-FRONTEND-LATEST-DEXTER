@@ -133,6 +133,15 @@ function close() {
   emit({ ...initialState, volume: state.volume })
 }
 
+export function stopEditorMedia() {
+  audio?.pause()
+  if (audio) {
+    audio.currentTime = 0
+    audio.src = ''
+  }
+  emit({ ...initialState, volume: state.volume })
+}
+
 function getSnapshot(): AudioStoreSnapshot {
   if (cachedSnapshot) return cachedSnapshot
 

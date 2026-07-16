@@ -64,6 +64,8 @@ import { EditorHeader } from '@/components/editor/EditorHeader'
 import { PreviewCanvas } from '@/components/editor/PreviewCanvas'
 import { TimelinePanel } from '@/components/editor/TimelinePanel'
 import { MobileVideoPlayer } from '@/app/editor/components/mobile-video-player'
+import { stopEditorMedia } from '@/app/editor/stores/audio-store'
+import { setEditorSourceStatus } from '@/lib/editor/source-status-store'
 
 // Always-Fast Lobe System
 const LivingCanvas = safeDynamic(() => import('@/components/living-canvas').then((mod) => ({ default: mod.LivingCanvas })), {
@@ -7689,6 +7691,11 @@ function OriginalEditorPage() {
     const video = previewVideoRef.current
     if (!video) return
     setPreviewDurationSec(Number.isFinite(video.duration) ? video.duration : 0)
+    setEditorSourceStatus({
+      duration: Number.isFinite(video.duration) ? video.duration : null,
+      height: video.videoHeight,
+      width: video.videoWidth,
+    })
     if (Number.isFinite(video.videoWidth) && Number.isFinite(video.videoHeight) && video.videoWidth > 0 && video.videoHeight > 0) {
       setPreviewIntrinsicAspectRatio(video.videoWidth / video.videoHeight)
     }
@@ -7814,6 +7821,19 @@ function OriginalEditorPage() {
       video.pause()
     }
     setPreviewPlaying(false)
+  }, [])
+
+  React.useEffect(() => {
+    const stopMedia = () => {
+      previewVideoRef.current?.pause()
+      stopEditorMedia()
+    }
+
+    window.addEventListener('pagehide', stopMedia)
+    return () => {
+      window.removeEventListener('pagehide', stopMedia)
+      stopMedia()
+    }
   }, [])
 
   const togglePreviewPlayback = React.useCallback(() => {
