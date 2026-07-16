@@ -34,6 +34,11 @@ export type AIChatMessage = {
   isComplete?: boolean;
   platform?: AIChatPlatform;
   postType?: AIChatPostType;
+  thinking?: {
+    steps: Array<{ text: string; completed?: boolean }>;
+    mode?: "collapsible" | "streaming";
+  };
+  toolResults?: string;
 };
 
 type PrometheusChatResponse = {

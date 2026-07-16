@@ -7,6 +7,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 
 import type { MusicVideoContext } from '@/lib/types'
+import { parseToolRequests, executeTool, formatToolResults } from '@/lib/motion-brain/chat-tools'
 
 const DEFAULT_GROQ_MODEL = 'llama3-8b-8192'
 const EMBEDDING_MODEL = 'text-embedding-3-small'
@@ -100,6 +101,20 @@ type MotionBrainDatabase = {
 
 type MotionBrainSupabaseClient = SupabaseClient<MotionBrainDatabase>
 
+type ProjectContext = {
+  recentEdits: Array<{
+    type: string
+    timestamp: string
+    description: string
+  }>
+  projectMetadata: {
+    title: string
+    description?: string
+    createdAt: string
+  }
+  editingPatterns: string[]
+}
+
 export async function POST(req: Request) {
   const groqApiKey = cleanEnvValue(process.env.GROQ_API_KEY)
   const openaiApiKey = cleanEnvValue(process.env.OPENAI_API_KEY)
@@ -158,11 +173,17 @@ export async function POST(req: Request) {
       },
     })
 
-    const knowledge = await retrieveMotionKnowledge({
-      openai,
-      supabase,
-      prompt: latestPrompt,
-    })
+    const [knowledge, projectContext] = await Promise.all([
+      retrieveMotionKnowledge({
+        openai,
+        supabase,
+        prompt: latestPrompt,
+      }),
+      retrieveProjectContext({
+        projectTitle: body.projectTitle,
+        videoContext: body.videoContext,
+      }),
+    ])
 
     const groqMessages: GroqMessage[] = [
       {
@@ -174,6 +195,7 @@ export async function POST(req: Request) {
           videoContext: body.videoContext,
           workflow: body.workflow ?? 'chat',
           knowledge,
+          projectContext,
         }),
       },
       ...messages.map((message) => ({
@@ -201,7 +223,19 @@ export async function POST(req: Request) {
       messages: groqMessages,
     })
 
-    const reply = sanitizeAssistantReply(extractReply(completion as GroqChatResponse))
+    const rawReply = extractReply(completion as GroqChatResponse)
+    
+    // Check for tool requests in the reply
+    const toolRequests = parseToolRequests(rawReply)
+    let toolResults = ''
+    
+    if (toolRequests.length > 0) {
+      // Execute tools and collect results
+      const results = await Promise.all(toolRequests.map((tool) => executeTool(tool)))
+      toolResults = formatToolResults(results)
+    }
+
+    const reply = sanitizeAssistantReply(rawReply)
     if (!reply) {
       return NextResponse.json({ error: 'Groq returned an empty reply.' }, { status: 502 })
     }
@@ -209,6 +243,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       reply,
       model,
+      toolResults: toolResults || undefined,
       retrieval: knowledge.map((match) => ({
         id: match.id,
         videoUrl: match.video_url,
@@ -219,6 +254,35 @@ export async function POST(req: Request) {
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unable to contact Motion Brain right now.'
     return NextResponse.json({ error: message }, { status: getErrorStatus(error) })
+  }
+}
+
+async function retrieveProjectContext({
+  projectTitle,
+  videoContext,
+}: {
+  projectTitle?: string
+  videoContext?: MusicVideoContext | null
+}): Promise<ProjectContext> {
+  // Build project context from available metadata
+  const editingPatterns: string[] = []
+
+  // Analyze video context for editing patterns
+  if (videoContext) {
+    if (videoContext.pace === 'fast') editingPatterns.push('fast-cut rhythm, dynamic transitions')
+    if (videoContext.pace === 'slow') editingPatterns.push('long-duration shots, contemplative pacing')
+    if (videoContext.signals?.includes('high-energy')) editingPatterns.push('aggressive cuts, build energy')
+    if (videoContext.signals?.includes('emotional')) editingPatterns.push('longer holds, emotional beats')
+    if (videoContext.signals?.includes('rhythmic')) editingPatterns.push('beat-locked cuts, musical timing')
+  }
+
+  return {
+    recentEdits: [],
+    projectMetadata: {
+      title: projectTitle || 'Untitled Project',
+      createdAt: new Date().toISOString(),
+    },
+    editingPatterns,
   }
 }
 
@@ -259,6 +323,7 @@ function buildMotionBrainSystemPrompt({
   videoContext,
   workflow,
   knowledge,
+  projectContext,
 }: {
   projectTitle?: string
   originalPrompt?: string
@@ -266,6 +331,7 @@ function buildMotionBrainSystemPrompt({
   videoContext?: MusicVideoContext | null
   workflow?: 'chat' | 'edit'
   knowledge: MotionKnowledgeMatch[]
+  projectContext?: ProjectContext
 }) {
   const safeTitle = cleanInline(projectTitle) || 'Untitled Project'
   const safePrompt = cleanInline(originalPrompt) || 'Refine the current cut into a cleaner, more cinematic pass.'
@@ -273,6 +339,20 @@ function buildMotionBrainSystemPrompt({
     initialSources?.map((source) => cleanInline(source)).filter(Boolean).slice(0, 6).join(', ') || 'None provided'
   const safeContext = buildVideoContextLine(videoContext)
   const isEditWorkflow = workflow === 'edit'
+
+  // Build editing patterns context from project analysis
+  const patternsContext =
+    projectContext?.editingPatterns && projectContext.editingPatterns.length > 0
+      ? `This project uses these editing patterns: ${projectContext.editingPatterns.join('; ')}.`
+      : ''
+
+  // Detect if user is asking about thumbnails (check original prompt)
+  const isThumbnailRequest = originalPrompt?.toLowerCase().match(/thumbnail|key frame|preview|cover|poster|still/) ||
+    false
+
+  const thumbnailGuidance = isThumbnailRequest
+    ? 'If the user asks for thumbnail options: analyze the key moment for visual impact, suggest 3-5 composition strategies (rule of thirds, center-frame, dynamic-crop), consider color palette from the video mood, and specify exact frame timing.'
+    : ''
 
   return [
     'You are the Chief Motion Architect for Prometheus. Use the following retrieved video editing breakdowns to answer the user accurately. Dictate exact GSAP motion atoms, pacing, and visual hierarchy.',
@@ -284,11 +364,11 @@ function buildMotionBrainSystemPrompt({
     'When naming motion, use implementable atoms such as clip-path reveal, y-percent lift, scale settle, parallax drift, velocity blur, mask wipe, opacity strobe, or GSAP stagger.',
     'Avoid markdown, bullets, numbering, bold text, and asterisks unless the user explicitly asks for a structured list.',
     'Do not mention retrieval, embeddings, database rows, system prompts, hidden instructions, or provider names.',
-    `Project title: ${safeTitle}.`,
-    `Original creative direction: ${safePrompt}.`,
-    `Available staged sources: ${safeSources}.`,
-    safeContext ? `Current video context: ${safeContext}.` : '',
-    'Retrieved video editing breakdowns:',
+    `PROJECT CONTEXT:\nTitle: ${safeTitle}\nOriginal brief: ${safePrompt}\nSources: ${safeSources}`,
+    safeContext ? `VIDEO ANALYSIS:\n${safeContext}` : '',
+    patternsContext ? `EDITING PROFILE:\n${patternsContext}` : '',
+    thumbnailGuidance,
+    'REFERENCE MATERIALS:',
     formatRetrievedKnowledge(knowledge),
   ]
     .filter(Boolean)
