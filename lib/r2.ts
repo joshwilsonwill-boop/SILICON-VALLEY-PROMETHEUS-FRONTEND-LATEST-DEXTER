@@ -33,6 +33,7 @@ function getAvatarR2Config() {
   if (!endpoint) missing.push('R2_ENDPOINT')
   if (!accessKeyId) missing.push('R2_ACCESS_KEY_ID')
   if (!secretAccessKey) missing.push('R2_SECRET_ACCESS_KEY')
+  if (!bucketName) missing.push('R2_AVATAR_BUCKET')
   if (!publicBaseUrl) missing.push('R2_PUBLIC_URL')
 
   if (missing.length > 0) {
@@ -53,8 +54,9 @@ function getAvatarR2Config() {
 
 function createAvatarR2Client() {
   const config = getAvatarR2Config()
-  if (!config.endpoint) throw new Error('R2_ENDPOINT not set')
-  if (!config.bucketName) throw new Error('R2_AVATAR_BUCKET not set')
+  if (config.missing.length > 0) {
+    throw new Error(`Avatar upload storage is not configured: ${config.missing.join(', ')}`)
+  }
 
   return new S3Client({
     region: 'auto',
@@ -66,7 +68,12 @@ function createAvatarR2Client() {
   })
 }
 
-const avatarR2Client = createAvatarR2Client()
+let avatarR2Client: S3Client | null = null
+
+function getAvatarR2Client() {
+  avatarR2Client ??= createAvatarR2Client()
+  return avatarR2Client
+}
 
 export function getAvatarR2ConfigError() {
   const config = getAvatarR2Config()
@@ -89,6 +96,9 @@ export async function getAvatarUploadUrl({
   contentLength,
 }: AvatarUploadUrlOptions) {
   const config = getAvatarR2Config()
+  if (config.missing.length > 0) {
+    throw new Error(`Avatar upload storage is not configured: ${config.missing.join(', ')}`)
+  }
 
   const command = new PutObjectCommand({
     Bucket: config.bucketName,
@@ -97,7 +107,7 @@ export async function getAvatarUploadUrl({
     ContentLength: contentLength,
   })
 
-  return getSignedUrl(avatarR2Client as any, command, { expiresIn: 300 })
+  return getSignedUrl(getAvatarR2Client() as any, command, { expiresIn: 300 })
 }
 
 export function getAvatarPublicUrl(key: string) {
@@ -119,7 +129,7 @@ export async function uploadAvatarObject({
   if (config.missing.length > 0) throw new Error(`Avatar upload storage is not configured: ${config.missing.join(', ')}`)
 
   try {
-    const result = await avatarR2Client.send(new PutObjectCommand({
+    const result = await getAvatarR2Client().send(new PutObjectCommand({
       Bucket: config.bucketName,
       Key: key,
       Body: body,
