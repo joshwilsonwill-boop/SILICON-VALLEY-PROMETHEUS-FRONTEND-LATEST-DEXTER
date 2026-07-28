@@ -48,7 +48,7 @@ import { GlassUploadModalView } from "@/components/ui/glass-upload-modal-view";
 import { DynamicFrameLayout } from "@/components/ui/dynamic-frame-layout";
 import { TextEffect } from "@/components/ui/text-effect";
 import { GooeyText } from "@/components/ui/gooey-text-morphing";
-import { InlineLoadingAnimation, LoadingAnimation } from "@/components/loading-animation";
+import { InlineLoadingAnimation } from "@/components/loading-animation";
 import type { DynamicFrame } from "@/components/ui/dynamic-frame-layout";
 import { InteractiveOrb } from "@/components/ui/interactive-orb";
 import { ChatStyleSelector } from "@/components/editor/chat-style-selector";
@@ -3071,10 +3071,6 @@ export function VideoUploadInterface() {
                         transition={{ duration: 0.18, ease: "easeOut" }}
                         className="fixed inset-0 z-[90] bg-black"
                     >
-                        <LoadingAnimation
-                            message={`Opening ${editorLaunchOverlay.title}. ${editorLaunchOverlay.detail}`}
-                            zIndex={90}
-                        />
                         {(uploadStatus === 'presigning' || uploadStatus === 'uploading' || uploadStatus === 'retrying' || uploadStatus === 'paused') ? (
                             <div className="fixed inset-x-4 bottom-8 z-[91] mx-auto max-w-[620px] text-center text-xs text-white/62">
                                 <div>
