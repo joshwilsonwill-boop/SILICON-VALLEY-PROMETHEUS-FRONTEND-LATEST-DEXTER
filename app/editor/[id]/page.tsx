@@ -47,6 +47,8 @@ import { MusicPlayNotification } from '@/components/editor/music-play-notificati
 import { MusicSpotlightOrb } from '@/components/editor/music-spotlight-orb'
 import { MusicRecommendationShowcase } from '@/components/editor/music-recommendation-showcase'
 import { PrometheusChat, type PrometheusChatMessage } from '@/components/editor/PrometheusChat'
+import { applyEditorActionDrafts, type EditorActionContext, type EditorActionDraft } from '@/lib/editor-actions'
+import type { AIChatContextProvider, AIChatLiveContext } from '@/hooks/use-ai-chat'
 import { ChatStyleSelector } from '@/components/editor/chat-style-selector'
 import { MusicTabPanel } from '@/components/editor/music-tab-panel'
 import { MotionPropertyCanvas } from '@/components/editor/motion-property-canvas'
@@ -3050,6 +3052,9 @@ function FloatingChatComposer({
   onSelectStyleTemplate,
   onAttachImages,
   onRemoveAttachment,
+  chatContextProvider,
+  onApplyChatActions,
+  onChatSeekToSec,
 }: {
   projectId: string
   draft: string
@@ -3085,6 +3090,9 @@ function FloatingChatComposer({
   onSelectStyleTemplate?: (template: StyleTemplate) => void
   onAttachImages?: (files: FileList | null) => void
   onRemoveAttachment?: (id: string) => void
+  chatContextProvider?: AIChatContextProvider
+  onApplyChatActions?: (drafts: EditorActionDraft[], messageId: string) => void
+  onChatSeekToSec?: (seconds: number) => void
 }) {
   const isMobile = useMediaQuery('(max-width: 767px)')
   const responsivePlaceholderText = 'Ask about editing, color, sound...'
@@ -3619,6 +3627,9 @@ function FloatingChatComposer({
                     await handleComposerSubmit()
                   }}
                   onAttachImage={() => attachmentInputRef.current?.click()}
+                  contextProvider={chatContextProvider}
+                  onApplyActions={onApplyChatActions}
+                  onSeekToSec={onChatSeekToSec}
                   actions={CHAT_QUICK_ACTIONS.map((action) => ({
                     id: action.label,
                     label: action.label,
@@ -4063,6 +4074,9 @@ const ChatWorkspacePanel = React.memo(function ChatWorkspacePanel({
   onEditRequest,
   initialEditorState,
   onSave,
+  chatContextProvider,
+  onApplyChatActions,
+  onChatSeekToSec,
 }: {
   projectId: string
   projectTitle: string
@@ -4076,6 +4090,9 @@ const ChatWorkspacePanel = React.memo(function ChatWorkspacePanel({
   onEditRequest?: (request: { prompt: string; styleTemplate: StyleTemplate }) => void | Promise<void>
   initialEditorState?: any
   onSave?: (editorState: any) => void
+  chatContextProvider?: AIChatContextProvider
+  onApplyChatActions?: (drafts: EditorActionDraft[], messageId: string) => void
+  onChatSeekToSec?: (seconds: number) => void
 }) {
   const reduceMotion = useStableReducedMotion()
   const [entries, setEntries] = React.useState<ChatEntry[]>(() => [])
@@ -5991,6 +6008,9 @@ const ChatWorkspacePanel = React.memo(function ChatWorkspacePanel({
               <>
                 <FloatingChatComposer
                   projectId={projectId}
+                  chatContextProvider={chatContextProvider}
+                  onApplyChatActions={onApplyChatActions}
+                  onChatSeekToSec={onChatSeekToSec}
                   draft={draft}
                   onDraftChange={setDraft}
                   onSubmit={handleSubmit}
@@ -6083,6 +6103,9 @@ type MobileEditorViewProps = {
   onSave: (editorState: any) => Promise<void>
   onStartExport: (options?: { quality: MobileExportQuality; format: MobileExportFormat }) => void
   onDownloadLatest: () => void
+  chatContextProvider?: AIChatContextProvider
+  onApplyChatActions?: (drafts: EditorActionDraft[], messageId: string) => void
+  onChatSeekToSec?: (seconds: number) => void
 }
 
 function MobileEditorView({
@@ -6136,6 +6159,9 @@ function MobileEditorView({
   onStartExport,
   onDownloadLatest,
   onOpenUploadNewProject,
+  chatContextProvider,
+  onApplyChatActions,
+  onChatSeekToSec,
 }: MobileEditorViewProps) {
   const activeTab = 'status' as MobileEditorTabKey
   const [chatComposerPortal, setChatComposerPortal] = React.useState<HTMLDivElement | null>(null)
@@ -6219,6 +6245,9 @@ function MobileEditorView({
               onEditRequest={onEditRequest}
               initialEditorState={project?.editorState}
               onSave={onSave}
+              chatContextProvider={chatContextProvider}
+              onApplyChatActions={onApplyChatActions}
+              onChatSeekToSec={onChatSeekToSec}
             />
             <div ref={setChatComposerPortal} className="absolute inset-x-3 bottom-3 z-40" />
           </div>
@@ -7824,6 +7853,45 @@ function OriginalEditorPage() {
     setPreviewPlaying(false)
   }, [])
 
+  // Live editor context handed to the Prometheus chat on every send.
+  // Kept in a ref so the memoized chat panel does not re-render per playhead tick.
+  const chatLiveStateRef = React.useRef<AIChatLiveContext>({
+    playheadSec: 0,
+    durationSec: 0,
+    workspaceTab: 'Editor',
+    fitMode: 'fill',
+    muted: true,
+    frameThumbs: [],
+  })
+
+  React.useEffect(() => {
+    chatLiveStateRef.current = {
+      playheadSec: previewCurrentTimeSec,
+      durationSec: transportDurationSec,
+      workspaceTab: activeWorkspaceTab,
+      fitMode,
+      muted: isPreviewMuted,
+      frameThumbs: [],
+    }
+  }, [previewCurrentTimeSec, transportDurationSec, activeWorkspaceTab, fitMode, isPreviewMuted])
+
+  const chatContextProvider = React.useCallback<AIChatContextProvider>(() => chatLiveStateRef.current, [])
+
+  const chatEditorActionContext = React.useMemo<EditorActionContext>(() => ({
+    durationSec: transportDurationSec,
+    seek: handlePreviewSeekSeconds,
+    play: startPreviewPlayback,
+    pause: pausePreviewPlayback,
+    mute: () => setIsPreviewMuted(true),
+    unmute: () => setIsPreviewMuted(false),
+    setFitMode,
+    setWorkspaceTab: setActiveWorkspaceTab,
+  }), [transportDurationSec, handlePreviewSeekSeconds, startPreviewPlayback, pausePreviewPlayback])
+
+  const handleApplyChatActions = React.useCallback((drafts: EditorActionDraft[]) => {
+    applyEditorActionDrafts(drafts, chatEditorActionContext)
+  }, [chatEditorActionContext])
+
   React.useEffect(() => {
     const stopMedia = () => {
       previewVideoRef.current?.pause()
@@ -8030,6 +8098,9 @@ function OriginalEditorPage() {
           onSave={handleAutoSave}
           onStartExport={handlePrepareExport}
           onDownloadLatest={handleConfirmDownload}
+          chatContextProvider={chatContextProvider}
+          onApplyChatActions={handleApplyChatActions}
+          onChatSeekToSec={handlePreviewSeekSeconds}
         />
         <EditorNewProjectUploadDialog open={isNewProjectUploadOpen} onOpenChange={setIsNewProjectUploadOpen} />
       </>
@@ -8345,6 +8416,9 @@ function OriginalEditorPage() {
           onEditRequest={handleEditRequest}
           initialEditorState={project?.editorState}
           onSave={handleAutoSave}
+          chatContextProvider={chatContextProvider}
+          onApplyChatActions={handleApplyChatActions}
+          onChatSeekToSec={handlePreviewSeekSeconds}
         />
       </div>
       <EditorNewProjectUploadDialog open={isNewProjectUploadOpen} onOpenChange={setIsNewProjectUploadOpen} />

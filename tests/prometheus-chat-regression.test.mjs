@@ -11,6 +11,7 @@ function read(relativePath) {
 function run() {
   const editorPage = read("app/editor/[id]/page.tsx");
   const route = read("app/api/prometheus-chat/route.ts");
+  const tools = read("lib/prometheus-assistant/tools.ts");
   const retrieval = read("lib/prometheus-assistant/retrieval.ts");
   const knowledge = read("lib/prometheus-assistant/knowledge.generated.ts");
   const luxuryChatPath = "components/editor/PrometheusChat.tsx";
@@ -97,16 +98,17 @@ function run() {
   );
 
   assert.match(route, /import Groq from 'groq-sdk'/);
-  assert.match(route, /const PROMETHEUS_TOOLS =/);
-  assert.match(route, /name: 'search_prometheus_knowledge'/);
-  assert.match(route, /name: 'reference_video_frames'/);
-  assert.match(route, /name: 'draft_editor_actions'/);
-  assert.match(route, /if \(intent\.allowTools\)/);
+  assert.match(tools, /const PROMETHEUS_TOOLS =/);
+  assert.match(tools, /name: 'search_prometheus_knowledge'/);
+  assert.match(tools, /name: 'reference_video_frames'/);
+  assert.match(tools, /name: 'draft_editor_actions'/);
+  assert.match(route, /const toolsEnabled = intent\.allowTools/);
   assert.match(route, /firstCompletionRequest\.tools = PROMETHEUS_TOOLS/);
   assert.match(route, /firstCompletionRequest\.tool_choice = 'auto'/);
   assert.match(route, /normalizeGroqToolCalls/);
   assert.match(route, /executePrometheusTool/);
   assert.match(route, /toolCalls: executedToolCalls/);
+  assert.match(route, /actionDrafts: collectActionDrafts\(executedToolCalls\)/);
   assert.match(
     route,
     /frames: toFramePayload\(frameReferences, executedToolCalls\)/,

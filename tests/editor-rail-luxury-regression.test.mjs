@@ -1,0 +1,65 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
+const root = process.cwd();
+
+function read(relativePath) {
+  return readFileSync(join(root, relativePath), "utf8");
+}
+
+function run() {
+  const rail = read("components/sidebar/AwwwardsSidebar.tsx");
+  const shell = read("components/editor/EditorRouteShell.tsx");
+
+  // Collapsed icon rail that expands on hover/focus, never shifting layout
+  assert.match(rail, /RAIL_COLLAPSED_WIDTH = 72/);
+  assert.match(rail, /RAIL_EXPANDED_WIDTH = 216/);
+  assert.match(rail, /onMouseEnter=\{\(\) => setExpanded\(true\)\}/);
+  assert.match(rail, /onMouseLeave=\{\(\) => setExpanded\(false\)\}/);
+  assert.match(rail, /onFocusCapture=\{\(\) => setExpanded\(true\)\}/);
+  assert.match(rail, /onBlurCapture=\{collapseIfFocusLeft\}/);
+  assert.match(rail, /w-\[72px\]/);
+  assert.match(rail, /absolute inset-y-0 left-0 z-30/);
+  assert.match(rail, /overflow-hidden border-r border-border-subtle/);
+
+  // Distinctive icon set for the chamber tools
+  assert.match(rail, /Clapperboard/);
+  assert.match(rail, /History/);
+  assert.match(rail, /Brain/);
+  assert.match(rail, /LineChart/);
+
+  // Micro-interactions: sliding active marker, staggered labels, hover lift
+  assert.match(rail, /layoutId="editor-rail-active"/);
+  assert.match(rail, /delay=\{0\.06 \+ index \* 0\.03\}/);
+  assert.match(rail, /delay: expanded \? delay : 0/);
+  assert.match(rail, /group-hover:scale-105/);
+  assert.match(rail, /motion-reduce:transform-none/);
+  assert.match(rail, /group-hover:rotate-45/);
+
+  // Decluttered: no count badges remain
+  assert.equal(rail.includes("count:"), false);
+  assert.equal(rail.includes("ml-auto rounded-full"), false);
+
+  // Pre-existing contract preserved (see editor-polish-regression.test.mjs)
+  assert.match(rail, /href: "\/editor\/motion"/);
+  assert.match(rail, /href: "\/projects"/);
+  assert.match(rail, /router\.back\(\)/);
+  assert.match(rail, /New project/);
+  assert.equal(rail.includes("WORKSPACE"), false);
+  assert.equal(rail.includes("Create workspace item"), false);
+  assert.equal(rail.includes("setActive"), false);
+
+  // Settings is wired to the shell settings panel instead of being dead
+  assert.match(rail, /onOpenSettings\?: \(\) => void/);
+  assert.match(rail, /onClick=\{onOpenSettings\}/);
+  assert.match(
+    shell,
+    /<AwwwardsSidebar onOpenSettings=\{\(\) => openSettingsPanel\("appearance"\)\} \/>/,
+  );
+
+  // Rail stacks above the canvas so the expanded panel is not painted under it
+  assert.match(shell, /relative z-30 hidden h-full flex-shrink-0/);
+}
+
+run();

@@ -2,10 +2,12 @@
 
 import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
 
+import { parseEditorActionDrafts, type EditorActionDraft } from "@/lib/editor-actions";
 import { classifyPrometheusChatIntent } from "@/lib/prometheus-assistant/chat-intent";
 import { consumePrometheusChatStream } from "@/lib/prometheus-assistant/chat-stream-client";
 import type { PrometheusChatStreamEvent } from "@/lib/prometheus-assistant/chat-stream";
-import { deleteChatMessages, getChatMessages, insertChatMessage, insertChatMessages } from "@/lib/supabase/chat-messages";
+import type { ChatEditorContext, ChatFrameThumb } from "@/lib/prometheus-assistant/editor-context";
+import { deleteChatMessages, getChatMessages, insertChatMessage, insertChatMessages, type ChatMessageInsert } from "@/lib/supabase/chat-messages";
 import {
   createChatSession,
   deleteChatSession,
@@ -29,6 +31,15 @@ export type AIChatPostType =
   | "description"
   | "calendar";
 
+export type AIChatFrameReference = {
+  id: string;
+  label: string;
+  timecode: string;
+  seconds?: number;
+  thumbnailUrl: string | null;
+  reason: string;
+};
+
 export type AIChatMessage = {
   id: string;
   role: "user" | "assistant";
@@ -37,17 +48,27 @@ export type AIChatMessage = {
   isComplete?: boolean;
   platform?: AIChatPlatform;
   postType?: AIChatPostType;
+  frames?: AIChatFrameReference[];
+  toolCalls?: unknown[];
+  actionDrafts?: EditorActionDraft[];
 };
 
-type PrometheusChatResponse = {
-  error?: string;
-  reply?: string;
-};
+export type AIChatLiveContext = ChatEditorContext & { frameThumbs?: ChatFrameThumb[] };
+
+export type AIChatContextProvider = () => AIChatLiveContext | null;
 
 const SOCIAL_STRATEGIST_CONTEXT =
   "Act as a social media content strategist for video creators. Tailor posts, hooks, calls to action, and hashtags to the requested platform.";
 
-export function useAIChat({ projectId, enabled = true }: { projectId: string | null; enabled?: boolean }) {
+export function useAIChat({
+  projectId,
+  enabled = true,
+  contextProvider,
+}: {
+  projectId: string | null;
+  enabled?: boolean;
+  contextProvider?: AIChatContextProvider;
+}) {
   const [draft, setDraft] = useState("");
   const [messages, setMessages] = useState<AIChatMessage[]>([]);
   const [isSending, setIsSending] = useState(false);
@@ -64,10 +85,16 @@ export function useAIChat({ projectId, enabled = true }: { projectId: string | n
   const creatingSessionRef = useRef<Promise<ChatSession> | null>(null);
   const pendingAssistantMessagesRef = useRef(new Map<string, { message: AIChatMessage; sessionId: string | null }>());
   const streamedContentRef = useRef(new Map<string, string>());
+  const contextProviderRef = useRef<AIChatContextProvider | undefined>(contextProvider);
+  const failedPersistRef = useRef<{ sessionId: string; payload: ChatMessageInsert } | null>(null);
 
   useEffect(() => {
     messagesRef.current = messages;
   }, [messages]);
+
+  useEffect(() => {
+    contextProviderRef.current = contextProvider;
+  }, [contextProvider]);
 
   const setActiveSessionId = useCallback((sessionId: string | null) => {
     currentSessionIdRef.current = sessionId;
@@ -217,71 +244,34 @@ export function useAIChat({ projectId, enabled = true }: { projectId: string | n
             });
             setSaveState("saved");
             void refreshSessions();
-          } catch {
+          } catch (persistError) {
+            console.warn("[use-ai-chat] user message persist failed", persistError);
+            const meta = inferPostMetadata(text);
+            failedPersistRef.current = {
+              sessionId,
+              payload: {
+                role: "user",
+                content: text,
+                client_message_id: userMessage.id,
+                platform: meta.platform ?? null,
+                post_type: meta.postType ?? null,
+              },
+            };
             setSaveState("error");
-            setError("This message is sending, but chat history could not be saved.");
           }
         }
 
         const intent = classifyPrometheusChatIntent(text);
         const assistantMessageId = `assistant-${crypto.randomUUID()}`;
-        if (intent.allowTools) {
-          setStreamStatus("Planning editor actions");
-          const toolResponse = await fetch("/api/prometheus-chat", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              message: text,
-              messages: history,
-              originalPrompt: intent.useSocialStrategist
-                ? SOCIAL_STRATEGIST_CONTEXT
-                : undefined,
-              projectId,
-              verbosity: "normal",
-            }),
-            signal: controller.signal,
-          });
-          const payload = (await toolResponse.json().catch(() => null)) as
-            | PrometheusChatResponse
-            | null;
-          const reply = payload?.reply?.trim();
-          if (!toolResponse.ok || !reply) {
-            throw new Error(
-              payload?.error || "Prometheus could not plan that editor action.",
-            );
-          }
-
-          const assistantMessage: AIChatMessage = {
-            id: assistantMessageId,
-            role: "assistant",
-            content: reply,
-            createdAt: new Date().toISOString(),
-            isComplete: true,
-            ...inferPostMetadata(`${text}\n${reply}`),
-          };
-          setMessages((current) => [...current, assistantMessage]);
-          setIsAwaitingResponse(false);
-          setStreamStatus(null);
-          if (sessionId) {
-            setSaveState("saving");
-            try {
-              await insertChatMessage(sessionId, {
-                role: "assistant",
-                content: reply,
-                client_message_id: assistantMessage.id,
-                ...inferPostMetadata(`${text}\n${reply}`),
-              });
-              setSaveState("saved");
-            } catch {
-              setSaveState("error");
-              setError("The response is visible, but it could not be saved.");
-            }
-          }
-          void refreshSessions();
-          return;
-        }
 
         activeAssistantMessageId = assistantMessageId;
+        let liveContext: AIChatLiveContext | null = null;
+        try {
+          liveContext = contextProviderRef.current?.() ?? null;
+        } catch {
+          liveContext = null;
+        }
+        const { frameThumbs: liveFrameThumbs, ...liveEditorContext } = liveContext ?? {};
         const response = await fetch("/api/prometheus-chat/stream", {
           method: "POST",
           headers: {
@@ -296,6 +286,9 @@ export function useAIChat({ projectId, enabled = true }: { projectId: string | n
             sessionId,
             verbosity: "normal",
             clientMessageId: assistantMessageId,
+            ...(liveContext
+              ? { editorContext: liveEditorContext, frameThumbs: liveFrameThumbs ?? [] }
+              : {}),
           }),
           signal: controller.signal,
         });
@@ -313,6 +306,9 @@ export function useAIChat({ projectId, enabled = true }: { projectId: string | n
         setIsAwaitingResponse(false);
         let reply = "";
         let persistedByServer = false;
+        let streamFrames: AIChatFrameReference[] = [];
+        let streamToolCalls: unknown[] = [];
+        let streamActionDrafts: EditorActionDraft[] = [];
 
         const flushReply = () => {
           renderFrame = null;
@@ -340,6 +336,12 @@ export function useAIChat({ projectId, enabled = true }: { projectId: string | n
             }
             return;
           }
+          if (event.type === "metadata") {
+            streamFrames = normalizeFrameReferenceList(event.frames);
+            streamToolCalls = Array.isArray(event.toolCalls) ? event.toolCalls : [];
+            streamActionDrafts = parseEditorActionDrafts(event.actionDrafts);
+            return;
+          }
           if (event.type === "done") {
             persistedByServer = event.persisted;
             return;
@@ -365,6 +367,9 @@ export function useAIChat({ projectId, enabled = true }: { projectId: string | n
                   ...entry,
                   content: reply,
                   isComplete: true,
+                  ...(streamFrames.length ? { frames: streamFrames } : {}),
+                  ...(streamToolCalls.length ? { toolCalls: streamToolCalls } : {}),
+                  ...(streamActionDrafts.length ? { actionDrafts: streamActionDrafts } : {}),
                   ...inferPostMetadata(`${text}\n${reply}`),
                 }
               : entry,
@@ -372,17 +377,21 @@ export function useAIChat({ projectId, enabled = true }: { projectId: string | n
         );
         if (!persistedByServer && sessionId) {
           setSaveState("saving");
+          const meta = inferPostMetadata(`${text}\n${reply}`);
+          const payload: ChatMessageInsert = {
+            role: "assistant",
+            content: reply,
+            client_message_id: assistantMessage.id,
+            platform: meta.platform ?? null,
+            post_type: meta.postType ?? null,
+          };
           try {
-            await insertChatMessage(sessionId, {
-              role: "assistant",
-              content: reply,
-              client_message_id: assistantMessage.id,
-              ...inferPostMetadata(`${text}\n${reply}`),
-            });
+            await insertChatMessage(sessionId, payload);
             setSaveState("saved");
-          } catch {
+          } catch (persistError) {
+            console.warn("[use-ai-chat] assistant message persist failed", persistError);
+            failedPersistRef.current = { sessionId, payload };
             setSaveState("error");
-            setError("The response is visible, but it could not be saved.");
           }
         }
         setStreamStatus(null);
@@ -555,6 +564,21 @@ export function useAIChat({ projectId, enabled = true }: { projectId: string | n
     }
   }, []);
 
+  const retryPersist = useCallback(async () => {
+    const failed = failedPersistRef.current;
+    if (!failed) return;
+    setSaveState("saving");
+    try {
+      await insertChatMessage(failed.sessionId, failed.payload);
+      failedPersistRef.current = null;
+      setSaveState("saved");
+      void refreshSessions();
+    } catch (persistError) {
+      console.warn("[use-ai-chat] retry persist failed", persistError);
+      setSaveState("error");
+    }
+  }, [refreshSessions]);
+
   const clearError = useCallback(() => setError(null), []);
 
   return {
@@ -572,6 +596,7 @@ export function useAIChat({ projectId, enabled = true }: { projectId: string | n
     removeSession,
     renameSession,
     reportStreamingProgress,
+    retryPersist,
     saveState,
     sendMessage,
     stopStreaming,
@@ -604,6 +629,34 @@ async function streamAssistantResponse(
       await new Promise<void>((resolve) => window.setTimeout(resolve, 16));
     }
   }
+}
+
+function normalizeFrameReferenceList(input: unknown, max = 8): AIChatFrameReference[] {
+  if (!Array.isArray(input)) return [];
+  const frames: AIChatFrameReference[] = [];
+  for (const value of input) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) continue;
+    const record = value as Record<string, unknown>;
+    frames.push({
+      id: typeof record.id === "string" && record.id ? record.id : `frame-${frames.length}`,
+      label:
+        typeof record.label === "string" && record.label.trim()
+          ? record.label.trim()
+          : "Frame reference",
+      timecode: typeof record.timecode === "string" ? record.timecode : "",
+      seconds:
+        typeof record.seconds === "number" && Number.isFinite(record.seconds)
+          ? record.seconds
+          : undefined,
+      thumbnailUrl:
+        typeof record.thumbnailUrl === "string" && record.thumbnailUrl.trim()
+          ? record.thumbnailUrl.trim()
+          : null,
+      reason: typeof record.reason === "string" ? record.reason : "",
+    });
+    if (frames.length >= max) break;
+  }
+  return frames;
 }
 
 function inferPostMetadata(value: string): Pick<AIChatMessage, "platform" | "postType"> {

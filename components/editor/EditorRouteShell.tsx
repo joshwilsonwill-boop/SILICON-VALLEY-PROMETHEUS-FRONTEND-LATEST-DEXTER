@@ -112,14 +112,14 @@ export function EditorRouteShell({ children }: { children: ReactNode }) {
       {!focusMode && (
         <aside
           className={cn(
-            "relative z-10 hidden h-full flex-shrink-0 transition-[width,transform,opacity] duration-300 ease-out md:block",
+            "relative z-30 hidden h-full flex-shrink-0 transition-[width,transform,opacity] duration-300 ease-out md:block",
             sidebarOpen
               ? "translate-x-0 overflow-visible opacity-100"
               : "w-0 -translate-x-full overflow-hidden opacity-0",
           )}
           aria-label="Editor navigation"
         >
-          <AwwwardsSidebar />
+          <AwwwardsSidebar onOpenSettings={() => openSettingsPanel("appearance")} />
         </aside>
       )}
 

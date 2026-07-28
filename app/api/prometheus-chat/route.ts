@@ -9,6 +9,16 @@ import {
   getPrometheusIntentInstruction,
 } from '@/lib/prometheus-assistant/chat-intent'
 import {
+  formatSecondsAsTimecode,
+  normalizeChatEditorContext,
+  normalizeChatFrameThumbs,
+  type ChatEditorContext,
+} from '@/lib/prometheus-assistant/editor-context'
+import {
+  formatProjectContextForPrompt,
+  loadProjectChatContext,
+} from '@/lib/prometheus-assistant/project-context'
+import {
   clampText,
   createExtractivePrometheusAnswer,
   formatKnowledgeContext,
@@ -16,6 +26,19 @@ import {
   retrievePrometheusKnowledge,
   type PrometheusKnowledgeMatch,
 } from '@/lib/prometheus-assistant/retrieval'
+import {
+  collectActionDrafts,
+  executePrometheusTool,
+  isToolUseFailed,
+  normalizeGroqToolCalls,
+  PROMETHEUS_TOOLS,
+  toFramePayload,
+  toKnowledgeToolPayload,
+  toPublicFrame,
+  type ChatFrameReference,
+  type GroqMessage,
+  type PrometheusToolCall,
+} from '@/lib/prometheus-assistant/tools'
 
 export const runtime = 'nodejs'
 
@@ -43,15 +66,6 @@ type ChatSelectedStyleTemplate = {
   tags?: string[]
 }
 
-type ChatFrameReference = {
-  id?: string
-  label?: string
-  timecode?: string
-  seconds?: number
-  thumbnailUrl?: string | null
-  reason?: string
-}
-
 type PrometheusChatRequest = {
   query?: unknown
   message?: unknown
@@ -62,87 +76,12 @@ type PrometheusChatRequest = {
   initialSources?: unknown
   videoContext?: unknown
   frameReferences?: unknown
+  editorContext?: unknown
+  frameThumbs?: unknown
   attachments?: unknown
   selectedStyleTemplate?: unknown
   verbosity?: unknown
 }
-
-type PrometheusToolCall = {
-  id: string
-  name: string
-  label: string
-  status: 'completed' | 'needs_approval' | 'failed'
-  input: unknown
-  output: unknown
-  summary: string
-}
-
-type GroqMessage = {
-  role: 'system' | 'user' | 'assistant' | 'tool'
-  content: string | Array<Record<string, unknown>>
-  tool_call_id?: string
-  tool_calls?: unknown
-}
-
-const PROMETHEUS_TOOLS = [
-  {
-    type: 'function',
-    function: {
-      name: 'search_prometheus_knowledge',
-      description: 'Search the bundled Prometheus editing, troubleshooting, creative workflow, and tool-calling knowledge base.',
-      parameters: {
-        type: 'object',
-        properties: {
-          query: { type: 'string', description: 'The focused knowledge search query.' },
-          limit: { type: 'number', description: 'Maximum chunks to return, between 1 and 8.' },
-        },
-        required: ['query'],
-        additionalProperties: false,
-      },
-    },
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'reference_video_frames',
-      description: 'Reference frames or frame ranges from the current video context that the UI can display beneath the answer.',
-      parameters: {
-        type: 'object',
-        properties: {
-          reason: { type: 'string', description: 'Why these frames matter.' },
-          labels: {
-            type: 'array',
-            items: { type: 'string' },
-            description: 'Frame labels, timecodes, or ranges to reference.',
-          },
-        },
-        required: ['reason'],
-        additionalProperties: false,
-      },
-    },
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'draft_editor_actions',
-      description: 'Draft non-destructive edit actions that the user can approve before execution.',
-      parameters: {
-        type: 'object',
-        properties: {
-          intent: { type: 'string', description: 'The editing intent.' },
-          actions: {
-            type: 'array',
-            items: { type: 'string' },
-            description: 'Concrete non-destructive editor actions.',
-          },
-          requiresApproval: { type: 'boolean', description: 'Whether execution should wait for user approval.' },
-        },
-        required: ['intent', 'actions'],
-        additionalProperties: false,
-      },
-    },
-  },
-] as const
 
 export async function POST(req: Request) {
   const abortController = new AbortController()
@@ -178,14 +117,24 @@ export async function POST(req: Request) {
         sources: [],
         frames: [],
         toolCalls: [],
+        actionDrafts: [],
         attachments: [],
       })
     }
 
 
     const projectContext = normalizeProjectContext(body)
+    const editorContext = normalizeChatEditorContext(body?.editorContext)
+    const frameReferences = [
+      ...normalizeFrameReferences(body?.frameReferences),
+      ...frameRefsFromThumbs(body?.frameThumbs, editorContext),
+    ].slice(0, 12)
+    // Server-side video metadata (asset + transcript) so the assistant knows
+    // about the project's source video even when attachments weren't sent.
+    const projectChatContext = projectContext.projectId
+      ? await loadProjectChatContext(projectContext.projectId)
+      : null
     const attachments = normalizeAttachments(body?.attachments)
-    const frameReferences = normalizeFrameReferences(body?.frameReferences)
     const verbosity = normalizeVerbosity(body?.verbosity, latestMessage)
     const retrievalQuery = buildRetrievalQuery(latestMessage, projectContext, frameReferences)
     const knowledge = intent.useKnowledge
@@ -215,7 +164,7 @@ export async function POST(req: Request) {
               label: 'Search Prometheus knowledge',
               status: 'completed',
               input: { query: retrievalQuery, limit: 7 },
-              output: { matches: knowledge.length },
+              output: { matches: toKnowledgeToolPayload(knowledge) },
               summary: 'Used local Prometheus guidance because the chat model is not configured.',
             },
           ],
@@ -233,6 +182,8 @@ export async function POST(req: Request) {
         role: 'system',
         content: buildSystemPrompt({
           projectContext,
+          projectContextBlock: projectChatContext ? formatProjectContextForPrompt(projectChatContext) : '',
+          editorContext,
           knowledge,
           frameReferences,
           attachments,
@@ -257,7 +208,8 @@ export async function POST(req: Request) {
       temperature: 0.42,
       max_tokens: verbosity === 'deep' ? 900 : 620,
     }
-    if (intent.allowTools) {
+    const toolsEnabled = intent.allowTools || Boolean(editorContext) || Boolean(projectChatContext?.video)
+    if (toolsEnabled) {
       firstCompletionRequest.tools = PROMETHEUS_TOOLS
       firstCompletionRequest.tool_choice = 'auto'
     }
@@ -274,7 +226,7 @@ export async function POST(req: Request) {
         latestMessage,
         knowledge,
         frameReferences,
-        projectContext,
+        projectId: projectContext.projectId,
       }),
     )
 
@@ -316,6 +268,7 @@ export async function POST(req: Request) {
       sources: toSourcePayload(knowledge),
       frames: toFramePayload(frameReferences, executedToolCalls),
       toolCalls: executedToolCalls,
+      actionDrafts: collectActionDrafts(executedToolCalls),
       attachments: attachments.map(toPublicAttachment),
     })
   } catch (error) {
@@ -341,20 +294,6 @@ export async function POST(req: Request) {
   }
 }
 
-function isToolUseFailed(error: unknown) {
-  const record = asRecord(error)
-  const details = [
-    error instanceof Error ? error.message : '',
-    cleanInline(record.code),
-    cleanInline(record.message),
-    cleanInline(record.failed_generation),
-  ]
-    .join(' ')
-    .toLowerCase()
-
-  return details.includes('tool_use_failed') || details.includes('<function=')
-}
-
 function recoverToolFailureText(value: unknown, maxChars: number) {
   if (typeof value !== 'string') return ''
   const withoutMalformedToolCalls = value
@@ -365,6 +304,8 @@ function recoverToolFailureText(value: unknown, maxChars: number) {
 
 function buildSystemPrompt({
   projectContext,
+  projectContextBlock,
+  editorContext,
   knowledge,
   frameReferences,
   attachments,
@@ -373,6 +314,8 @@ function buildSystemPrompt({
   intentInstruction,
 }: {
   projectContext: ReturnType<typeof normalizeProjectContext>
+  projectContextBlock: string
+  editorContext: ChatEditorContext | null
   knowledge: PrometheusKnowledgeMatch[]
   frameReferences: ChatFrameReference[]
   attachments: ChatAttachment[]
@@ -380,6 +323,23 @@ function buildSystemPrompt({
   maxChars: number
   intentInstruction: string
 }) {
+  const editorLines: string[] = []
+  if (editorContext) {
+    const playhead =
+      editorContext.playheadSec !== undefined
+        ? formatSecondsAsTimecode(editorContext.playheadSec)
+        : '--:--'
+    const duration =
+      editorContext.durationSec !== undefined
+        ? formatSecondsAsTimecode(editorContext.durationSec)
+        : '--:--'
+    editorLines.push(`Playhead: ${playhead} of ${duration}.`)
+    if (editorContext.workspaceTab) editorLines.push(`Active workspace: ${editorContext.workspaceTab}.`)
+    if (editorContext.fitMode) editorLines.push(`Preview fit: ${editorContext.fitMode}.`)
+    if (editorContext.muted !== undefined)
+      editorLines.push(`Preview audio: ${editorContext.muted ? 'muted' : 'unmuted'}.`)
+  }
+
   return [
     'You are the Prometheus Studio copilot inside a professional video editor.',
     'Use the provided Prometheus knowledge and current video context. Do not invent backend state, hidden files, timelines, or completed actions.',
@@ -389,12 +349,17 @@ function buildSystemPrompt({
     `Response verbosity delimiter: ${verbosity}. Hard cap: ${maxChars} characters unless the user explicitly asks for a long plan.`,
     'When a task implies editor changes, draft non-destructive actions and ask for approval before claiming execution.',
     'When the user references a frame or shot, call reference_video_frames if frame context is available.',
-    'When knowledge is needed, call search_prometheus_knowledge. When edit actions are needed, call draft_editor_actions.',
+    'When knowledge is needed, call search_prometheus_knowledge. When edit actions are needed, call draft_editor_actions with machine-readable actions; anything that mutates media (trim, captions, typography) must use kind "propose" — it is plan-only and never executed here.',
+    'Do not claim an editor action happened unless the user approved it and execution is confirmed.',
     'If image attachments are present, acknowledge them as user-provided visual references. Do not pretend to inspect pixels unless a vision model result is provided.',
     'Return clean markdown. Avoid JSON unless explicitly requested.',
     '',
     'Current project context:',
     JSON.stringify(projectContext, null, 2),
+    '',
+    projectContextBlock ? `Project video context:\n${projectContextBlock}` : 'Project video context: none.',
+    '',
+    editorLines.length ? `Live editor state:\n${editorLines.join('\n')}` : 'Live editor state: none.',
     '',
     frameReferences.length ? `Available frame references:\n${JSON.stringify(frameReferences.map(toPublicFrame), null, 2)}` : 'Available frame references: none.',
     attachments.length ? `Attached visual references:\n${JSON.stringify(attachments.map(toPublicAttachment), null, 2)}` : 'Attached visual references: none.',
@@ -402,80 +367,6 @@ function buildSystemPrompt({
     'Retrieved Prometheus knowledge:',
     formatKnowledgeContext(knowledge),
   ].join('\n')
-}
-
-function executePrometheusTool(
-  toolCall: { id: string; name: string; arguments: unknown },
-  context: {
-    latestMessage: string
-    knowledge: PrometheusKnowledgeMatch[]
-    frameReferences: ChatFrameReference[]
-    projectContext: ReturnType<typeof normalizeProjectContext>
-  },
-): PrometheusToolCall {
-  if (toolCall.name === 'search_prometheus_knowledge') {
-    const args = asRecord(toolCall.arguments)
-    const query = cleanInline(args.query) || context.latestMessage
-    const limit = Math.min(8, Math.max(1, Number(args.limit) || 5))
-    const matches = retrievePrometheusKnowledge(query, limit)
-    return {
-      id: toolCall.id,
-      name: toolCall.name,
-      label: 'Search knowledge',
-      status: 'completed',
-      input: { query, limit },
-      output: { matches: toKnowledgeToolPayload(matches), context: formatKnowledgeContext(matches) },
-      summary: `${matches.length} Prometheus guidance reference${matches.length === 1 ? '' : 's'} matched.`,
-    }
-  }
-
-  if (toolCall.name === 'reference_video_frames') {
-    const args = asRecord(toolCall.arguments)
-    const labels = Array.isArray(args.labels) ? args.labels.map(cleanInline).filter(Boolean) : []
-    const frames = labels.length
-      ? context.frameReferences.filter((frame) => labels.some((label) => cleanInline(frame.label).toLowerCase().includes(label.toLowerCase())))
-      : context.frameReferences
-
-    return {
-      id: toolCall.id,
-      name: toolCall.name,
-      label: 'Reference frames',
-      status: 'completed',
-      input: { reason: cleanInline(args.reason), labels },
-      output: { frames: frames.map(toPublicFrame) },
-      summary: frames.length ? `${frames.length} current-video frame references attached.` : 'No matching frame thumbnails are available yet.',
-    }
-  }
-
-  if (toolCall.name === 'draft_editor_actions') {
-    const args = asRecord(toolCall.arguments)
-    const actions = Array.isArray(args.actions) ? args.actions.map(cleanInline).filter(Boolean).slice(0, 8) : []
-    return {
-      id: toolCall.id,
-      name: toolCall.name,
-      label: 'Draft editor actions',
-      status: 'needs_approval',
-      input: {
-        intent: cleanInline(args.intent) || context.latestMessage,
-        projectId: context.projectContext.projectId,
-        actions,
-      },
-      output: {
-        note: 'Drafted only. The editor must ask for approval before applying timeline/media changes.',
-      },
-      summary: `${actions.length || 1} non-destructive editor action${actions.length === 1 ? '' : 's'} drafted for approval.`,
-    }
-  }
-
-  return {
-    id: toolCall.id,
-    name: toolCall.name,
-    label: toolCall.name,
-    status: 'failed',
-    input: toolCall.arguments,
-    output: { error: 'Unknown tool.' },
-    summary: 'Unknown tool request ignored.',
-  }
 }
 
 function buildFallbackPayload({
@@ -501,6 +392,7 @@ function buildFallbackPayload({
     sources: toSourcePayload(knowledge),
     frames: frameReferences.map(toPublicFrame),
     toolCalls,
+    actionDrafts: [] as const,
     attachments: attachments.map(toPublicAttachment),
   }
 }
@@ -618,34 +510,6 @@ function buildRetrievalQuery(
     .join(' ')
 }
 
-function normalizeGroqToolCalls(value: unknown): Array<{ id: string; name: string; arguments: unknown }> {
-  if (!Array.isArray(value)) return []
-
-  return value
-    .map((toolCall, index) => {
-      if (!toolCall || typeof toolCall !== 'object') return null
-      const record = toolCall as { id?: unknown; function?: { name?: unknown; arguments?: unknown } }
-      const name = cleanInline(record.function?.name)
-      if (!name) return null
-      return {
-        id: cleanInline(record.id) || `tool-${index + 1}`,
-        name,
-        arguments: parseToolArguments(record.function?.arguments),
-      }
-    })
-    .filter((toolCall): toolCall is { id: string; name: string; arguments: unknown } => Boolean(toolCall))
-    .slice(0, 4)
-}
-
-function parseToolArguments(value: unknown) {
-  if (typeof value !== 'string') return value ?? {}
-  try {
-    return JSON.parse(value) as unknown
-  } catch {
-    return { raw: value }
-  }
-}
-
 function toSourcePayload(matches: PrometheusKnowledgeMatch[]) {
   return matches.slice(0, 6).map((match) => ({
     title: match.title || 'Prometheus guidance',
@@ -655,33 +519,27 @@ function toSourcePayload(matches: PrometheusKnowledgeMatch[]) {
   }))
 }
 
-function toKnowledgeToolPayload(matches: PrometheusKnowledgeMatch[]) {
-  return matches.slice(0, 6).map((match, index) => ({
-    label: `Guidance ${index + 1}`,
-    title: match.title || 'Prometheus guidance',
-    relevance: Number(match.score.toFixed(2)),
-  }))
-}
+/** Timeline thumbnails sent by the client become frame references the model can cite. */
+function frameRefsFromThumbs(
+  value: unknown,
+  editorContext: ChatEditorContext | null,
+): ChatFrameReference[] {
+  const thumbs = normalizeChatFrameThumbs(value)
 
-function toFramePayload(frameReferences: ChatFrameReference[], toolCalls: PrometheusToolCall[]) {
-  const toolFrames = toolCalls.flatMap((toolCall) => {
-    const output = asRecord(toolCall.output)
-    return Array.isArray(output.frames) ? output.frames : []
+  return thumbs.map((thumb, index) => {
+    const timecode = thumb.label?.trim() || formatSecondsAsTimecode(thumb.timeSec)
+    const nearPlayhead =
+      editorContext?.playheadSec !== undefined &&
+      Math.abs(thumb.timeSec - editorContext.playheadSec) <= 1
+    return {
+      id: `thumb-${index + 1}`,
+      label: timecode,
+      timecode,
+      seconds: thumb.timeSec,
+      thumbnailUrl: thumb.url,
+      reason: nearPlayhead ? 'Frame at the current playhead position.' : '',
+    }
   })
-  const frames = toolFrames.length ? toolFrames : frameReferences.map(toPublicFrame)
-  return frames.slice(0, 8)
-}
-
-function toPublicFrame(frame: unknown) {
-  const record = asRecord(frame)
-  return {
-    id: cleanInline(record.id),
-    label: cleanInline(record.label) || 'Frame reference',
-    timecode: cleanInline(record.timecode),
-    seconds: typeof record.seconds === 'number' ? record.seconds : undefined,
-    thumbnailUrl: cleanInline(record.thumbnailUrl) || null,
-    reason: cleanInline(record.reason),
-  }
 }
 
 function toPublicAttachment(attachment: ChatAttachment) {

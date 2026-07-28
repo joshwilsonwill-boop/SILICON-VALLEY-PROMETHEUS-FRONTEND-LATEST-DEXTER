@@ -6,6 +6,7 @@ export type PrometheusChatStreamEvent =
       sources?: unknown[];
       frames?: unknown[];
       toolCalls?: unknown[];
+      actionDrafts?: unknown[];
     }
   | { type: "done"; persisted: boolean }
   | { type: "error"; message: string };
@@ -55,6 +56,9 @@ function parsePrometheusChatStreamLine(
           frames: Array.isArray(value.frames) ? value.frames : undefined,
           toolCalls: Array.isArray(value.toolCalls)
             ? value.toolCalls
+            : undefined,
+          actionDrafts: Array.isArray(value.actionDrafts)
+            ? value.actionDrafts
             : undefined,
         },
       ];

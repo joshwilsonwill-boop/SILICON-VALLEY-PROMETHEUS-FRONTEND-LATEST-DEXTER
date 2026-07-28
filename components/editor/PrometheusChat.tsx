@@ -5,8 +5,9 @@ import { AnimatePresence } from 'framer-motion'
 import { ArrowDown, ArrowUp, X } from 'lucide-react'
 
 import { useAuth } from '@/components/auth/auth-provider'
-import { useAIChat } from '@/hooks/use-ai-chat'
+import { useAIChat, type AIChatContextProvider, type AIChatFrameReference } from '@/hooks/use-ai-chat'
 import { useProfile } from '@/hooks/use-profile'
+import { PROPOSE_NOT_APPLIED_MESSAGE, type EditorActionDraft } from '@/lib/editor-actions'
 import { getChatGreeting } from '@/lib/user/display-name'
 import { cn } from '@/lib/utils'
 
@@ -24,6 +25,9 @@ export type PrometheusChatMessage = {
     id: string
     label: string
   }>
+  frames?: AIChatFrameReference[]
+  toolCalls?: unknown[]
+  actionDrafts?: EditorActionDraft[]
 }
 
 export type PrometheusChatAction = {
@@ -71,6 +75,9 @@ export function PrometheusChat({
   onClose,
   className,
   projectId = null,
+  contextProvider,
+  onApplyActions,
+  onSeekToSec,
 }: {
   messages: PrometheusChatMessage[]
   onSend: (message: string) => void | Promise<void>
@@ -85,13 +92,17 @@ export function PrometheusChat({
   onClose?: () => void
   className?: string
   projectId?: string | null
+  contextProvider?: AIChatContextProvider
+  onApplyActions?: (drafts: EditorActionDraft[], messageId: string) => void
+  onSeekToSec?: (seconds: number) => void
 }) {
   const { session } = useAuth()
   const { profile } = useProfile()
-  const persistentChat = useAIChat({ projectId, enabled: true })
+  const persistentChat = useAIChat({ projectId, enabled: true, contextProvider })
   const [internalDraft, setInternalDraft] = React.useState('')
   const [showJumpToLatest, setShowJumpToLatest] = React.useState(false)
   const [historyOpen, setHistoryOpen] = React.useState(false)
+  const [actionOutcomes, setActionOutcomes] = React.useState<Record<string, 'applied' | 'dismissed'>>({})
   const historyButtonRef = React.useRef<HTMLButtonElement | null>(null)
   const scrollViewportRef = React.useRef<HTMLDivElement | null>(null)
   const pinnedToBottomRef = React.useRef(true)
@@ -102,9 +113,24 @@ export function PrometheusChat({
       role: message.role,
       content: message.content,
       isComplete: message.isComplete,
+      frames: message.frames,
+      toolCalls: message.toolCalls,
+      actionDrafts: message.actionDrafts,
     })),
     [persistentChat.messages],
   )
+
+  const handleApplyActions = React.useCallback(
+    (drafts: EditorActionDraft[], messageId: string) => {
+      onApplyActions?.(drafts, messageId)
+      setActionOutcomes((current) => ({ ...current, [messageId]: 'applied' }))
+    },
+    [onApplyActions],
+  )
+
+  const handleDismissActions = React.useCallback((messageId: string) => {
+    setActionOutcomes((current) => ({ ...current, [messageId]: 'dismissed' }))
+  }, [])
   const usesPersistentChat = true
   const renderedMessages = usesPersistentChat ? persistedMessages : messages
   const composedDraft = usesPersistentChat ? persistentChat.draft : draft ?? internalDraft
@@ -222,6 +248,10 @@ export function PrometheusChat({
                   key={message.id}
                   message={message}
                   live={usesPersistentChat}
+                  actionOutcome={actionOutcomes[message.id]}
+                  onApplyActions={onApplyActions ? handleApplyActions : undefined}
+                  onDismissActions={handleDismissActions}
+                  onSeekToSec={onSeekToSec}
                   onStreamingComplete={() => {
                     if (usesPersistentChat) persistentChat.completeAssistantMessage(message.id)
                   }}
@@ -257,7 +287,18 @@ export function PrometheusChat({
           ) : null}
           {persistentChat.saveState !== 'idle' ? (
             <p className="mx-auto mb-1 w-full max-w-3xl text-right text-[10px] uppercase tracking-[0.12em] text-white/28">
-              {persistentChat.saveState === 'saving' ? 'Saving' : persistentChat.saveState === 'saved' ? 'Saved' : 'Not saved'}
+              {persistentChat.saveState === 'saving' ? 'Saving' : persistentChat.saveState === 'saved' ? 'Saved' : (
+                <>
+                  Not saved
+                  <button
+                    type="button"
+                    onClick={() => void persistentChat.retryPersist()}
+                    className="ml-2 normal-case tracking-normal underline underline-offset-2 transition-colors hover:text-white/60"
+                  >
+                    Retry
+                  </button>
+                </>
+              )}
             </p>
           ) : null}
           <form
@@ -308,11 +349,19 @@ export function PrometheusChat({
 function PrometheusMessageBubble({
   message,
   live,
+  actionOutcome,
+  onApplyActions,
+  onDismissActions,
+  onSeekToSec,
   onStreamingComplete,
   onStreamingProgress,
 }: {
   message: PrometheusChatMessage
   live: boolean
+  actionOutcome?: 'applied' | 'dismissed'
+  onApplyActions?: (drafts: EditorActionDraft[], messageId: string) => void
+  onDismissActions?: (messageId: string) => void
+  onSeekToSec?: (seconds: number) => void
   onStreamingComplete: () => void
   onStreamingProgress: () => void
 }) {
@@ -323,27 +372,111 @@ function PrometheusMessageBubble({
     return <p className="text-sm text-white/38" role="status">Thinking…</p>
   }
 
+  const drafts = message.actionDrafts ?? []
+  const actionableDrafts = drafts.filter((draft) => draft.kind !== 'propose')
+  const proposeDrafts = drafts.filter((draft) => draft.kind === 'propose')
+  const messageComplete = message.isComplete ?? true
+  const showDraftPanel = !isUser && messageComplete && drafts.length > 0 && !actionOutcome
+  const frames = isUser ? [] : (message.frames ?? []).filter((frame) => frame.thumbnailUrl)
+
   return (
     <article className={cn('flex w-full', isUser ? 'justify-end' : 'justify-start')}>
-      <div
-        className={cn(
-          'max-w-[82%] whitespace-pre-wrap text-[15px] leading-7 md:max-w-[74%]',
-          isUser
-            ? 'rounded-2xl rounded-br-md border border-white/10 bg-white/[0.055] px-5 py-3.5 text-white/90'
-            : 'text-white/78',
-        )}
-      >
-        {isUser ? (
-          message.content
-        ) : (
-          <AIChatStreamingText
-            text={message.content}
-            isComplete={message.isComplete ?? true}
-            live={live}
-            onComplete={onStreamingComplete}
-            onProgress={onStreamingProgress}
-          />
-        )}
+      <div className={cn('flex max-w-[82%] flex-col gap-3 md:max-w-[74%]', isUser ? 'items-end' : 'items-start')}>
+        <div
+          className={cn(
+            'whitespace-pre-wrap text-[15px] leading-7',
+            isUser
+              ? 'rounded-2xl rounded-br-md border border-white/10 bg-white/[0.055] px-5 py-3.5 text-white/90'
+              : 'text-white/78',
+          )}
+        >
+          {isUser ? (
+            message.content
+          ) : (
+            <AIChatStreamingText
+              text={message.content}
+              isComplete={messageComplete}
+              live={live}
+              onComplete={onStreamingComplete}
+              onProgress={onStreamingProgress}
+            />
+          )}
+        </div>
+
+        {frames.length ? (
+          <ul className="flex max-w-full gap-2 overflow-x-auto pb-1">
+            {frames.map((frame) => {
+              const caption =
+                frame.timecode ||
+                (typeof frame.seconds === 'number' ? `${Math.round(frame.seconds)}s` : frame.label)
+              const thumb = (
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={frame.thumbnailUrl ?? ''}
+                    alt={frame.label}
+                    loading="lazy"
+                    className="h-16 w-28 rounded-lg border border-white/10 object-cover"
+                  />
+                  <span className="mt-1 block text-[11px] text-white/45">{caption}</span>
+                </>
+              )
+              return (
+                <li key={frame.id} className="shrink-0">
+                  {typeof frame.seconds === 'number' && onSeekToSec ? (
+                    <button
+                      type="button"
+                      onClick={() => onSeekToSec(frame.seconds as number)}
+                      title={`Seek to ${caption}`}
+                      className="block text-left transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+                    >
+                      {thumb}
+                    </button>
+                  ) : (
+                    <span className="block">{thumb}</span>
+                  )}
+                </li>
+              )
+            })}
+          </ul>
+        ) : null}
+
+        {showDraftPanel ? (
+          <div className="flex max-w-full flex-col gap-2 rounded-2xl border border-white/10 bg-white/[0.035] px-4 py-3">
+            {proposeDrafts.map((draft, index) => (
+              <p key={`propose-${index}`} className="text-[13px] leading-5 text-white/45">
+                {draft.kind === 'propose' ? draft.description : ''} — {PROPOSE_NOT_APPLIED_MESSAGE}
+              </p>
+            ))}
+            {actionableDrafts.length ? (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[13px] text-white/60">
+                  {actionableDrafts.map((draft) => draft.summary).join(' · ')}
+                </span>
+                {onApplyActions ? (
+                  <button
+                    type="button"
+                    onClick={() => onApplyActions(actionableDrafts, message.id)}
+                    className="rounded-full border border-white/15 px-3 py-1 text-[13px] text-white/85 transition-colors hover:border-white/30 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+                  >
+                    Apply
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => onDismissActions?.(message.id)}
+                  className="rounded-full px-3 py-1 text-[13px] text-white/40 transition-colors hover:text-white/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+                >
+                  Dismiss
+                </button>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
+        {!isUser && actionOutcome === 'applied' ? (
+          <p className="text-[12px] text-white/35">Applied</p>
+        ) : null}
       </div>
     </article>
   )
