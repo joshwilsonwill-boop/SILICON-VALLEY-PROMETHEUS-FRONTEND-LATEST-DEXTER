@@ -17,13 +17,14 @@ function run() {
 
   assert.match(luxuryChat, /onClose\?: \(\) => void/);
   assert.match(luxuryChat, /aria-label="Collapse editorial chat"/);
-  assert.match(luxuryChat, /prometheus-luxury-gradient-field/);
-  assert.match(luxuryChat, /@keyframes prometheusGradientDrift/);
+  assert.doesNotMatch(luxuryChat, /prometheus-luxury-gradient-field/);
+  assert.doesNotMatch(luxuryChat, /prometheusGradientDrift/);
   assert.match(luxuryChat, /aria-label="Scroll to latest response"/);
-  assert.match(luxuryChat, /function StreamingResponseText/);
-  assert.match(luxuryChat, /InlineLoadingAnimation/);
+  assert.match(luxuryChat, /AIChatStreamingText/);
+  assert.doesNotMatch(luxuryChat, /InlineLoadingAnimation|AIChatOrb/);
   assert.doesNotMatch(luxuryChat, /function PrometheusTypingOrbit/);
-  assert.match(luxuryChat, /function KineticText/);
+  assert.match(luxuryChat, /var\(--font-elegist\)/);
+  assert.doesNotMatch(luxuryChat, /New chat|Generate Code|Launch App|UI Components|Theme Ideas|Image Assets/);
 
   assert.match(editorPage, /PrometheusChat/);
   assert.match(

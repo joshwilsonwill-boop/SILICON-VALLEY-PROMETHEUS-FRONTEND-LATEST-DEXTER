@@ -78,6 +78,13 @@ const migraDisplay = localFont({
   preload: false,
 })
 
+const elegistDisplay = localFont({
+  src: '../elegist/Elegist.otf',
+  variable: '--font-elegist',
+  display: 'swap',
+  preload: false,
+})
+
 export const metadata: Metadata = {
   title: 'Prometheus',
   description: 'Prometheus Studio is a professional video editing and production workspace for filmmakers.',
@@ -113,7 +120,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
-      <body className={`${inter.variable} ${geist.variable} ${jetbrainsMono.variable} ${playfairDisplay.variable} ${spaceGrotesk.variable} ${vogueDisplay.variable} ${migraDisplay.variable} bg-background font-sans text-foreground antialiased`}>
+      <body className={`${inter.variable} ${geist.variable} ${jetbrainsMono.variable} ${playfairDisplay.variable} ${spaceGrotesk.variable} ${vogueDisplay.variable} ${migraDisplay.variable} ${elegistDisplay.variable} bg-background font-sans text-foreground antialiased`}>
         <CookieConsentProvider>
           <ReactQueryProvider>
             <LoadingProvider>

@@ -42,9 +42,10 @@ function run() {
   assert.match(messages, /chat_messages/);
   assert.match(streamingText, /requestAnimationFrame/);
   assert.match(streamingText, /isComplete/);
-  assert.match(historyPanel, /Chat history/);
-  assert.match(overlay, /PrometheusChatSessionMenu/);
+  assert.doesNotMatch(historyPanel, /Chat history|New chat/);
+  assert.doesNotMatch(overlay, /PrometheusChatSessionMenu|AIChatOrb/);
   assert.match(overlay, /getChatGreeting/);
+  assert.match(overlay, /var\(--font-elegist\)/);
   assert.match(hook, /currentSessionId/);
   assert.match(hook, /insertChatMessage/);
   assert.match(route, /tool_use_failed/);

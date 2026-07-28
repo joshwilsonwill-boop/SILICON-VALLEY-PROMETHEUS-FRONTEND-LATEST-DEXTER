@@ -78,23 +78,10 @@ async function run() {
   );
 
   const motionEditorPage = read("app/editor/motion/page.tsx");
-  assert.equal(motionEditorPage.includes("redirect('/editor')"), false);
-  assert.equal(motionEditorPage.includes("MotionCanvas"), true);
-  assert.equal(motionEditorPage.includes("NodeGraphProvider"), true);
-  assert.equal(motionEditorPage.includes("WorkspaceNavBar"), true);
-  assert.match(motionEditorPage, /activeItem="Motion"/);
-  assert.match(motionEditorPage, /\/editor\?tab=Editor/);
-  assert.match(motionEditorPage, /\/editor\?tab=Music/);
-  assert.equal(motionEditorPage.includes("z-[9999]"), true);
-  assert.equal(
-    existsSync(join(root, "app/editor/motion/components/motion-canvas.tsx")),
-    true,
-  );
-  assert.equal(
-    existsSync(join(root, "app/editor/motion/hooks/use-node-graph.ts")),
-    true,
-  );
-
+  assert.match(motionEditorPage, /fixed inset-0 z-\[9999\] bg-black/);
+  assert.match(motionEditorPage, /aria-label="Motion workspace"/);
+  assert.doesNotMatch(motionEditorPage, /MotionCanvas|NodeGraphProvider|WorkspaceNavBar/);
+  assert.doesNotMatch(motionEditorPage, /\/editor\?tab=Editor|\/editor\?tab=Music/);
   const animeNavbar = read("components/ui/anime-navbar.tsx");
   assert.equal(animeNavbar.includes("TextReveal"), false);
   assert.match(animeNavbar, /translate3d\(\$\{indicatorStyle\.left\}px,0,0\)/);
@@ -243,7 +230,8 @@ async function run() {
   const loadingAnimation = read("components/loading-animation/LoadingAnimation.tsx");
   const ringRenderer = read("components/loading-animation/RingRenderer.ts");
   assert.match(loadingAnimation, /CanvasLoadingAnimation/);
-  assert.match(loadingAnimation, /backgroundColor: '#000000'/);
+  assert.match(loadingAnimation, /return null/);
+  assert.doesNotMatch(loadingAnimation, /<canvas|<video|requestAnimationFrame/);
   assert.match(ringRenderer, /RING_SEGMENTS = 72/);
   assert.match(ringRenderer, /PALETTE/);
 

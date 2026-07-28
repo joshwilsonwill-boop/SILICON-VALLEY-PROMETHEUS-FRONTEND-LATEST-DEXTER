@@ -2,59 +2,25 @@
 
 import * as React from 'react'
 
-import { LoadingAnimation } from '@/components/loading-animation'
-
-interface LoadingState {
-  activeCount: number
-  cancellable: boolean
-  message?: string
-}
-
 interface LoadingContextValue {
   hideLoading: () => void
   showLoading: (message?: string, cancellable?: boolean) => void
+  showVideoLoader: (message?: string) => void
 }
 
 const LoadingContext = React.createContext<LoadingContextValue | null>(null)
-const EMPTY_LOADING_STATE: LoadingState = { activeCount: 0, cancellable: false }
 
 export function LoadingProvider({ children }: { children: React.ReactNode }) {
-  const [state, setState] = React.useState<LoadingState>(EMPTY_LOADING_STATE)
-
-  const showLoading = React.useCallback((message?: string, cancellable = false) => {
-    setState((current) => ({
-      activeCount: current.activeCount + 1,
-      cancellable: current.cancellable || cancellable,
-      message: message ?? current.message,
-    }))
-  }, [])
-
-  const hideLoading = React.useCallback(() => {
-    setState((current) => current.activeCount <= 1
-      ? EMPTY_LOADING_STATE
-      : { ...current, activeCount: current.activeCount - 1 })
-  }, [])
-
-  const cancelLoading = React.useCallback(() => {
-    setState(EMPTY_LOADING_STATE)
-  }, [])
+  const hideLoading = React.useCallback(() => undefined, [])
+  const showLoading = React.useCallback((_message?: string, _cancellable = false) => undefined, [])
+  const showVideoLoader = React.useCallback((_message?: string) => undefined, [])
 
   const value = React.useMemo(
-    () => ({ hideLoading, showLoading }),
-    [hideLoading, showLoading],
+    () => ({ hideLoading, showLoading, showVideoLoader }),
+    [hideLoading, showLoading, showVideoLoader],
   )
 
-  return (
-    <LoadingContext.Provider value={value}>
-      {children}
-      {state.activeCount > 0 ? (
-        <LoadingAnimation
-          message={state.message}
-          onCancel={state.cancellable ? cancelLoading : undefined}
-        />
-      ) : null}
-    </LoadingContext.Provider>
-  )
+  return <LoadingContext.Provider value={value}>{children}</LoadingContext.Provider>
 }
 
 export function useLoading() {
