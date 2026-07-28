@@ -18,7 +18,8 @@
     "push:sync:force": "git push origin main && git push upstream main --force-with-lease",
     "start": "next start",
     "agent": "tsx scripts/bedrock-auto.ts",
-    "agent:interactive": "tsx scripts/bedrock-agent.ts"
+    "agent:interactive": "tsx scripts/bedrock-agent.ts",
+    "maul:worker:once": "tsx scripts/run-maul-short-generation-worker.ts"
   },
   "dependencies": {
     "@aws-sdk/client-kms": "^3.1061.0",

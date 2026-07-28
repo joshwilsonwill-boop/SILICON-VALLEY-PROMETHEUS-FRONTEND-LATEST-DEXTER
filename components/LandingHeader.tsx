@@ -4,17 +4,15 @@ import type { ReactNode } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-// import { Button } from '@/components/ui/button' // kept for safe rollback; LiquidChromeButton wraps Button internally.
 import { useAuth } from '@/components/auth/auth-provider'
-import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { LiquidChromeButton } from '@/components/ui/liquid-chrome-button'
 
 interface LandingHeaderProps {
   mobileNavControl?: ReactNode
-  showPricing?: boolean
+  showBrandName?: boolean
 }
 
-export function LandingHeader({ mobileNavControl, showPricing = true }: LandingHeaderProps = {}) {
+export function LandingHeader({ mobileNavControl, showBrandName = true }: LandingHeaderProps = {}) {
   const router = useRouter()
   const { session, isLoading } = useAuth()
   const isAuthenticated = !!session
@@ -32,27 +30,16 @@ export function LandingHeader({ mobileNavControl, showPricing = true }: LandingH
               height={24}
               className="h-6 w-6 object-contain"
             />
-            <span className="text-sm font-bold uppercase tracking-[0.3em] text-white">
-              rometheus
-            </span>
+            {showBrandName ? (
+              <span className="text-sm font-bold uppercase tracking-[0.3em] text-white">
+                rometheus
+              </span>
+            ) : null}
           </Link>
         </div>
 
         <nav className="hidden items-center gap-8 md:flex">
-          {showPricing && (
-            <Link
-              href="/pricing"
-              className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-semibold uppercase tracking-widest text-white transition-colors hover:border-white/20 hover:bg-white/[0.08]"
-            >
-              Pricing
-            </Link>
-          )}
-          
-          {isLoading ? (
-            <div className="flex h-4 w-12 items-center justify-center">
-              <InlineLoadingAnimation size={16} label="Loading account navigation" />
-            </div>
-          ) : !isAuthenticated ? (
+          {isLoading ? null : !isAuthenticated ? (
             <>
               <Link
                 href="/login"
@@ -76,16 +63,7 @@ export function LandingHeader({ mobileNavControl, showPricing = true }: LandingH
         </nav>
 
         <div className="flex items-center gap-4 md:hidden">
-          {showPricing && (
-            <Link href="/pricing" className="text-xs font-semibold uppercase tracking-widest text-white">
-              Pricing
-            </Link>
-          )}
-          {isLoading ? (
-            <div className="flex h-4 w-10 items-center justify-center">
-              <InlineLoadingAnimation size={16} label="Loading account navigation" />
-            </div>
-          ) : isAuthenticated ? null : (
+          {isLoading ? null : isAuthenticated ? null : (
             <Link href="/login" className="text-xs font-medium uppercase tracking-widest text-white">
               Login
             </Link>

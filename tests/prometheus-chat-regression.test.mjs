@@ -22,35 +22,20 @@ function run() {
   assert.match(luxuryChat, /messages:\s*PrometheusChatMessage\[\]/);
   assert.match(luxuryChat, /onSend:\s*\(message:\s*string\)/);
   assert.match(luxuryChat, /export function PrometheusChat/);
-  assert.match(luxuryChat, /function SpectraNoiseFallback/);
-  assert.match(luxuryChat, /function LiquidMetalFallback/);
-  assert.match(luxuryChat, /prometheus original logo\.png/);
   assert.match(luxuryChat, /Ask Prometheus\.\.\./);
-  assert.match(luxuryChat, /rounded-\[16px_16px_4px_16px\]/);
-  assert.match(luxuryChat, /rounded-\[4px_16px_16px_16px\]/);
-  assert.match(luxuryChat, /cubic-bezier\(0\.25,\s*0\.46,\s*0\.45,\s*0\.94\)/);
-  assert.match(luxuryChat, /prometheus-luxury-gradient-field/);
-  assert.match(luxuryChat, /prometheusGradientDrift/);
+  assert.match(luxuryChat, /var\(--font-elegist\)/);
+  assert.match(luxuryChat, /getChatGreeting/);
+  assert.match(luxuryChat, /max-w-3xl/);
   assert.match(luxuryChat, /Collapse editorial chat/);
   assert.match(luxuryChat, /scrollViewportRef/);
   assert.match(luxuryChat, /aria-label="Scroll to latest response"/);
-  assert.match(luxuryChat, /function StreamingResponseText/);
-  assert.match(luxuryChat, /InlineLoadingAnimation/);
-  assert.doesNotMatch(luxuryChat, /function PrometheusTypingOrbit/);
-  assert.match(luxuryChat, /function KineticText/);
-  assert.match(luxuryChat, /prometheus-response-gradient-text/);
-  assert.doesNotMatch(luxuryChat, /prometheus-streaming-orbit/);
+  assert.match(luxuryChat, /AIChatStreamingText/);
   assert.match(luxuryChat, /thinking/i);
   assert.match(luxuryChat, /demoMessages/);
-  assert.doesNotMatch(luxuryChat, /EDITOR RELAY/);
-  assert.doesNotMatch(luxuryChat, /Build something amazing/);
-  assert.doesNotMatch(
-    luxuryChat,
-    /bg-emerald|emerald-500|#267dff|prometheus-accent-cyan/,
-  );
-  assert.doesNotMatch(luxuryChat, /loader-orb|AiResponseLoader/);
-  assert.doesNotMatch(luxuryChat, /ThinTypingLine|prometheus-thinking-line/);
-
+  assert.doesNotMatch(luxuryChat, /AIChatOrb|SpectraNoiseFallback|LiquidMetalFallback/);
+  assert.doesNotMatch(luxuryChat, /InlineLoadingAnimation|prometheus-luxury-gradient-field/);
+  assert.doesNotMatch(luxuryChat, /New chat|Generate Code|Launch App|UI Components|Theme Ideas|Image Assets/);
+  assert.doesNotMatch(luxuryChat, /ImageIcon|Mic|actions\.map/);
   assert.equal(editorPage.includes("md:w-[420px]"), false);
   assert.equal(editorPage.includes("lg:w-[420px]"), false);
   assert.equal(editorPage.includes("max-w-[420px]"), false);
