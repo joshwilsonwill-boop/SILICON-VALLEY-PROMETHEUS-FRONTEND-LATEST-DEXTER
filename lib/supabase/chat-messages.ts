@@ -6,6 +6,7 @@ export type ChatMessageRole = "user" | "assistant" | "system";
 
 export type ChatMessageRecord = {
   id: string;
+  client_message_id: string | null;
   session_id: string;
   role: ChatMessageRole;
   content: string;
@@ -16,6 +17,7 @@ export type ChatMessageRecord = {
 };
 
 export type ChatMessageInsert = {
+  client_message_id?: string | null;
   role: ChatMessageRole;
   content: string;
   platform?: string | null;
@@ -27,7 +29,7 @@ export async function getChatMessages(sessionId: string) {
   const supabase = createClient();
   const { data, error } = await supabase
     .from("chat_messages")
-    .select("id, session_id, role, content, platform, post_type, metadata, created_at")
+    .select("id, session_id, role, content, platform, post_type, metadata, client_message_id, created_at")
     .eq("session_id", sessionId)
     .order("created_at", { ascending: true });
 
@@ -43,11 +45,12 @@ export async function insertChatMessage(sessionId: string, payload: ChatMessageI
       session_id: sessionId,
       role: payload.role,
       content: payload.content,
+      client_message_id: payload.client_message_id ?? null,
       platform: payload.platform ?? null,
       post_type: payload.post_type ?? null,
       metadata: payload.metadata ?? {},
     })
-    .select("id, session_id, role, content, platform, post_type, metadata, created_at")
+    .select("id, session_id, role, content, platform, post_type, metadata, client_message_id, created_at")
     .single();
 
   if (error) throw error;
@@ -66,11 +69,12 @@ export async function insertChatMessages(sessionId: string, payloads: ChatMessag
         role: payload.role,
         content: payload.content,
         platform: payload.platform ?? null,
+        client_message_id: payload.client_message_id ?? null,
         post_type: payload.post_type ?? null,
         metadata: payload.metadata ?? {},
       })),
     )
-    .select("id, session_id, role, content, platform, post_type, metadata, created_at");
+    .select("id, session_id, role, content, platform, post_type, metadata, client_message_id, created_at");
 
   if (error) throw error;
   return (data ?? []) as ChatMessageRecord[];

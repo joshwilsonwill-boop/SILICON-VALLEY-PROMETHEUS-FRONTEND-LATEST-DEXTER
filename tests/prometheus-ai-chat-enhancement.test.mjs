@@ -15,6 +15,8 @@ function run() {
     "lib/supabase/chat-messages.ts",
     "components/editor/ai-chat-streaming-text.tsx",
     "components/editor/ai-chat-history-button.tsx",
+    "components/editor/prometheus-chat-history-drawer.tsx",
+    "components/editor/prometheus-chat-history-row.tsx",
     "components/editor/PrometheusChat.tsx",
     "components/editor/prometheus-chat-thinking-process.tsx",
     "components/editor/prometheus-chat-session-menu.tsx",
@@ -42,14 +44,15 @@ function run() {
   assert.match(messages, /chat_messages/);
   assert.match(streamingText, /requestAnimationFrame/);
   assert.match(streamingText, /isComplete/);
-  assert.doesNotMatch(historyPanel, /Chat history|New chat/);
+  assert.match(historyPanel, /PrometheusChatHistoryDrawer/);
+  assert.match(historyPanel, /AIChatHistoryButton/);
   assert.doesNotMatch(overlay, /PrometheusChatSessionMenu|AIChatOrb/);
   assert.match(overlay, /getChatGreeting/);
   assert.match(overlay, /var\(--font-elegist\)/);
   assert.match(hook, /currentSessionId/);
   assert.match(hook, /insertChatMessage/);
   assert.match(route, /tool_use_failed/);
-  assert.match(route, /couldn't search live data/i);
+  assert.doesNotMatch(route, /couldn't search live data/i);
   assert.match(migration, /create table if not exists public\.chat_sessions/i);
   assert.match(migration, /create table if not exists public\.chat_messages/i);
 }

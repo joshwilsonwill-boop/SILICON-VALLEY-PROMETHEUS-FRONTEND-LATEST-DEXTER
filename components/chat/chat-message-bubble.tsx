@@ -26,34 +26,24 @@ export function ChatMessageBubble({
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(content);
-  const [displayedLength, setDisplayedLength] = useState(isStreaming ? 0 : content.length);
   const streamingCompleteRef = useRef(false);
 
   useEffect(() => setEditValue(content), [content]);
 
   useEffect(() => {
-    streamingCompleteRef.current = false;
     if (!isStreaming) {
-      setDisplayedLength(content.length);
+      if (!streamingCompleteRef.current) {
+        streamingCompleteRef.current = true;
+        onStreamingComplete?.();
+      }
       return;
     }
 
-    setDisplayedLength(0);
-    const timer = window.setInterval(() => {
-      setDisplayedLength((current) => {
-        const next = Math.min(content.length, current + 1 + Math.floor(Math.random() * 3));
-        onStreamingProgress?.(content.slice(0, next));
-        if (next >= content.length && !streamingCompleteRef.current) {
-          streamingCompleteRef.current = true;
-          window.setTimeout(() => onStreamingComplete?.(), 0);
-        }
-        return next;
-      });
-    }, 15);
-    return () => window.clearInterval(timer);
+    streamingCompleteRef.current = false;
+    onStreamingProgress?.(content);
   }, [content, isStreaming, onStreamingComplete, onStreamingProgress]);
 
-  const renderedContent = isStreaming ? content.slice(0, displayedLength) : content;
+  const renderedContent = content;
 
   const saveEdit = () => {
     const nextContent = editValue.trim();

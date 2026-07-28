@@ -2,6 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
 
+import { classifyPrometheusChatIntent } from "@/lib/prometheus-assistant/chat-intent";
+import { consumePrometheusChatStream } from "@/lib/prometheus-assistant/chat-stream-client";
+import type { PrometheusChatStreamEvent } from "@/lib/prometheus-assistant/chat-stream";
 import { deleteChatMessages, getChatMessages, insertChatMessage, insertChatMessages } from "@/lib/supabase/chat-messages";
 import {
   createChatSession,
@@ -53,6 +56,8 @@ export function useAIChat({ projectId, enabled = true }: { projectId: string | n
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
+  const [streamStatus, setStreamStatus] = useState<string | null>(null);
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const messagesRef = useRef<AIChatMessage[]>([]);
   const abortControllerRef = useRef<AbortController | null>(null);
   const currentSessionIdRef = useRef<string | null>(null);
@@ -107,8 +112,8 @@ export function useAIChat({ projectId, enabled = true }: { projectId: string | n
         const requestedSession = nextSessions.find((session) => session.id === requestedSessionId);
         if (requestedSession) {
           setActiveSessionId(requestedSession.id);
-        } else {
-          await ensureSession();
+        } else if (nextSessions[0]) {
+          setActiveSessionId(nextSessions[0].id);
         }
       } catch {
         // Chat remains usable without persistence when the user is signed out or Supabase is unavailable.
@@ -187,70 +192,237 @@ export function useAIChat({ projectId, enabled = true }: { projectId: string | n
       setError(null);
       setIsSending(true);
       setIsAwaitingResponse(true);
+      setStreamStatus("Preparing response");
 
       abortControllerRef.current?.abort();
       const controller = new AbortController();
       abortControllerRef.current = controller;
-      let awaitStreamingCompletion = false;
+      let renderFrame: number | null = null;
+      let activeAssistantMessageId: string | null = null;
 
       try {
-        const sessionId = await ensureSession().catch(() => null);
+        const sessionId = await ensureSession().catch(() => {
+          setSaveState("error");
+          setError("This chat is temporary because history is unavailable.");
+          return null;
+        });
         if (sessionId && options?.persistUser !== false) {
-          void insertChatMessage(sessionId, {
-            role: "user",
-            content: text,
-            ...inferPostMetadata(text),
-          }).then(() => refreshSessions()).catch(() => undefined);
+          setSaveState("saving");
+          try {
+            await insertChatMessage(sessionId, {
+              role: "user",
+              content: text,
+              client_message_id: userMessage.id,
+              ...inferPostMetadata(text),
+            });
+            setSaveState("saved");
+            void refreshSessions();
+          } catch {
+            setSaveState("error");
+            setError("This message is sending, but chat history could not be saved.");
+          }
         }
 
-        const response = await fetch("/api/prometheus-chat", {
+        const intent = classifyPrometheusChatIntent(text);
+        const assistantMessageId = `assistant-${crypto.randomUUID()}`;
+        if (intent.allowTools) {
+          setStreamStatus("Planning editor actions");
+          const toolResponse = await fetch("/api/prometheus-chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              message: text,
+              messages: history,
+              originalPrompt: intent.useSocialStrategist
+                ? SOCIAL_STRATEGIST_CONTEXT
+                : undefined,
+              projectId,
+              verbosity: "normal",
+            }),
+            signal: controller.signal,
+          });
+          const payload = (await toolResponse.json().catch(() => null)) as
+            | PrometheusChatResponse
+            | null;
+          const reply = payload?.reply?.trim();
+          if (!toolResponse.ok || !reply) {
+            throw new Error(
+              payload?.error || "Prometheus could not plan that editor action.",
+            );
+          }
+
+          const assistantMessage: AIChatMessage = {
+            id: assistantMessageId,
+            role: "assistant",
+            content: reply,
+            createdAt: new Date().toISOString(),
+            isComplete: true,
+            ...inferPostMetadata(`${text}\n${reply}`),
+          };
+          setMessages((current) => [...current, assistantMessage]);
+          setIsAwaitingResponse(false);
+          setStreamStatus(null);
+          if (sessionId) {
+            setSaveState("saving");
+            try {
+              await insertChatMessage(sessionId, {
+                role: "assistant",
+                content: reply,
+                client_message_id: assistantMessage.id,
+                ...inferPostMetadata(`${text}\n${reply}`),
+              });
+              setSaveState("saved");
+            } catch {
+              setSaveState("error");
+              setError("The response is visible, but it could not be saved.");
+            }
+          }
+          void refreshSessions();
+          return;
+        }
+
+        activeAssistantMessageId = assistantMessageId;
+        const response = await fetch("/api/prometheus-chat/stream", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            Accept: "application/x-ndjson",
+            "Content-Type": "application/json",
+          },
           body: JSON.stringify({
             message: text,
             messages: history,
-            originalPrompt: SOCIAL_STRATEGIST_CONTEXT,
+            originalPrompt: intent.useSocialStrategist ? SOCIAL_STRATEGIST_CONTEXT : undefined,
             projectId,
+            sessionId,
             verbosity: "normal",
+            clientMessageId: assistantMessageId,
           }),
           signal: controller.signal,
         });
-        const payload = (await response.json().catch(() => null)) as PrometheusChatResponse | null;
-
-        const reply = payload?.reply;
-        if (!response.ok || !reply) {
-          throw new Error(payload?.error || "Prometheus could not generate a response.");
-        }
 
         const assistantMessage: AIChatMessage = {
-          id: `assistant-${crypto.randomUUID()}`,
+          id: assistantMessageId,
           role: "assistant",
-          content: reply,
+          content: "",
           createdAt: new Date().toISOString(),
           isComplete: false,
-          ...inferPostMetadata(`${text}\n${reply}`),
         };
         pendingAssistantMessagesRef.current.set(assistantMessage.id, { message: assistantMessage, sessionId });
         streamedContentRef.current.set(assistantMessage.id, "");
         setMessages((current) => [...current, assistantMessage]);
-        awaitStreamingCompletion = true;
         setIsAwaitingResponse(false);
+        let reply = "";
+        let persistedByServer = false;
+
+        const flushReply = () => {
+          renderFrame = null;
+          const content = reply;
+          setMessages((current) =>
+            current.map((entry) =>
+              entry.id === assistantMessage.id
+                ? { ...entry, content, isComplete: false }
+                : entry,
+            ),
+          );
+        };
+
+        const handleStreamEvent = (event: PrometheusChatStreamEvent) => {
+          if (event.type === "status") {
+            setStreamStatus(event.message);
+            return;
+          }
+          if (event.type === "delta") {
+            reply += event.content;
+            streamedContentRef.current.set(assistantMessage.id, reply);
+            setStreamStatus(null);
+            if (renderFrame === null) {
+              renderFrame = window.requestAnimationFrame(flushReply);
+            }
+            return;
+          }
+          if (event.type === "done") {
+            persistedByServer = event.persisted;
+            return;
+          }
+          if (event.type === "error") {
+            throw new Error(event.message);
+          }
+        };
+
+        await consumePrometheusChatStream(response, handleStreamEvent);
+        if (renderFrame !== null) {
+          window.cancelAnimationFrame(renderFrame);
+          renderFrame = null;
+        }
+        if (!reply.trim()) throw new Error("Prometheus returned an empty response.");
+
+        pendingAssistantMessagesRef.current.delete(assistantMessage.id);
+        streamedContentRef.current.delete(assistantMessage.id);
+        setMessages((current) =>
+          current.map((entry) =>
+            entry.id === assistantMessage.id
+              ? {
+                  ...entry,
+                  content: reply,
+                  isComplete: true,
+                  ...inferPostMetadata(`${text}\n${reply}`),
+                }
+              : entry,
+          ),
+        );
+        if (!persistedByServer && sessionId) {
+          setSaveState("saving");
+          try {
+            await insertChatMessage(sessionId, {
+              role: "assistant",
+              content: reply,
+              client_message_id: assistantMessage.id,
+              ...inferPostMetadata(`${text}\n${reply}`),
+            });
+            setSaveState("saved");
+          } catch {
+            setSaveState("error");
+            setError("The response is visible, but it could not be saved.");
+          }
+        }
+        setStreamStatus(null);
+        void refreshSessions();
       } catch (requestError) {
         if (requestError instanceof DOMException && requestError.name === "AbortError") return;
+        if (activeAssistantMessageId) {
+          const assistantMessageId = activeAssistantMessageId;
+          const partialContent = streamedContentRef.current.get(assistantMessageId)?.trim() ?? "";
+          pendingAssistantMessagesRef.current.delete(assistantMessageId);
+          streamedContentRef.current.delete(assistantMessageId);
+          setMessages((current) =>
+            partialContent
+              ? current.map((entry) =>
+                  entry.id === assistantMessageId
+                    ? { ...entry, content: `${partialContent}\n\n[Interrupted]`, isComplete: true }
+                    : entry,
+                )
+              : current.filter((entry) => entry.id !== assistantMessageId),
+          );
+        }
         setError(
           requestError instanceof Error
             ? requestError.message
             : "Prometheus could not generate a response.",
         );
       } finally {
+        if (renderFrame !== null) {
+          window.cancelAnimationFrame(renderFrame);
+          renderFrame = null;
+        }
         if (abortControllerRef.current === controller) {
           abortControllerRef.current = null;
-          if (!awaitStreamingCompletion) setIsSending(false);
+          setIsSending(false);
           setIsAwaitingResponse(false);
+          setStreamStatus(null);
         }
       }
     },
-    [draft, ensureSession, isSending, messages, projectId, refreshSessions],
+    [draft, ensureSession, isSending, projectId, refreshSessions],
   );
 
   const completeAssistantMessage = useCallback((messageId: string) => {
@@ -400,11 +572,13 @@ export function useAIChat({ projectId, enabled = true }: { projectId: string | n
     removeSession,
     renameSession,
     reportStreamingProgress,
+    saveState,
     sendMessage,
     stopStreaming,
     selectSession,
     setDraft,
     sessions,
+    streamStatus,
   };
 }
 

@@ -6,6 +6,7 @@ export interface StreamingTextProps {
   text: string;
   isComplete: boolean;
   speed?: number;
+  live?: boolean;
   onComplete?: () => void;
   onProgress?: () => void;
 }
@@ -13,7 +14,8 @@ export interface StreamingTextProps {
 export function AIChatStreamingText({
   text,
   isComplete,
-  speed = 15,
+  speed = 8,
+  live = false,
   onComplete,
   onProgress,
 }: StreamingTextProps) {
@@ -31,16 +33,21 @@ export function AIChatStreamingText({
     if (!isComplete) return;
     displayedLengthRef.current = text.length;
     setDisplayedLength(text.length);
-  }, [isComplete, text.length]);
+    if (live && !completionNotifiedRef.current) {
+      completionNotifiedRef.current = true;
+      onComplete?.();
+    }
+  }, [isComplete, live, onComplete, text.length]);
 
   useEffect(() => {
-    if (isComplete || displayedLengthRef.current >= text.length) return;
+    if (live || isComplete || displayedLengthRef.current >= text.length) return;
 
     let frameId = 0;
     let lastTick = 0;
     const tick = (timestamp: number) => {
       if (timestamp - lastTick >= speed) {
-        const chunkSize = 1 + Math.floor(Math.random() * 3);
+        const lag = text.length - displayedLengthRef.current;
+        const chunkSize = Math.max(4, Math.min(18, Math.ceil(lag / 8)));
         const nextLength = Math.min(text.length, displayedLengthRef.current + chunkSize);
         displayedLengthRef.current = nextLength;
         setDisplayedLength(nextLength);
@@ -60,13 +67,14 @@ export function AIChatStreamingText({
 
     frameId = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frameId);
-  }, [isComplete, onComplete, onProgress, speed, text.length]);
+  }, [isComplete, live, onComplete, onProgress, speed, text.length]);
 
-  const isStreaming = !isComplete && displayedLength < text.length;
+  const visibleLength = live ? text.length : displayedLength;
+  const isStreaming = !isComplete && (live || displayedLength < text.length);
   return (
     <>
       <span className={isComplete ? "text-white transition-opacity duration-200" : "text-white/90"}>
-        {text.slice(0, displayedLength)}
+        {text.slice(0, visibleLength)}
       </span>
       {isStreaming ? <span className="ai-chat-streaming-cursor text-white/60">▋</span> : null}
       <style jsx global>{`

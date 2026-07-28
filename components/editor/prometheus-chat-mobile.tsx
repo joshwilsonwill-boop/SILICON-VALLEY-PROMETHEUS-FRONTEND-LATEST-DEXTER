@@ -1,12 +1,15 @@
 "use client";
 
+import { AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
-import { useCallback, useEffect, useRef, type TouchEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type TouchEvent } from "react";
 import { toast } from "sonner";
 
 import { useAuth } from "@/components/auth/auth-provider";
 import { ChatMessageBubble } from "@/components/chat/chat-message-bubble";
 import { MobileChatInput } from "@/components/chat/mobile-chat-input";
+import { AIChatHistoryButton } from "@/components/editor/ai-chat-history-button";
+import { PrometheusChatHistoryDrawer } from "@/components/editor/prometheus-chat-history-drawer";
 import { useAIChat } from "@/hooks/use-ai-chat";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { useProfile } from "@/hooks/use-profile";
@@ -20,6 +23,8 @@ export function PrometheusChatMobile({ projectId, onClose }: { projectId: string
   const messagesViewportRef = useRef<HTMLDivElement | null>(null);
   const pinnedToBottomRef = useRef(true);
   const dismissTouchStartRef = useRef<number | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const historyButtonRef = useRef<HTMLButtonElement | null>(null);
 
   const scrollToLatest = useCallback(() => {
     if (!pinnedToBottomRef.current) return;
@@ -39,6 +44,11 @@ export function PrometheusChatMobile({ projectId, onClose }: { projectId: string
     if (startY !== null && endY !== undefined && endY - startY > 72) onClose();
     dismissTouchStartRef.current = null;
   };
+
+  const closeHistory = useCallback(() => {
+    setHistoryOpen(false);
+    window.requestAnimationFrame(() => historyButtonRef.current?.focus());
+  }, []);
 
   return (
     <>
@@ -63,6 +73,14 @@ export function PrometheusChatMobile({ projectId, onClose }: { projectId: string
         >
           <span className="mx-auto block h-px w-10 bg-white/20" aria-hidden="true" />
         </button>
+        <div className="absolute left-2 top-2 z-20">
+          <AIChatHistoryButton
+            buttonRef={historyButtonRef}
+            open={historyOpen}
+            onClick={() => setHistoryOpen((current) => !current)}
+          />
+        </div>
+
         <button
           type="button"
           onClick={onClose}
@@ -81,6 +99,7 @@ export function PrometheusChatMobile({ projectId, onClose }: { projectId: string
           }}
           onTouchMove={(event) => event.stopPropagation()}
           className="min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-contain px-5 pb-8 pt-6"
+          data-lenis-prevent
         >
           {chat.messages.length === 0 && !chat.isAwaitingResponse ? (
             <div className="flex min-h-full items-center justify-center px-4 pb-16 text-center">
@@ -109,10 +128,17 @@ export function PrometheusChatMobile({ projectId, onClose }: { projectId: string
                   </article>
                 );
               })}
-              {chat.isAwaitingResponse ? <p className="text-sm text-white/38" role="status">Thinking…</p> : null}
+              {chat.isAwaitingResponse || chat.streamStatus ? <p className="text-sm text-white/38" role="status">{chat.streamStatus || "Thinking…"}</p> : null}
             </div>
           )}
         </div>
+
+        {chat.error ? (
+          <div className="flex items-center justify-between gap-3 border-t border-white/[0.05] px-5 py-2 text-xs text-red-300/80" role="alert">
+            <span>{chat.error}</span>
+            <button type="button" onClick={chat.clearError} className="shrink-0 text-white/45">Dismiss</button>
+          </div>
+        ) : null}
 
         <MobileChatInput
           isStreaming={chat.isSending}
@@ -121,6 +147,22 @@ export function PrometheusChatMobile({ projectId, onClose }: { projectId: string
           onSend={() => void chat.sendMessage()}
           onStop={chat.stopStreaming}
         />
+        <AnimatePresence>
+          {historyOpen ? (
+            <PrometheusChatHistoryDrawer
+              currentSessionId={chat.currentSessionId}
+              isLoading={chat.isHistoryLoading}
+              sessions={chat.sessions}
+              onClose={closeHistory}
+              onNewSession={() => {
+                void chat.createNewSession().then(() => setHistoryOpen(false));
+              }}
+              onSelectSession={chat.selectSession}
+              onDeleteSession={(sessionId) => void chat.removeSession(sessionId)}
+              onRenameSession={(sessionId, title) => void chat.renameSession(sessionId, title)}
+            />
+          ) : null}
+        </AnimatePresence>
       </section>
     </>
   );

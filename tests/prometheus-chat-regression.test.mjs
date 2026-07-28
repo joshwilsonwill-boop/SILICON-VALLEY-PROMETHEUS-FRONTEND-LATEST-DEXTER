@@ -101,8 +101,9 @@ function run() {
   assert.match(route, /name: 'search_prometheus_knowledge'/);
   assert.match(route, /name: 'reference_video_frames'/);
   assert.match(route, /name: 'draft_editor_actions'/);
-  assert.match(route, /tools: PROMETHEUS_TOOLS as never/);
-  assert.match(route, /tool_choice: 'auto'/);
+  assert.match(route, /if \(intent\.allowTools\)/);
+  assert.match(route, /firstCompletionRequest\.tools = PROMETHEUS_TOOLS/);
+  assert.match(route, /firstCompletionRequest\.tool_choice = 'auto'/);
   assert.match(route, /normalizeGroqToolCalls/);
   assert.match(route, /executePrometheusTool/);
   assert.match(route, /toolCalls: executedToolCalls/);

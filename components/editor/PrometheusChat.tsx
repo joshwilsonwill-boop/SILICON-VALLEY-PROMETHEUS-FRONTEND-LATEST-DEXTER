@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import { AnimatePresence } from 'framer-motion'
 import { ArrowDown, ArrowUp, X } from 'lucide-react'
 
 import { useAuth } from '@/components/auth/auth-provider'
@@ -9,6 +10,8 @@ import { useProfile } from '@/hooks/use-profile'
 import { getChatGreeting } from '@/lib/user/display-name'
 import { cn } from '@/lib/utils'
 
+import { AIChatHistoryButton } from './ai-chat-history-button'
+import { PrometheusChatHistoryDrawer } from './prometheus-chat-history-drawer'
 import { AIChatStreamingText } from './ai-chat-streaming-text'
 
 export type PrometheusChatMessage = {
@@ -85,9 +88,11 @@ export function PrometheusChat({
 }) {
   const { session } = useAuth()
   const { profile } = useProfile()
-  const persistentChat = useAIChat({ projectId, enabled: Boolean(projectId) })
+  const persistentChat = useAIChat({ projectId, enabled: true })
   const [internalDraft, setInternalDraft] = React.useState('')
   const [showJumpToLatest, setShowJumpToLatest] = React.useState(false)
+  const [historyOpen, setHistoryOpen] = React.useState(false)
+  const historyButtonRef = React.useRef<HTMLButtonElement | null>(null)
   const scrollViewportRef = React.useRef<HTMLDivElement | null>(null)
   const pinnedToBottomRef = React.useRef(true)
 
@@ -100,17 +105,18 @@ export function PrometheusChat({
     })),
     [persistentChat.messages],
   )
-  const renderedMessages = projectId ? persistedMessages : messages
-  const composedDraft = projectId ? persistentChat.draft : draft ?? internalDraft
+  const usesPersistentChat = true
+  const renderedMessages = usesPersistentChat ? persistedMessages : messages
+  const composedDraft = usesPersistentChat ? persistentChat.draft : draft ?? internalDraft
   const hasDraft = composedDraft.trim().length > 0
-  const showingThinking = projectId
-    ? persistentChat.isAwaitingResponse
+  const showingThinking = usesPersistentChat
+    ? Boolean(persistentChat.isAwaitingResponse || persistentChat.streamStatus)
     : thinking || renderedMessages.some((message) => message.status === 'thinking')
   const lastMessage = renderedMessages[renderedMessages.length - 1]
 
   const setDraft = React.useCallback(
     (value: string) => {
-      if (projectId) {
+      if (usesPersistentChat) {
         persistentChat.setDraft(value)
         return
       }
@@ -120,7 +126,7 @@ export function PrometheusChat({
       }
       setInternalDraft(value)
     },
-    [onDraftChange, persistentChat, projectId],
+    [onDraftChange, persistentChat, usesPersistentChat],
   )
 
   const scrollToLatest = React.useCallback((behavior: ScrollBehavior = 'auto') => {
@@ -159,23 +165,36 @@ export function PrometheusChat({
     pinnedToBottomRef.current = true
     setShowJumpToLatest(false)
 
-    if (projectId) {
+    if (usesPersistentChat) {
       await persistentChat.sendMessage(message)
       return
     }
 
     if (!onDraftChange) setInternalDraft('')
     await onSend(message)
-  }, [composedDraft, onDraftChange, onSend, persistentChat, projectId])
+  }, [composedDraft, onDraftChange, onSend, persistentChat, usesPersistentChat])
+
+  const closeHistory = React.useCallback(() => {
+    setHistoryOpen(false)
+    window.requestAnimationFrame(() => historyButtonRef.current?.focus())
+  }, [])
 
   return (
     <section
       className={cn(
-        'relative flex min-h-[100dvh] w-full overflow-hidden bg-black font-sans text-white',
+        'relative flex h-full min-h-0 w-full overflow-hidden bg-black font-sans text-white',
         className,
       )}
       aria-label="Prometheus chat"
     >
+      <div className="absolute left-4 top-4 z-30">
+        <AIChatHistoryButton
+          buttonRef={historyButtonRef}
+          open={historyOpen}
+          onClick={() => setHistoryOpen((current) => !current)}
+        />
+      </div>
+
       {onClose ? (
         <button
           type="button"
@@ -191,7 +210,8 @@ export function PrometheusChat({
         <div
           ref={scrollViewportRef}
           onScroll={handleThreadScroll}
-          className="min-h-0 flex-1 overflow-y-auto px-5 pb-36 pt-10 md:px-10"
+          data-lenis-prevent
+          className="min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-contain px-5 pb-8 pt-20 [scrollbar-color:rgba(255,255,255,0.18)_transparent] [scrollbar-width:thin] md:px-10"
         >
           {renderedMessages.length === 0 && !showingThinking ? (
             <EmptyChatGreeting greeting={getChatGreeting(session?.user, profile)} />
@@ -201,8 +221,9 @@ export function PrometheusChat({
                 <PrometheusMessageBubble
                   key={message.id}
                   message={message}
+                  live={usesPersistentChat}
                   onStreamingComplete={() => {
-                    if (projectId) persistentChat.completeAssistantMessage(message.id)
+                    if (usesPersistentChat) persistentChat.completeAssistantMessage(message.id)
                   }}
                   onStreamingProgress={() => {
                     if (pinnedToBottomRef.current) scrollToLatest('auto')
@@ -210,7 +231,7 @@ export function PrometheusChat({
                 />
               ))}
               {showingThinking ? (
-                <p className="text-sm text-white/38" role="status">Thinking…</p>
+                <p className="text-sm text-white/38" role="status">{persistentChat.streamStatus || 'Thinking…'}</p>
               ) : null}
             </div>
           )}
@@ -227,7 +248,18 @@ export function PrometheusChat({
           </button>
         ) : null}
 
-        <div className="absolute inset-x-0 bottom-0 z-20 bg-black px-5 pb-[calc(env(safe-area-inset-bottom)+1.25rem)] pt-4 md:px-10 md:pb-7">
+        <div className="relative z-20 shrink-0 border-t border-white/[0.04] bg-black px-5 pb-[calc(env(safe-area-inset-bottom)+1.25rem)] pt-3 md:px-10 md:pb-7">
+          {persistentChat.error ? (
+            <div className="mx-auto mb-2 flex w-full max-w-3xl items-center justify-between gap-3 text-xs text-red-300/80" role="alert">
+              <span>{persistentChat.error}</span>
+              <button type="button" onClick={persistentChat.clearError} className="shrink-0 text-white/45 hover:text-white">Dismiss</button>
+            </div>
+          ) : null}
+          {persistentChat.saveState !== 'idle' ? (
+            <p className="mx-auto mb-1 w-full max-w-3xl text-right text-[10px] uppercase tracking-[0.12em] text-white/28">
+              {persistentChat.saveState === 'saving' ? 'Saving' : persistentChat.saveState === 'saved' ? 'Saved' : 'Not saved'}
+            </p>
+          ) : null}
           <form
             className="mx-auto flex min-h-14 w-full max-w-3xl items-center gap-3 rounded-2xl border border-white/10 bg-black px-5 py-3 transition-colors focus-within:border-white/22"
             onSubmit={(event) => {
@@ -253,16 +285,34 @@ export function PrometheusChat({
           </form>
         </div>
       </div>
+      <AnimatePresence>
+        {historyOpen ? (
+          <PrometheusChatHistoryDrawer
+            currentSessionId={persistentChat.currentSessionId}
+            isLoading={persistentChat.isHistoryLoading}
+            sessions={persistentChat.sessions}
+            onClose={closeHistory}
+            onNewSession={() => {
+              void persistentChat.createNewSession().then(() => setHistoryOpen(false))
+            }}
+            onSelectSession={persistentChat.selectSession}
+            onDeleteSession={(sessionId) => void persistentChat.removeSession(sessionId)}
+            onRenameSession={(sessionId, title) => void persistentChat.renameSession(sessionId, title)}
+          />
+        ) : null}
+      </AnimatePresence>
     </section>
   )
 }
 
 function PrometheusMessageBubble({
   message,
+  live,
   onStreamingComplete,
   onStreamingProgress,
 }: {
   message: PrometheusChatMessage
+  live: boolean
   onStreamingComplete: () => void
   onStreamingProgress: () => void
 }) {
@@ -289,6 +339,7 @@ function PrometheusMessageBubble({
           <AIChatStreamingText
             text={message.content}
             isComplete={message.isComplete ?? true}
+            live={live}
             onComplete={onStreamingComplete}
             onProgress={onStreamingProgress}
           />
