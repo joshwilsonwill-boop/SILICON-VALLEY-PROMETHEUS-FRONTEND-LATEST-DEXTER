@@ -155,42 +155,43 @@ export function useAIChat({
     };
   }, [enabled, ensureSession, refreshSessions, setActiveSessionId]);
 
+  const loadSessionMessages = useCallback(async (sessionId: string, isDisposed?: () => boolean) => {
+    setIsHistoryLoading(true);
+    setMessages([]);
+    try {
+      const records = await getChatMessages(sessionId);
+      if (isDisposed?.()) return;
+      setMessages(
+        records
+          .filter((record) => record.role === "user" || record.role === "assistant")
+          .map((record) => ({
+            id: record.id,
+            role: record.role === "assistant" ? "assistant" : "user",
+            content: record.content,
+            createdAt: record.created_at,
+            isComplete: true,
+            platform: record.platform as AIChatPlatform | undefined,
+            postType: record.post_type as AIChatPostType | undefined,
+          })),
+      );
+    } catch (err) {
+      // A failed history load must not discard the existing send-message flow.
+      console.warn("[use-ai-chat] history load failed", err);
+    } finally {
+      if (!isDisposed?.()) setIsHistoryLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (!enabled || !currentSessionId) return;
     const sessionId = currentSessionId;
     let disposed = false;
 
-    async function loadMessages() {
-      setIsHistoryLoading(true);
-      setMessages([]);
-      try {
-        const records = await getChatMessages(sessionId);
-        if (disposed) return;
-        setMessages(
-          records
-            .filter((record) => record.role === "user" || record.role === "assistant")
-            .map((record) => ({
-              id: record.id,
-              role: record.role === "assistant" ? "assistant" : "user",
-              content: record.content,
-              createdAt: record.created_at,
-              isComplete: true,
-              platform: record.platform as AIChatPlatform | undefined,
-              postType: record.post_type as AIChatPostType | undefined,
-            })),
-        );
-      } catch {
-        // A failed history load must not discard the existing send-message flow.
-      } finally {
-        if (!disposed) setIsHistoryLoading(false);
-      }
-    }
-
-    void loadMessages();
+    void loadSessionMessages(sessionId, () => disposed);
     return () => {
       disposed = true;
     };
-  }, [currentSessionId, enabled]);
+  }, [currentSessionId, enabled, loadSessionMessages]);
 
   useEffect(() => {
     if (!enabled || !currentSessionId) return;
@@ -516,8 +517,14 @@ export function useAIChat({
     setIsSending(false);
     setIsAwaitingResponse(false);
     setMessages([]);
+    if (sessionId === currentSessionIdRef.current) {
+      // Re-selecting the active session does not change currentSessionId, so the load
+      // effect never refires; reload explicitly or the thread stays empty until remount.
+      void loadSessionMessages(sessionId);
+      return;
+    }
     setActiveSessionId(sessionId);
-  }, [setActiveSessionId]);
+  }, [loadSessionMessages, setActiveSessionId]);
 
   const createNewSession = useCallback(async () => {
     setIsHistoryLoading(true);

@@ -123,7 +123,7 @@ export function EditorRouteShell({ children }: { children: ReactNode }) {
         </aside>
       )}
 
-      <main className="relative z-10 flex min-w-0 flex-1 flex-col">
+      <main className="relative flex min-w-0 flex-1 flex-col">
         {!focusMode ? (
           <>
             <EditorTopBar

@@ -69,6 +69,7 @@ import { clearPendingEditorNavigation, getPendingEditorNavigation, markPendingEd
 import { createProcessingJob, getActiveStyleId, getMostRecentProject, startProcessing as persistStartProcessing, setActiveStyleId as persistActiveStyleId, upsertProject } from "@/lib/mock";
 import { buildBillingHref, hasBillingAccess } from "@/lib/billing";
 import { setSessionSourcePreview } from "@/lib/source-preview-session";
+import { persistSourceAsset } from "@/lib/source-asset-store";
 import type { SourceProfile } from "@/lib/types";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
@@ -1791,6 +1792,15 @@ export function VideoUploadInterface() {
                 setEditorLaunchOverlay({
                     title: launchProjectTitle,
                     detail: "Preparing video...",
+                });
+
+                // Persist the source bytes to IndexedDB so the editor can restore the
+                // preview instantly from local bytes. Best-effort: the returned id is
+                // threaded into the multipart initiate below so IndexedDB and R2 share
+                // one asset id; on failure the upload continues cloud-only.
+                resolvedSourceAssetId = await persistSourceAsset(selectedSourceFile).catch((error) => {
+                    console.warn('[video-upload] Failed to persist source asset locally; continuing with cloud-only upload.', error);
+                    return null;
                 });
 
                 currentStage = 'R2_MULTIPART_UPLOAD';

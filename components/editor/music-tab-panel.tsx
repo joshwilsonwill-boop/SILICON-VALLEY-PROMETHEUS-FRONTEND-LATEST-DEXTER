@@ -9,7 +9,7 @@ import { toast } from 'sonner'
 import { LuxuryVignette } from '@/components/editor/luxury-vignette'
 import { SoundtrackCard } from '@/components/editor/soundtrack-card'
 import { TextReveal } from '@/components/editor/text-reveal'
-import { InlineLoadingAnimation } from '@/components/loading-animation'
+import { CinematicLogoLoader } from '@/components/loading-animation/cinematic-logo-loader'
 import { MusicPlayer } from '@/components/ui/music-player'
 import { Button } from '@/components/ui/button'
 import { chamberEase, chamberSpring } from '@/lib/chamber-motion'
@@ -485,6 +485,52 @@ function mapCatalogApiTrack(track: CatalogApiTrack): MusicRecommendation {
   }
 }
 
+let cachedCatalogTracks: MusicRecommendation[] | null = null
+let catalogRequest: Promise<MusicRecommendation[]> | null = null
+
+async function fetchCatalogTracks(): Promise<MusicRecommendation[]> {
+  const nextTracks: MusicRecommendation[] = []
+  let offset = 0
+  let total = Number.POSITIVE_INFINITY
+
+  while (offset < total) {
+    const response = await fetch(`/api/music/catalog?limit=${CATALOG_PAGE_SIZE}&offset=${offset}&includeUnsafe=true`, { cache: 'no-store' })
+    if (!response.ok) throw new Error('Unable to load music catalog')
+    const data = (await response.json()) as CatalogApiResponse
+    const pageTracks = Array.isArray(data.tracks) ? data.tracks.map(mapCatalogApiTrack) : []
+    nextTracks.push(...pageTracks)
+
+    total = typeof data.total === 'number' && Number.isFinite(data.total) ? data.total : nextTracks.length
+    const nextOffset = offset + (typeof data.limit === 'number' && data.limit > 0 ? data.limit : pageTracks.length)
+    if (!pageTracks.length || nextOffset <= offset) break
+    offset = nextOffset
+  }
+
+  return nextTracks
+}
+
+/**
+ * Session-level catalog cache. The paginated result (and any in-flight
+ * request) survives unmount/remount of the panel, so the loader only appears
+ * on the first visit. The underlying fetch still runs with `no-store`; this
+ * is just in-session memory.
+ */
+function getCatalogTracks(): Promise<MusicRecommendation[]> {
+  if (cachedCatalogTracks) return Promise.resolve(cachedCatalogTracks)
+  if (!catalogRequest) {
+    catalogRequest = fetchCatalogTracks()
+      .then((tracks) => {
+        cachedCatalogTracks = tracks
+        return tracks
+      })
+      .catch((error: unknown) => {
+        catalogRequest = null
+        throw error
+      })
+  }
+  return catalogRequest
+}
+
 function NowPlayingBar({
   currentTime,
   duration,
@@ -550,7 +596,7 @@ function NowPlayingBar({
             className="grid size-10 shrink-0 place-items-center rounded-full bg-accent-blue text-white shadow-[0_0_20px_rgba(59,130,246,0.3)] transition-all active:scale-95"
           >
             {isBuffering && isPlaying ? (
-              <InlineLoadingAnimation size={16} label={`Buffering ${track.title}`} />
+              <CinematicLogoLoader variant="inline" size={16} label={`Buffering ${track.title}`} />
             ) : isPlaying ? (
               <Pause className="size-4 fill-current" />
             ) : (
@@ -598,9 +644,9 @@ export function MusicTabPanel({
   variant?: 'desktop' | 'mobile'
 }) {
   const reduceMotion = useStableReducedMotion()
-  const [catalogTracks, setCatalogTracks] = React.useState<MusicRecommendation[]>([])
-  const [catalogLoading, setCatalogLoading] = React.useState(false)
-  const [catalogReady, setCatalogReady] = React.useState(false)
+  const [catalogTracks, setCatalogTracks] = React.useState<MusicRecommendation[]>(() => cachedCatalogTracks ?? [])
+  const [catalogLoading, setCatalogLoading] = React.useState(() => cachedCatalogTracks === null)
+  const [catalogReady, setCatalogReady] = React.useState(() => cachedCatalogTracks !== null)
   const [localSelectedTrackId, setLocalSelectedTrackId] = React.useState<string | null>(selectedTrackId ?? tracks[0]?.id ?? null)
   const [focusedTrackId, setFocusedTrackId] = React.useState<string | null>(selectedTrackId ?? tracks[0]?.id ?? null)
   const [playingTrackId, setPlayingTrackId] = React.useState<string | null>(null)
@@ -617,42 +663,21 @@ export function MusicTabPanel({
   React.useEffect(() => {
     let disposed = false
 
-    async function loadCatalog() {
-      setCatalogLoading(true)
-      try {
-        const nextTracks: MusicRecommendation[] = []
-        let offset = 0
-        let total = Number.POSITIVE_INFINITY
-
-        while (!disposed && offset < total) {
-          const response = await fetch(`/api/music/catalog?limit=${CATALOG_PAGE_SIZE}&offset=${offset}&includeUnsafe=true`, { cache: 'no-store' })
-          if (!response.ok) throw new Error('Unable to load music catalog')
-          const data = (await response.json()) as CatalogApiResponse
-          const pageTracks = Array.isArray(data.tracks) ? data.tracks.map(mapCatalogApiTrack) : []
-          nextTracks.push(...pageTracks)
-
-          total = typeof data.total === 'number' && Number.isFinite(data.total) ? data.total : nextTracks.length
-          const nextOffset = offset + (typeof data.limit === 'number' && data.limit > 0 ? data.limit : pageTracks.length)
-          if (!pageTracks.length || nextOffset <= offset) break
-          offset = nextOffset
-        }
-
-        if (!disposed) {
-          setCatalogTracks(nextTracks)
-          setCatalogReady(true)
-        }
-      } catch (error) {
-        if (!disposed) {
-          setCatalogTracks([])
-          setCatalogReady(true)
-          toast.error(error instanceof Error ? error.message : 'Unable to load music catalog')
-        }
-      } finally {
+    getCatalogTracks()
+      .then((nextTracks) => {
+        if (disposed) return
+        setCatalogTracks(nextTracks)
+        setCatalogReady(true)
+      })
+      .catch((error: unknown) => {
+        if (disposed) return
+        setCatalogTracks([])
+        setCatalogReady(true)
+        toast.error(error instanceof Error ? error.message : 'Unable to load music catalog')
+      })
+      .finally(() => {
         if (!disposed) setCatalogLoading(false)
-      }
-    }
-
-    void loadCatalog()
+      })
 
     return () => {
       disposed = true
@@ -805,20 +830,12 @@ export function MusicTabPanel({
     }
   }, [displayTracks, handleTrackFocus, projectTitle, selectedTrackIds])
 
-  if (!catalogReady || (catalogLoading && !displayTracks.length)) {
-    return (
-      <section className="premium-ambient-panel premium-vignette-surface flex w-full max-w-[1060px] self-center rounded-[30px] px-5 py-5 shadow-[0_28px_64px_-38px_rgba(0,0,0,0.95)]">
-        <LuxuryVignette tone="music" />
-        <div className="relative z-10 flex min-h-[220px] w-full flex-col items-center justify-center gap-3 px-4 text-center">
-          <InlineLoadingAnimation size={72} label="Loading music catalog" />
-          <p className="text-sm text-white/52">Preparing Cloudflare soundtrack imagery.</p>
-        </div>
-      </section>
-    )
-  }
+  const showCatalogLoader = !catalogReady || (catalogLoading && !displayTracks.length)
 
-  if (!displayTracks.length) {
-    return (
+  return (
+    <>
+      <CinematicLogoLoader variant="overlay" ready={catalogReady} caption="Preparing your soundtrack" />
+      {showCatalogLoader ? null : !displayTracks.length ? (
       <section className="premium-ambient-panel premium-vignette-surface flex w-full max-w-[1060px] self-center rounded-[30px] px-5 py-5 shadow-[0_28px_64px_-38px_rgba(0,0,0,0.95)]">
         <LuxuryVignette tone="music" />
         <div className="relative z-10">
@@ -827,11 +844,7 @@ export function MusicTabPanel({
           <TextReveal as="p" text="Prometheus will surface the song picker once the edit context is ready." delay={0.12} className="mt-2 max-w-[36rem] text-sm leading-6 text-white/52" />
         </div>
       </section>
-    )
-  }
-
-  if (variant === 'mobile') {
-    return (
+      ) : variant === 'mobile' ? (
       <motion.section
         key="mobile-editor-music-tab-panel"
         aria-label={`${projectTitle} mobile soundtrack selector`}
@@ -907,7 +920,7 @@ export function MusicTabPanel({
               className="h-11 w-full border-[#6366f1]/80 bg-[#6366f1] text-white shadow-[0_18px_54px_-24px_rgba(99,102,241,0.95)] transition-[box-shadow,transform,border-color,background-color] duration-200 ease-out hover:border-[#818cf8] hover:bg-[#5558e8] hover:shadow-[0_0_34px_rgba(99,102,241,0.42)] disabled:border-white/10 disabled:bg-white/[0.05] disabled:text-white/42 disabled:shadow-none"
             >
               {isAutoMatching ? (
-                <InlineLoadingAnimation size={16} label="Matching selected tracks" />
+                <CinematicLogoLoader variant="inline" size={16} label="Matching selected tracks" />
               ) : (
                 <Sparkles className="size-4" />
               )}
@@ -919,7 +932,7 @@ export function MusicTabPanel({
             <div className="space-y-2 pb-4">
               {catalogLoading && !visibleTracks.length ? (
                 <div className="flex min-h-[220px] flex-col items-center justify-center gap-3 px-4 text-center">
-                  <InlineLoadingAnimation size={72} label="Loading music catalog" />
+                  <CinematicLogoLoader variant="inline" size={72} label="Loading music catalog" />
                   <p className="text-sm text-white/52">Preparing soundtrack previews.</p>
                 </div>
               ) : null}
@@ -974,10 +987,7 @@ export function MusicTabPanel({
           onSeek={(time) => setSeekRequest({ time, token: Date.now() })}
         />
       </motion.section>
-    )
-  }
-
-  return (
+      ) : (
     <motion.section
       key="editor-music-tab-panel"
       aria-label={`${projectTitle} soundtrack selector`}
@@ -1047,7 +1057,7 @@ export function MusicTabPanel({
             <div className="space-y-2 pb-4">
               {catalogLoading && !visibleTracks.length ? (
                 <div className="flex min-h-[220px] flex-col items-center justify-center gap-3 px-4 text-center">
-                  <InlineLoadingAnimation size={72} label="Loading music catalog" />
+                  <CinematicLogoLoader variant="inline" size={72} label="Loading music catalog" />
                   <p className="text-sm text-white/52">Preparing soundtrack previews.</p>
                 </div>
               ) : null}
@@ -1105,7 +1115,7 @@ export function MusicTabPanel({
               className="border-[#6366f1]/80 bg-[#6366f1] text-white shadow-[0_18px_54px_-24px_rgba(99,102,241,0.95)] transition-[box-shadow,transform,border-color,background-color] duration-200 ease-out hover:-translate-y-0.5 hover:border-[#818cf8] hover:bg-[#5558e8] hover:shadow-[0_0_34px_rgba(99,102,241,0.42)]"
             >
               {isAutoMatching ? (
-                <InlineLoadingAnimation size={16} label="Matching selected tracks" />
+                <CinematicLogoLoader variant="inline" size={16} label="Matching selected tracks" />
               ) : (
                 <Sparkles className="size-4" />
               )}
@@ -1130,5 +1140,7 @@ export function MusicTabPanel({
         onSeek={(time) => setSeekRequest({ time, token: Date.now() })}
       />
     </motion.section>
+      )}
+    </>
   )
 }

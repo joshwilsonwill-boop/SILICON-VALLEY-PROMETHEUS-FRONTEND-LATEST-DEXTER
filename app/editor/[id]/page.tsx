@@ -122,6 +122,7 @@ import { analyzeMusicIntent } from '@/lib/music-intent'
 import { queuePreviewRevisionRequest } from '@/lib/editorial-frame/mock-preview-api'
 import { getSessionSourcePreview, setSessionSourcePreview } from '@/lib/source-preview-session'
 import { createSourceAssetObjectUrl, getStoredSourceAssetFile } from '@/lib/source-asset-store'
+import { uploadProjectSourceMultipart } from '@/lib/r2/multipart-client'
 import { STYLE_TEMPLATES, type StyleTemplate } from '@/lib/styles/style-templates'
 import { toast } from 'sonner'
 import {
@@ -7934,6 +7935,69 @@ function OriginalEditorPage() {
     sourceFileInputRef.current?.click()
   }, [])
 
+  const uploadedSourceAssetIdsRef = React.useRef<Set<string>>(new Set())
+
+  const uploadSourceAssetToCloud = React.useCallback(
+    async (input: {
+      assetId: string
+      file: File
+      projectId: string
+      sourceProfile: Project['sourceProfile'] | null
+    }) => {
+      if (!input.projectId || uploadedSourceAssetIdsRef.current.has(input.assetId)) return
+      uploadedSourceAssetIdsRef.current.add(input.assetId)
+
+      try {
+        // Mirror of the studio upload flow (components/video-upload-interface.tsx):
+        // push the re-picked source to R2 so the project keeps a durable cloud copy
+        // that survives hard navigation. Best-effort; failures never reach the UI.
+        const multipartResult = await uploadProjectSourceMultipart({
+          assetId: input.assetId,
+          file: input.file,
+          projectId: input.projectId,
+        })
+
+        const uploadAsset = multipartResult.asset
+
+        // Register the uploaded asset metadata (same request body as the studio flow).
+        const assetRegisterRes = await fetch(`/api/projects/${input.projectId}/assets`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            assetId: uploadAsset.id,
+            bucket: uploadAsset.bucket,
+            objectKey: uploadAsset.objectKey,
+            filename: input.file.name,
+            mimeType: input.file.type,
+            sizeBytes: input.file.size,
+            durationMs: input.sourceProfile?.inspection.durationSec
+              ? Math.round(input.sourceProfile.inspection.durationSec * 1000)
+              : undefined,
+            width: input.sourceProfile?.inspection.width,
+            height: input.sourceProfile?.inspection.height,
+            profile: input.sourceProfile,
+          }),
+        })
+
+        if (!assetRegisterRes.ok) {
+          const errorData = await assetRegisterRes.json().catch(() => ({}))
+          throw new Error(errorData.error || `HTTP ${assetRegisterRes.status} from asset registration`)
+        }
+
+        // A newer pick may have replaced this source while uploading; newest pick wins.
+        const currentProject = projects.get(input.projectId)
+        if (currentProject?.sourceAssetId !== input.assetId) return
+
+        const nextProject = projects.update(input.projectId, { sourceAssetId: uploadAsset.id })
+        if (nextProject) setProject(nextProject)
+      } catch (error) {
+        uploadedSourceAssetIdsRef.current.delete(input.assetId)
+        console.warn('[editor] Background source upload to R2 failed:', error)
+      }
+    },
+    [],
+  )
+
   const handleInlineSourceSelection = React.useCallback(
     async (files: File[]) => {
       const file = files[0]
@@ -7975,6 +8039,16 @@ function OriginalEditorPage() {
 
         if (nextProject) setProject(nextProject)
 
+        // Fire-and-forget durable backup: upload the re-picked source to R2 and
+        // register it as a project asset so it can be recovered after hard
+        // navigation. Never awaited and never surfaced to the editor flow.
+        void uploadSourceAssetToCloud({
+          assetId: stagedSource.assetId,
+          file,
+          projectId: project.id,
+          sourceProfile: stagedSource.sourceProfile,
+        })
+
         setPreviewPlaying(false)
         previewPlaybackIntentRef.current = 'paused'
         previewPlaybackCommandRef.current += 1
@@ -7987,7 +8061,7 @@ function OriginalEditorPage() {
         toast.error(error instanceof Error ? error.message : 'Unable to stage that source video right now.')
       }
     },
-    [project, projectId, stageSourceFile],
+    [project, projectId, stageSourceFile, uploadSourceAssetToCloud],
   )
 
   const handleInlineSourceFileInputChange = React.useCallback(
