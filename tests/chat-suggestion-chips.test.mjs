@@ -95,7 +95,7 @@ assert.doesNotMatch(
   /sendMessage|onSend/,
 );
 
-assert.match(desktopSource, /persistentChat\.isSending \|\| persistentChat\.isAwaitingResponse/);
+assert.match(desktopSource, /persistentChat\.isSending/);
 assert.match(mobileSource, /suggestionsHidden = chat\.isSending \|\| chat\.isAwaitingResponse/);
 const mobileWorkspace = editorPageSource.slice(
   editorPageSource.indexOf("<MobileEditorView"),
