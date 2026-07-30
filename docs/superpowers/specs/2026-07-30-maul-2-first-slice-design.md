@@ -1,7 +1,7 @@
 # MAUL 2 First Slice: Editorial Cinema Design
 
-**Date:** 2026-07-30  
-**Status:** Draft for user review  
+**Date:** 2026-07-30
+**Status:** Draft for user review
 **Parent plan:** `docs/plans/MAUL-2-INTERMEDIATE.md`
 
 ## Objective
