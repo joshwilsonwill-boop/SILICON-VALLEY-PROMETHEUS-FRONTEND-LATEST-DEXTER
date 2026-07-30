@@ -1,13 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
+import { toast } from "sonner";
 
 import { parseEditorActionDrafts, type EditorActionDraft } from "@/lib/editor-actions";
 import { classifyPrometheusChatIntent } from "@/lib/prometheus-assistant/chat-intent";
 import { consumePrometheusChatStream } from "@/lib/prometheus-assistant/chat-stream-client";
 import type { PrometheusChatStreamEvent } from "@/lib/prometheus-assistant/chat-stream";
 import type { ChatEditorContext, ChatFrameThumb } from "@/lib/prometheus-assistant/editor-context";
-import { deleteChatMessages, getChatMessages, insertChatMessage, insertChatMessages, type ChatMessageInsert } from "@/lib/supabase/chat-messages";
+import { deleteChatMessages, getChatMessages, insertChatMessage, insertChatMessages, isMissingClientMessageIdError, type ChatMessageInsert } from "@/lib/supabase/chat-messages";
 import {
   createChatSession,
   deleteChatSession,
@@ -40,6 +41,13 @@ export type AIChatFrameReference = {
   reason: string;
 };
 
+export type CarouselItem = {
+  title: string;
+  message: string;
+  description?: string;
+  icon?: string;
+};
+
 export type AIChatMessage = {
   id: string;
   role: "user" | "assistant";
@@ -51,6 +59,8 @@ export type AIChatMessage = {
   frames?: AIChatFrameReference[];
   toolCalls?: unknown[];
   actionDrafts?: EditorActionDraft[];
+  carousel?: CarouselItem[];
+  suggestions?: string[];
 };
 
 export type AIChatLiveContext = ChatEditorContext & { frameThumbs?: ChatFrameThumb[] };
@@ -77,6 +87,7 @@ export function useAIChat({
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
+  const [historyLoadError, setHistoryLoadError] = useState<string | null>(null);
   const [streamStatus, setStreamStatus] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const messagesRef = useRef<AIChatMessage[]>([]);
@@ -87,6 +98,7 @@ export function useAIChat({
   const streamedContentRef = useRef(new Map<string, string>());
   const contextProviderRef = useRef<AIChatContextProvider | undefined>(contextProvider);
   const failedPersistRef = useRef<{ sessionId: string; payload: ChatMessageInsert } | null>(null);
+  const lastLoadAttemptRef = useRef<string | null>(null);
 
   useEffect(() => {
     messagesRef.current = messages;
@@ -156,11 +168,13 @@ export function useAIChat({
   }, [enabled, ensureSession, refreshSessions, setActiveSessionId]);
 
   const loadSessionMessages = useCallback(async (sessionId: string, isDisposed?: () => boolean) => {
+    lastLoadAttemptRef.current = sessionId;
     setIsHistoryLoading(true);
-    setMessages([]);
     try {
       const records = await getChatMessages(sessionId);
       if (isDisposed?.()) return;
+      // Only swap the thread once the fetch succeeds, so a failed load never
+      // leaves the user staring at a silent empty thread.
       setMessages(
         records
           .filter((record) => record.role === "user" || record.role === "assistant")
@@ -172,11 +186,19 @@ export function useAIChat({
             isComplete: true,
             platform: record.platform as AIChatPlatform | undefined,
             postType: record.post_type as AIChatPostType | undefined,
+            ...normalizePersistedMessageMetadata(record.metadata),
           })),
       );
+      setHistoryLoadError(null);
     } catch (err) {
       // A failed history load must not discard the existing send-message flow.
       console.warn("[use-ai-chat] history load failed", err);
+      if (isDisposed?.()) return;
+      const message = isMissingClientMessageIdError(err)
+        ? "This conversation can't be shown yet: the database is missing a pending chat update (client_message_id)."
+        : "This conversation couldn't be loaded. Check your connection and try again.";
+      setHistoryLoadError(message);
+      toast.error("Couldn't load this conversation");
     } finally {
       if (!isDisposed?.()) setIsHistoryLoading(false);
     }
@@ -310,6 +332,8 @@ export function useAIChat({
         let streamFrames: AIChatFrameReference[] = [];
         let streamToolCalls: unknown[] = [];
         let streamActionDrafts: EditorActionDraft[] = [];
+        let streamCarousel: CarouselItem[] = [];
+        let streamSuggestions: string[] = [];
 
         const flushReply = () => {
           renderFrame = null;
@@ -341,6 +365,8 @@ export function useAIChat({
             streamFrames = normalizeFrameReferenceList(event.frames);
             streamToolCalls = Array.isArray(event.toolCalls) ? event.toolCalls : [];
             streamActionDrafts = parseEditorActionDrafts(event.actionDrafts);
+            streamCarousel = normalizeCarouselItems(event.carousel);
+            streamSuggestions = normalizeSuggestionList(event.suggestions);
             return;
           }
           if (event.type === "done") {
@@ -371,6 +397,8 @@ export function useAIChat({
                   ...(streamFrames.length ? { frames: streamFrames } : {}),
                   ...(streamToolCalls.length ? { toolCalls: streamToolCalls } : {}),
                   ...(streamActionDrafts.length ? { actionDrafts: streamActionDrafts } : {}),
+                  ...(streamCarousel.length ? { carousel: streamCarousel } : {}),
+                  ...(streamSuggestions.length ? { suggestions: streamSuggestions } : {}),
                   ...inferPostMetadata(`${text}\n${reply}`),
                 }
               : entry,
@@ -385,6 +413,13 @@ export function useAIChat({
             client_message_id: assistantMessage.id,
             platform: meta.platform ?? null,
             post_type: meta.postType ?? null,
+            metadata: {
+              ...(streamFrames.length ? { frames: streamFrames } : {}),
+              ...(streamToolCalls.length ? { toolCalls: streamToolCalls } : {}),
+              ...(streamActionDrafts.length ? { actionDrafts: streamActionDrafts } : {}),
+              ...(streamCarousel.length ? { carousel: streamCarousel } : {}),
+              ...(streamSuggestions.length ? { suggestions: streamSuggestions } : {}),
+            },
           };
           try {
             await insertChatMessage(sessionId, payload);
@@ -516,7 +551,10 @@ export function useAIChat({
     pendingAssistantMessagesRef.current.clear();
     setIsSending(false);
     setIsAwaitingResponse(false);
-    setMessages([]);
+    // Do not clear the thread here: loadSessionMessages only swaps messages after
+    // a successful fetch, so a failed load leaves the previous thread visible
+    // and surfaces historyLoadError instead of a silent empty chat.
+    setHistoryLoadError(null);
     if (sessionId === currentSessionIdRef.current) {
       // Re-selecting the active session does not change currentSessionId, so the load
       // effect never refires; reload explicitly or the thread stays empty until remount.
@@ -525,6 +563,13 @@ export function useAIChat({
     }
     setActiveSessionId(sessionId);
   }, [loadSessionMessages, setActiveSessionId]);
+
+  const retryLoadSession = useCallback(() => {
+    const sessionId = lastLoadAttemptRef.current;
+    if (!sessionId) return;
+    setHistoryLoadError(null);
+    void loadSessionMessages(sessionId);
+  }, [loadSessionMessages]);
 
   const createNewSession = useCallback(async () => {
     setIsHistoryLoading(true);
@@ -596,6 +641,7 @@ export function useAIChat({
     editAndResendMessage,
     createNewSession,
     currentSessionId,
+    historyLoadError,
     isAwaitingResponse,
     isHistoryLoading,
     isSending,
@@ -603,6 +649,7 @@ export function useAIChat({
     removeSession,
     renameSession,
     reportStreamingProgress,
+    retryLoadSession,
     retryPersist,
     saveState,
     sendMessage,
@@ -664,6 +711,66 @@ function normalizeFrameReferenceList(input: unknown, max = 8): AIChatFrameRefere
     if (frames.length >= max) break;
   }
   return frames;
+}
+
+function normalizeCarouselItems(input: unknown, max = 6): CarouselItem[] {
+  if (!Array.isArray(input)) return [];
+  const items: CarouselItem[] = [];
+  for (const value of input) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) continue;
+    const record = value as Record<string, unknown>;
+    const title = typeof record.title === "string" ? record.title.trim() : "";
+    const message = typeof record.message === "string" ? record.message.trim() : "";
+    // A card without a title or a payload message is unusable; skip it.
+    if (!title || !message) continue;
+    items.push({
+      title,
+      message,
+      description:
+        typeof record.description === "string" && record.description.trim()
+          ? record.description.trim()
+          : undefined,
+      icon:
+        typeof record.icon === "string" && record.icon.trim()
+          ? record.icon.trim()
+          : undefined,
+    });
+    if (items.length >= max) break;
+  }
+  return items;
+}
+
+function normalizeSuggestionList(input: unknown, max = 4): string[] {
+  if (!Array.isArray(input)) return [];
+  const suggestions: string[] = [];
+  for (const value of input) {
+    if (typeof value !== "string") continue;
+    const trimmed = value.trim();
+    if (!trimmed) continue;
+    suggestions.push(trimmed);
+    if (suggestions.length >= max) break;
+  }
+  return suggestions;
+}
+
+function normalizePersistedMessageMetadata(
+  input: unknown,
+): Pick<AIChatMessage, "frames" | "toolCalls" | "actionDrafts" | "carousel" | "suggestions"> {
+  if (!input || typeof input !== "object" || Array.isArray(input)) return {};
+  const metadata = input as Record<string, unknown>;
+  const frames = normalizeFrameReferenceList(metadata.frames);
+  const toolCalls = Array.isArray(metadata.toolCalls) ? metadata.toolCalls : [];
+  const actionDrafts = parseEditorActionDrafts(metadata.actionDrafts);
+  const carousel = normalizeCarouselItems(metadata.carousel);
+  const suggestions = normalizeSuggestionList(metadata.suggestions);
+
+  return {
+    ...(frames.length ? { frames } : {}),
+    ...(toolCalls.length ? { toolCalls } : {}),
+    ...(actionDrafts.length ? { actionDrafts } : {}),
+    ...(carousel.length ? { carousel } : {}),
+    ...(suggestions.length ? { suggestions } : {}),
+  };
 }
 
 function inferPostMetadata(value: string): Pick<AIChatMessage, "platform" | "postType"> {
