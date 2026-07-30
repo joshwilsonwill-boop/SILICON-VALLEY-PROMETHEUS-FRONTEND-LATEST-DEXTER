@@ -14,7 +14,6 @@ function run() {
   const mobileChat = read("components/editor/prometheus-chat-mobile.tsx");
   const mobileInput = read("components/chat/mobile-chat-input.tsx");
   const hook = read("hooks/use-ai-chat.ts");
-  const globals = read("app/globals.css");
 
   assert.equal(existsSync(join(root, "components/editor/prometheus-chat-mobile.tsx")), true);
   assert.equal(existsSync(join(root, "components/editor/prometheus-chat-thinking-process.tsx")), true);
@@ -36,8 +35,7 @@ function run() {
   assert.doesNotMatch(chat, /PrometheusChatSessionMenu/);
   assert.doesNotMatch(chat, /Mic/);
   assert.match(chat, /pinnedToBottomRef/);
-  assert.match(chat, /font-display/);
-  assert.match(globals, /--font-display:\s*var\(--font-elegist\)/);
+  assert.match(chat, /var\(--font-elegist\)/);
   assert.doesNotMatch(chat, /New chat|Generate Code|Launch App|UI Components|Theme Ideas|Image Assets/);
   assert.doesNotMatch(shell, /AIChatOverlay/);
   assert.doesNotMatch(shell, /AIChatTriggerDesktop/);
@@ -45,7 +43,7 @@ function run() {
   assert.match(mobileChat, /useAIChat/);
   assert.match(mobileChat, /onStreamingProgress/);
   assert.match(mobileChat, /getChatGreeting/);
-  assert.match(mobileChat, /font-display/);
+  assert.match(mobileChat, /var\(--font-elegist\)/);
   assert.doesNotMatch(mobileChat, /PrometheusChatSessionMenu/);
   assert.doesNotMatch(mobileChat, /AIChatOrb/);
   assert.doesNotMatch(mobileChat, /PrometheusChatThinkingProcess/);
