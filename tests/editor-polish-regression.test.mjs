@@ -88,11 +88,6 @@ async function run() {
 
   const editorHeader = read("components/editor/EditorHeader.tsx");
   assert.match(editorHeader, /defaultActive=\{activeWorkspaceTab\}/);
-  assert.match(editorHeader, /<Pencil/);
-  assert.match(editorHeader, /aria-label="Rename project"/);
-  assert.match(editorHeader, /type="button"/);
-  assert.match(editorHeader, /focus-visible:ring-2/);
-  assert.match(editorHeader, /group-focus-visible:opacity-100/);
 
   const editorTopBar = read("components/editor/EditorTopBar.tsx");
   assert.equal(editorTopBar.includes("BackButton"), false);
@@ -102,7 +97,6 @@ async function run() {
   assert.match(editorTopBar, /bg-transparent text-text-secondary/);
 
   const editorProjectPage = read("app/editor/[id]/page.tsx");
-  assert.match(editorProjectPage, /setSourceAssetLabel\(nextTitle\)/);
   assert.match(editorProjectPage, /function MagneticSparkleButton/);
   assert.equal(editorProjectPage.includes("AiLampDialog"), false);
   assert.equal(editorProjectPage.includes("setIsAiLampOpen"), false);

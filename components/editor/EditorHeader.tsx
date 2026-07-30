@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { CheckCircle2, Sparkles, Undo2, Redo2, Pencil } from 'lucide-react'
+import { CheckCircle2, Sparkles, Undo2, Redo2 } from 'lucide-react'
 import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { WorkspaceNavBar, type WorkspaceNavItem } from '@/components/ui/anime-navbar'
 import { CinematicExportCluster } from '@/components/editor/cinematic-export-cluster'
@@ -87,20 +87,11 @@ export function EditorHeader({
                   autoFocus
                 />
               ) : (
-                <h1 className="text-sm font-medium text-white">
-                  <button
-                    type="button"
-                    className="group -mx-1.5 -my-0.5 flex min-h-11 items-center gap-1.5 rounded-md px-1.5 text-left transition-colors duration-[var(--dur-hover)] ease-[var(--ease-hover)] hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
-                    onClick={onTitleStartEdit}
-                    title="Rename project"
-                    aria-label="Rename project"
-                  >
-                    <span>{project?.title ?? 'Untitled Project'}</span>
-                    <Pencil
-                      className="size-3 shrink-0 text-white/50 opacity-0 transition-opacity duration-[var(--dur-hover)] group-hover:opacity-100 group-focus-visible:opacity-100"
-                      aria-hidden="true"
-                    />
-                  </button>
+                <h1
+                  className="cursor-pointer text-sm font-medium text-white transition-opacity hover:opacity-70"
+                  onClick={onTitleStartEdit}
+                >
+                  {project?.title ?? 'Untitled Project'}
                 </h1>
               )}
               
