@@ -332,7 +332,6 @@ export function useAIChat({
         let streamFrames: AIChatFrameReference[] = [];
         let streamToolCalls: unknown[] = [];
         let streamActionDrafts: EditorActionDraft[] = [];
-        let streamCarousel: CarouselItem[] = [];
         let streamSuggestions: string[] = [];
 
         const flushReply = () => {
@@ -365,7 +364,6 @@ export function useAIChat({
             streamFrames = normalizeFrameReferenceList(event.frames);
             streamToolCalls = Array.isArray(event.toolCalls) ? event.toolCalls : [];
             streamActionDrafts = parseEditorActionDrafts(event.actionDrafts);
-            streamCarousel = normalizeCarouselItems(event.carousel);
             streamSuggestions = normalizeSuggestionList(event.suggestions);
             return;
           }
@@ -397,7 +395,6 @@ export function useAIChat({
                   ...(streamFrames.length ? { frames: streamFrames } : {}),
                   ...(streamToolCalls.length ? { toolCalls: streamToolCalls } : {}),
                   ...(streamActionDrafts.length ? { actionDrafts: streamActionDrafts } : {}),
-                  ...(streamCarousel.length ? { carousel: streamCarousel } : {}),
                   ...(streamSuggestions.length ? { suggestions: streamSuggestions } : {}),
                   ...inferPostMetadata(`${text}\n${reply}`),
                 }
@@ -417,7 +414,6 @@ export function useAIChat({
               ...(streamFrames.length ? { frames: streamFrames } : {}),
               ...(streamToolCalls.length ? { toolCalls: streamToolCalls } : {}),
               ...(streamActionDrafts.length ? { actionDrafts: streamActionDrafts } : {}),
-              ...(streamCarousel.length ? { carousel: streamCarousel } : {}),
               ...(streamSuggestions.length ? { suggestions: streamSuggestions } : {}),
             },
           };
