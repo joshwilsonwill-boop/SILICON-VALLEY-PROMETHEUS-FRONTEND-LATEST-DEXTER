@@ -166,7 +166,9 @@ export function PrometheusChat({
     return undefined
   }, [renderedMessages])
 
-  const suggestionsHidden = usesPersistentChat ? persistentChat.isSending : thinking
+  const suggestionsHidden = usesPersistentChat
+    ? persistentChat.isSending || persistentChat.isAwaitingResponse
+    : thinking
 
   const handleSuggestionSelect = React.useCallback(
     (suggestion: string) => {
