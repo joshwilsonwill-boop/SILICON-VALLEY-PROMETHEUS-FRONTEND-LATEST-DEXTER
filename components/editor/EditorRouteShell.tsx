@@ -270,7 +270,7 @@ function EditorMobileToolPanel({
   sourceUrl: string | null;
 }) {
   if (activeTool === "chat") {
-    return <PrometheusChatMobile projectId={projectId} onClose={onClose} workspaceTab="Editor" />;
+    return <PrometheusChatMobile projectId={projectId} onClose={onClose} />;
   }
 
   const meta = mobileToolMeta[activeTool];

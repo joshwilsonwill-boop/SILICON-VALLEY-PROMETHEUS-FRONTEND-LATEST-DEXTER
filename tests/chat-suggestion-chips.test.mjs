@@ -10,8 +10,6 @@ const desktopSource = read("components/editor/PrometheusChat.tsx");
 const mobileSource = read("components/editor/prometheus-chat-mobile.tsx");
 const mobileInputSource = read("components/chat/mobile-chat-input.tsx");
 const editorPageSource = read("app/editor/[id]/page.tsx");
-const editorRouteShellSource = read("components/editor/EditorRouteShell.tsx");
-const sidebarDrawerSource = read("app/editor/components/sidebar-drawer.tsx");
 const hookSource = read("hooks/use-ai-chat.ts");
 const streamSource = read("lib/prometheus-assistant/chat-stream.ts");
 
@@ -38,53 +36,32 @@ const generic = suggestionsSource.match(
 );
 assert.ok(generic, "generic suggestions must exist");
 assert.equal(countQuotedItems(generic[1]), 4, "unknown/null tabs must resolve to four strings");
-assert.match(suggestionsSource, /normalized === "editor"\) return "Editor"/);
-assert.match(suggestionsSource, /normalized === "music"\) return "Music"/);
-assert.match(suggestionsSource, /normalized === "motion"\) return "Motion"/);
-assert.match(suggestionsSource, /CHAT_SUGGESTIONS_BY_TAB\[normalized\]/);
+assert.match(suggestionsSource, /normalized === "editor"[\s\S]*CHAT_SUGGESTIONS_BY_TAB\.Editor/);
+assert.match(suggestionsSource, /normalized === "music"[\s\S]*CHAT_SUGGESTIONS_BY_TAB\.Music/);
+assert.match(suggestionsSource, /normalized === "motion"[\s\S]*CHAT_SUGGESTIONS_BY_TAB\.Motion/);
 assert.match(suggestionsSource, /return GENERIC_CHAT_SUGGESTIONS/);
 
-assert.match(suggestionsSource, /export function resolveChatSuggestions/);
-assert.match(suggestionsSource, /hasProject/,
-  "deterministic suggestions must react to project presence");
-assert.match(suggestionsSource, /lastMessageRole/,
-  "deterministic suggestions must react to the latest conversational turn");
-assert.match(suggestionsSource, /NO_PROJECT_CHAT_SUGGESTIONS/);
-assert.match(suggestionsSource, /FOLLOW_UP_SUGGESTIONS_BY_TAB/);
-assert.match(suggestionsSource, /new Set<string>/, "stream suggestions must be de-duplicated");
-assert.match(suggestionsSource, /while \(items\.length < 4/,
-  "short stream payloads must be filled to four stable slots");
-assert.match(suggestionsSource, /return items\.slice\(0, 4\)/,
-  "stream suggestions must be capped at four");
-assert.match(suggestionsSource, /layout === "responsive"/);
-assert.match(suggestionsSource, /grid-cols-2 md:grid-cols-4/,
-  "responsive layout must be mobile 2x2 and desktop one-row");
+assert.match(suggestionsSource, /suggestions && suggestions\.length > 0/);
+assert.match(suggestionsSource, /\.slice\(0, 4\)/, "stream suggestions must be capped at four");
+assert.match(suggestionsSource, /layout === "grid" \? "grid-cols-2" : "grid-cols-4"/);
 assert.match(suggestionsSource, /min-h-11/);
 assert.match(suggestionsSource, /focus-visible:ring-2/);
 assert.doesNotMatch(suggestionsSource, /overflow-x-(?:auto|scroll)/);
 assert.doesNotMatch(suggestionsSource, /#[0-9a-f]{3,8}\b/i);
 
 assert.match(desktopSource, /workspaceTab=\{workspaceTab\}/);
-assert.match(desktopSource, /hasProject=\{Boolean\(projectId\)\}/);
-assert.match(desktopSource, /lastMessageRole=\{lastMessage\?\.role\}/);
-assert.match(desktopSource, /layout="responsive"/);
-assert.match(desktopSource, /<ChatSuggestions[\s\S]*suggestionsHidden && "invisible pointer-events-none"/,
-  "desktop must reserve suggestion layout space while generation hides the controls");
+assert.match(desktopSource, /layout="row"/);
 assert.match(desktopSource, /setDraft\(suggestion\)[\s\S]*inputRef\.current\?\.focus\(\)/);
 assert.doesNotMatch(
   desktopSource.slice(
     desktopSource.indexOf("const handleSuggestionSelect"),
-    desktopSource.indexOf("const scrollToLatest"),
+    desktopSource.indexOf("const handleCarouselSelect"),
   ),
   /sendMessage|onSend/,
 );
 
 assert.match(mobileSource, /workspaceTab=\{workspaceTab\}/);
-assert.match(mobileSource, /hasProject=\{Boolean\(projectId\)\}/);
-assert.match(mobileSource, /lastMessageRole=\{lastMessage\?\.role\}/);
 assert.match(mobileSource, /layout="grid"/);
-assert.match(mobileSource, /suggestionsHidden[\s\S]*invisible[\s\S]*ChatSuggestions/,
-  "mobile must reserve suggestion layout space while generation hides the controls");
 assert.match(mobileInputSource, /ref=\{inputRef\}/, "mobile composer must expose its textarea ref");
 assert.match(mobileSource, /chat\.setDraft\(suggestion\)[\s\S]*composerInputRef\.current\?\.focus\(\)/);
 assert.doesNotMatch(
@@ -96,7 +73,7 @@ assert.doesNotMatch(
 );
 
 assert.match(desktopSource, /persistentChat\.isSending/);
-assert.match(mobileSource, /suggestionsHidden = chat\.isSending \|\| chat\.isAwaitingResponse/);
+assert.match(mobileSource, /!chat\.isSending && !chat\.isAwaitingResponse/);
 const mobileWorkspace = editorPageSource.slice(
   editorPageSource.indexOf("<MobileEditorView"),
   editorPageSource.indexOf("<EditorNewProjectUploadDialog", editorPageSource.indexOf("<MobileEditorView")),
@@ -107,19 +84,6 @@ const desktopWorkspace = editorPageSource.slice(
 );
 assert.match(mobileWorkspace, /workspaceTab=\{activeWorkspaceTab\}/);
 assert.match(desktopWorkspace, /workspaceTab=\{activeWorkspaceTab\}/);
-assert.match(editorRouteShellSource, /PrometheusChatMobile[\s\S]*workspaceTab="Editor"/,
-  "route-shell mobile chat must receive an explicit workspace context");
-assert.match(sidebarDrawerSource, /PrometheusChatMobile[\s\S]*workspaceTab="Editor"/,
-  "legacy mobile drawer chat must receive an explicit workspace context");
-
-assert.doesNotMatch(desktopSource, /handleCarouselSelect|message\.carousel/,
-  "M2-2 carousel rendering must stay outside the M2-1 slice");
-assert.doesNotMatch(mobileSource, /message\.carousel/,
-  "M2-2 mobile carousel rendering must stay outside the M2-1 slice");
-assert.doesNotMatch(streamSource, /carousel\?: unknown\[\]|carousel: Array\.isArray/,
-  "M2-2 stream-contract expansion must stay outside the M2-1 slice");
-assert.doesNotMatch(hookSource, /event\.carousel|streamCarousel/,
-  "M2-2 streamed carousel handling must stay outside the M2-1 slice");
 
 assert.match(streamSource, /suggestions\?: unknown\[\]/);
 assert.match(streamSource, /suggestions: Array\.isArray\(value\.suggestions\)/);

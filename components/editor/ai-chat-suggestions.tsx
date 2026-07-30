@@ -35,89 +35,19 @@ export const GENERIC_CHAT_SUGGESTIONS: string[] = [
   "Make my captions pop",
 ];
 
-export const NO_PROJECT_CHAT_SUGGESTIONS: string[] = [
-  "Help me shape a new video",
-  "Plan a strong opening",
-  "Choose a visual direction",
-  "Build a simple edit brief",
-];
-
-export const FOLLOW_UP_SUGGESTIONS_BY_TAB: Record<ChatSuggestionsWorkspaceTab, string> = {
-  Editor: "Apply that direction to my cut",
-  Music: "Refine that soundtrack direction",
-  Motion: "Turn that into a motion pass",
-};
-
-type ChatMessageRole = "user" | "assistant" | "system";
-
-function normalizeWorkspaceTab(tab?: string | null): ChatSuggestionsWorkspaceTab | null {
-  const normalized = tab?.trim().toLowerCase();
-  if (normalized === "editor") return "Editor";
-  if (normalized === "music") return "Music";
-  if (normalized === "motion") return "Motion";
-  return null;
-}
-
 export function getChatSuggestionsForWorkspaceTab(tab?: string | null): string[] {
-  const normalized = normalizeWorkspaceTab(tab);
-  if (normalized) return CHAT_SUGGESTIONS_BY_TAB[normalized];
+  const normalized = tab?.trim().toLowerCase();
+  if (normalized === "editor") return CHAT_SUGGESTIONS_BY_TAB.Editor;
+  if (normalized === "music") return CHAT_SUGGESTIONS_BY_TAB.Music;
+  if (normalized === "motion") return CHAT_SUGGESTIONS_BY_TAB.Motion;
   return GENERIC_CHAT_SUGGESTIONS;
-}
-
-export function getContextualChatSuggestions(
-  workspaceTab?: string | null,
-  hasProject = true,
-  lastMessageRole?: ChatMessageRole | null,
-): string[] {
-  if (!hasProject) return NO_PROJECT_CHAT_SUGGESTIONS;
-
-  const defaults = getChatSuggestionsForWorkspaceTab(workspaceTab);
-  if (lastMessageRole !== "assistant") return defaults;
-
-  const normalized = normalizeWorkspaceTab(workspaceTab);
-  const followUp = normalized
-    ? FOLLOW_UP_SUGGESTIONS_BY_TAB[normalized]
-    : "Take that direction one step further";
-  return [followUp, ...defaults.slice(1)];
-}
-
-export function resolveChatSuggestions(
-  workspaceTab?: string | null,
-  suggestions?: string[],
-  hasProject = true,
-  lastMessageRole?: ChatMessageRole | null,
-): string[] {
-  const defaults = getContextualChatSuggestions(workspaceTab, hasProject, lastMessageRole);
-  const items: string[] = [];
-  const seen = new Set<string>();
-
-  for (const candidate of [...(suggestions ?? []), ...defaults]) {
-    const suggestion = candidate.trim();
-    if (!suggestion || seen.has(suggestion)) continue;
-    seen.add(suggestion);
-    items.push(suggestion);
-    if (items.length === 4) break;
-  }
-
-  let fallbackIndex = 0;
-  while (items.length < 4 && fallbackIndex < GENERIC_CHAT_SUGGESTIONS.length) {
-    const suggestion = GENERIC_CHAT_SUGGESTIONS[fallbackIndex];
-    fallbackIndex += 1;
-    if (seen.has(suggestion)) continue;
-    seen.add(suggestion);
-    items.push(suggestion);
-  }
-
-  return items.slice(0, 4);
 }
 
 export function ChatSuggestions({
   workspaceTab = null,
   suggestions,
-  hasProject = true,
-  lastMessageRole = null,
   onSelect,
-  layout = "responsive",
+  layout = "row",
   className,
   ariaLabel = "Suggested prompts",
 }: {
@@ -125,28 +55,23 @@ export function ChatSuggestions({
   workspaceTab?: string | null;
   /** Stream-provided suggestions override the deterministic defaults. */
   suggestions?: string[];
-  hasProject?: boolean;
-  lastMessageRole?: ChatMessageRole | null;
   /** Clicking a chip hands the text back; the caller fills the draft (never auto-sends). */
   onSelect: (suggestion: string) => void;
-  /** responsive: 2x2 mobile / one row desktop. row and grid support fixed chambers. */
-  layout?: "responsive" | "row" | "grid";
+  /** row: 4 equal-width columns (desktop). grid: 2x2 (mobile). */
+  layout?: "row" | "grid";
   className?: string;
   ariaLabel?: string;
 }) {
-  const items = resolveChatSuggestions(workspaceTab, suggestions, hasProject, lastMessageRole);
+  const items = (suggestions && suggestions.length > 0
+    ? suggestions
+    : getChatSuggestionsForWorkspaceTab(workspaceTab)
+  ).slice(0, 4);
 
   return (
     <div
       role="group"
       aria-label={ariaLabel}
-      className={cn(
-        "grid gap-2",
-        layout === "responsive" && "grid-cols-2 md:grid-cols-4",
-        layout === "grid" && "grid-cols-2",
-        layout === "row" && "grid-cols-4",
-        className,
-      )}
+      className={cn("grid gap-2", layout === "grid" ? "grid-cols-2" : "grid-cols-4", className)}
     >
       {items.map((suggestion) => (
         <button

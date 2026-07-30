@@ -5,7 +5,7 @@ import { AnimatePresence } from 'framer-motion'
 import { ArrowDown, ArrowUp, X } from 'lucide-react'
 
 import { useAuth } from '@/components/auth/auth-provider'
-import { useAIChat, type AIChatContextProvider, type AIChatFrameReference } from '@/hooks/use-ai-chat'
+import { useAIChat, type AIChatContextProvider, type AIChatFrameReference, type CarouselItem } from '@/hooks/use-ai-chat'
 import { useProfile } from '@/hooks/use-profile'
 import { PROPOSE_NOT_APPLIED_MESSAGE, type EditorActionDraft } from '@/lib/editor-actions'
 import { getChatGreeting } from '@/lib/user/display-name'
@@ -30,6 +30,7 @@ export type PrometheusChatMessage = {
   frames?: AIChatFrameReference[]
   toolCalls?: unknown[]
   actionDrafts?: EditorActionDraft[]
+  carousel?: CarouselItem[]
   suggestions?: string[]
 }
 
@@ -115,6 +116,7 @@ export function PrometheusChat({
       frames: message.frames,
       toolCalls: message.toolCalls,
       actionDrafts: message.actionDrafts,
+      carousel: message.carousel,
       suggestions: message.suggestions,
     })),
     [persistentChat.messages],
@@ -174,6 +176,23 @@ export function PrometheusChat({
       inputRef.current?.focus()
     },
     [setDraft],
+  )
+
+  const handleCarouselSelect = React.useCallback(
+    (item: CarouselItem) => {
+      const text = item.message.trim()
+      if (!text) return
+
+      pinnedToBottomRef.current = true
+      setShowJumpToLatest(false)
+
+      if (usesPersistentChat) {
+        void persistentChat.sendMessage(item.message)
+        return
+      }
+      void onSend(text)
+    },
+    [onSend, persistentChat, usesPersistentChat],
   )
 
   const scrollToLatest = React.useCallback((behavior: ScrollBehavior = 'auto') => {
@@ -288,6 +307,8 @@ export function PrometheusChat({
                   onApplyActions={onApplyActions ? handleApplyActions : undefined}
                   onDismissActions={handleDismissActions}
                   onSeekToSec={onSeekToSec}
+                  onCarouselSelect={handleCarouselSelect}
+                  carouselDisabled={usesPersistentChat ? persistentChat.isSending : false}
                   onStreamingComplete={() => {
                     if (usesPersistentChat) persistentChat.completeAssistantMessage(message.id)
                   }}
@@ -337,18 +358,15 @@ export function PrometheusChat({
               )}
             </p>
           ) : null}
-          <ChatSuggestions
-            workspaceTab={workspaceTab}
-            suggestions={turnSuggestions}
-            hasProject={Boolean(projectId)}
-            lastMessageRole={lastMessage?.role}
-            onSelect={handleSuggestionSelect}
-            layout="responsive"
-            className={cn(
-              "mx-auto mb-3 w-full max-w-3xl",
-              suggestionsHidden && "invisible pointer-events-none",
-            )}
-          />
+          {!suggestionsHidden ? (
+            <ChatSuggestions
+              workspaceTab={workspaceTab}
+              suggestions={turnSuggestions}
+              onSelect={handleSuggestionSelect}
+              layout="row"
+              className="mx-auto mb-3 w-full max-w-3xl"
+            />
+          ) : null}
           <form
             className="mx-auto flex min-h-14 w-full max-w-3xl items-center gap-3 rounded-2xl border border-white/10 bg-black px-5 py-3 transition-colors focus-within:border-white/22"
             onSubmit={(event) => {
@@ -404,6 +422,8 @@ function PrometheusMessageBubble({
   onSeekToSec,
   onStreamingComplete,
   onStreamingProgress,
+  onCarouselSelect,
+  carouselDisabled = false,
 }: {
   message: PrometheusChatMessage
   live: boolean
@@ -413,6 +433,8 @@ function PrometheusMessageBubble({
   onSeekToSec?: (seconds: number) => void
   onStreamingComplete: () => void
   onStreamingProgress: () => void
+  onCarouselSelect?: (item: CarouselItem) => void
+  carouselDisabled?: boolean
 }) {
   const isUser = message.role === 'user'
   const isThinking = message.status === 'thinking'
@@ -451,6 +473,29 @@ function PrometheusMessageBubble({
             />
           )}
         </div>
+
+        {!isUser && message.carousel?.length ? (
+          <ul
+            className="flex max-w-full snap-x snap-mandatory gap-2 overflow-x-auto pb-1"
+            aria-label="Recommended options"
+          >
+            {message.carousel.map((item, index) => (
+              <li key={`${item.title}-${index}`} className="shrink-0 snap-start">
+                <button
+                  type="button"
+                  disabled={carouselDisabled}
+                  onClick={() => onCarouselSelect?.(item)}
+                  className="flex min-h-11 w-52 flex-col gap-1 rounded-xl border border-white/10 bg-white/[0.035] px-4 py-3 text-left transition-[background-color,border-color,color,transform] duration-[var(--dur-hover)] ease-[var(--ease-hover)] hover:border-white/18 hover:bg-white/[0.06] active:scale-[0.98] active:duration-[var(--dur-press)] disabled:pointer-events-none disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+                >
+                  <span className="text-[13px] font-medium text-white/88">{item.title}</span>
+                  {item.description ? (
+                    <span className="text-[12px] leading-5 text-white/45">{item.description}</span>
+                  ) : null}
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
 
         {frames.length ? (
           <ul className="flex max-w-full gap-2 overflow-x-auto pb-1">

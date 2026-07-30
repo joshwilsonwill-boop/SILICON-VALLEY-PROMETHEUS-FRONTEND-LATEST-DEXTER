@@ -16,7 +16,6 @@ import { useAIChat } from "@/hooks/use-ai-chat";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { useProfile } from "@/hooks/use-profile";
 import { getChatGreeting } from "@/lib/user/display-name";
-import { cn } from "@/lib/utils";
 
 export function PrometheusChatMobile({
   projectId,
@@ -77,8 +76,6 @@ export function PrometheusChatMobile({
     chat.setDraft(suggestion);
     window.requestAnimationFrame(() => composerInputRef.current?.focus());
   }, [chat.setDraft]);
-  const lastMessage = chat.messages[chat.messages.length - 1];
-  const suggestionsHidden = chat.isSending || chat.isAwaitingResponse;
 
   return (
     <>
@@ -171,6 +168,25 @@ export function PrometheusChatMobile({
                       onCopy={() => void copy(message.content).then((copied) => copied ? toast.success("Copied to clipboard") : toast.error("Unable to copy message"))}
                       onEdit={isUser ? (content) => void chat.editAndResendMessage(message.id, content) : undefined}
                     />
+                    {!isUser && message.carousel?.length ? (
+                      <ul className="mt-2 flex flex-col gap-2" aria-label="Recommended options">
+                        {message.carousel.map((item, index) => (
+                          <li key={`${item.title}-${index}`}>
+                            <button
+                              type="button"
+                              disabled={chat.isSending}
+                              onClick={() => void chat.sendMessage(item.message)}
+                              className="flex min-h-11 w-full flex-col gap-1 rounded-xl border border-white/10 bg-white/[0.035] px-4 py-3 text-left transition-[background-color,border-color,color,transform] duration-[var(--dur-hover)] ease-[var(--ease-hover)] hover:border-white/18 hover:bg-white/[0.06] active:scale-[0.98] active:duration-[var(--dur-press)] disabled:pointer-events-none disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+                            >
+                              <span className="text-[13px] font-medium text-white/88">{item.title}</span>
+                              {item.description ? (
+                                <span className="text-[12px] leading-5 text-white/45">{item.description}</span>
+                              ) : null}
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
                   </article>
                 );
               })}
@@ -186,22 +202,17 @@ export function PrometheusChatMobile({
           </div>
         ) : null}
 
-        <div
-          className={cn(
-            "shrink-0 px-4 pb-1 pt-3",
-            suggestionsHidden && "invisible pointer-events-none",
-          )}
-        >
-          <ChatSuggestions
-            workspaceTab={workspaceTab}
-            suggestions={turnSuggestions}
-            hasProject={Boolean(projectId)}
-            lastMessageRole={lastMessage?.role}
-            layout="grid"
-            className="mx-auto w-full max-w-xl"
-            onSelect={handleSuggestionSelect}
-          />
-        </div>
+        {!chat.isSending && !chat.isAwaitingResponse ? (
+          <div className="shrink-0 px-4 pb-1 pt-3">
+            <ChatSuggestions
+              workspaceTab={workspaceTab}
+              suggestions={turnSuggestions}
+              layout="grid"
+              className="mx-auto w-full max-w-xl"
+              onSelect={handleSuggestionSelect}
+            />
+          </div>
+        ) : null}
 
         <MobileChatInput
           inputRef={composerInputRef}

@@ -116,9 +116,7 @@ export function SidebarDrawer({ activePanel, isOpen, onClose, onTogglePanel }: S
                   <div className="border-t border-white/10 px-3 pb-3 pt-3">
                     {panel.id === 'music' ? <MusicPanel /> : null}
                     {panel.id === 'motion' ? <MotionPanel /> : null}
-                    {panel.id === 'chat' ? (
-                      <PrometheusChatMobile projectId={null} onClose={onClose} workspaceTab="Editor" />
-                    ) : null}
+                    {panel.id === 'chat' ? <PrometheusChatMobile projectId={null} onClose={onClose} /> : null}
                     {panel.id === 'versions' ? <VersionsPanel /> : null}
                     {panel.id === 'status' ? <StatusPanel /> : null}
                   </div>
