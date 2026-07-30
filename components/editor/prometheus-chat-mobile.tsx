@@ -9,10 +9,11 @@ import { useAuth } from "@/components/auth/auth-provider";
 import { ChatMessageBubble } from "@/components/chat/chat-message-bubble";
 import { MobileChatInput } from "@/components/chat/mobile-chat-input";
 import { AIChatHistoryButton } from "@/components/editor/ai-chat-history-button";
+import { ChatCarousel } from "@/components/editor/chat-carousel";
 import { ChatSuggestions } from "@/components/editor/ai-chat-suggestions";
 import { PrometheusChatHistoryDrawer } from "@/components/editor/prometheus-chat-history-drawer";
 import { CinematicTextReveal } from "@/components/ui/cinematic-text-reveal";
-import { useAIChat } from "@/hooks/use-ai-chat";
+import { useAIChat, type CarouselItem } from "@/hooks/use-ai-chat";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { useProfile } from "@/hooks/use-profile";
 import { getChatGreeting } from "@/lib/user/display-name";
@@ -73,6 +74,11 @@ export function PrometheusChatMobile({
     return undefined;
   }, [chat.messages]);
 
+  const handleCarouselSelect = useCallback((item: CarouselItem) => {
+    const message = item.payload?.message?.trim();
+    if (!message) return;
+    void chat.sendMessage(message);
+  }, [chat.sendMessage]);
   const handleSuggestionSelect = useCallback((suggestion: string) => {
     chat.setDraft(suggestion);
     window.requestAnimationFrame(() => composerInputRef.current?.focus());
@@ -171,6 +177,14 @@ export function PrometheusChatMobile({
                       onCopy={() => void copy(message.content).then((copied) => copied ? toast.success("Copied to clipboard") : toast.error("Unable to copy message"))}
                       onEdit={isUser ? (content) => void chat.editAndResendMessage(message.id, content) : undefined}
                     />
+                    {!isUser && message.carousel ? (
+                      <ChatCarousel
+                        items={message.carousel}
+                        disabled={chat.isSending || chat.isAwaitingResponse}
+                        onSelect={handleCarouselSelect}
+                        className="mt-2"
+                      />
+                    ) : null}
                   </article>
                 );
               })}

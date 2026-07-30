@@ -5,7 +5,7 @@ import { AnimatePresence } from 'framer-motion'
 import { ArrowDown, ArrowUp, X } from 'lucide-react'
 
 import { useAuth } from '@/components/auth/auth-provider'
-import { useAIChat, type AIChatContextProvider, type AIChatFrameReference } from '@/hooks/use-ai-chat'
+import { useAIChat, type AIChatContextProvider, type AIChatFrameReference, type CarouselItem } from '@/hooks/use-ai-chat'
 import { useProfile } from '@/hooks/use-profile'
 import { PROPOSE_NOT_APPLIED_MESSAGE, type EditorActionDraft } from '@/lib/editor-actions'
 import { getChatGreeting } from '@/lib/user/display-name'
@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils'
 import { CinematicTextReveal } from '@/components/ui/cinematic-text-reveal'
 
 import { AIChatHistoryButton } from './ai-chat-history-button'
+import { ChatCarousel } from './chat-carousel'
 import { ChatSuggestions } from './ai-chat-suggestions'
 import { PrometheusChatHistoryDrawer } from './prometheus-chat-history-drawer'
 import { AIChatStreamingText } from './ai-chat-streaming-text'
@@ -30,6 +31,7 @@ export type PrometheusChatMessage = {
   frames?: AIChatFrameReference[]
   toolCalls?: unknown[]
   actionDrafts?: EditorActionDraft[]
+  carousel?: CarouselItem[]
   suggestions?: string[]
 }
 
@@ -115,6 +117,7 @@ export function PrometheusChat({
       frames: message.frames,
       toolCalls: message.toolCalls,
       actionDrafts: message.actionDrafts,
+      carousel: message.carousel,
       suggestions: message.suggestions,
     })),
     [persistentChat.messages],
@@ -186,6 +189,17 @@ export function PrometheusChat({
     pinnedToBottomRef.current = true
     setShowJumpToLatest(false)
   }, [])
+
+  const handleCarouselSelect = React.useCallback(
+    (item: CarouselItem) => {
+      const message = item.payload?.message?.trim()
+      if (!message) return
+      pinnedToBottomRef.current = true
+      setShowJumpToLatest(false)
+      void persistentChat.sendMessage(message)
+    },
+    [persistentChat],
+  )
 
   const handleThreadScroll = React.useCallback(() => {
     const viewport = scrollViewportRef.current
@@ -290,6 +304,8 @@ export function PrometheusChat({
                   onApplyActions={onApplyActions ? handleApplyActions : undefined}
                   onDismissActions={handleDismissActions}
                   onSeekToSec={onSeekToSec}
+                  onCarouselSelect={handleCarouselSelect}
+                  carouselDisabled={persistentChat.isSending || persistentChat.isAwaitingResponse}
                   onStreamingComplete={() => {
                     if (usesPersistentChat) persistentChat.completeAssistantMessage(message.id)
                   }}
@@ -404,6 +420,8 @@ function PrometheusMessageBubble({
   onApplyActions,
   onDismissActions,
   onSeekToSec,
+  onCarouselSelect,
+  carouselDisabled = false,
   onStreamingComplete,
   onStreamingProgress,
 }: {
@@ -413,6 +431,8 @@ function PrometheusMessageBubble({
   onApplyActions?: (drafts: EditorActionDraft[], messageId: string) => void
   onDismissActions?: (messageId: string) => void
   onSeekToSec?: (seconds: number) => void
+  onCarouselSelect?: (item: CarouselItem) => void
+  carouselDisabled?: boolean
   onStreamingComplete: () => void
   onStreamingProgress: () => void
 }) {
@@ -453,6 +473,14 @@ function PrometheusMessageBubble({
             />
           )}
         </div>
+
+        {!isUser && message.carousel ? (
+          <ChatCarousel
+            items={message.carousel}
+            disabled={carouselDisabled}
+            onSelect={(item) => onCarouselSelect?.(item)}
+          />
+        ) : null}
 
         {frames.length ? (
           <ul className="flex max-w-full gap-2 overflow-x-auto pb-1">

@@ -1349,16 +1349,12 @@ function StudioCinematicMarqueeRails({
     onSelectStyle: (styleId: string) => void;
 }) {
     const railItems = React.useMemo(() => {
-        return STYLE_TEMPLATES.flatMap((template) => {
-            const images = template.previewImages.length ? template.previewImages : [""];
-            return images.slice(0, 2).map((src, index) => ({
-                id: `${template.id}-${index}`,
-                styleId: template.id,
-                name: template.name,
-                description: template.description,
-                src,
-            }));
-        });
+        return STYLE_TEMPLATES.map((template) => ({
+            id: template.id,
+            styleId: template.id,
+            label: template.name,
+            description: template.description,
+        }));
     }, []);
     const upperRail = [...railItems, ...railItems];
     const lowerRail = [...railItems].reverse().concat([...railItems].reverse());
@@ -1370,46 +1366,24 @@ function StudioCinematicMarqueeRails({
             <button
                 key={`${item.id}-${index}`}
                 type="button"
-                aria-label={`Select ${item.name} animation style`}
+                aria-label={`Select ${item.label} animation style`}
+                aria-pressed={selected}
                 onClick={() => onSelectStyle(item.styleId)}
                 className={cn(
-                    "group premium-motion-surface relative h-24 w-44 shrink-0 overflow-hidden rounded-[18px] border bg-white/[0.035] text-left shadow-[0_22px_48px_-34px_rgba(0,0,0,0.92)] transition-[border-color,background-color,transform] duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9ff6e3]/35 sm:h-28 sm:w-56",
+                    "premium-motion-surface flex h-10 shrink-0 items-center rounded-[9px] border px-4 text-xs font-medium text-white/62 shadow-[0_12px_28px_-22px_rgba(0,0,0,0.9)] transition-[border-color,background-color,color,transform] duration-200 hover:-translate-y-px hover:text-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9ff6e3]/35",
                     selected
-                        ? "border-[#9ff6e3]/42 bg-[#9ff6e3]/[0.08]"
-                        : "border-white/10 hover:border-white/18 hover:bg-white/[0.055]",
+                        ? "border-[#9ff6e3]/44 bg-[#9ff6e3]/[0.11] text-[#d8fff4]"
+                        : "border-white/10 bg-white/[0.025] hover:border-white/18 hover:bg-white/[0.055]",
                 )}
+                title={item.description}
             >
-                {item.src ? (
-                    <Image
-                        src={item.src}
-                        alt=""
-                        fill
-                        sizes="224px"
-                        className="object-cover opacity-75 transition duration-300 group-hover:scale-105 group-hover:opacity-95"
-                    />
-                ) : (
-                    <div className="grid h-full w-full place-items-center text-white/26">
-                        <ImageIcon className="h-5 w-5" />
-                    </div>
-                )}
-                <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.02)_0%,rgba(0,0,0,0.82)_100%)]" />
-                <div className="absolute inset-x-3 bottom-3">
-                    <div className="truncate text-xs font-semibold text-white/92">{item.name}</div>
-                    <div className="mt-1 line-clamp-1 text-[10px] text-white/48">{item.description}</div>
-                </div>
-                <div
-                    aria-hidden
-                    className={cn(
-                        "absolute left-3 top-3 h-1.5 w-1.5 rounded-full transition-colors",
-                        selected ? "bg-[#9ff6e3] shadow-[0_0_18px_rgba(159,246,227,0.72)]" : "bg-white/32",
-                    )}
-                />
+                <span className="whitespace-nowrap">{item.label}</span>
             </button>
         );
     };
 
     return (
-        <div className="studio-cinematic-rails premium-telemetry-panel premium-vignette-edges group relative overflow-hidden rounded-[18px] border border-white/[0.08] bg-black/[0.22] py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+        <div className="studio-cinematic-rails premium-telemetry-panel premium-vignette-edges relative overflow-hidden rounded-[18px] border border-white/[0.08] bg-black/[0.22] py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
             <style>{`
                 @keyframes studio-marquee-right {
                     from { transform: translateX(-50%); }
@@ -1437,8 +1411,8 @@ function StudioCinematicMarqueeRails({
                     animation-name: studio-marquee-left;
                 }
 
-                .studio-cinematic-rails:hover .studio-cinematic-rail-track,
-                .studio-cinematic-rails:focus-within .studio-cinematic-rail-track {
+                .studio-cinematic-rail-track:hover,
+                .studio-cinematic-rail-track:focus-within {
                     animation-play-state: paused;
                 }
 
@@ -1457,10 +1431,10 @@ function StudioCinematicMarqueeRails({
                 aria-hidden
                 className="pointer-events-none absolute inset-y-0 right-0 z-10 w-24 bg-[linear-gradient(270deg,#050505_0%,rgba(5,5,5,0)_100%)]"
             />
-            <div className="flex studio-cinematic-rail-track gap-3 px-3" data-direction="left">
+            <div className="flex studio-cinematic-rail-track gap-2.5 px-3" data-direction="left">
                 {upperRail.map(renderRailItem)}
             </div>
-            <div className="mt-3 flex studio-cinematic-rail-track gap-3 px-3" data-direction="right">
+            <div className="mt-2.5 flex studio-cinematic-rail-track gap-2.5 px-3" data-direction="right">
                 {lowerRail.map(renderRailItem)}
             </div>
         </div>

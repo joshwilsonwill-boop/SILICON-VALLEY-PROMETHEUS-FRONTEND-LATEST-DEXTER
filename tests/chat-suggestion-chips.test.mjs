@@ -112,15 +112,6 @@ assert.match(editorRouteShellSource, /PrometheusChatMobile[\s\S]*workspaceTab="E
 assert.match(sidebarDrawerSource, /PrometheusChatMobile[\s\S]*workspaceTab="Editor"/,
   "legacy mobile drawer chat must receive an explicit workspace context");
 
-assert.doesNotMatch(desktopSource, /handleCarouselSelect|message\.carousel/,
-  "M2-2 carousel rendering must stay outside the M2-1 slice");
-assert.doesNotMatch(mobileSource, /message\.carousel/,
-  "M2-2 mobile carousel rendering must stay outside the M2-1 slice");
-assert.doesNotMatch(streamSource, /carousel\?: unknown\[\]|carousel: Array\.isArray/,
-  "M2-2 stream-contract expansion must stay outside the M2-1 slice");
-assert.doesNotMatch(hookSource, /event\.carousel|streamCarousel/,
-  "M2-2 streamed carousel handling must stay outside the M2-1 slice");
-
 assert.match(streamSource, /suggestions\?: unknown\[\]/);
 assert.match(streamSource, /suggestions: Array\.isArray\(value\.suggestions\)/);
 assert.match(hookSource, /normalizeSuggestionList\(event\.suggestions\)/);

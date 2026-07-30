@@ -41,11 +41,20 @@ export type AIChatFrameReference = {
   reason: string;
 };
 
+export type CarouselItemKind = "action" | "style" | "asset" | "music" | "font" | "template";
+
 export type CarouselItem = {
+  id: string;
+  kind: CarouselItemKind;
   title: string;
-  message: string;
-  description?: string;
-  icon?: string;
+  subtitle?: string;
+  image?: string;
+  badge?: string;
+  payload?: {
+    message?: string;
+    tool?: string;
+    args?: Record<string, unknown>;
+  };
 };
 
 export type AIChatMessage = {
@@ -332,6 +341,7 @@ export function useAIChat({
         let streamFrames: AIChatFrameReference[] = [];
         let streamToolCalls: unknown[] = [];
         let streamActionDrafts: EditorActionDraft[] = [];
+        let streamCarousel: CarouselItem[] = [];
         let streamSuggestions: string[] = [];
 
         const flushReply = () => {
@@ -364,6 +374,7 @@ export function useAIChat({
             streamFrames = normalizeFrameReferenceList(event.frames);
             streamToolCalls = Array.isArray(event.toolCalls) ? event.toolCalls : [];
             streamActionDrafts = parseEditorActionDrafts(event.actionDrafts);
+            streamCarousel = normalizeCarouselItems(event.carousel);
             streamSuggestions = normalizeSuggestionList(event.suggestions);
             return;
           }
@@ -395,6 +406,7 @@ export function useAIChat({
                   ...(streamFrames.length ? { frames: streamFrames } : {}),
                   ...(streamToolCalls.length ? { toolCalls: streamToolCalls } : {}),
                   ...(streamActionDrafts.length ? { actionDrafts: streamActionDrafts } : {}),
+                  ...(streamCarousel.length ? { carousel: streamCarousel } : {}),
                   ...(streamSuggestions.length ? { suggestions: streamSuggestions } : {}),
                   ...inferPostMetadata(`${text}\n${reply}`),
                 }
@@ -414,6 +426,7 @@ export function useAIChat({
               ...(streamFrames.length ? { frames: streamFrames } : {}),
               ...(streamToolCalls.length ? { toolCalls: streamToolCalls } : {}),
               ...(streamActionDrafts.length ? { actionDrafts: streamActionDrafts } : {}),
+              ...(streamCarousel.length ? { carousel: streamCarousel } : {}),
               ...(streamSuggestions.length ? { suggestions: streamSuggestions } : {}),
             },
           };
@@ -709,31 +722,72 @@ function normalizeFrameReferenceList(input: unknown, max = 8): AIChatFrameRefere
   return frames;
 }
 
-function normalizeCarouselItems(input: unknown, max = 6): CarouselItem[] {
+function normalizeCarouselItems(input: unknown, max = 8): CarouselItem[] {
   if (!Array.isArray(input)) return [];
   const items: CarouselItem[] = [];
+  const validKinds = new Set<CarouselItemKind>([
+    "action",
+    "style",
+    "asset",
+    "music",
+    "font",
+    "template",
+  ]);
   for (const value of input) {
     if (!value || typeof value !== "object" || Array.isArray(value)) continue;
     const record = value as Record<string, unknown>;
     const title = typeof record.title === "string" ? record.title.trim() : "";
-    const message = typeof record.message === "string" ? record.message.trim() : "";
-    // A card without a title or a payload message is unusable; skip it.
-    if (!title || !message) continue;
+    if (!title) continue;
+
+    const rawKind = typeof record.kind === "string" ? record.kind.trim() : "";
+    const kind = validKinds.has(rawKind as CarouselItemKind)
+      ? (rawKind as CarouselItemKind)
+      : "action";
+    const rawPayload =
+      record.payload && typeof record.payload === "object" && !Array.isArray(record.payload)
+        ? (record.payload as Record<string, unknown>)
+        : {};
+    const legacyMessage = typeof record.message === "string" ? record.message.trim() : "";
+    const message =
+      typeof rawPayload.message === "string" && rawPayload.message.trim()
+        ? rawPayload.message.trim()
+        : legacyMessage || undefined;
+    const tool =
+      typeof rawPayload.tool === "string" && rawPayload.tool.trim()
+        ? rawPayload.tool.trim()
+        : undefined;
+    const args =
+      rawPayload.args && typeof rawPayload.args === "object" && !Array.isArray(rawPayload.args)
+        ? (rawPayload.args as Record<string, unknown>)
+        : undefined;
+    const payload = message || tool || args ? { message, tool, args } : undefined;
+
     items.push({
+      id:
+        typeof record.id === "string" && record.id.trim()
+          ? record.id.trim()
+          : `carousel-${items.length}`,
+      kind,
       title,
-      message,
-      description:
-        typeof record.description === "string" && record.description.trim()
-          ? record.description.trim()
+      subtitle:
+        typeof record.subtitle === "string" && record.subtitle.trim()
+          ? record.subtitle.trim()
+          : typeof record.description === "string" && record.description.trim()
+            ? record.description.trim()
+            : undefined,
+      image:
+        typeof record.image === "string" && record.image.trim()
+          ? record.image.trim()
           : undefined,
-      icon:
-        typeof record.icon === "string" && record.icon.trim()
-          ? record.icon.trim()
+      badge:
+        typeof record.badge === "string" && record.badge.trim()
+          ? record.badge.trim()
           : undefined,
+      payload,
     });
     if (items.length >= max) break;
   }
-  return items;
+  return items.length < 3 ? [] : items;
 }
 
 function normalizeSuggestionList(input: unknown, max = 4): string[] {
