@@ -24,7 +24,8 @@ function run() {
   assert.match(luxuryChat, /onSend:\s*\(message:\s*string\)/);
   assert.match(luxuryChat, /export function PrometheusChat/);
   assert.match(luxuryChat, /Ask Prometheus\.\.\./);
-  assert.match(luxuryChat, /var\(--font-elegist\)/);
+  assert.match(luxuryChat, /CinematicTextReveal/);
+  assert.match(luxuryChat, /font-display/);
   assert.match(luxuryChat, /getChatGreeting/);
   assert.match(luxuryChat, /max-w-3xl/);
   assert.match(luxuryChat, /Collapse editorial chat/);

@@ -2,20 +2,30 @@
 
 import { AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
-import { useCallback, useEffect, useRef, useState, type TouchEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type TouchEvent } from "react";
 import { toast } from "sonner";
 
 import { useAuth } from "@/components/auth/auth-provider";
 import { ChatMessageBubble } from "@/components/chat/chat-message-bubble";
 import { MobileChatInput } from "@/components/chat/mobile-chat-input";
 import { AIChatHistoryButton } from "@/components/editor/ai-chat-history-button";
+import { ChatSuggestions } from "@/components/editor/ai-chat-suggestions";
 import { PrometheusChatHistoryDrawer } from "@/components/editor/prometheus-chat-history-drawer";
+import { CinematicTextReveal } from "@/components/ui/cinematic-text-reveal";
 import { useAIChat } from "@/hooks/use-ai-chat";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { useProfile } from "@/hooks/use-profile";
 import { getChatGreeting } from "@/lib/user/display-name";
 
-export function PrometheusChatMobile({ projectId, onClose }: { projectId: string | null; onClose: () => void }) {
+export function PrometheusChatMobile({
+  projectId,
+  onClose,
+  workspaceTab = null,
+}: {
+  projectId: string | null;
+  onClose: () => void;
+  workspaceTab?: string | null;
+}) {
   const { session } = useAuth();
   const { profile } = useProfile();
   const chat = useAIChat({ projectId });
@@ -25,6 +35,7 @@ export function PrometheusChatMobile({ projectId, onClose }: { projectId: string
   const dismissTouchStartRef = useRef<number | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const historyButtonRef = useRef<HTMLButtonElement | null>(null);
+  const composerInputRef = useRef<HTMLTextAreaElement | null>(null);
 
   const scrollToLatest = useCallback(() => {
     if (!pinnedToBottomRef.current) return;
@@ -49,6 +60,22 @@ export function PrometheusChatMobile({ projectId, onClose }: { projectId: string
     setHistoryOpen(false);
     window.requestAnimationFrame(() => historyButtonRef.current?.focus());
   }, []);
+
+  // Stream-provided suggestions from the latest assistant turn override the
+  // deterministic workspace-tab chips; older turns never leak forward.
+  const turnSuggestions = useMemo(() => {
+    for (let index = chat.messages.length - 1; index >= 0; index -= 1) {
+      const message = chat.messages[index];
+      if (message.role !== "assistant") continue;
+      return message.suggestions && message.suggestions.length > 0 ? message.suggestions : undefined;
+    }
+    return undefined;
+  }, [chat.messages]);
+
+  const handleSuggestionSelect = useCallback((suggestion: string) => {
+    chat.setDraft(suggestion);
+    window.requestAnimationFrame(() => composerInputRef.current?.focus());
+  }, [chat.setDraft]);
 
   return (
     <>
@@ -101,14 +128,30 @@ export function PrometheusChatMobile({ projectId, onClose }: { projectId: string
           className="min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-contain px-5 pb-8 pt-6"
           data-lenis-prevent
         >
+          {chat.historyLoadError ? (
+            <div
+              className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-red-400/20 bg-red-400/[0.06] px-4 py-2 text-xs text-red-300/80"
+              role="alert"
+            >
+              <span>{chat.historyLoadError}</span>
+              <button
+                type="button"
+                onClick={chat.retryLoadSession}
+                className="shrink-0 text-white/45 transition-colors hover:text-white"
+              >
+                Retry
+              </button>
+            </div>
+          ) : null}
           {chat.messages.length === 0 && !chat.isAwaitingResponse ? (
             <div className="flex min-h-full items-center justify-center px-4 pb-16 text-center">
-              <h1
-                className="max-w-xl text-balance text-[clamp(2.25rem,11vw,4.5rem)] font-normal leading-[0.96] tracking-[-0.035em] text-white/92"
-                style={{ fontFamily: "var(--font-elegist), Georgia, serif" }}
+              <CinematicTextReveal
+                as="h1"
+                variant="measured"
+                className="max-w-xl text-balance font-display text-[clamp(2.25rem,11vw,4.5rem)] font-normal leading-[0.96] tracking-normal text-white/92"
               >
                 {getChatGreeting(session?.user, profile)}
-              </h1>
+              </CinematicTextReveal>
             </div>
           ) : (
             <div className="mx-auto w-full max-w-xl space-y-5 py-5">
@@ -125,6 +168,25 @@ export function PrometheusChatMobile({ projectId, onClose }: { projectId: string
                       onCopy={() => void copy(message.content).then((copied) => copied ? toast.success("Copied to clipboard") : toast.error("Unable to copy message"))}
                       onEdit={isUser ? (content) => void chat.editAndResendMessage(message.id, content) : undefined}
                     />
+                    {!isUser && message.carousel?.length ? (
+                      <ul className="mt-2 flex flex-col gap-2" aria-label="Recommended options">
+                        {message.carousel.map((item, index) => (
+                          <li key={`${item.title}-${index}`}>
+                            <button
+                              type="button"
+                              disabled={chat.isSending}
+                              onClick={() => void chat.sendMessage(item.message)}
+                              className="flex min-h-11 w-full flex-col gap-1 rounded-xl border border-white/10 bg-white/[0.035] px-4 py-3 text-left transition-[background-color,border-color,color,transform] duration-[var(--dur-hover)] ease-[var(--ease-hover)] hover:border-white/18 hover:bg-white/[0.06] active:scale-[0.98] active:duration-[var(--dur-press)] disabled:pointer-events-none disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+                            >
+                              <span className="text-[13px] font-medium text-white/88">{item.title}</span>
+                              {item.description ? (
+                                <span className="text-[12px] leading-5 text-white/45">{item.description}</span>
+                              ) : null}
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
                   </article>
                 );
               })}
@@ -140,7 +202,20 @@ export function PrometheusChatMobile({ projectId, onClose }: { projectId: string
           </div>
         ) : null}
 
+        {!chat.isSending && !chat.isAwaitingResponse ? (
+          <div className="shrink-0 px-4 pb-1 pt-3">
+            <ChatSuggestions
+              workspaceTab={workspaceTab}
+              suggestions={turnSuggestions}
+              layout="grid"
+              className="mx-auto w-full max-w-xl"
+              onSelect={handleSuggestionSelect}
+            />
+          </div>
+        ) : null}
+
         <MobileChatInput
+          inputRef={composerInputRef}
           isStreaming={chat.isSending}
           value={chat.draft}
           onChange={chat.setDraft}
