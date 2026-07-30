@@ -15,9 +15,12 @@ function run() {
   // Collapsed icon rail that expands on hover/focus, never shifting layout
   assert.match(rail, /RAIL_COLLAPSED_WIDTH = 72/);
   assert.match(rail, /RAIL_EXPANDED_WIDTH = 216/);
-  assert.match(rail, /onMouseEnter=\{\(\) => setExpanded\(true\)\}/);
-  assert.match(rail, /onMouseLeave=\{\(\) => setExpanded\(false\)\}/);
-  assert.match(rail, /onFocusCapture=\{\(\) => setExpanded\(true\)\}/);
+  assert.match(rail, /onExpandedChange\?: \(expanded: boolean\) => void/);
+  assert.match(rail, /onExpandedChange\?\.\(next\)/);
+  assert.match(rail, /data-expanded=\{expanded \? "true" : "false"\}/);
+  assert.match(rail, /onMouseEnter=\{\(\) => updateExpanded\(true\)\}/);
+  assert.match(rail, /onMouseLeave=\{\(\) => updateExpanded\(false\)\}/);
+  assert.match(rail, /onFocusCapture=\{\(\) => updateExpanded\(true\)\}/);
   assert.match(rail, /onBlurCapture=\{collapseIfFocusLeft\}/);
   assert.match(rail, /w-\[72px\]/);
   assert.match(rail, /absolute inset-y-0 left-0 z-30/);
@@ -53,13 +56,14 @@ function run() {
   // Settings is wired to the shell settings panel instead of being dead
   assert.match(rail, /onOpenSettings\?: \(\) => void/);
   assert.match(rail, /onClick=\{onOpenSettings\}/);
-  assert.match(
-    shell,
-    /<AwwwardsSidebar onOpenSettings=\{\(\) => openSettingsPanel\("appearance"\)\} \/>/,
-  );
+  assert.match(shell, /onOpenSettings=\{\(\) => openSettingsPanel\("appearance"\)\}/);
+  assert.match(shell, /onExpandedChange=\{setRailExpanded\}/);
 
-  // Rail stacks above the canvas so the expanded panel is not painted under it
-  assert.match(shell, /relative z-30 hidden h-full flex-shrink-0/);
+  // Expanded rail covers the z-header command island while collapsed rail remains below it.
+  assert.match(shell, /const \[railExpanded, setRailExpanded\] = useState\(false\)/);
+  assert.match(shell, /z-\[var\(--z-rail-expanded\)\]/);
+  assert.match(shell, /z-\[var\(--z-rail-collapsed\)\]/);
+  assert.equal(shell.includes("window.innerWidth"), false);
 }
 
 run();

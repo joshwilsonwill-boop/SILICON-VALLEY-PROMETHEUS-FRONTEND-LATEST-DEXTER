@@ -82,7 +82,11 @@ function RailLabel({
 
 export function AwwwardsSidebar({
   onOpenSettings,
-}: { onOpenSettings?: () => void } = {}) {
+  onExpandedChange,
+}: {
+  onOpenSettings?: () => void;
+  onExpandedChange?: (expanded: boolean) => void;
+} = {}) {
   const pathname = usePathname();
   const router = useRouter();
   const shouldReduceMotion = useReducedMotion();
@@ -93,9 +97,14 @@ export function AwwwardsSidebar({
     : { duration: 0 };
   const [expanded, setExpanded] = useState(false);
 
+  const updateExpanded = (next: boolean) => {
+    setExpanded(next);
+    onExpandedChange?.(next);
+  };
+
   const collapseIfFocusLeft = (event: FocusEvent<HTMLElement>) => {
     if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
-      setExpanded(false);
+      updateExpanded(false);
     }
   };
 
@@ -103,9 +112,10 @@ export function AwwwardsSidebar({
     <aside
       aria-label="Premium editor navigation"
       className="relative h-full w-[72px] flex-shrink-0"
-      onMouseEnter={() => setExpanded(true)}
-      onMouseLeave={() => setExpanded(false)}
-      onFocusCapture={() => setExpanded(true)}
+      data-expanded={expanded ? "true" : "false"}
+      onMouseEnter={() => updateExpanded(true)}
+      onMouseLeave={() => updateExpanded(false)}
+      onFocusCapture={() => updateExpanded(true)}
       onBlurCapture={collapseIfFocusLeft}
     >
       <motion.div
