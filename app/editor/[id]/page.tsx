@@ -22,15 +22,12 @@ import {
   GitBranch,
   ImageIcon,
   Lock,
-  Layers,
   MessageCircle,
   MessageSquare,
   Music4,
-  Palette,
   Pause,
   Play,
   RefreshCw,
-  Rocket,
   Search,
   Settings2,
   Scissors,
@@ -1005,34 +1002,6 @@ const chatInteriorVariants: Variants = {
     transition: { duration: 0.16, ease: [0.5, 0, 0.75, 0] },
   },
 }
-
-const CHAT_QUICK_ACTIONS = [
-  {
-    label: 'Generate Code',
-    prompt: 'Generate code-oriented notes for the next edit pass.',
-    icon: Code2,
-  },
-  {
-    label: 'Launch App',
-    prompt: 'Map this edit into a launch-ready app/product story.',
-    icon: Rocket,
-  },
-  {
-    label: 'UI Components',
-    prompt: 'Suggest UI component motion that matches this edit direction.',
-    icon: Layers,
-  },
-  {
-    label: 'Theme Ideas',
-    prompt: 'Give me restrained theme ideas for this video treatment.',
-    icon: Palette,
-  },
-  {
-    label: 'Image Assets',
-    prompt: 'Help me search for visual assets and image references for this video.',
-    icon: ImageIcon,
-  },
-] as const
 
 function debugEditorPreview(event: string, detail?: Record<string, unknown>) {
   if (process.env.NODE_ENV !== 'development') return
@@ -3056,6 +3025,7 @@ function FloatingChatComposer({
   chatContextProvider,
   onApplyChatActions,
   onChatSeekToSec,
+  workspaceTab = null,
 }: {
   projectId: string
   draft: string
@@ -3094,6 +3064,7 @@ function FloatingChatComposer({
   chatContextProvider?: AIChatContextProvider
   onApplyChatActions?: (drafts: EditorActionDraft[], messageId: string) => void
   onChatSeekToSec?: (seconds: number) => void
+  workspaceTab?: string | null
 }) {
   const isMobile = useMediaQuery('(max-width: 767px)')
   const responsivePlaceholderText = 'Ask about editing, color, sound...'
@@ -3455,20 +3426,6 @@ function FloatingChatComposer({
     })
   }, [activeChatStyle, attachments.length, draft, frameAssist, onSubmit, onThreadOpenChange])
 
-  const handleQuickAction = React.useCallback(
-    (prompt: string) => {
-      const nextDraft = draft.trim() ? `${draft.trim()}\n${prompt}` : prompt
-      onDraftChange(nextDraft)
-      setCaretIndex(nextDraft.length)
-      window.requestAnimationFrame(() => {
-        composerInputRef.current?.focus()
-        composerInputRef.current?.setSelectionRange(nextDraft.length, nextDraft.length)
-        updateCaretTarget(false)
-      })
-    },
-    [composerInputRef, draft, onDraftChange, updateCaretTarget],
-  )
-
   const handleComposerKeyDown = React.useCallback(
     (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
       const hasVisibleSuggestions = frameAssist.isPopoverOpen && !isFrameAssistSuppressed && frameAssist.suggestions.length > 0
@@ -3631,229 +3588,13 @@ function FloatingChatComposer({
                   contextProvider={chatContextProvider}
                   onApplyActions={onApplyChatActions}
                   onSeekToSec={onChatSeekToSec}
-                  actions={CHAT_QUICK_ACTIONS.map((action) => ({
-                    id: action.label,
-                    label: action.label,
-                    icon: action.icon,
-                  }))}
+                  workspaceTab={workspaceTab}
                   className="min-h-full"
                   onClose={() => {
                     onThreadOpenChange(false)
                     onOpenChange(false)
                   }}
                 />
-              </motion.div>
-            ) : false ? (
-              <motion.div
-                key="thread-composer"
-                className="relative flex h-full min-h-0 flex-col px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 sm:px-4"
-                initial={reduceMotion ? false : { opacity: 0, y: 18, filter: 'blur(12px)' }}
-                animate={reduceMotion ? undefined : { opacity: 1, y: 0, filter: 'blur(0px)' }}
-                exit={reduceMotion ? undefined : { opacity: 0, y: 10, filter: 'blur(8px)' }}
-                transition={{ duration: reduceMotion ? 0 : 0.34, ease: [0.22, 1, 0.36, 1] }}
-              >
-                <div className="flex h-5 shrink-0 items-center justify-center md:hidden">
-                  <span className="h-1 w-10 rounded-full bg-white/18" aria-hidden />
-                </div>
-
-                  <div className="relative flex min-h-14 items-center justify-between gap-3 border-b border-white/5 px-1 pb-3 md:min-h-[60px] md:px-1">
-                  <div className="premium-liquid-pill inline-flex min-w-0 items-center gap-2 rounded-full border border-white/10 bg-white/[0.035] px-3 py-1">
-                    <motion.span
-                      aria-hidden
-                      className="size-1.5 rounded-full bg-emerald-400"
-                      initial={reduceMotion ? false : { scale: 1 }}
-                      animate={reduceMotion ? undefined : { scale: [1, 1.2, 1] }}
-                      transition={{ duration: reduceMotion ? 0 : 0.4, ease: 'easeOut' }}
-                    />
-                    <span className="text-xs font-medium uppercase tracking-[0.2em] text-white/60">
-                      EDITORIAL THREAD
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <motion.button
-                      type="button"
-                      aria-label="Close chat interface"
-                      onClick={() => {
-                        onThreadOpenChange(false)
-                        onOpenChange(false)
-                      }}
-                      className="premium-icon-orbit grid h-11 w-11 place-items-center rounded-full border border-white/10 bg-white/[0.04] text-white/58 transition-colors hover:bg-white/[0.07] hover:text-white/90"
-                      whileHover={reduceMotion ? undefined : { y: -1, scale: 1.05 }}
-                      whileTap={reduceMotion ? undefined : { scale: 0.94 }}
-                    >
-                      <X className="size-4" />
-                    </motion.button>
-                  </div>
-                </div>
-
-                <div className="premium-scroll-mask relative min-h-0 flex-1 overflow-y-auto overscroll-contain px-1 py-4 [scrollbar-color:rgba(255,255,255,0.1)_transparent] [scrollbar-width:thin] [will-change:transform] max-md:[scrollbar-width:none] md:py-5 [&::-webkit-scrollbar]:w-1.5 max-md:[&::-webkit-scrollbar]:hidden [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-track]:bg-transparent">
-                  <div className="flex flex-col gap-2">
-                    {visibleThreadEntries.length ? (
-                      visibleThreadEntries.map((entry, index) => (
-                        <CurvedThreadPill
-                          key={entry.id}
-                          entry={entry}
-                          index={index}
-                          reduceMotion={reduceMotion}
-                          onConfirmPostingFile={onConfirmPostingFile}
-                          onRejectPostingFile={onRejectPostingFile}
-                          onTogglePostingPlatform={onTogglePostingPlatform}
-                          onSelectPostingVideo={onSelectPostingVideo}
-                          onConfirmPostingVideo={onConfirmPostingVideo}
-                          onChangePostingVideo={onChangePostingVideo}
-                          onGeneratePostingCaptions={onGeneratePostingCaptions}
-                          onUpdatePostingCaption={onUpdatePostingCaption}
-                          onRegeneratePostingCaption={onRegeneratePostingCaption}
-                          onTogglePostingCaptionApproval={onTogglePostingCaptionApproval}
-                          onProceedPostingPlatforms={onProceedPostingPlatforms}
-                          onReviewPostingAccounts={onReviewPostingAccounts}
-                          onOpenSocialSettings={onOpenSocialSettings}
-                          onDonePosting={onDonePosting}
-                          onPostNow={onPostNow}
-                        />
-                      ))
-                    ) : (
-                      <motion.div
-                        initial={reduceMotion ? false : { opacity: 0, y: 14, filter: 'blur(10px)' }}
-                        animate={reduceMotion ? undefined : { opacity: 1, y: 0, filter: 'blur(0px)' }}
-                        transition={{ duration: reduceMotion ? 0 : 0.42, ease: [0.22, 1, 0.36, 1] }}
-                        className="flex min-h-[42dvh] flex-col items-center justify-center px-4 text-center"
-                      >
-                        <p
-                          className="text-[clamp(2.5rem,7vw,5.8rem)] font-extralight leading-[0.9] text-white"
-                          style={{ fontFamily: 'var(--font-migra), var(--font-playfair-display), Georgia, serif' }}
-                        >
-                          Current Chat
-                        </p>
-                        <p className="mt-4 max-w-[34rem] text-sm leading-6 text-white/58">
-                          Ask Prometheus...
-                        </p>
-                      </motion.div>
-                    )}
-                    <div ref={expandedThreadEndRef} className="h-1" />
-                  </div>
-                </div>
-
-                <form
-                  className="relative shrink-0 border-t border-white/5 px-1 pb-[calc(0.25rem+env(safe-area-inset-bottom))] pt-3 md:pt-4"
-                  onSubmit={(event) => {
-                    event.preventDefault()
-                    if (loading) {
-                      onStop()
-                      return
-                    }
-                    void handleComposerSubmit()
-                  }}
-                >
-                  <EditorialComposerFrameAssist
-                    suggestions={frameAssist.suggestions}
-                    activeSuggestionIndex={frameAssist.activeSuggestionIndex}
-                    isPopoverOpen={frameAssist.isPopoverOpen && !isFrameAssistSuppressed}
-                    previewRegion={frameAssist.previewRegion}
-                    queuedPreviewRevision={queuedPreviewRevision}
-                    validationNote={frameAssist.analysis.validationNote}
-                    onMoveActiveSuggestion={(delta) => {
-                      frameAssist.setActiveSuggestionIndex((current) =>
-                        frameAssist.clampSuggestionIndex((current < 0 ? 0 : current) + delta),
-                      )
-                    }}
-                    onSelectSuggestion={handleFrameAssistSelect}
-                    onDismissSuggestions={() => {
-                      if (frameAssistKey) {
-                        setSuppressedAssistKey(frameAssistKey)
-                      }
-                    }}
-                    onClearFrameTarget={handleFrameAssistClear}
-                    onRetargetFrameTarget={handleFrameAssistRetarget}
-                    className="relative z-30 mb-3"
-                  />
-
-                  <ChatAttachmentStrip
-                    attachments={attachments}
-                    editable
-                    onRemove={onRemoveAttachment}
-                  />
-                  <AnimatePresence>
-                    <MaybeChatSelectedStylePill style={activeChatStyle} />
-                  </AnimatePresence>
-
-                  <div className="mb-3 flex items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                    {CHAT_QUICK_ACTIONS.map((action) => {
-                      const Icon = action.icon
-                      return (
-                        <button
-                          key={action.label}
-                          type="button"
-                          onClick={() => handleQuickAction(action.prompt)}
-                          className="inline-flex h-9 shrink-0 items-center gap-2 rounded-full border border-white/10 bg-black/28 px-3 text-[11px] font-medium text-white/62 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-md transition-[transform,border-color,background-color,color] duration-200 hover:-translate-y-0.5 hover:border-white/18 hover:bg-white/[0.065] hover:text-white/86 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
-                        >
-                          <Icon className="size-3.5" />
-                          {action.label}
-                        </button>
-                      )
-                    })}
-                  </div>
-
-                  <textarea
-                    id={`${composerId}-thread`}
-                    ref={composerInputRef}
-                    value={draft}
-                    rows={1}
-                    placeholder={responsivePlaceholderText}
-                    onChange={(event) => {
-                      onDraftChange(event.target.value)
-                      setCaretIndex(event.target.selectionStart ?? event.target.value.length)
-                    }}
-                    onClick={() => updateCaretTarget()}
-                    onFocus={() => updateCaretTarget(false)}
-                    onScroll={(event) => {
-                      setDraftScrollLeft(event.currentTarget.scrollLeft)
-                    }}
-                    onKeyUp={() => updateCaretTarget()}
-                    onSelect={() => updateCaretTarget()}
-                    onKeyDown={handleComposerKeyDown}
-                    className="max-h-[calc(1.4em*4)] min-h-16 w-full resize-none overflow-y-auto bg-transparent text-sm leading-[1.4] text-white outline-none placeholder:italic placeholder:text-white/30"
-                    style={{
-                      caretColor: 'rgba(52,211,153,0.95)',
-                    }}
-                  />
-
-                  <div className="grid grid-cols-[auto_auto_1fr_auto] items-center gap-2 pt-3 md:gap-4">
-                    <motion.button
-                      type="button"
-                      aria-label="Attach image"
-                      onClick={() => attachmentInputRef.current?.click()}
-                      className="premium-icon-orbit grid h-11 w-11 place-items-center rounded-full border border-white/10 bg-white/[0.03] text-white/52 transition-colors hover:bg-white/[0.06] hover:text-white/82 md:h-12 md:w-12"
-                      whileHover={reduceMotion ? undefined : { y: -1, scale: 1.03 }}
-                      whileTap={reduceMotion ? undefined : { scale: 0.96 }}
-                    >
-                      <ImageIcon className="size-4" />
-                    </motion.button>
-                    <ChatStyleSelector
-                      activeStyleId={activeStyleTemplate?.id ?? null}
-                      compact
-                      disabled={!onSelectStyleTemplate}
-                      onSelectStyle={(template) => onSelectStyleTemplate?.(template)}
-                      className="shrink-0"
-                    />
-                    <div aria-hidden />
-                    <motion.button
-                      type="submit"
-                      aria-label={loading ? 'Stop response' : 'Send message'}
-                      disabled={!loading && !hasDraft && attachments.length === 0 && !activeChatStyle}
-                      className="premium-liquid-pill grid h-11 w-11 shrink-0 place-items-center rounded-full border border-emerald-300/20 bg-emerald-500 text-white shadow-[0_12px_26px_rgba(16,185,129,0.26)] transition-colors hover:bg-emerald-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/40 disabled:cursor-not-allowed disabled:opacity-45 md:h-12 md:w-12"
-                      whileHover={reduceMotion ? undefined : { y: -1, scale: 1.04 }}
-                      whileTap={reduceMotion ? undefined : { scale: 0.95 }}
-                    >
-                      {loading ? (
-                        <InlineLoadingAnimation size={18} label="Prometheus is responding" />
-                      ) : (
-                        <ArrowUp className="size-5" />
-                      )}
-                    </motion.button>
-                  </div>
-                </form>
               </motion.div>
             ) : isOpen ? (
               <motion.div
@@ -4078,6 +3819,7 @@ const ChatWorkspacePanel = React.memo(function ChatWorkspacePanel({
   chatContextProvider,
   onApplyChatActions,
   onChatSeekToSec,
+  workspaceTab = null,
 }: {
   projectId: string
   projectTitle: string
@@ -4094,6 +3836,7 @@ const ChatWorkspacePanel = React.memo(function ChatWorkspacePanel({
   chatContextProvider?: AIChatContextProvider
   onApplyChatActions?: (drafts: EditorActionDraft[], messageId: string) => void
   onChatSeekToSec?: (seconds: number) => void
+  workspaceTab?: string | null
 }) {
   const reduceMotion = useStableReducedMotion()
   const [entries, setEntries] = React.useState<ChatEntry[]>(() => [])
@@ -6012,6 +5755,7 @@ const ChatWorkspacePanel = React.memo(function ChatWorkspacePanel({
                   chatContextProvider={chatContextProvider}
                   onApplyChatActions={onApplyChatActions}
                   onChatSeekToSec={onChatSeekToSec}
+                  workspaceTab={workspaceTab}
                   draft={draft}
                   onDraftChange={setDraft}
                   onSubmit={handleSubmit}
@@ -6085,6 +5829,7 @@ type MobileEditorViewProps = {
   isDownloading: boolean
   clipRelayState: ClipRelayState | null
   automationRequest: ComposerAutomationRequest | null
+  workspaceTab: HeaderNavMode
   onBack: () => void
   onOpenUploadNewProject: () => void
   onTogglePlayback: () => void
@@ -6141,6 +5886,7 @@ function MobileEditorView({
   isDownloading,
   clipRelayState,
   automationRequest,
+  workspaceTab,
   onBack,
   onTogglePlayback,
   onSeekPreview,
@@ -6249,6 +5995,7 @@ function MobileEditorView({
               chatContextProvider={chatContextProvider}
               onApplyChatActions={onApplyChatActions}
               onChatSeekToSec={onChatSeekToSec}
+              workspaceTab={workspaceTab}
             />
             <div ref={setChatComposerPortal} className="absolute inset-x-3 bottom-3 z-40" />
           </div>
@@ -6589,6 +6336,7 @@ function OriginalEditorPage() {
 
       const { project: updatedProject } = await res.json()
       setProject(updatedProject)
+      setSourceAssetLabel(nextTitle)
       upsertProject(updatedProject)
       setSaveStatus('saved')
       toast.success('Project renamed')
@@ -8153,6 +7901,7 @@ function OriginalEditorPage() {
           isDownloading={isDownloading}
           clipRelayState={clipRelayState}
           automationRequest={composerAutomationRequest}
+          workspaceTab={activeWorkspaceTab}
           onTogglePlayback={togglePreviewPlayback}
           onSeekPreview={handlePreviewSeekSeconds}
           onVideoLoadedMetadata={handlePreviewMetadataLoaded}
@@ -8493,6 +8242,7 @@ function OriginalEditorPage() {
           chatContextProvider={chatContextProvider}
           onApplyChatActions={handleApplyChatActions}
           onChatSeekToSec={handlePreviewSeekSeconds}
+          workspaceTab={activeWorkspaceTab}
         />
       </div>
       <EditorNewProjectUploadDialog open={isNewProjectUploadOpen} onOpenChange={setIsNewProjectUploadOpen} />

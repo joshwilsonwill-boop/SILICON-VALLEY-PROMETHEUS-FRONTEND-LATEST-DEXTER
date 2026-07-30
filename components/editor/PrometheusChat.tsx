@@ -5,13 +5,15 @@ import { AnimatePresence } from 'framer-motion'
 import { ArrowDown, ArrowUp, X } from 'lucide-react'
 
 import { useAuth } from '@/components/auth/auth-provider'
-import { useAIChat, type AIChatContextProvider, type AIChatFrameReference } from '@/hooks/use-ai-chat'
+import { useAIChat, type AIChatContextProvider, type AIChatFrameReference, type CarouselItem } from '@/hooks/use-ai-chat'
 import { useProfile } from '@/hooks/use-profile'
 import { PROPOSE_NOT_APPLIED_MESSAGE, type EditorActionDraft } from '@/lib/editor-actions'
 import { getChatGreeting } from '@/lib/user/display-name'
 import { cn } from '@/lib/utils'
+import { CinematicTextReveal } from '@/components/ui/cinematic-text-reveal'
 
 import { AIChatHistoryButton } from './ai-chat-history-button'
+import { ChatSuggestions } from './ai-chat-suggestions'
 import { PrometheusChatHistoryDrawer } from './prometheus-chat-history-drawer'
 import { AIChatStreamingText } from './ai-chat-streaming-text'
 
@@ -28,12 +30,8 @@ export type PrometheusChatMessage = {
   frames?: AIChatFrameReference[]
   toolCalls?: unknown[]
   actionDrafts?: EditorActionDraft[]
-}
-
-export type PrometheusChatAction = {
-  id: string
-  label: string
-  icon?: React.ComponentType<{ className?: string }>
+  carousel?: CarouselItem[]
+  suggestions?: string[]
 }
 
 export type PrometheusChatHistoryItem = {
@@ -78,10 +76,10 @@ export function PrometheusChat({
   contextProvider,
   onApplyActions,
   onSeekToSec,
+  workspaceTab = null,
 }: {
   messages: PrometheusChatMessage[]
   onSend: (message: string) => void | Promise<void>
-  actions?: PrometheusChatAction[]
   historyItems?: PrometheusChatHistoryItem[]
   title?: string
   thinking?: boolean
@@ -95,6 +93,7 @@ export function PrometheusChat({
   contextProvider?: AIChatContextProvider
   onApplyActions?: (drafts: EditorActionDraft[], messageId: string) => void
   onSeekToSec?: (seconds: number) => void
+  workspaceTab?: string | null
 }) {
   const { session } = useAuth()
   const { profile } = useProfile()
@@ -104,6 +103,7 @@ export function PrometheusChat({
   const [historyOpen, setHistoryOpen] = React.useState(false)
   const [actionOutcomes, setActionOutcomes] = React.useState<Record<string, 'applied' | 'dismissed'>>({})
   const historyButtonRef = React.useRef<HTMLButtonElement | null>(null)
+  const inputRef = React.useRef<HTMLInputElement | null>(null)
   const scrollViewportRef = React.useRef<HTMLDivElement | null>(null)
   const pinnedToBottomRef = React.useRef(true)
 
@@ -116,6 +116,8 @@ export function PrometheusChat({
       frames: message.frames,
       toolCalls: message.toolCalls,
       actionDrafts: message.actionDrafts,
+      carousel: message.carousel,
+      suggestions: message.suggestions,
     })),
     [persistentChat.messages],
   )
@@ -153,6 +155,44 @@ export function PrometheusChat({
       setInternalDraft(value)
     },
     [onDraftChange, persistentChat, usesPersistentChat],
+  )
+
+  // Stream-provided suggestions from the latest assistant turn override the
+  // deterministic workspace-tab chips; older turns never leak forward.
+  const turnSuggestions = React.useMemo(() => {
+    for (let index = renderedMessages.length - 1; index >= 0; index -= 1) {
+      const message = renderedMessages[index]
+      if (message.role !== 'assistant') continue
+      return message.suggestions && message.suggestions.length > 0 ? message.suggestions : undefined
+    }
+    return undefined
+  }, [renderedMessages])
+
+  const suggestionsHidden = usesPersistentChat ? persistentChat.isSending : thinking
+
+  const handleSuggestionSelect = React.useCallback(
+    (suggestion: string) => {
+      setDraft(suggestion)
+      inputRef.current?.focus()
+    },
+    [setDraft],
+  )
+
+  const handleCarouselSelect = React.useCallback(
+    (item: CarouselItem) => {
+      const text = item.message.trim()
+      if (!text) return
+
+      pinnedToBottomRef.current = true
+      setShowJumpToLatest(false)
+
+      if (usesPersistentChat) {
+        void persistentChat.sendMessage(item.message)
+        return
+      }
+      void onSend(text)
+    },
+    [onSend, persistentChat, usesPersistentChat],
   )
 
   const scrollToLatest = React.useCallback((behavior: ScrollBehavior = 'auto') => {
@@ -239,6 +279,21 @@ export function PrometheusChat({
           data-lenis-prevent
           className="min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-contain px-5 pb-8 pt-20 [scrollbar-color:rgba(255,255,255,0.18)_transparent] [scrollbar-width:thin] md:px-10"
         >
+          {persistentChat.historyLoadError ? (
+            <div
+              className="mx-auto mb-6 flex w-full max-w-3xl items-center justify-between gap-3 rounded-xl border border-red-400/20 bg-red-400/[0.06] px-4 py-2 text-xs text-red-300/80"
+              role="alert"
+            >
+              <span>{persistentChat.historyLoadError}</span>
+              <button
+                type="button"
+                onClick={persistentChat.retryLoadSession}
+                className="shrink-0 text-white/45 transition-colors hover:text-white"
+              >
+                Retry
+              </button>
+            </div>
+          ) : null}
           {renderedMessages.length === 0 && !showingThinking ? (
             <EmptyChatGreeting greeting={getChatGreeting(session?.user, profile)} />
           ) : (
@@ -252,6 +307,8 @@ export function PrometheusChat({
                   onApplyActions={onApplyActions ? handleApplyActions : undefined}
                   onDismissActions={handleDismissActions}
                   onSeekToSec={onSeekToSec}
+                  onCarouselSelect={handleCarouselSelect}
+                  carouselDisabled={usesPersistentChat ? persistentChat.isSending : false}
                   onStreamingComplete={() => {
                     if (usesPersistentChat) persistentChat.completeAssistantMessage(message.id)
                   }}
@@ -301,6 +358,15 @@ export function PrometheusChat({
               )}
             </p>
           ) : null}
+          {!suggestionsHidden ? (
+            <ChatSuggestions
+              workspaceTab={workspaceTab}
+              suggestions={turnSuggestions}
+              onSelect={handleSuggestionSelect}
+              layout="row"
+              className="mx-auto mb-3 w-full max-w-3xl"
+            />
+          ) : null}
           <form
             className="mx-auto flex min-h-14 w-full max-w-3xl items-center gap-3 rounded-2xl border border-white/10 bg-black px-5 py-3 transition-colors focus-within:border-white/22"
             onSubmit={(event) => {
@@ -309,6 +375,7 @@ export function PrometheusChat({
             }}
           >
             <input
+              ref={inputRef}
               value={composedDraft}
               onChange={(event) => setDraft(event.target.value)}
               placeholder="Ask Prometheus..."
@@ -355,6 +422,8 @@ function PrometheusMessageBubble({
   onSeekToSec,
   onStreamingComplete,
   onStreamingProgress,
+  onCarouselSelect,
+  carouselDisabled = false,
 }: {
   message: PrometheusChatMessage
   live: boolean
@@ -364,6 +433,8 @@ function PrometheusMessageBubble({
   onSeekToSec?: (seconds: number) => void
   onStreamingComplete: () => void
   onStreamingProgress: () => void
+  onCarouselSelect?: (item: CarouselItem) => void
+  carouselDisabled?: boolean
 }) {
   const isUser = message.role === 'user'
   const isThinking = message.status === 'thinking'
@@ -402,6 +473,29 @@ function PrometheusMessageBubble({
             />
           )}
         </div>
+
+        {!isUser && message.carousel?.length ? (
+          <ul
+            className="flex max-w-full snap-x snap-mandatory gap-2 overflow-x-auto pb-1"
+            aria-label="Recommended options"
+          >
+            {message.carousel.map((item, index) => (
+              <li key={`${item.title}-${index}`} className="shrink-0 snap-start">
+                <button
+                  type="button"
+                  disabled={carouselDisabled}
+                  onClick={() => onCarouselSelect?.(item)}
+                  className="flex min-h-11 w-52 flex-col gap-1 rounded-xl border border-white/10 bg-white/[0.035] px-4 py-3 text-left transition-[background-color,border-color,color,transform] duration-[var(--dur-hover)] ease-[var(--ease-hover)] hover:border-white/18 hover:bg-white/[0.06] active:scale-[0.98] active:duration-[var(--dur-press)] disabled:pointer-events-none disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+                >
+                  <span className="text-[13px] font-medium text-white/88">{item.title}</span>
+                  {item.description ? (
+                    <span className="text-[12px] leading-5 text-white/45">{item.description}</span>
+                  ) : null}
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
 
         {frames.length ? (
           <ul className="flex max-w-full gap-2 overflow-x-auto pb-1">
@@ -485,12 +579,13 @@ function PrometheusMessageBubble({
 function EmptyChatGreeting({ greeting }: { greeting: string }) {
   return (
     <div className="flex min-h-full items-center justify-center px-4 pb-24 text-center">
-      <h1
-        className="max-w-4xl text-balance text-[clamp(2.25rem,5.2vw,5.75rem)] font-normal leading-[0.95] tracking-[-0.035em] text-white/92"
-        style={{ fontFamily: 'var(--font-elegist), Georgia, serif' }}
+      <CinematicTextReveal
+        as="h1"
+        variant="measured"
+        className="max-w-4xl text-balance font-display text-[clamp(2.25rem,5.2vw,5.75rem)] font-normal leading-[0.95] tracking-normal text-white/92"
       >
         {greeting}
-      </h1>
+      </CinematicTextReveal>
     </div>
   )
 }

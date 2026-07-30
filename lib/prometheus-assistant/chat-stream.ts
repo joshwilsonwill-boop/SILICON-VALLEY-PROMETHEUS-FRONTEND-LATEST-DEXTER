@@ -7,6 +7,8 @@ export type PrometheusChatStreamEvent =
       frames?: unknown[];
       toolCalls?: unknown[];
       actionDrafts?: unknown[];
+      carousel?: unknown[];
+      suggestions?: unknown[];
     }
   | { type: "done"; persisted: boolean }
   | { type: "error"; message: string };
@@ -49,6 +51,8 @@ function parsePrometheusChatStreamLine(
       return [{ type: "delta", content: value.content }];
     }
     if (value.type === "metadata") {
+      // Unknown/absent keys are tolerated: only array-shaped fields pass
+      // through, anything else (or nothing at all) stays undefined.
       return [
         {
           type: "metadata",
@@ -59,6 +63,10 @@ function parsePrometheusChatStreamLine(
             : undefined,
           actionDrafts: Array.isArray(value.actionDrafts)
             ? value.actionDrafts
+            : undefined,
+          carousel: Array.isArray(value.carousel) ? value.carousel : undefined,
+          suggestions: Array.isArray(value.suggestions)
+            ? value.suggestions
             : undefined,
         },
       ];
