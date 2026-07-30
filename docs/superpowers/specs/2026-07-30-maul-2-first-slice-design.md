@@ -1,8 +1,15 @@
 # MAUL 2 First Slice: Editorial Cinema Design
 
 **Date:** 2026-07-30
-**Status:** Draft for user review
+**Status:** Approved for implementation
 **Parent plan:** `docs/plans/MAUL-2-INTERMEDIATE.md`
+
+## Decision Record
+
+- **Primary motion voice:** Measured Reveal, selected as the default after visual comparison.
+- **Secondary motion voice:** Editorial Hard Cut, limited to intentional workspace or mode transitions.
+- **Implementation order:** Close M0, M1-1, M1-2, M1-3, and M2-1 independently, with visual proof and automated checks at each gate.
+- **Product principle:** One choreographed focal entrance, then silence and precise micro-response.
 
 ## Objective
 
@@ -46,6 +53,7 @@ Motion constraints:
 - Entry motion plays once per meaningful mount or structural state change.
 - Ordinary labels, body copy, repeated rows, and frequently updated values do not animate letter by letter.
 - Stagger is approximately 20-26 ms per grapheme, capped so long headings do not become slow.
+- The default stagger is 24 ms per grapheme with a 360 ms maximum delay; the `once` prop defaults to `true`.
 - Structural easing uses `cubic-bezier(0.22, 1, 0.36, 1)`; interactive easing uses `cubic-bezier(0.16, 1, 0.3, 1)`.
 - No more than three simultaneous motion layers in a view.
 - Reduced-motion users receive the final text immediately with identical layout and hierarchy.
@@ -119,6 +127,8 @@ No new backend contract is introduced in this slice.
 
 Existing hook return shapes, component contracts, and API paths remain compatible. Any additive props must be optional with current behavior as the default.
 
+The first implementation must not require a caller to opt into the new visual behavior: existing consumers remain unchanged, while new `CinematicTextReveal` call sites explicitly select the focal text that should choreograph.
+
 ## Error Handling
 
 - Chat load failures are visible, recoverable, and never represented as an empty successful thread.
@@ -154,3 +164,10 @@ Each milestone is closed before the next begins.
 - The first slice contains no generic decorative motion or newly invented palette.
 - Existing editor, chat, and rename workflows remain functional.
 - Required tests, typecheck, lint, and build pass or any pre-existing failure is isolated and documented without being misrepresented as introduced by this slice.
+
+## Self-Review
+
+- Scope is limited to M0 through M2-1; carousel and later redesigns remain explicitly out of scope.
+- Motion variants, timing, accessibility behavior, fallback behavior, and integration boundaries are specified without unresolved placeholders.
+- The design preserves existing API paths, hook shapes, brand colors, and user-owned worktree changes.
+- Acceptance criteria map directly to the parent plan's B-01 through B-10 and validation gates.
