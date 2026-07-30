@@ -5,7 +5,7 @@
 
 :root {
   --font-primary: var(--font-inter);
-  --font-display: var(--font-elegist);
+  --font-display: var(--font-inter);
   --theme-background: #0A0A0F;
   --theme-foreground: #E8E8ED;
   --theme-accent: #38BDF8;
@@ -100,19 +100,6 @@
   --prometheus-text-tertiary: #64748b;
   --prometheus-border-subtle: rgba(148,163,184,0.08);
   --prometheus-border-glass: rgba(255,255,255,0.06);
-
-  /* MAUL-2 M0-1 motion/z tokens */
-  --dur-press: 120ms;
-  --dur-hover: 180ms;
-  --dur-content: 280ms;
-  --dur-swap: 260ms;
-  --ease-hover: cubic-bezier(0.16, 1, 0.3, 1);
-  --ease-structural: cubic-bezier(0.22, 1, 0.36, 1);
-  --z-rail-collapsed: 30;
-  --z-rail-expanded: 120;
-  --z-header: 100;
-  --z-overlay: 200;
-  --z-toast: 300;
 }
 
 html,

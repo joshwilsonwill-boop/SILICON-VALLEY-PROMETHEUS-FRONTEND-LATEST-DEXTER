@@ -103,21 +103,6 @@ const config: Config = {
         toolbar: '30',
         sidebar: '50',
         toast: '60',
-        /* MAUL-2 M0-1: rail/header overlay order (var tokens live in app/globals.css) */
-        'rail-collapsed': 'var(--z-rail-collapsed)',
-        'rail-expanded': 'var(--z-rail-expanded)',
-        header: 'var(--z-header)',
-        overlay: 'var(--z-overlay)',
-      },
-      transitionDuration: {
-        press: 'var(--dur-press)',
-        hover: 'var(--dur-hover)',
-        content: 'var(--dur-content)',
-        swap: 'var(--dur-swap)',
-      },
-      transitionTimingFunction: {
-        hover: 'var(--ease-hover)',
-        structural: 'var(--ease-structural)',
       },
       fontFamily: {
         sans: ['var(--font-primary)', 'system-ui', 'sans-serif'],
