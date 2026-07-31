@@ -41,7 +41,6 @@ import {
 } from 'lucide-react'
 
 import { MusicPlayNotification } from '@/components/editor/music-play-notification'
-import { MusicSpotlightOrb } from '@/components/editor/music-spotlight-orb'
 import { MusicRecommendationShowcase } from '@/components/editor/music-recommendation-showcase'
 import { PrometheusChat, type PrometheusChatMessage } from '@/components/editor/PrometheusChat'
 import { applyEditorActionDrafts, type EditorActionContext, type EditorActionDraft } from '@/lib/editor-actions'
@@ -3812,7 +3811,6 @@ const ChatWorkspacePanel = React.memo(function ChatWorkspacePanel({
   composerPortalTarget,
   automationRequest,
   clipRelayState,
-  musicSpotlightPortalTarget,
   onEditRequest,
   initialEditorState,
   onSave,
@@ -3829,7 +3827,6 @@ const ChatWorkspacePanel = React.memo(function ChatWorkspacePanel({
   composerPortalTarget: HTMLElement | null
   automationRequest?: ComposerAutomationRequest | null
   clipRelayState?: ClipRelayState | null
-  musicSpotlightPortalTarget?: HTMLDivElement | null
   onEditRequest?: (request: { prompt: string; styleTemplate: StyleTemplate }) => void | Promise<void>
   initialEditorState?: any
   onSave?: (editorState: any) => void
@@ -3857,7 +3854,6 @@ const ChatWorkspacePanel = React.memo(function ChatWorkspacePanel({
   const musicPreviewVolumeRef = React.useRef(DEFAULT_MUSIC_PREVIEW_VOLUME)
   const [activePreviewTrack, setActivePreviewTrack] = React.useState<MusicRecommendation | null>(null)
   const [previewPlaying, setPreviewPlaying] = React.useState(false)
-  const [dismissedSpotlightTrackId, setDismissedSpotlightTrackId] = React.useState<string | null>(null)
   const entriesRef = React.useRef(entries)
   const selectedChatStyleTemplate = React.useMemo(
     () => STYLE_TEMPLATES.find((template) => template.id === selectedChatStyleId) ?? null,
@@ -4851,15 +4847,6 @@ const ChatWorkspacePanel = React.memo(function ChatWorkspacePanel({
     })
   }, [projectId, stagedTracks])
 
-  const handleDismissSpotlightTrack = React.useCallback((trackId: string) => {
-    setDismissedSpotlightTrackId(trackId)
-
-    if (activePreviewTrack?.id === trackId) {
-      setPreviewPlaying(false)
-      setActivePreviewTrack(null)
-    }
-  }, [activePreviewTrack])
-
   const refineMusicTrack = React.useCallback(
     async (entryId: string, toneKey: string) => {
       const preset = MUSIC_REFINEMENT_OPTIONS.find((option) => option.key === toneKey)
@@ -5586,20 +5573,6 @@ const ChatWorkspacePanel = React.memo(function ChatWorkspacePanel({
     })
   }, [clipRelayState])
 
-  const spotlightCandidateTrack = stagedTracks[0] ?? null
-  const spotlightCandidateTrackId = spotlightCandidateTrack?.recommendation.id ?? null
-
-  React.useEffect(() => {
-    if (dismissedSpotlightTrackId && dismissedSpotlightTrackId !== spotlightCandidateTrackId) {
-      setDismissedSpotlightTrackId(null)
-    }
-  }, [dismissedSpotlightTrackId, spotlightCandidateTrackId])
-
-  const spotlightTrack =
-    spotlightCandidateTrack && dismissedSpotlightTrackId !== spotlightCandidateTrackId
-      ? spotlightCandidateTrack
-      : null
-
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
       <div className="relative min-h-0 flex-1 overflow-hidden">
@@ -5728,24 +5701,6 @@ const ChatWorkspacePanel = React.memo(function ChatWorkspacePanel({
         </div>
       </div>
       </div>
-
-      {musicSpotlightPortalTarget && spotlightTrack
-        ? createPortal(
-            <AnimatePresence mode="wait" initial={false}>
-              <MusicSpotlightOrb
-                key={spotlightTrack.recommendation.id}
-                recommendation={spotlightTrack.recommendation}
-                status={
-                  activePreviewTrack?.id === spotlightTrack.recommendation.id && previewPlaying
-                    ? 'previewing'
-                    : 'staged'
-                }
-                onDismiss={() => handleDismissSpotlightTrack(spotlightTrack.recommendation.id)}
-              />
-            </AnimatePresence>,
-            musicSpotlightPortalTarget,
-          )
-        : null}
 
       {resolvedComposerPortalTarget
            ? createPortal(
@@ -5988,7 +5943,6 @@ function MobileEditorView({
               composerPortalTarget={chatComposerPortal}
               automationRequest={automationRequest}
               clipRelayState={clipRelayState}
-              musicSpotlightPortalTarget={null}
               onEditRequest={onEditRequest}
               initialEditorState={project?.editorState}
               onSave={onSave}
@@ -6372,7 +6326,6 @@ function OriginalEditorPage() {
   const previewToggleCooldownRef = React.useRef<number | null>(null)
   const sourceFileInputRef = React.useRef<HTMLInputElement | null>(null)
   const [chatComposerPortal, setChatComposerPortal] = React.useState<HTMLDivElement | null>(null)
-  const [musicSpotlightPortalTarget, setMusicSpotlightPortalTarget] = React.useState<HTMLDivElement | null>(null)
   const [composerAutomationRequest, setComposerAutomationRequest] = React.useState<ComposerAutomationRequest | null>(null)
   const inspectorViewportRef = React.useRef<HTMLDivElement | null>(null)
   const [isDeferredChromeReady, setIsDeferredChromeReady] = React.useState(false)
@@ -8119,7 +8072,6 @@ function OriginalEditorPage() {
                       isInlineSourceDragOver={isInlineSourceDragOver}
                       visiblePreviewAspectRatio={visiblePreviewAspectRatio}
                       previewFrameWidth={previewFrameWidth}
-                      musicSpotlightPortalRef={setMusicSpotlightPortalTarget}
                       sourceFileInputRef={sourceFileInputRef}
                       previewVideoRef={previewVideoRef}
                       onInlineSourceFileInputChange={handleInlineSourceFileInputChange}
@@ -8235,7 +8187,6 @@ function OriginalEditorPage() {
           composerPortalTarget={chatComposerPortal}
           automationRequest={composerAutomationRequest}
           clipRelayState={clipRelayState}
-          musicSpotlightPortalTarget={musicSpotlightPortalTarget}
           onEditRequest={handleEditRequest}
           initialEditorState={project?.editorState}
           onSave={handleAutoSave}

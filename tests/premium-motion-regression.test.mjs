@@ -23,6 +23,9 @@ function run() {
   assert.match(uploadInterface, /premium-icon-orbit/)
   assert.match(uploadInterface, /StudioCinematicMarqueeRails/)
   assert.match(uploadInterface, /studio-cinematic-rails/)
+  assert.match(uploadInterface, /EDIT_ACTIONS_SESSION_KEY/)
+  assert.match(uploadInterface, /Edit direction:/)
+  assert.match(uploadInterface, /onSelectAction/)
 
   const chatStyleSelector = read('components/editor/chat-style-selector.tsx')
   assert.match(chatStyleSelector, /premium-icon-orbit/)

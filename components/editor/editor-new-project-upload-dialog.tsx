@@ -51,9 +51,13 @@ function validateStudioUpload(file: File) {
   const extension = file.name.split('.').pop()?.toLowerCase() ?? ''
   const supportedVideoExtensions = new Set(['mp4', 'mov', 'webm', 'm4v', 'mkv'])
   const supportedVideoMimeTypes = new Set(['video/mp4', 'video/quicktime', 'video/webm', 'video/x-m4v', 'video/x-matroska'])
+  const supportedImageExtensions = new Set(['png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp', 'svg', 'avif'])
+  const supportedImageMimeTypes = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'image/bmp', 'image/svg+xml', 'image/avif'])
 
-  if (kind !== 'video' || (!supportedVideoMimeTypes.has(file.type.toLowerCase()) && !supportedVideoExtensions.has(extension))) {
-    return 'Unsupported format. Upload an MP4, MOV, M4V, WEBM, or MKV video.'
+  const isSupportedVideo = kind === 'video' && (supportedVideoMimeTypes.has(file.type.toLowerCase()) || supportedVideoExtensions.has(extension))
+  const isSupportedImage = kind === 'image' && (supportedImageMimeTypes.has(file.type.toLowerCase()) || supportedImageExtensions.has(extension))
+  if (!isSupportedVideo && !isSupportedImage) {
+    return 'Unsupported format. Upload an image or an MP4, MOV, M4V, WEBM, or MKV video.'
   }
 
   return null

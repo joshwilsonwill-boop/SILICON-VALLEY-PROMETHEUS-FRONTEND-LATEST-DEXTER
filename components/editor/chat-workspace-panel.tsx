@@ -2,7 +2,6 @@
 
 import * as React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { createPortal } from 'react-dom'
 import {
   AlertCircle,
   ArrowUp,
@@ -36,7 +35,6 @@ import type {
 } from '@/lib/types'
 
 import { StagedMusicRail } from '@/components/editor/staged-music-rail'
-import { MusicSpotlightOrb } from '@/components/editor/music-spotlight-orb'
 import { InlineLoadingAnimation } from '@/components/loading-animation'
 
 export interface ChatEntry {
@@ -54,7 +52,6 @@ export interface ChatWorkspacePanelProps {
   initialSources: string[]
   videoContext: MusicVideoContext
   composerPortalTarget: HTMLElement | null
-  musicSpotlightPortalTarget: HTMLElement | null
   initialEditorState: any
   onEditRequest: (request: { prompt: string; styleTemplate: StyleTemplate; metadata?: CreativeMetadata }) => void
   onSave: (editorState: any) => Promise<void>
@@ -76,7 +73,6 @@ export const ChatWorkspacePanel = React.memo(function ChatWorkspacePanel({
   initialSources,
   videoContext,
   composerPortalTarget,
-  musicSpotlightPortalTarget,
   initialEditorState,
   onEditRequest,
   onSave,
@@ -290,25 +286,6 @@ export const ChatWorkspacePanel = React.memo(function ChatWorkspacePanel({
         </div>
       </div>
 
-      {musicSpotlightPortalTarget && stagedTracks.length > 0
-        ? createPortal(
-            <AnimatePresence mode="wait" initial={false}>
-              <MusicSpotlightOrb
-                key={stagedTracks[0].recommendation.id}
-                recommendation={stagedTracks[0].recommendation}
-                status={
-                  activePreviewTrack?.id === stagedTracks[0].recommendation.id
-                    ? previewPlaying
-                      ? 'previewing'
-                      : 'previewing'
-                    : 'staged'
-                }
-                onDismiss={() => {}}
-              />
-            </AnimatePresence>,
-            musicSpotlightPortalTarget,
-          )
-        : null}
     </div>
   )
 })

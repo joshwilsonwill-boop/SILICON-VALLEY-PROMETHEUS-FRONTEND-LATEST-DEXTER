@@ -11,7 +11,7 @@ export function PrometheusChatThinkingProcess({ active }: { active: boolean }) {
   const [open, setOpen] = useState(true);
 
   return (
-    <div className="mb-2 text-xs text-white/40">
+    <div className="mb-2 font-elegist text-xs text-white/40">
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}

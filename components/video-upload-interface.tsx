@@ -34,6 +34,7 @@ import {
     PanelsTopLeft,
     MessageSquare,
     ImageIcon, // Added import for ImageIcon
+    Check,
     Link as LinkIcon,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -42,7 +43,6 @@ import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, Di
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { BillingRequiredDialog } from "@/components/billing/billing-required-dialog";
 import { GlassUploadModalView } from "@/components/ui/glass-upload-modal-view";
 import { DynamicFrameLayout } from "@/components/ui/dynamic-frame-layout";
@@ -99,6 +99,7 @@ type AirtableImageArchiveResponse = {
 };
 
 const AIRTABLE_STYLE_PREVIEWS_SESSION_KEY = "prometheus.airtable-style-previews.v1";
+const EDIT_ACTIONS_SESSION_KEY = "prometheus.edit-actions.v1";
 const EDITOR_NAVIGATION_FALLBACK_DELAY_MS = 6000;
 const SHOULD_USE_EDITOR_NAVIGATION_FALLBACK = process.env.NODE_ENV === "production";
 const DISABLE_EDITOR_BILLING_GATE = process.env.NEXT_PUBLIC_DISABLE_EDITOR_BILLING_GATE === "true";
@@ -372,6 +373,112 @@ const COMMAND_SUGGESTIONS: CommandSuggestion[] = [
     },
 ];
 
+type EditAction = {
+    id: string;
+    label: string;
+    instruction: string;
+    styleId: string;
+};
+
+const EDIT_ACTIONS: EditAction[] = [
+    {
+        id: "iman-gadzhi",
+        label: "Edit this like Iman Gadzhi",
+        instruction: "Edit this video in an Iman Gadzhi-style: crisp jump cuts, premium pacing, and assertive captions.",
+        styleId: "style_iman_punchy",
+    },
+    {
+        id: "hook-first",
+        label: "Make the hook hit",
+        instruction: "Rebuild the opening for immediate retention with a sharp first beat and fast visual payoff.",
+        styleId: "style_reels_heat",
+    },
+    {
+        id: "clean-authority",
+        label: "Cut it clean and premium",
+        instruction: "Make this a clean authority edit with precise cuts, restrained captions, and polished sound design.",
+        styleId: "style_iman_clean",
+    },
+    {
+        id: "cinematic-tension",
+        label: "Build cinematic tension",
+        instruction: "Shape a cinematic, slow-burn edit with deliberate pauses, controlled contrast, and rising tension.",
+        styleId: "style_cinematic_noir",
+    },
+    {
+        id: "short-form",
+        label: "Turn this into a fast short",
+        instruction: "Turn this into a fast short with tight pacing, visual resets, and a clear closing beat.",
+        styleId: "style_reels_heat",
+    },
+    {
+        id: "story-led",
+        label: "Make it feel like a story",
+        instruction: "Edit this into a clear visual story with breathing room, intentional cutaways, and a satisfying arc.",
+        styleId: "style_docs_story",
+    },
+    {
+        id: "stronger-opening",
+        label: "Frame a stronger opening",
+        instruction: "Open on the clearest visual promise, then establish context without losing momentum.",
+        styleId: "style_reels_heat",
+    },
+    {
+        id: "sharper-story-arc",
+        label: "Sharpen the story arc",
+        instruction: "Clarify the beginning, escalation, and payoff so the edit carries a stronger narrative line.",
+        styleId: "style_docs_story",
+    },
+    {
+        id: "cinematic-grade",
+        label: "Add a cinematic grade",
+        instruction: "Use controlled contrast, cohesive color, and intentional highlights for a cinematic finish.",
+        styleId: "style_cinematic_noir",
+    },
+    {
+        id: "scroll-stopping",
+        label: "Make it scroll-stopping",
+        instruction: "Increase visual contrast and early pacing so the first seconds command attention.",
+        styleId: "style_reels_heat",
+    },
+    {
+        id: "sound-design",
+        label: "Elevate the sound design",
+        instruction: "Add restrained sound design that reinforces transitions and makes the edit feel more polished.",
+        styleId: "style_cinematic_noir",
+    },
+    {
+        id: "talking-head",
+        label: "Refine the talking head",
+        instruction: "Shape a premium talking-head edit with deliberate cut points, clean framing, and focused captions.",
+        styleId: "style_iman_clean",
+    },
+    {
+        id: "beat-driven",
+        label: "Cut to the beat",
+        instruction: "Build the edit around the track with cuts that land naturally on the strongest beats.",
+        styleId: "style_reels_heat",
+    },
+    {
+        id: "quiet-luxury",
+        label: "Give it quiet luxury",
+        instruction: "Create a quiet luxury finish with measured pacing, precise typography, and minimal visual noise.",
+        styleId: "style_iman_clean",
+    },
+    {
+        id: "bold-captions",
+        label: "Make captions carry it",
+        instruction: "Use bold, well-timed captions to carry the message without overpowering the image.",
+        styleId: "style_iman_punchy",
+    },
+    {
+        id: "trim-the-fat",
+        label: "Trim every soft moment",
+        instruction: "Remove soft beats and unnecessary pauses to make the pacing feel decisive throughout.",
+        styleId: "style_iman_punchy",
+    },
+];
+
 function studioActionButtonClassName(active = false) {
     return cn(
         "group premium-liquid-pill premium-kinetic-text relative inline-flex h-7 items-center gap-1.5 rounded-[8px] border px-2.5 text-[11px] font-semibold leading-none transition-all duration-200",
@@ -396,15 +503,19 @@ interface PromptComposerSubmitPayload {
     message: string;
     activeSlashCommand: ActiveSlashCommand | null;
     creatorMentions: CreatorMention[];
+    editActions: EditAction[];
 }
 
 interface PromptComposerProps {
     activeStyleId: string | null;
     activeStyleName: string | null;
     attachments: string[];
+    editActions: EditAction[];
     footerAction?: React.ReactNode;
+    focusRequestKey: number;
     templatesOpen: boolean;
     onClearStyle: () => void;
+    onRemoveEditAction: (id: string) => void;
     onOpenTemplates: () => void;
     onOpenUpload: () => void;
     onRemoveAttachment: (index: number) => void;
@@ -441,9 +552,13 @@ function validateStudioUpload(file: File) {
     const extension = file.name.split(".").pop()?.toLowerCase() ?? "";
     const supportedVideoExtensions = new Set(["mp4", "mov", "webm", "m4v", "mkv"]);
     const supportedVideoMimeTypes = new Set(["video/mp4", "video/quicktime", "video/webm", "video/x-m4v", "video/x-matroska"]);
+    const supportedImageExtensions = new Set(["png", "jpg", "jpeg", "webp", "gif", "bmp", "svg", "avif"]);
+    const supportedImageMimeTypes = new Set(["image/png", "image/jpeg", "image/webp", "image/gif", "image/bmp", "image/svg+xml", "image/avif"]);
 
-    if (kind !== "video" || (!supportedVideoMimeTypes.has(file.type.toLowerCase()) && !supportedVideoExtensions.has(extension))) {
-        return "Unsupported format. Upload an MP4, MOV, M4V, WEBM, or MKV video.";
+    const isSupportedVideo = kind === "video" && (supportedVideoMimeTypes.has(file.type.toLowerCase()) || supportedVideoExtensions.has(extension));
+    const isSupportedImage = kind === "image" && (supportedImageMimeTypes.has(file.type.toLowerCase()) || supportedImageExtensions.has(extension));
+    if (!isSupportedVideo && !isSupportedImage) {
+        return "Unsupported format. Upload an image or an MP4, MOV, M4V, WEBM, or MKV video.";
     }
 
     if (file.size > STUDIO_SOURCE_MAX_BYTES) {
@@ -630,9 +745,12 @@ const PromptComposer = React.memo(function PromptComposer({
     activeStyleId,
     activeStyleName,
     attachments,
+    editActions,
     footerAction,
+    focusRequestKey,
     templatesOpen,
     onClearStyle,
+    onRemoveEditAction,
     onOpenTemplates,
     onOpenUpload,
     onRemoveAttachment,
@@ -653,7 +771,7 @@ const PromptComposer = React.memo(function PromptComposer({
     const [mentionStartIndex, setMentionStartIndex] = useState<number | null>(null);
     const [mentionQuery, setMentionQuery] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const isDisabled = isSubmitting || (value.trim().length < 5 && !activeSlashCommand && attachments.length === 0);
+    const isDisabled = isSubmitting || (value.trim().length < 5 && !activeSlashCommand && attachments.length === 0 && editActions.length === 0);
     const { textareaRef, adjustHeight } = useAutoResizeTextarea({
         minHeight: 60,
         maxHeight: 200,
@@ -671,7 +789,14 @@ const PromptComposer = React.memo(function PromptComposer({
         }).slice(0, 6);
     }, [mentionQuery]);
     const visibleComposerMode = hoveredComposerMode ?? activeComposerMode;
-    const shouldShowComposerModes = value.length > 0 || activeSlashCommand !== null;
+    const shouldShowComposerModes = value.length > 0 || activeSlashCommand !== null || editActions.length > 0;
+
+    useEffect(() => {
+        if (focusRequestKey === 0) return;
+
+        const frame = window.requestAnimationFrame(() => textareaRef.current?.focus());
+        return () => window.cancelAnimationFrame(frame);
+    }, [focusRequestKey, textareaRef]);
 
     useEffect(() => {
         if (activeSlashCommand) {
@@ -827,6 +952,7 @@ const PromptComposer = React.memo(function PromptComposer({
                 message: value.trim(),
                 activeSlashCommand,
                 creatorMentions,
+                editActions,
             })
         ).then((handled) => {
             if (handled) {
@@ -837,7 +963,7 @@ const PromptComposer = React.memo(function PromptComposer({
         }).finally(() => {
             setIsSubmitting(false);
         });
-    }, [activeSlashCommand, clearComposer, creatorMentions, isDisabled, onSubmit, value]);
+    }, [activeSlashCommand, clearComposer, creatorMentions, editActions, isDisabled, onSubmit, value]);
 
     const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
         if (activeSlashCommand && e.key === "Backspace") {
@@ -911,7 +1037,7 @@ const PromptComposer = React.memo(function PromptComposer({
                 return;
             }
 
-            if (trimmed || activeSlashCommand) {
+            if (trimmed || activeSlashCommand || editActions.length > 0) {
                 submitComposer();
             }
         }
@@ -920,6 +1046,7 @@ const PromptComposer = React.memo(function PromptComposer({
         activeSlashCommand,
         activeSuggestion,
         adjustHeight,
+        editActions.length,
         filteredCreatorMentions,
         selectCommandSuggestion,
         selectCreatorMention,
@@ -1180,7 +1307,7 @@ const PromptComposer = React.memo(function PromptComposer({
                 </div>
 
                 <AnimatePresence>
-                    {(attachments.length > 0 || !!activeStyleName) && (
+                    {(attachments.length > 0 || !!activeStyleName || editActions.length > 0) && (
                         <motion.div
                             className="flex flex-wrap gap-2 px-4 pb-3"
                             initial={{ opacity: 0, height: 0 }}
@@ -1205,6 +1332,28 @@ const PromptComposer = React.memo(function PromptComposer({
                                     </button>
                                 </motion.div>
                             )}
+                            {editActions.map((action) => (
+                                <motion.div
+                                    key={action.id}
+                                    layout
+                                    initial={{ opacity: 0, y: 5, scale: 0.96 }}
+                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                    exit={{ opacity: 0, y: -4, scale: 0.96 }}
+                                    transition={{ type: "spring", stiffness: 420, damping: 28, mass: 0.72 }}
+                                    className="flex items-center gap-2 rounded-lg border border-[#9ff6e3]/25 bg-[#9ff6e3]/[0.07] px-3 py-1.5 text-xs text-[#d8fff4]"
+                                >
+                                    <Sparkles className="h-3.5 w-3.5 shrink-0 text-[#9ff6e3]/85" />
+                                    <span className="truncate">Edit direction: {action.label}</span>
+                                    <button
+                                        type="button"
+                                        onClick={() => onRemoveEditAction(action.id)}
+                                        className="shrink-0 text-[#9ff6e3]/55 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9ff6e3]/35"
+                                        aria-label={`Remove ${action.label} edit direction`}
+                                    >
+                                        <XIcon className="h-3 w-3" />
+                                    </button>
+                                </motion.div>
+                            ))}
                             {attachments.map((file, index) => (
                                 <motion.div
                                     key={`${file}-${index}`}
@@ -1342,63 +1491,57 @@ const PromptComposer = React.memo(function PromptComposer({
 });
 
 function StudioCinematicMarqueeRails({
-    activeStyleId,
-    onSelectStyle,
+    selectedActionIds,
+    onSelectAction,
 }: {
-    activeStyleId: string | null;
-    onSelectStyle: (styleId: string) => void;
+    selectedActionIds: string[];
+    onSelectAction: (action: EditAction) => void;
 }) {
-    const railItems = React.useMemo(() => {
-        return STYLE_TEMPLATES.map((template) => ({
-            id: template.id,
-            styleId: template.id,
-            label: template.name,
-            description: template.description,
-        }));
-    }, []);
-    const upperRail = [...railItems, ...railItems];
-    const lowerRail = [...railItems].reverse().concat([...railItems].reverse());
+    const upperRail = EDIT_ACTIONS.slice(0, 8);
+    const lowerRail = EDIT_ACTIONS.slice(8);
 
-    const renderRailItem = (item: (typeof railItems)[number], index: number) => {
-        const selected = item.styleId === activeStyleId;
+    const renderRailItem = (item: EditAction, index: number) => {
+        const selected = selectedActionIds.includes(item.id);
 
         return (
-            <button
+            <motion.button
                 key={`${item.id}-${index}`}
                 type="button"
-                aria-label={`Select ${item.label} animation style`}
+                aria-label={item.label}
                 aria-pressed={selected}
-                onClick={() => onSelectStyle(item.styleId)}
+                onClick={() => onSelectAction(item)}
+                whileHover={{ y: -2 }}
+                whileTap={{ scale: 0.98 }}
                 className={cn(
-                    "premium-motion-surface flex h-10 shrink-0 items-center rounded-[9px] border px-4 text-xs font-medium text-white/62 shadow-[0_12px_28px_-22px_rgba(0,0,0,0.9)] transition-[border-color,background-color,color,transform] duration-200 hover:-translate-y-px hover:text-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9ff6e3]/35",
+                    "relative shrink-0 rounded-[9px] border px-3.5 py-2 text-xs font-medium tracking-normal shadow-none transition-[border-color,background-color,color,transform] duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9ff6e3]/35 focus-visible:ring-offset-4 focus-visible:ring-offset-black",
                     selected
-                        ? "border-[#9ff6e3]/44 bg-[#9ff6e3]/[0.11] text-[#d8fff4]"
-                        : "border-white/10 bg-white/[0.025] hover:border-white/18 hover:bg-white/[0.055]",
+                        ? "border-[#9ff6e3]/48 bg-[#9ff6e3]/[0.055] text-[#d8fff4]"
+                        : "border-white/[0.11] bg-white/[0.012] text-white/48 hover:border-white/[0.24] hover:bg-white/[0.032] hover:text-white/82",
                 )}
-                title={item.description}
             >
                 <span className="whitespace-nowrap">{item.label}</span>
-            </button>
+            </motion.button>
         );
     };
 
     return (
-        <div className="studio-cinematic-rails premium-telemetry-panel premium-vignette-edges relative overflow-hidden rounded-[18px] border border-white/[0.08] bg-black/[0.22] py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+        <section className="studio-cinematic-rails relative overflow-hidden py-3" aria-label="Quick edit directions">
             <style>{`
                 @keyframes studio-marquee-right {
-                    from { transform: translateX(-50%); }
+                    from { transform: translateX(-7%); }
                     to { transform: translateX(0%); }
                 }
 
                 @keyframes studio-marquee-left {
                     from { transform: translateX(0%); }
-                    to { transform: translateX(-50%); }
+                    to { transform: translateX(-7%); }
                 }
 
                 .studio-cinematic-rail-track {
                     width: max-content;
-                    animation-duration: 38s;
-                    animation-timing-function: linear;
+                    animation-duration: 18s;
+                    animation-direction: alternate;
+                    animation-timing-function: ease-in-out;
                     animation-iteration-count: infinite;
                     will-change: transform;
                 }
@@ -1431,13 +1574,13 @@ function StudioCinematicMarqueeRails({
                 aria-hidden
                 className="pointer-events-none absolute inset-y-0 right-0 z-10 w-24 bg-[linear-gradient(270deg,#050505_0%,rgba(5,5,5,0)_100%)]"
             />
-            <div className="flex studio-cinematic-rail-track gap-2.5 px-3" data-direction="left">
+            <div className="flex studio-cinematic-rail-track gap-3 px-6" data-direction="left">
                 {upperRail.map(renderRailItem)}
             </div>
-            <div className="mt-2.5 flex studio-cinematic-rail-track gap-2.5 px-3" data-direction="right">
+            <div className="mt-3 flex studio-cinematic-rail-track gap-3 px-6" data-direction="right">
                 {lowerRail.map(renderRailItem)}
             </div>
-        </div>
+        </section>
     );
 }
 
@@ -1459,9 +1602,11 @@ export function VideoUploadInterface() {
     const [templatesOpen, setTemplatesOpen] = useState(false);
     const [airtableStylePreviews, setAirtableStylePreviews] = useState<Record<string, string[]>>({});
     const [hasLoadedAirtableStylePreviews, setHasLoadedAirtableStylePreviews] = useState(false);
-    const [isLoadingAirtableStylePreviews, setIsLoadingAirtableStylePreviews] = useState(false);
     const [failedImages, setFailedImages] = useState<Record<string, true>>({});
     const [activeStyleId, setActiveStyleId] = useState<string | null>(null);
+    const [selectedEditActions, setSelectedEditActions] = useState<EditAction[]>([]);
+    const [editActionsRestored, setEditActionsRestored] = useState(false);
+    const [composerFocusRequestKey, setComposerFocusRequestKey] = useState(0);
     const [showInspirationWall, setShowInspirationWall] = useState(false);
     const [editorLaunchOverlay, setEditorLaunchOverlay] = useState<{
         title: string;
@@ -1560,6 +1705,51 @@ export function VideoUploadInterface() {
     }, []);
 
     useEffect(() => {
+        try {
+            const stored = window.sessionStorage.getItem(EDIT_ACTIONS_SESSION_KEY);
+            const savedIds = stored ? JSON.parse(stored) : [];
+            if (Array.isArray(savedIds)) {
+                setSelectedEditActions(
+                    savedIds
+                        .filter((id): id is string => typeof id === "string")
+                        .map((id) => EDIT_ACTIONS.find((action) => action.id === id))
+                        .filter((action): action is EditAction => Boolean(action)),
+                );
+            }
+        } catch {
+            // A malformed or unavailable session cache should not block the composer.
+        } finally {
+            setEditActionsRestored(true);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (!editActionsRestored) return;
+
+        try {
+            window.sessionStorage.setItem(
+                EDIT_ACTIONS_SESSION_KEY,
+                JSON.stringify(selectedEditActions.map((action) => action.id)),
+            );
+        } catch {
+            // The selected actions still remain active for this page session.
+        }
+    }, [editActionsRestored, selectedEditActions]);
+
+    const selectEditAction = useCallback((action: EditAction) => {
+        setSelectedEditActions((current) =>
+            current.some((entry) => entry.id === action.id) ? current : [...current, action],
+        );
+        setActiveStyleId(action.styleId);
+        persistActiveStyleId(action.styleId);
+        setComposerFocusRequestKey((current) => current + 1);
+    }, []);
+
+    const removeEditAction = useCallback((actionId: string) => {
+        setSelectedEditActions((current) => current.filter((action) => action.id !== actionId));
+    }, []);
+
+    useEffect(() => {
         if (process.env.NODE_ENV !== "development") return;
         if (typeof window === "undefined") return;
 
@@ -1572,7 +1762,7 @@ export function VideoUploadInterface() {
                 "[Airtable] Run and verify:",
                 "1) Verify health: open /api/airtable/health",
                 "2) Verify items: open /api/airtable/images?limit=5",
-                "3) UI: open Templates and Styles modal, look for Airtable/Local badge",
+                "3) UI: open Templates and Styles and confirm preview images load.",
             ].join("\n")
         );
     }, []);
@@ -1588,18 +1778,13 @@ export function VideoUploadInterface() {
         }
 
         let cancelled = false;
-        setIsLoadingAirtableStylePreviews(true);
-
         void fetchAirtableStylePreviewArchive()
             .then((nextPreviews) => {
                 if (cancelled) return;
                 setAirtableStylePreviews(nextPreviews);
                 setHasLoadedAirtableStylePreviews(true);
             })
-            .finally(() => {
-                if (cancelled) return;
-                setIsLoadingAirtableStylePreviews(false);
-            });
+            .catch(() => undefined);
 
         return () => {
             cancelled = true;
@@ -1660,7 +1845,7 @@ export function VideoUploadInterface() {
             return false;
         }
 
-        const { message, activeSlashCommand, creatorMentions } = payload;
+        const { message, activeSlashCommand, creatorMentions, editActions } = payload;
         const uploadedSourceLabel = uploadedFileName?.trim().length > 0
             ? uploadedFileName.replace(/\.[^/.]+$/, "")
             : "the attached source";
@@ -1671,13 +1856,17 @@ export function VideoUploadInterface() {
         const activeStyleSignal = activeStyle
             ? `Animation style: ${activeStyle.name} - ${activeStyle.description}`
             : null;
-        const prompt = activeSlashCommand
+        const basePrompt = activeSlashCommand
             ? `${activeSlashCommand.raw}${message ? ` ${message}` : ""}`
             : message.trim().length > 0
                 ? `${message}${styleHint}`
                 : hasAttachedSource
                     ? `Start with ${uploadedSourceLabel}.${styleHint}`.trim()
                     : "";
+        const editActionPrompt = editActions.map((action) => action.instruction).join(" ");
+        const prompt = [basePrompt, editActionPrompt, activeStyleSignal]
+            .filter((segment): segment is string => Boolean(segment?.trim()))
+            .join(" ");
         // REMOVED: if (!prompt && !hasAttachedSource) return false;
 
         submitLockRef.current = true;
@@ -2091,6 +2280,7 @@ export function VideoUploadInterface() {
             message: "",
             activeSlashCommand: null,
             creatorMentions: [],
+            editActions: selectedEditActions,
         });
     };
 
@@ -2197,8 +2387,11 @@ export function VideoUploadInterface() {
                         activeStyleId={activeStyleId}
                         activeStyleName={activeStyle?.name ?? null}
                         attachments={attachments}
+                        editActions={selectedEditActions}
                         templatesOpen={templatesOpen}
+                        focusRequestKey={composerFocusRequestKey}
                         onClearStyle={clearActiveStyle}
+                        onRemoveEditAction={removeEditAction}
                         onOpenTemplates={() => setTemplatesOpen(true)}
                         onOpenUpload={openUploadComposer}
                         onRemoveAttachment={removeAttachment}
@@ -2225,11 +2418,8 @@ export function VideoUploadInterface() {
                     />
 
                     <StudioCinematicMarqueeRails
-                        activeStyleId={activeStyleId}
-                        onSelectStyle={(styleId) => {
-                            setActiveStyleId(styleId);
-                            persistActiveStyleId(styleId);
-                        }}
+                        selectedActionIds={selectedEditActions.map((action) => action.id)}
+                        onSelectAction={selectEditAction}
                     />
 
                     <div className="space-y-4">
@@ -2888,32 +3078,13 @@ export function VideoUploadInterface() {
 
             {/* TEMPLATES + STYLES */}
             <Sheet open={templatesOpen} onOpenChange={setTemplatesOpen}>
-                <SheetContent side="right" className="p-0 flex flex-col overflow-hidden">
-                    <SheetHeader className="px-6 pt-6">
-                        <SheetTitle>Templates and Styles</SheetTitle>
-                        <SheetDescription>
-                            Select one active style. Saved in localStorage.
-                        </SheetDescription>
-                        {process.env.NODE_ENV === "development" && (
-                            <div className="mt-1 text-[11px] leading-tight text-white/45">
-                                {isLoadingAirtableStylePreviews ? (
-                                    <span className="inline-flex items-center gap-2">
-                                        <InlineLoadingAnimation size={14} label="Loading Airtable previews" />
-                                        <span>Loading Airtable previews on demand...</span>
-                                    </span>
-                                ) : hasLoadedAirtableStylePreviews
-                                        ? `Airtable previews loaded: ${Object.keys(airtableStylePreviews).length} styles`
-                                        : "Airtable previews stay dormant until this panel is opened."}
-                                {hasLoadedAirtableStylePreviews && Object.keys(airtableStylePreviews).length === 0 && (
-                                    <span className="ml-2 text-white/35">
-                                        No Airtable previews matched. Using local fallback previews.
-                                    </span>
-                                )}
-                            </div>
-                        )}
+                <SheetContent side="right" className="flex h-[100dvh] min-h-0 flex-col overflow-hidden p-0">
+                    <SheetHeader className="shrink-0 border-b border-white/10 px-5 pb-4 pt-5 pr-12">
+                        <SheetTitle>Styles</SheetTitle>
+                        <SheetDescription>Choose an animation direction.</SheetDescription>
                     </SheetHeader>
-                    <div className="flex-1 overflow-y-auto overscroll-contain px-6 pb-6 pt-4 space-y-4">
-                        <div className="grid gap-3">
+                    <div className="min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-contain px-5 py-3 [scrollbar-color:rgba(255,255,255,0.2)_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-track]:bg-transparent">
+                        <div className="grid gap-2" aria-label="Animation styles">
                             {STYLE_TEMPLATES.map((template) => {
                                 const selected = template.id === activeStyleId;
 
@@ -2936,108 +3107,51 @@ export function VideoUploadInterface() {
                                     ? airtableStylePreviews[matchedKey]
                                     : template.previewImages;
                                 const hasPreviews = previewImages.length > 0;
-                                const source =
-                                    matchedKey && airtableStylePreviews[matchedKey]?.length > 0
-                                        ? "airtable"
-                                        : "fallback";
                                 return (
                                     <button
                                         key={template.id}
+                                        type="button"
+                                        aria-pressed={selected}
                                         onClick={() => {
                                             setActiveStyleId(template.id);
                                             persistActiveStyleId(template.id);
                                             setTemplatesOpen(false);
                                         }}
                                         className={cn(
-                                            "w-full text-left rounded-xl border p-4 transition-colors transition-shadow",
+                                            "flex min-h-[76px] w-full items-center gap-3 rounded-md border px-3 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40",
                                             selected
-                                                ? "border-purple-400/30 bg-purple-500/10 shadow-[0_0_0_1px_rgba(168,85,247,0.16)]"
-                                                : "border-white/10 bg-white/[0.02] hover:bg-white/[0.05] hover:border-purple-400/30 hover:shadow-[0_0_0_1px_rgba(168,85,247,0.12)]"
+                                                ? "border-white/30 bg-white/[0.08]"
+                                                : "border-white/10 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.05]"
                                         )}
                                     >
-                                        <div className="flex gap-3">
-                                            <div className="hidden sm:grid grid-cols-3 gap-2">
-                                                {hasPreviews ? (
-                                                    previewImages.slice(0, 3).map((src) => (
-                                                        <div
-                                                            key={src}
-                                                            className="relative h-16 w-24 overflow-hidden rounded-lg border border-white/10"
-                                                        >
-                                                            {failedImages[src] ? (
-                                                                <div className="flex h-full w-full items-center justify-center bg-white/[0.03] text-white/40">
-                                                                    <ImageIcon className="h-4 w-4" />
-                                                                </div>
-                                                            ) : (
-                                                                <Image
-                                                                    src={src}
-                                                                    alt=""
-                                                                    fill
-                                                                    className="object-cover"
-                                                                    sizes="96px"
-                                                                    onError={() =>
-                                                                        setFailedImages((m) => ({ ...m, [src]: true }))
-                                                                    }
-                                                                />
-                                                            )}
-                                                        </div>
-                                                    ))
-                                                ) : (
-                                                    <div className="flex h-16 w-24 items-center justify-center overflow-hidden rounded-lg border border-white/10 bg-white/[0.03] text-white/40">
-                                                        <ImageIcon className="h-4 w-4" />
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <div className="sm:hidden relative h-24 w-full overflow-hidden rounded-lg border border-white/10">
-                                                {hasPreviews ? (
-                                                    failedImages[previewImages[0]] ? (
-                                                        <div className="flex h-full w-full items-center justify-center bg-white/[0.03] text-white/40">
-                                                            <ImageIcon className="h-5 w-5" />
-                                                        </div>
-                                                    ) : (
-                                                        <Image
-                                                            src={previewImages[0]}
-                                                            alt=""
-                                                            fill
-                                                            className="object-cover"
-                                                            sizes="100vw"
-                                                            onError={() =>
-                                                                setFailedImages((m) => ({
-                                                                    ...m,
-                                                                    [previewImages[0]]: true,
-                                                                }))
-                                                            }
-                                                        />
-                                                    )
-                                                ) : (
-                                                    <div className="flex h-full w-full items-center justify-center bg-white/[0.03] text-white/40">
-                                                        <ImageIcon className="h-5 w-5" />
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            <div className="flex-1">
-                                                <div className="flex items-center justify-between gap-3">
-                                                    <div className="text-sm font-semibold text-white/90">{template.name}</div>
-                                                    <div className="flex items-center gap-2">
-                                                        {process.env.NODE_ENV === "development" && (
-                                                            <Badge
-                                                                variant="secondary"
-                                                                className="text-[10px] px-2 py-0.5"
-                                                            >
-                                                                {source === "airtable" ? "Airtable" : "Local"}
-                                                            </Badge>
-                                                        )}
-                                                        {selected ? <Badge variant="success">Active</Badge> : <Badge variant="secondary">Style</Badge>}
-                                                    </div>
+                                        <div className="relative h-12 w-16 shrink-0 overflow-hidden rounded-md border border-white/10 bg-white/[0.03] sm:h-14 sm:w-20">
+                                            {hasPreviews && !failedImages[previewImages[0]] ? (
+                                                <Image
+                                                    src={previewImages[0]}
+                                                    alt=""
+                                                    fill
+                                                    className="object-cover"
+                                                    sizes="80px"
+                                                    onError={() =>
+                                                        setFailedImages((images) => ({
+                                                            ...images,
+                                                            [previewImages[0]]: true,
+                                                        }))
+                                                    }
+                                                />
+                                            ) : (
+                                                <div className="flex h-full w-full items-center justify-center text-white/35">
+                                                    <ImageIcon className="h-4 w-4" />
                                                 </div>
-                                                <div className="mt-1 text-xs text-white/45">{template.description}</div>
-                                                <div className="mt-3 flex flex-wrap gap-2 text-xs">
-                                                    {template.tags.map((tag) => (
-                                                        <Badge key={tag} variant="secondary">{tag}</Badge>
-                                                    ))}
-                                                </div>
-                                            </div>
+                                            )}
                                         </div>
+                                        <div className="min-w-0 flex-1">
+                                            <div className="truncate text-sm font-medium text-white/90">{template.name}</div>
+                                            <p className="mt-0.5 line-clamp-2 text-xs leading-5 text-white/48">{template.description}</p>
+                                        </div>
+                                        <span className="grid h-5 w-5 shrink-0 place-items-center" aria-hidden="true">
+                                            {selected && <Check className="h-4 w-4 text-white" strokeWidth={2.5} />}
+                                        </span>
                                     </button>
                                 );
                             })}

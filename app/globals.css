@@ -128,6 +128,12 @@ body {
   margin: 0;
 }
 
+@layer utilities {
+  .font-elegist {
+    font-family: var(--font-elegist);
+  }
+}
+
 @keyframes ripple-expand {
   0% {
     transform: scale(0);

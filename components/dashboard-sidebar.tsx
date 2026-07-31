@@ -144,7 +144,7 @@ export function DashboardSidebar() {
             scale: 1,
           }}
           className={cn(
-            'overflow-hidden rounded-[28px] border border-white/8 bg-white/[0.03] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transform-gpu',
+            'overflow-hidden transform-gpu',
             collapsed ? 'px-0 py-0' : 'px-5 py-4',
           )}
         >
@@ -158,15 +158,13 @@ export function DashboardSidebar() {
                 transition={COLLAPSE_CONTENT_TRANSITION}
                 className="flex justify-center px-0 py-4"
               >
-                <div className="flex size-12 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
-                  <Image
-                    src="/branding/prometheus-logo-no-bg.png"
-                    alt="Prometheus"
-                    width={28}
-                    height={28}
-                    className="h-7 w-7 object-contain"
-                  />
-                </div>
+                <Image
+                  src="/branding/prometheus-logo-no-bg.png"
+                  alt="Prometheus"
+                  width={28}
+                  height={28}
+                  className="h-7 w-7 object-contain"
+                />
               </motion.div>
             ) : (
               <motion.div

@@ -16,6 +16,8 @@ const SUPPORTED_VIDEO_MIME_TYPES = new Set([
 ])
 
 const SUPPORTED_VIDEO_EXTENSIONS = new Set(['mp4', 'mov', 'webm', 'm4v', 'mkv'])
+const SUPPORTED_IMAGE_MIME_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'image/bmp', 'image/svg+xml', 'image/avif'])
+const SUPPORTED_IMAGE_EXTENSIONS = new Set(['png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp', 'svg', 'avif'])
 
 export type ProjectSourceUploadContext = {
   assetId: string
@@ -49,7 +51,11 @@ export function normalizeSourceSizeBytes(sizeBytes: unknown) {
 
 export function isSupportedProjectSourceVideo(filename: string, contentType: string) {
   const extension = filename.split('.').pop()?.toLowerCase() ?? ''
-  return SUPPORTED_VIDEO_MIME_TYPES.has(contentType.toLowerCase()) || SUPPORTED_VIDEO_EXTENSIONS.has(extension)
+  const normalizedContentType = contentType.toLowerCase()
+  return SUPPORTED_VIDEO_MIME_TYPES.has(normalizedContentType)
+    || SUPPORTED_VIDEO_EXTENSIONS.has(extension)
+    || SUPPORTED_IMAGE_MIME_TYPES.has(normalizedContentType)
+    || SUPPORTED_IMAGE_EXTENSIONS.has(extension)
 }
 
 export function validateProjectSourceUploadInput(input: {
@@ -62,7 +68,7 @@ export function validateProjectSourceUploadInput(input: {
   }
 
   if (!isSupportedProjectSourceVideo(input.filename, input.contentType)) {
-    return 'Unsupported format. Upload an MP4, MOV, M4V, WEBM, or MKV video.'
+    return 'Unsupported format. Upload an image or an MP4, MOV, M4V, WEBM, or MKV video.'
   }
 
   if (!input.sizeBytes || input.sizeBytes <= 0) {
@@ -70,7 +76,7 @@ export function validateProjectSourceUploadInput(input: {
   }
 
   if (input.sizeBytes > PROJECT_SOURCE_MULTIPART_MAX_BYTES) {
-    return 'File too large. Prometheus supports source videos up to 10GB.'
+    return 'File too large. Prometheus supports source media up to 10GB.'
   }
 
   return null

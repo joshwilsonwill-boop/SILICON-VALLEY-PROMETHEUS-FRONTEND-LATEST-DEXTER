@@ -163,14 +163,26 @@ export async function POST(request: Request) {
                   | undefined;
                 const requested = normalizeGroqToolCalls(planMessage?.tool_calls);
                 if (requested.length) {
-                  toolCalls = requested.map((toolCall) =>
-                    executePrometheusTool(toolCall, {
+                  send({ type: "status", message: "Running editorial tools" });
+                  toolCalls = requested.map((toolCall) => {
+                    const completedToolCall = executePrometheusTool(toolCall, {
                       latestMessage: message,
                       knowledge,
                       frameReferences,
                       projectId,
-                    }),
-                  );
+                    });
+                    send({
+                      type: "tool",
+                      toolCall: {
+                        id: completedToolCall.id,
+                        name: completedToolCall.name,
+                        label: completedToolCall.label,
+                        status: completedToolCall.status,
+                        summary: completedToolCall.summary,
+                      },
+                    });
+                    return completedToolCall;
+                  });
 
                   const followup = await groq.chat.completions.create(
                     {

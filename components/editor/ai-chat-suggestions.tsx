@@ -1,5 +1,7 @@
 "use client";
 
+import { motion, useReducedMotion } from "framer-motion";
+
 import { cn } from "@/lib/utils";
 
 export type ChatSuggestionsWorkspaceTab = "Editor" | "Music" | "Motion";
@@ -135,9 +137,10 @@ export function ChatSuggestions({
   ariaLabel?: string;
 }) {
   const items = resolveChatSuggestions(workspaceTab, suggestions, hasProject, lastMessageRole);
+  const prefersReducedMotion = useReducedMotion();
 
   return (
-    <div
+    <motion.div
       role="group"
       aria-label={ariaLabel}
       className={cn(
@@ -147,24 +150,50 @@ export function ChatSuggestions({
         layout === "row" && "grid-cols-4",
         className,
       )}
+      initial={prefersReducedMotion ? false : "hidden"}
+      animate="visible"
+      variants={{
+        hidden: {},
+        visible: {
+          transition: {
+            staggerChildren: 0.055,
+            delayChildren: 0.04,
+          },
+        },
+      }}
     >
-      {items.map((suggestion) => (
-        <button
+      {items.map((suggestion, index) => (
+        <motion.button
           key={suggestion}
           type="button"
           onClick={() => onSelect(suggestion)}
+          variants={{
+            hidden: prefersReducedMotion ? {} : { opacity: 0, y: 14, scale: 0.96 },
+            visible: { opacity: 1, y: 0, scale: 1 },
+          }}
+          transition={{
+            type: "spring",
+            stiffness: 260,
+            damping: 22,
+            mass: 0.7,
+          }}
+          whileHover={prefersReducedMotion ? undefined : { y: -2, scale: 1.018 }}
+          whileTap={prefersReducedMotion ? undefined : { scale: 0.975, transition: { duration: 0.12 } }}
           className={cn(
-            "flex min-h-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.035] px-4 py-2 text-center",
-            "text-[13px] leading-snug text-white/62",
-            "transition-[background-color,border-color,color,transform] duration-[var(--dur-hover)] ease-[var(--ease-hover)]",
-            "hover:border-white/18 hover:bg-white/[0.06] hover:text-white/86",
-            "active:scale-[0.98] active:duration-[var(--dur-press)]",
+            "group relative flex min-h-12 w-full items-center justify-center overflow-hidden rounded-full border border-white/[0.14] bg-white/[0.045] px-4 py-2.5 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_8px_24px_rgba(0,0,0,0.12)]",
+            "text-[13px] font-medium leading-[1.25] text-white/68 transition-[background-color,border-color,color,box-shadow] duration-500",
+            "hover:border-white/30 hover:bg-white/[0.09] hover:text-white/95 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.16),0_12px_32px_rgba(0,0,0,0.2)]",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30",
           )}
         >
-          {suggestion}
-        </button>
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-[-35%] top-0 h-px bg-gradient-to-r from-transparent via-white/55 to-transparent opacity-0 transition-[transform,opacity] duration-700 group-hover:translate-x-[70%] group-hover:opacity-100"
+            style={{ transitionDelay: `${index * 35}ms` }}
+          />
+          <span className="relative z-10 block w-full text-balance">{suggestion}</span>
+        </motion.button>
       ))}
-    </div>
+    </motion.div>
   );
 }

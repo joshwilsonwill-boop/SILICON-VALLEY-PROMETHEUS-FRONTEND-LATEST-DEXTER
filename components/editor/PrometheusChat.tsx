@@ -17,6 +17,7 @@ import { ChatCarousel } from './chat-carousel'
 import { ChatSuggestions } from './ai-chat-suggestions'
 import { PrometheusChatHistoryDrawer } from './prometheus-chat-history-drawer'
 import { AIChatStreamingText } from './ai-chat-streaming-text'
+import { PrometheusChatActivity } from './prometheus-chat-activity'
 
 export type PrometheusChatMessage = {
   id: string
@@ -139,7 +140,7 @@ export function PrometheusChat({
   const composedDraft = usesPersistentChat ? persistentChat.draft : draft ?? internalDraft
   const hasDraft = composedDraft.trim().length > 0
   const showingThinking = usesPersistentChat
-    ? Boolean(persistentChat.isAwaitingResponse || persistentChat.streamStatus)
+    ? Boolean(persistentChat.isSending || persistentChat.isAwaitingResponse || persistentChat.streamStatus)
     : thinking || renderedMessages.some((message) => message.status === 'thinking')
   const lastMessage = renderedMessages[renderedMessages.length - 1]
 
@@ -314,9 +315,10 @@ export function PrometheusChat({
                   }}
                 />
               ))}
-              {showingThinking ? (
-                <p className="text-sm text-white/38" role="status">{persistentChat.streamStatus || 'Thinking…'}</p>
-              ) : null}
+              <PrometheusChatActivity
+                entries={persistentChat.streamActivity}
+                active={showingThinking}
+              />
             </div>
           )}
         </div>
@@ -440,7 +442,7 @@ function PrometheusMessageBubble({
   const isThinking = message.status === 'thinking'
 
   if (isThinking) {
-    return <p className="text-sm text-white/38" role="status">Thinking…</p>
+    return <p className="font-elegist text-sm text-white/38" role="status">Thinking…</p>
   }
 
   const drafts = message.actionDrafts ?? []

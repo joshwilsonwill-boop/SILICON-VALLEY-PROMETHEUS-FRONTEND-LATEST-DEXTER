@@ -72,6 +72,16 @@ export type AIChatMessage = {
   suggestions?: string[];
 };
 
+export type AIChatActivity =
+  | { id: string; kind: "status"; label: string; state: "active" | "complete" }
+  | {
+      id: string;
+      kind: "tool";
+      label: string;
+      detail: string;
+      state: "completed" | "needs_approval" | "failed";
+    };
+
 export type AIChatLiveContext = ChatEditorContext & { frameThumbs?: ChatFrameThumb[] };
 
 export type AIChatContextProvider = () => AIChatLiveContext | null;
@@ -98,6 +108,7 @@ export function useAIChat({
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
   const [historyLoadError, setHistoryLoadError] = useState<string | null>(null);
   const [streamStatus, setStreamStatus] = useState<string | null>(null);
+  const [streamActivity, setStreamActivity] = useState<AIChatActivity[]>([]);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const messagesRef = useRef<AIChatMessage[]>([]);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -252,6 +263,9 @@ export function useAIChat({
       setIsSending(true);
       setIsAwaitingResponse(true);
       setStreamStatus("Preparing response");
+      setStreamActivity([
+        { id: "status-preparing", kind: "status", label: "Preparing response", state: "active" },
+      ]);
 
       abortControllerRef.current?.abort();
       const controller = new AbortController();
@@ -359,6 +373,39 @@ export function useAIChat({
         const handleStreamEvent = (event: PrometheusChatStreamEvent) => {
           if (event.type === "status") {
             setStreamStatus(event.message);
+            setStreamActivity((current) => {
+              const entries = current.map((entry) =>
+                entry.kind === "status" && entry.state === "active"
+                  ? { ...entry, state: "complete" as const }
+                  : entry,
+              );
+              return [
+                ...entries,
+                {
+                  id: `status-${entries.length}-${event.message}`,
+                  kind: "status" as const,
+                  label: event.message,
+                  state: "active" as const,
+                },
+              ].slice(-7);
+            });
+            return;
+          }
+          if (event.type === "tool") {
+            setStreamActivity((current) => [
+              ...current.map((entry) =>
+                entry.kind === "status" && entry.state === "active"
+                  ? { ...entry, state: "complete" as const }
+                  : entry,
+              ),
+              {
+                id: event.toolCall.id,
+                kind: "tool" as const,
+                label: event.toolCall.label,
+                detail: event.toolCall.summary,
+                state: event.toolCall.status,
+              },
+            ].slice(-7));
             return;
           }
           if (event.type === "delta") {
@@ -666,6 +713,7 @@ export function useAIChat({
     selectSession,
     setDraft,
     sessions,
+    streamActivity,
     streamStatus,
   };
 }

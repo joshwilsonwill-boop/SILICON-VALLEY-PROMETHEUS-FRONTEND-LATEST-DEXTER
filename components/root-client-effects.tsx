@@ -6,6 +6,7 @@ import { useActivityDetector } from '@/hooks/useActivityDetector'
 import { usePasteDetector } from '@/hooks/usePasteDetector'
 import { useUserPreferencesHydrator } from '@/hooks/use-user-preferences'
 import { ThemeInjector } from '@/components/theme/theme-injector'
+import { GlobalHelpLauncher } from '@/components/global-help-launcher'
 
 const AppToaster = dynamic(() => import('@/components/ui/app-toaster').then((mod) => mod.AppToaster), {
   ssr: false,
@@ -31,6 +32,7 @@ export function RootClientEffects() {
     <>
       <ThemeInjector />
       {isAuthRoute ? null : <CinematicClickRipple />}
+      <GlobalHelpLauncher />
       <AppToaster />
     </>
   )

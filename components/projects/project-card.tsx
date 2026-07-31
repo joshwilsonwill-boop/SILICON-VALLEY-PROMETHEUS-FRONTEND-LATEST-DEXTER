@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import { formatDistanceToNow } from 'date-fns'
-import { Clock3, Copy, Film, Gauge, Link2, MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
+import { ArrowUpRight, Clock3, Copy, Film, Gauge, Link2, MoreHorizontal, Trash2 } from 'lucide-react'
 
 import { InlineLoadingAnimation } from '@/components/loading-animation'
 import type { ProjectListItem } from '@/lib/projects/types'
@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils'
 
 export interface ProjectCardProps {
   project: ProjectListItem
+  featured?: boolean
   onEdit: (id: string) => void
   onDuplicate: (id: string) => void
   onDelete: (id: string) => void
@@ -44,7 +45,7 @@ function badgeClass(status: ProjectListItem['status']) {
   }
 }
 
-export function ProjectCard({ project, onEdit, onDuplicate, onDelete, onShare }: ProjectCardProps) {
+export function ProjectCard({ project, featured = false, onEdit, onDuplicate, onDelete, onShare }: ProjectCardProps) {
   const [thumbnailFailed, setThumbnailFailed] = React.useState(false)
   const [actionMenuOpen, setActionMenuOpen] = React.useState(false)
   const durationLabel = formatDuration(project.duration)
@@ -59,14 +60,15 @@ export function ProjectCard({ project, onEdit, onDuplicate, onDelete, onShare }:
   ]
 
   return (
-    <article className="group relative overflow-visible rounded-[18px] border border-white/[0.09] bg-[#0d0d13] shadow-[0_24px_70px_-56px_rgba(0,0,0,0.95)] transition-[border-color,background-color,box-shadow,transform] duration-200 ease-out hover:-translate-y-0.5 hover:border-white/[0.16] hover:bg-[#11121a] hover:shadow-[0_30px_90px_-62px_rgba(0,0,0,0.98)] focus-within:border-white/[0.18] max-lg:rounded-2xl max-lg:bg-white/[0.05] max-lg:p-4">
-      <div className="absolute inset-x-0 top-0 h-px bg-white/[0.14] max-lg:hidden" aria-hidden="true" />
-
+    <article className="group relative overflow-visible border-t border-white/[0.16] bg-transparent pt-3 transition-colors duration-300 hover:border-[#d3ad75]/80 focus-within:border-[#d3ad75]/80 max-lg:bg-white/[0.02] max-lg:p-4">
       <button
         type="button"
         aria-label={`Open ${project.title}`}
         onClick={() => onEdit(project.id)}
-        className="relative block aspect-video w-full overflow-hidden rounded-t-[17px] bg-[#151622] text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/28 max-lg:rounded-xl max-lg:border max-lg:border-white/5"
+        className={cn(
+          'relative block w-full overflow-hidden bg-[#151515] text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d3ad75] max-lg:border max-lg:border-white/5',
+          featured ? 'aspect-[16/9]' : 'aspect-[4/3]',
+        )}
       >
         {project.thumbnailUrl && !thumbnailFailed ? (
           // R2/public thumbnails can be external or blob/data URLs, so next/image is not guaranteed to fit.
@@ -74,7 +76,7 @@ export function ProjectCard({ project, onEdit, onDuplicate, onDelete, onShare }:
           <img
             src={project.thumbnailUrl}
             alt={`${project.title} thumbnail`}
-            className="h-full w-full object-cover opacity-90 transition-[opacity,filter] duration-200 group-hover:opacity-100"
+            className="h-full w-full object-cover opacity-75 grayscale-[18%] transition-[opacity,filter] duration-500 group-hover:opacity-100 group-hover:grayscale-0"
             onError={() => setThumbnailFailed(true)}
           />
         ) : (
@@ -84,7 +86,7 @@ export function ProjectCard({ project, onEdit, onDuplicate, onDelete, onShare }:
               background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.025) 42%, rgba(0, 0, 0, 0.12) 100%)',
             }}
           >
-            <div className="grid h-16 w-16 place-items-center rounded-[10px] border border-white/10 bg-black/18 text-lg font-semibold tracking-[0.14em] text-white/78 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+            <div className="grid h-16 w-16 place-items-center border border-white/10 bg-black/18 text-lg font-semibold tracking-[0.14em] text-white/78">
               {initialsFromTitle(project.title)}
             </div>
             <div className="absolute inset-0 hidden items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900 max-lg:flex" aria-hidden="true">
@@ -92,35 +94,38 @@ export function ProjectCard({ project, onEdit, onDuplicate, onDelete, onShare }:
             </div>
           </div>
         )}
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/62 via-black/20 to-transparent" />
-        <div className="absolute bottom-3 left-3 flex items-center gap-2 rounded-full border border-white/10 bg-black/44 px-2.5 py-1 text-[11px] font-medium text-white/72 backdrop-blur-md max-lg:hidden">
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/80 via-black/15 to-transparent" />
+        <div className="absolute bottom-3 left-3 flex items-center gap-2 border border-white/15 bg-black/50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/72 backdrop-blur-md max-lg:hidden">
           <Film className="size-3.5" />
           {resolutionLabel ?? 'Source'}
         </div>
-        <div className="absolute left-3 top-3 hidden rounded-full border border-white/10 bg-black/60 px-2.5 py-1 text-[11px] font-medium text-white/90 backdrop-blur-md max-lg:block">
+        <div className="absolute left-3 top-3 hidden border border-white/10 bg-black/60 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/90 backdrop-blur-md max-lg:block">
           {resolutionLabel ?? 'Source'}
         </div>
       </button>
 
-      <div className="p-4 max-lg:px-0 max-lg:pb-0 max-lg:pt-4">
+      <div className="py-4 max-lg:px-0 max-lg:pb-0 max-lg:pt-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <button
               type="button"
               aria-label={`Open ${project.title}`}
               onClick={() => onEdit(project.id)}
-              className="block max-w-full truncate text-left text-base font-semibold leading-6 text-white transition-colors hover:text-white/86 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/24 max-lg:text-lg"
+              className={cn(
+                'block max-w-full truncate text-left [font-family:var(--font-migra)] font-extrabold leading-[0.9] text-[#f2f0eb] transition-colors hover:text-[#d3ad75] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d3ad75]',
+                featured ? 'text-3xl md:text-5xl' : 'text-2xl md:text-3xl',
+              )}
             >
               {project.title}
             </button>
             {project.description ? (
-              <p className="mt-1 truncate text-sm text-white/50 max-lg:line-clamp-2 max-lg:whitespace-normal">{project.description}</p>
+              <p className="mt-2 truncate [font-family:var(--font-playfair-display)] text-base italic text-white/55 max-lg:line-clamp-2 max-lg:whitespace-normal">{project.description}</p>
             ) : null}
           </div>
           <div
             role={project.status === 'rendering' ? 'status' : undefined}
             className={cn(
-              'inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium max-lg:hidden',
+              'inline-flex shrink-0 items-center gap-1.5 border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.1em] max-lg:hidden',
               badgeClass(project.status),
             )}
           >
@@ -131,7 +136,7 @@ export function ProjectCard({ project, onEdit, onDuplicate, onDelete, onShare }:
           </div>
         </div>
 
-        <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-white/44 max-lg:flex max-lg:flex-wrap max-lg:gap-x-3 max-lg:gap-y-1 sm:grid-cols-3">
+        <div className="mt-4 grid grid-cols-2 gap-2 border-b border-white/[0.09] pb-4 text-[11px] text-white/44 max-lg:flex max-lg:flex-wrap max-lg:gap-x-3 max-lg:gap-y-1 sm:grid-cols-3">
           <span className="flex min-w-0 items-center gap-1.5 truncate">
             <Clock3 className="size-3.5 shrink-0 text-white/28" />
             <span className="truncate">{lastEdited}</span>
@@ -166,14 +171,14 @@ export function ProjectCard({ project, onEdit, onDuplicate, onDelete, onShare }:
           </div>
         ) : null}
 
-        <div className="mt-4 flex items-center justify-between gap-3 border-t border-white/[0.07] pt-3">
+        <div className="mt-3 flex items-center justify-between gap-3">
           <button
             type="button"
             onClick={() => onEdit(project.id)}
-            className="inline-flex min-h-10 items-center gap-2 rounded-full border border-white/10 bg-white/[0.055] px-3 text-xs font-semibold text-white/78 transition-colors hover:border-white/18 hover:bg-white/[0.085] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/24 max-lg:min-h-11 max-lg:flex-1 max-lg:justify-center max-lg:px-4 max-lg:py-2"
+            className="inline-flex min-h-10 items-center gap-2 px-0 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/70 transition-colors hover:text-[#d3ad75] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d3ad75] max-lg:min-h-11 max-lg:flex-1 max-lg:justify-center max-lg:px-4 max-lg:py-2"
           >
-            <Pencil className="size-3.5" />
-            Open
+            Open project
+            <ArrowUpRight className="size-3.5" />
           </button>
 
           <div className="relative">
@@ -182,13 +187,13 @@ export function ProjectCard({ project, onEdit, onDuplicate, onDelete, onShare }:
               aria-label={`Project actions for ${project.title}`}
               aria-expanded={actionMenuOpen}
               onClick={() => setActionMenuOpen((open) => !open)}
-              className="grid size-10 place-items-center rounded-full border border-white/10 bg-white/[0.045] text-white/64 transition-colors hover:border-white/18 hover:bg-white/[0.08] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/24 max-lg:size-11"
+              className="grid size-10 place-items-center border border-white/10 bg-white/[0.03] text-white/64 transition-colors hover:border-[#d3ad75]/70 hover:text-[#d3ad75] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d3ad75] max-lg:size-11"
             >
               <MoreHorizontal className="size-4" />
             </button>
 
             {actionMenuOpen ? (
-              <div className="absolute bottom-12 right-0 z-30 w-48 overflow-hidden rounded-[12px] border border-white/10 bg-[#111218]/96 p-1 shadow-[0_22px_70px_-44px_rgba(0,0,0,0.95)] backdrop-blur-xl">
+              <div className="absolute bottom-12 right-0 z-30 w-48 overflow-hidden rounded-md border border-white/10 bg-[#111111]/96 p-1 shadow-[0_22px_70px_-44px_rgba(0,0,0,0.95)] backdrop-blur-xl">
                 {actions.map((action) => (
                   <button
                     key={action.label}
@@ -198,7 +203,7 @@ export function ProjectCard({ project, onEdit, onDuplicate, onDelete, onShare }:
                       action.onClick()
                     }}
                     className={cn(
-                      'flex min-h-10 w-full items-center gap-2 rounded-[9px] px-3 text-left text-xs font-medium text-white/68 transition-colors hover:bg-white/[0.07] hover:text-white',
+                      'flex min-h-10 w-full items-center gap-2 rounded-sm px-3 text-left text-xs font-medium text-white/68 transition-colors hover:bg-white/[0.07] hover:text-white',
                       action.danger && 'hover:bg-red-500/[0.1] hover:text-red-100',
                     )}
                   >

@@ -17,6 +17,24 @@ assert.deepEqual(
   ],
 );
 
+assert.deepEqual(
+  decoder.push(
+    '{"type":"tool","toolCall":{"id":"tool-1","name":"search_prometheus_knowledge","label":"Search knowledge","status":"completed","summary":"3 guidance references matched."}}\n',
+  ),
+  [
+    {
+      type: "tool",
+      toolCall: {
+        id: "tool-1",
+        name: "search_prometheus_knowledge",
+        label: "Search knowledge",
+        status: "completed",
+        summary: "3 guidance references matched.",
+      },
+    },
+  ],
+);
+
 assert.deepEqual(decoder.push('{"type":"done","persisted":true}'), []);
 assert.deepEqual(decoder.flush(), [{ type: "done", persisted: true }]);
 

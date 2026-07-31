@@ -2,8 +2,7 @@
 
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
-import { formatDistanceToNow } from 'date-fns'
-import { AlertTriangle, Clapperboard, FolderOpen, Plus, Search, Globe, FileEdit, CheckCircle, XCircle } from 'lucide-react'
+import { AlertTriangle, ArrowUpRight, Clapperboard, FolderOpen, Plus, Search, Globe, FileEdit, CheckCircle, XCircle } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { toast } from 'sonner'
 
@@ -133,52 +132,79 @@ export function ProjectsPageV2() {
 
   return (
     <PrometheusShell>
-      <div className="min-h-full px-4 py-6 text-white max-lg:overflow-x-hidden md:px-6">
-        <div className="mx-auto max-w-7xl">
-          <header className="flex flex-col gap-4 border-b border-white/10 pb-6 max-lg:items-stretch md:flex-row md:items-end md:justify-between">
-            <div className="flex min-w-0 items-start gap-3">
-              <BackButton
-                fallbackHref="/studio"
-                className="border border-white/12 bg-black/20 shadow-[0_14px_28px_-20px_rgba(0,0,0,0.9)]"
-              />
-              <div className="min-w-0 pt-0.5">
-                <h1 className="text-3xl font-semibold tracking-tight text-white">Projects</h1>
-                <p className="mt-2 text-sm text-white/48">{subtitle}</p>
+      <div className="min-h-full bg-[#080808] px-4 pb-16 pt-5 text-white max-lg:overflow-x-hidden md:px-8 md:pt-8">
+        <div className="mx-auto max-w-[90rem]">
+          <header className="border-b border-white/12 pb-8 md:pb-10">
+            <div className="flex items-center justify-between gap-4 border-b border-white/10 pb-4">
+              <div className="flex min-w-0 items-center gap-3">
+                <BackButton fallbackHref="/studio" className="size-10 rounded-md border-white/12 bg-white/[0.025] text-white/70 hover:bg-white/[0.08]" />
+                <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/42">Prometheus / Workroom</span>
               </div>
+              <span className="hidden text-[10px] font-medium uppercase tracking-[0.16em] text-white/38 sm:block">{subtitle}</span>
             </div>
-            <LiquidChromeButton
-              type="button"
-              variant="secondary"
-              size="md"
-              liquid={false}
-              magnetic
-              ripple
-              containerClassName="max-lg:flex max-lg:w-full"
-              className="min-h-12 border-white/14 bg-white/[0.08] px-5 text-white shadow-[0_18px_36px_-24px_rgba(0,0,0,0.8)] hover:border-white/22 hover:bg-white/[0.14] max-lg:min-h-11 max-lg:w-full max-lg:justify-center"
-              onClick={() => setCreateOpen(true)}
-            >
-              <Plus className="h-4 w-4" />
-              New Project
-            </LiquidChromeButton>
+
+            <div className="grid gap-7 pt-9 md:grid-cols-[minmax(0,1fr)_auto] md:items-end md:pt-14">
+              <div className="min-w-0">
+                <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#d3ad75]">Selected works</p>
+                <h1 className="max-w-5xl [font-family:var(--font-migra)] text-[clamp(3.6rem,8vw,8.5rem)] font-extrabold leading-[0.77] text-[#f2f0eb]">
+                  PROJECTS<span className="text-[#d3ad75]">.</span>
+                </h1>
+                <p className="mt-6 max-w-md [font-family:var(--font-playfair-display)] text-xl italic leading-relaxed text-white/58 md:mt-8 md:text-2xl">
+                  The cuts, stories, and unfinished ideas currently in motion.
+                </p>
+              </div>
+              <LiquidChromeButton
+                type="button"
+                variant="secondary"
+                size="md"
+                liquid={false}
+                magnetic
+                ripple
+                containerClassName="max-lg:flex max-lg:w-full"
+                className="min-h-12 rounded-md border-[#d3ad75]/65 bg-[#d3ad75] px-5 text-black shadow-none hover:border-[#f1d09d] hover:bg-[#f1d09d] max-lg:min-h-11 max-lg:w-full max-lg:justify-center"
+                onClick={() => setCreateOpen(true)}
+              >
+                <Plus className="h-4 w-4" />
+                New project
+              </LiquidChromeButton>
+            </div>
           </header>
 
-          <div className="mt-6 flex justify-center max-lg:-mx-4 max-lg:overflow-x-auto max-lg:px-4">
-            <MenuBar
-              className="max-lg:min-w-max max-lg:justify-start"
-              activeValue={statusFilter}
-              onItemClick={(value) => setStatusFilter(value as StatusFilter)}
-              touchOptimized
-              items={[
-                { label: 'All', icon: Globe, value: 'all' },
-                { label: 'Draft', icon: FileEdit, value: 'draft' },
-                { label: 'Rendering', icon: Clapperboard, value: 'rendering' },
-                { label: 'Completed', icon: CheckCircle, value: 'completed' },
-                { label: 'Failed', icon: XCircle, value: 'failed' },
-              ]}
-            />
-          </div>
+          <section aria-label="Browse projects" className="py-7 md:py-9">
+            <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-center">
+              <div className="flex justify-start overflow-x-auto pb-1 max-lg:-mx-4 max-lg:px-4 lg:pb-0">
+                <MenuBar
+                  className="min-w-max rounded-md border-white/10 bg-white/[0.025] max-lg:justify-start"
+                  activeValue={statusFilter}
+                  onItemClick={(value) => setStatusFilter(value as StatusFilter)}
+                  touchOptimized
+                  items={[
+                    { label: 'All', icon: Globe, value: 'all' },
+                    { label: 'Draft', icon: FileEdit, value: 'draft' },
+                    { label: 'Rendering', icon: Clapperboard, value: 'rendering' },
+                    { label: 'Completed', icon: CheckCircle, value: 'completed' },
+                    { label: 'Failed', icon: XCircle, value: 'failed' },
+                  ]}
+                />
+              </div>
+              <label className="group flex h-11 w-full items-center gap-3 border-b border-white/15 px-1 text-white/52 transition-colors focus-within:border-[#d3ad75] lg:max-w-xs">
+                <Search className="size-4 shrink-0" />
+                <Input
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Search the archive"
+                  aria-label="Search projects"
+                  className="h-full border-0 bg-transparent px-0 text-sm text-white placeholder:text-white/32 focus-visible:ring-0"
+                />
+              </label>
+            </div>
 
-          <div className="mt-6">
+            <div className="mt-7 flex items-center justify-between border-b border-white/10 pb-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/38">
+              <span>{statusFilter === 'all' ? 'All work' : statusFilter}</span>
+              <span>{filteredProjects.length.toString().padStart(2, '0')} / {projects.length.toString().padStart(2, '0')}</span>
+            </div>
+
+            <div className="mt-6">
             {error ? (
               <div className="mb-6 rounded-xl border border-rose-500/20 bg-rose-500/10 p-4 text-rose-200">
                 <div className="flex items-center justify-between gap-3">
@@ -198,10 +224,10 @@ export function ProjectsPageV2() {
                 <InlineLoadingAnimation size={72} label="Loading projects" />
               </div>
             ) : projects.length === 0 ? (
-              <div className="flex min-h-[28rem] flex-col items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03] px-6 text-center">
+              <div className="flex min-h-[28rem] flex-col items-center justify-center border border-white/10 bg-white/[0.025] px-6 text-center">
                 <Clapperboard className="h-20 w-20 text-white/20" />
-                <h2 className="mt-5 text-2xl font-semibold text-white">No projects yet</h2>
-                <p className="mt-2 text-sm text-white/52">
+                <h2 className="mt-5 [font-family:var(--font-migra)] text-4xl font-extrabold text-white">No projects yet</h2>
+                <p className="mt-2 [font-family:var(--font-playfair-display)] text-base italic text-white/52">
                   Create your first project to start producing premium content.
                 </p>
                 <Button type="button" className="mt-6 bg-white text-black hover:bg-white/90" onClick={() => setCreateOpen(true)}>
@@ -209,10 +235,10 @@ export function ProjectsPageV2() {
                 </Button>
               </div>
             ) : filteredProjects.length === 0 ? (
-              <div className="flex min-h-[20rem] flex-col items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03] px-6 text-center">
+              <div className="flex min-h-[20rem] flex-col items-center justify-center border border-white/10 bg-white/[0.025] px-6 text-center">
                 <FolderOpen className="h-16 w-16 text-white/20" />
-                <h2 className="mt-4 text-xl font-semibold text-white">No projects match &quot;{query}&quot;</h2>
-                <p className="mt-2 text-sm text-white/52">Try another name or clear the active filters.</p>
+                <h2 className="mt-4 [font-family:var(--font-migra)] text-3xl font-extrabold text-white">No projects match &quot;{query}&quot;</h2>
+                <p className="mt-2 [font-family:var(--font-playfair-display)] text-base italic text-white/52">Try another name or clear the active filters.</p>
                 <Button
                   type="button"
                   variant="outline"
@@ -226,11 +252,22 @@ export function ProjectsPageV2() {
                 </Button>
               </div>
             ) : (
-              <motion.div layout className="grid gap-4 max-lg:!grid-cols-1 max-lg:w-full md:grid-cols-2 xl:grid-cols-3">
-                {filteredProjects.map((project) => (
-                  <motion.div key={project.id} layout className="max-lg:min-w-0">
+              <motion.div layout className="grid gap-x-5 gap-y-8 max-lg:!grid-cols-1 max-lg:w-full lg:grid-cols-12">
+                {filteredProjects.map((project, index) => (
+                  <motion.div
+                    key={project.id}
+                    layout
+                    className={cn(
+                      'max-lg:min-w-0 lg:col-span-6',
+                      index === 0 && 'lg:col-span-7',
+                      index === 1 && 'lg:col-span-5 lg:pt-16',
+                      index > 1 && index % 3 === 0 && 'lg:col-span-5',
+                      index > 1 && index % 3 !== 0 && 'lg:col-span-7',
+                    )}
+                  >
                     <ProjectCard
                       project={project}
+                      featured={index === 0}
                       onEdit={(id) => router.push(`/editor/${id}`)}
                       onDuplicate={handleDuplicate}
                       onDelete={(id) => {
@@ -243,7 +280,8 @@ export function ProjectsPageV2() {
                 ))}
               </motion.div>
             )}
-          </div>
+            </div>
+          </section>
         </div>
       </div>
 

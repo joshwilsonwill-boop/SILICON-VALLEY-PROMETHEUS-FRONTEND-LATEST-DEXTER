@@ -21,6 +21,8 @@ function run() {
   assert.match(route, /executePrometheusTool\(/);
   assert.match(route, /collectActionDrafts\(toolCalls\)/);
   assert.match(route, /isToolUseFailed\(error\)/);
+  assert.match(route, /type:\s*"status", message:\s*"Running editorial tools"/);
+  assert.match(route, /type:\s*"tool",[\s\S]*label: completedToolCall\.label,[\s\S]*summary: completedToolCall\.summary/);
 
   // Live editor context + project (video) context are accepted and merged
   assert.match(route, /editorContext\?:\s*unknown/);
@@ -55,6 +57,16 @@ function run() {
     /type:\s*"metadata",[\s\S]*frames,[\s\S]*toolCalls,[\s\S]*actionDrafts,/,
   );
   assert.match(route, /send\(\{ type: "done", persisted \}\)/);
+
+  const streamContract = read("lib/prometheus-assistant/chat-stream.ts");
+  const chatHook = read("hooks/use-ai-chat.ts");
+  const activity = read("components/editor/prometheus-chat-activity.tsx");
+  assert.match(streamContract, /type: "tool"/);
+  assert.match(streamContract, /isStreamToolCall/);
+  assert.match(chatHook, /streamActivity/);
+  assert.match(chatHook, /event\.type === "tool"/);
+  assert.match(activity, /Live editorial process/);
+  assert.match(activity, /entry\.detail/);
 }
 
 run();

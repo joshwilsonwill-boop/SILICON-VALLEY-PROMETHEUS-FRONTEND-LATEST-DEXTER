@@ -81,8 +81,9 @@ const migraDisplay = localFont({
 const elegistDisplay = localFont({
   src: '../elegist/Elegist.otf',
   variable: '--font-elegist',
-  display: 'swap',
-  preload: false,
+  // Editorial type must never flash a substitute font in the chamber.
+  display: 'block',
+  preload: true,
 })
 
 export const metadata: Metadata = {

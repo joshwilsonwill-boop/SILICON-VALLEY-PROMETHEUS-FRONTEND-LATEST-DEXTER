@@ -12,6 +12,7 @@ import { AIChatHistoryButton } from "@/components/editor/ai-chat-history-button"
 import { ChatCarousel } from "@/components/editor/chat-carousel";
 import { ChatSuggestions } from "@/components/editor/ai-chat-suggestions";
 import { PrometheusChatHistoryDrawer } from "@/components/editor/prometheus-chat-history-drawer";
+import { PrometheusChatActivity } from "@/components/editor/prometheus-chat-activity";
 import { CinematicTextReveal } from "@/components/ui/cinematic-text-reveal";
 import { useAIChat, type CarouselItem } from "@/hooks/use-ai-chat";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
@@ -188,7 +189,10 @@ export function PrometheusChatMobile({
                   </article>
                 );
               })}
-              {chat.isAwaitingResponse || chat.streamStatus ? <p className="text-sm text-white/38" role="status">{chat.streamStatus || "Thinking…"}</p> : null}
+              <PrometheusChatActivity
+                entries={chat.streamActivity}
+                active={chat.isSending || chat.isAwaitingResponse || Boolean(chat.streamStatus)}
+              />
             </div>
           )}
         </div>

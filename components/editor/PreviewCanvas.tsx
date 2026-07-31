@@ -55,7 +55,6 @@ export interface PreviewCanvasProps {
   isInlineSourceDragOver: boolean
   visiblePreviewAspectRatio: number
   previewFrameWidth: string
-  musicSpotlightPortalRef: (node: HTMLDivElement | null) => void
   sourceFileInputRef: React.RefObject<HTMLInputElement | null>
   previewVideoRef: React.RefObject<HTMLVideoElement | null>
   onInlineSourceFileInputChange: (event: React.ChangeEvent<HTMLInputElement>) => void
@@ -113,7 +112,6 @@ export function PreviewCanvas({
   isInlineSourceDragOver,
   visiblePreviewAspectRatio,
   previewFrameWidth,
-  musicSpotlightPortalRef,
   sourceFileInputRef,
   previewVideoRef,
   onInlineSourceFileInputChange,
@@ -143,10 +141,6 @@ export function PreviewCanvas({
         {/* Glass Border Container */}
         <div className="relative h-[clamp(250px,40vh,460px)] w-full overflow-hidden rounded-[18px] bg-black">
           <div className="relative flex h-full w-full items-center justify-center">
-            <div
-              ref={musicSpotlightPortalRef}
-              className="pointer-events-none absolute right-2 top-2 z-20"
-            />
             <input
               ref={sourceFileInputRef}
               type="file"

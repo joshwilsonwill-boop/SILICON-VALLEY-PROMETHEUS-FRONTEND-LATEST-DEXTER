@@ -2,6 +2,16 @@ export type PrometheusChatStreamEvent =
   | { type: "status"; message: string }
   | { type: "delta"; content: string }
   | {
+      type: "tool";
+      toolCall: {
+        id: string;
+        name: string;
+        label: string;
+        status: "completed" | "needs_approval" | "failed";
+        summary: string;
+      };
+    }
+  | {
       type: "metadata";
       sources?: unknown[];
       frames?: unknown[];
@@ -50,6 +60,9 @@ function parsePrometheusChatStreamLine(
     if (value.type === "delta" && typeof value.content === "string") {
       return [{ type: "delta", content: value.content }];
     }
+    if (value.type === "tool" && isStreamToolCall(value.toolCall)) {
+      return [{ type: "tool", toolCall: value.toolCall }];
+    }
     if (value.type === "metadata") {
       // Unknown/absent keys are tolerated: only array-shaped fields pass
       // through, anything else (or nothing at all) stays undefined.
@@ -82,4 +95,20 @@ function parsePrometheusChatStreamLine(
   }
 
   return [];
+}
+
+function isStreamToolCall(
+  value: unknown,
+): value is Extract<PrometheusChatStreamEvent, { type: "tool" }>["toolCall"] {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const toolCall = value as Record<string, unknown>;
+  return (
+    typeof toolCall.id === "string" &&
+    typeof toolCall.name === "string" &&
+    typeof toolCall.label === "string" &&
+    typeof toolCall.summary === "string" &&
+    (toolCall.status === "completed" ||
+      toolCall.status === "needs_approval" ||
+      toolCall.status === "failed")
+  );
 }

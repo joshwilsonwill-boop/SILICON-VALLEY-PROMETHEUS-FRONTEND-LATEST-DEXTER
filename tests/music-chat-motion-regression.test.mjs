@@ -36,6 +36,8 @@ function run() {
   assert.match(uploadInterface, /studio-marquee-right/)
   assert.match(uploadInterface, /animation-play-state: paused/)
   assert.match(uploadInterface, /activeStyleSignal/)
+  assert.match(uploadInterface, /editActionPrompt/)
+  assert.match(uploadInterface, /focusRequestKey/)
   assert.match(uploadInterface, /text-\[35px\].*sm:text-\[48px\].*md:text-\[59px\]/)
 
   const editorPage = read('app/editor/[id]/page.tsx')

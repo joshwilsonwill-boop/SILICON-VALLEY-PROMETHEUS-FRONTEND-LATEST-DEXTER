@@ -77,8 +77,6 @@ export interface EditorState {
   titleInputRef: React.RefObject<HTMLInputElement | null>
   chatComposerPortal: HTMLDivElement | null
   setChatComposerPortal: React.Dispatch<React.SetStateAction<HTMLDivElement | null>>
-  musicSpotlightPortalTarget: HTMLDivElement | null
-  setMusicSpotlightPortalTarget: React.Dispatch<React.SetStateAction<HTMLDivElement | null>>
   inspectorViewportRef: React.RefObject<HTMLDivElement | null>
   lastTranscriptSyncTimeRef: React.MutableRefObject<number>
   progressPercent: number
@@ -147,7 +145,6 @@ export function useEditorState(): EditorState {
   // Refs and Portals
   const titleInputRef = React.useRef<HTMLInputElement | null>(null)
   const [chatComposerPortal, setChatComposerPortal] = React.useState<HTMLDivElement | null>(null)
-  const [musicSpotlightPortalTarget, setMusicSpotlightPortalTarget] = React.useState<HTMLDivElement | null>(null)
   const inspectorViewportRef = React.useRef<HTMLDivElement | null>(null)
   const lastTranscriptSyncTimeRef = React.useRef<number>(0)
 
@@ -610,8 +607,6 @@ export function useEditorState(): EditorState {
     titleInputRef,
     chatComposerPortal,
     setChatComposerPortal,
-    musicSpotlightPortalTarget,
-    setMusicSpotlightPortalTarget,
     inspectorViewportRef,
     lastTranscriptSyncTimeRef,
     progressPercent,
