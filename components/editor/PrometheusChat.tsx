@@ -584,7 +584,6 @@ function EmptyChatGreeting({ greeting }: { greeting: string }) {
       <CinematicTextReveal
       as="h1"
       variant="measured"
-      style={{ fontFamily: 'var(--font-elegist)' }}
       className="max-w-4xl text-balance font-display text-[clamp(2.25rem,5.2vw,5.75rem)] font-normal leading-[0.95] tracking-normal text-white/92"
       >
         {greeting}
