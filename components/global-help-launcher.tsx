@@ -11,12 +11,14 @@ import {
   HelpCircle,
   Lightbulb,
   Mail,
+  Sparkles,
   Upload,
   X,
 } from 'lucide-react'
 
 import { useAIChat } from '@/hooks/use-ai-chat'
 import { cn } from '@/lib/utils'
+import { openStudioOnboarding } from '@/components/onboarding/studio-onboarding'
 
 type HelpView = 'menu' | 'ask' | 'guides'
 
@@ -143,6 +145,7 @@ export function GlobalHelpLauncher() {
             <div className="space-y-2 p-3">
               <HelpAction icon={Bot} label="Ask Prometheus" detail="Get help with the work in front of you" onClick={() => openView('ask')} />
               <HelpAction icon={BookOpen} label="Production guides" detail="Learn the core studio workflows" onClick={() => openView('guides')} />
+              <HelpAction icon={Sparkles} label="Studio introduction" detail="Replay the motion-led first look" onClick={() => { close(); openStudioOnboarding() }} />
               <HelpAction
                 icon={Mail}
                 label="Contact support"

@@ -26,7 +26,11 @@ export const PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
     authorizeUrl: "https://accounts.google.com/o/oauth2/v2/auth",
     tokenUrl: "https://oauth2.googleapis.com/token",
     revokeUrl: "https://oauth2.googleapis.com/revoke",
-    scopes: ["https://www.googleapis.com/auth/youtube.upload"],
+    scopes: [
+      "https://www.googleapis.com/auth/youtube.upload",
+      "https://www.googleapis.com/auth/youtube.readonly",
+      "https://www.googleapis.com/auth/yt-analytics.readonly",
+    ],
     scopeSeparator: " ",
     pkce: true,
     clientIdEnvVar: "YOUTUBE_CLIENT_ID",

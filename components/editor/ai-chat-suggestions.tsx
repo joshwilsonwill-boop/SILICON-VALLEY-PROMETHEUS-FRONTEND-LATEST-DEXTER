@@ -180,7 +180,7 @@ export function ChatSuggestions({
           whileHover={prefersReducedMotion ? undefined : { y: -2, scale: 1.018 }}
           whileTap={prefersReducedMotion ? undefined : { scale: 0.975, transition: { duration: 0.12 } }}
           className={cn(
-            "group relative flex min-h-12 w-full items-center justify-center overflow-hidden rounded-full border border-white/[0.14] bg-white/[0.045] px-4 py-2.5 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_8px_24px_rgba(0,0,0,0.12)]",
+            "group relative flex min-h-11 w-full items-center justify-center overflow-hidden rounded-full border border-white/[0.14] bg-white/[0.045] px-4 py-2.5 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_8px_24px_rgba(0,0,0,0.12)]",
             "text-[13px] font-medium leading-[1.25] text-white/68 transition-[background-color,border-color,color,box-shadow] duration-500",
             "hover:border-white/30 hover:bg-white/[0.09] hover:text-white/95 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.16),0_12px_32px_rgba(0,0,0,0.2)]",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30",

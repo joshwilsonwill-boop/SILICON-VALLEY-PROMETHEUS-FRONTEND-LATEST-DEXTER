@@ -496,7 +496,7 @@ const COMPOSER_MODES = [
 ] as const;
 
 const STUDIO_DISPLAY_FONT_STYLE: React.CSSProperties = {
-    fontFamily: 'var(--font-migra), var(--font-vogue-display), var(--font-playfair-display), Georgia, serif',
+    fontFamily: 'var(--font-elegist)',
 };
 
 interface PromptComposerSubmitPayload {

@@ -15,6 +15,7 @@ import { useAuthInteraction, type AuthActiveField } from '@/components/auth/auth
 import { markPendingVerificationEmailSent, writePendingVerificationEmail } from '@/lib/auth/pending-verification'
 import { normalizeNextPath } from '@/lib/auth/redirect'
 import { normalizeUxError } from '@/lib/ux/errors'
+import { markOnboardingPending } from '@/lib/onboarding'
 
 function isValidEmail(email: string) {
   return email.includes('@')
@@ -106,6 +107,7 @@ export function SignupForm({ compact = false }: SignupFormProps) {
               }
               if (!res.ok) throw new Error(data.error || 'Signup failed')
               console.log('signup', { email })
+              markOnboardingPending(email)
               if (data.requiresVerification) {
                 writePendingVerificationEmail(email)
                 markPendingVerificationEmailSent(email)

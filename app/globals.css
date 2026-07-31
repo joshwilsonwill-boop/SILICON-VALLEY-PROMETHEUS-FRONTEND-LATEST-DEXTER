@@ -6,6 +6,7 @@
 :root {
   --font-primary: var(--font-inter);
   --font-display: var(--font-elegist);
+  --font-subtext: var(--font-black-delights);
   --theme-background: #0A0A0F;
   --theme-foreground: #E8E8ED;
   --theme-accent: #38BDF8;
@@ -131,6 +132,14 @@ body {
 @layer utilities {
   .font-elegist {
     font-family: var(--font-elegist);
+  }
+
+  .font-subtext {
+    font-family: var(--font-subtext), var(--font-primary), sans-serif;
+  }
+
+  .font-vogue {
+    font-family: var(--font-vogue-display), var(--font-primary), sans-serif;
   }
 }
 
@@ -661,6 +670,10 @@ body {
       radial-gradient(circle at top, rgba(76, 88, 126, 0.18) 0%, rgba(76, 88, 126, 0.06) 22%, rgba(5, 6, 10, 0) 54%),
       linear-gradient(180deg, rgba(8, 9, 14, 0.98) 0%, rgba(5, 6, 10, 1) 100%);
     color-scheme: dark;
+  }
+
+  p {
+    font-family: var(--font-subtext), var(--font-primary), sans-serif;
   }
 
   .editor-root {

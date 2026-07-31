@@ -3,42 +3,34 @@
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useForm, useWatch } from 'react-hook-form'
+import { useForm } from 'react-hook-form'
 import { z } from 'zod'
+import { ArrowUp, LoaderCircle, Sparkles, X } from 'lucide-react'
 
-import { InlineLoadingAnimation } from '@/components/loading-animation'
-import { Button } from '@/components/ui/button'
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { cn } from '@/lib/utils'
 
 const createProjectSchema = z.object({
-  title: z.string().trim().min(1, 'Title is required').max(100, 'Keep title under 100 characters'),
-  description: z.string().trim().max(500, 'Keep description under 500 characters').optional(),
-  template: z.enum(['blank', 'social-media', 'youtube', 'tiktok', 'instagram']),
+  prompt: z.string().trim().min(1, 'Tell Prometheus what you want to make.').max(500, 'Keep the idea under 500 characters.'),
 })
 
 type CreateProjectFormValues = z.infer<typeof createProjectSchema>
 
-const TEMPLATE_OPTIONS: Array<{ value: CreateProjectFormValues['template']; label: string; ratio: string }> = [
-  { value: 'blank', label: 'Blank', ratio: 'Freeform' },
-  { value: 'social-media', label: 'Social Media', ratio: '4:5' },
-  { value: 'youtube', label: 'YouTube', ratio: '16:9' },
-  { value: 'tiktok', label: 'TikTok', ratio: '9:16' },
-  { value: 'instagram', label: 'Instagram', ratio: '1:1' },
-]
-
 export interface CreateProjectModalProps {
   open: boolean
   onClose: () => void
+}
+
+function getProjectTitle(prompt: string) {
+  const firstThought = prompt.trim().split(/[.?!\n]/)[0]?.trim() || 'Untitled project'
+  return firstThought.slice(0, 100)
 }
 
 export function CreateProjectModal({ open, onClose }: CreateProjectModalProps) {
@@ -47,9 +39,7 @@ export function CreateProjectModal({ open, onClose }: CreateProjectModalProps) {
   const form = useForm<CreateProjectFormValues>({
     resolver: zodResolver(createProjectSchema),
     defaultValues: {
-      title: '',
-      description: '',
-      template: 'blank',
+      prompt: '',
     },
   })
 
@@ -58,11 +48,7 @@ export function CreateProjectModal({ open, onClose }: CreateProjectModalProps) {
     handleSubmit,
     register,
     reset,
-    setValue,
-    control,
   } = form
-
-  const selectedTemplate = useWatch({ control, name: 'template' })
 
   React.useEffect(() => {
     if (!open) {
@@ -79,7 +65,10 @@ export function CreateProjectModal({ open, onClose }: CreateProjectModalProps) {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(values),
+      body: JSON.stringify({
+        title: getProjectTitle(values.prompt),
+        prompt: values.prompt.trim(),
+      }),
     })
     const payload = (await response.json().catch(() => null)) as
       | { success?: true; project?: { id: string } }
@@ -97,75 +86,50 @@ export function CreateProjectModal({ open, onClose }: CreateProjectModalProps) {
 
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
-      <DialogContent className="max-w-xl border-white/10 bg-[#0a0a0d] text-white">
-        <DialogHeader>
-          <DialogTitle>Create new project</DialogTitle>
-          <DialogDescription className="text-white/54">
-            Start a blank production workspace or pick a preset aspect ratio.
-          </DialogDescription>
+      <DialogContent
+        showCloseButton={false}
+        className="w-[calc(100vw-2rem)] max-w-2xl rounded-md border-white/15 bg-[#0a0a0b] p-2 shadow-[0_28px_80px_-28px_rgba(0,0,0,0.96)]"
+      >
+        <DialogHeader className="sr-only">
+          <DialogTitle>Create a project with Prometheus</DialogTitle>
+          <DialogDescription>Describe the piece you want to make and Prometheus will prepare the project.</DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={onSubmit} className="space-y-5">
-          <div className="space-y-2">
-            <label className="text-sm text-white/68" htmlFor="create-project-title">
-              Title
-            </label>
+        <form onSubmit={onSubmit} className="space-y-2">
+          <label className="sr-only" htmlFor="create-project-prompt">
+            What do you want to make?
+          </label>
+          <div className="flex min-h-12 items-center gap-2 border border-white/12 bg-white/[0.03] p-1.5 transition-colors duration-200 focus-within:border-[#d3ad75]/75 focus-within:bg-white/[0.05]">
+            <span className="flex size-9 shrink-0 items-center justify-center text-[#d3ad75]" aria-hidden="true">
+              <Sparkles className="size-4" strokeWidth={1.5} />
+            </span>
             <Input
-              id="create-project-title"
+              id="create-project-prompt"
               autoFocus
-              {...register('title')}
-              className="h-11 rounded-xl border-white/16 bg-white/[0.06] text-white"
+              autoComplete="off"
+              placeholder="What do you want to make?"
+              {...register('prompt')}
+              className="h-10 min-w-0 border-0 bg-transparent px-0 text-base text-white placeholder:text-white/36 focus:border-0 focus:ring-0"
             />
-            {errors.title ? <p className="text-xs text-rose-300">{errors.title.message}</p> : null}
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              aria-label="Generate project"
+              className="flex size-10 shrink-0 items-center justify-center bg-[#d3ad75] text-black transition-colors duration-200 hover:bg-[#f1d09d] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f1d09d] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0b] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isSubmitting ? <LoaderCircle className="size-4 animate-spin" strokeWidth={1.75} /> : <ArrowUp className="size-4" strokeWidth={1.75} />}
+            </button>
+            <DialogClose
+              type="button"
+              aria-label="Close project creator"
+              className="flex size-10 shrink-0 items-center justify-center text-white/44 transition-colors duration-200 hover:bg-white/[0.07] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/35"
+            >
+              <X className="size-4" strokeWidth={1.5} />
+            </DialogClose>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm text-white/68" htmlFor="create-project-description">
-              Description
-            </label>
-            <Textarea
-              id="create-project-description"
-              {...register('description')}
-              className="min-h-24 rounded-xl border-white/16 bg-white/[0.06] text-white"
-            />
-            {errors.description ? <p className="text-xs text-rose-300">{errors.description.message}</p> : null}
-          </div>
-
-          <div className="space-y-3">
-            <label className="text-sm text-white/68">Template</label>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {TEMPLATE_OPTIONS.map((template) => (
-                <button
-                  key={template.value}
-                  type="button"
-                  onClick={() => setValue('template', template.value, { shouldDirty: true })}
-                  className={cn(
-                    'rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-left transition-colors hover:border-white/20',
-                    selectedTemplate === template.value && 'border-[var(--theme-accent)] bg-white/[0.06]',
-                  )}
-                >
-                  <div className="text-sm font-medium text-white">{template.label}</div>
-                  <div className="mt-1 text-xs text-white/42">{template.ratio}</div>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {submitError ? (
-            <div className="rounded-xl border border-rose-300/20 bg-rose-300/[0.08] p-3 text-sm text-rose-100">
-              {submitError}
-            </div>
-          ) : null}
-
-          <DialogFooter>
-            <Button type="button" variant="outline" className="border-white/10 bg-white/5 text-white hover:bg-white/10" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isSubmitting} className="bg-white text-black hover:bg-white/90">
-              {isSubmitting ? <InlineLoadingAnimation size={16} label="Creating project" /> : null}
-              Create
-            </Button>
-          </DialogFooter>
+          {errors.prompt ? <p className="px-1 text-xs text-rose-300">{errors.prompt.message}</p> : null}
+          {submitError ? <p role="alert" className="px-1 text-xs text-rose-300">{submitError}</p> : null}
         </form>
       </DialogContent>
     </Dialog>

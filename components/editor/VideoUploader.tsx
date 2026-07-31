@@ -9,6 +9,7 @@ import AwsS3Multipart from '@uppy/aws-s3-multipart'
 import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
+import { dispatchCompletionEvent } from './completion-event'
 
 export interface VideoUploaderProps {
   onUploadSuccess: (url: string, filename: string) => void
@@ -121,6 +122,7 @@ export function VideoUploader({ onUploadSuccess, onCancel, className }: VideoUpl
     uppy.on('upload-success', (file, response) => {
       const url = (response.body as any).url
       setUploadState(prev => ({ ...prev, status: 'complete', progress: 100 }))
+      dispatchCompletionEvent({ process: 'source-upload' })
       toast.success('Upload complete')
       setTimeout(() => {
         onUploadSuccess(url, file?.name || 'Project')

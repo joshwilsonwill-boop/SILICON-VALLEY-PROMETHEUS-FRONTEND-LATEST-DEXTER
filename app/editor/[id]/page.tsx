@@ -80,6 +80,7 @@ const EditorialComposerFrameAssist = safeDynamic(() => import('@/components/edit
 const FrameComposerDraftMirror = safeDynamic(() => import('@/components/editor/frame-composer-draft-mirror').then(mod => ({ default: mod.FrameComposerDraftMirror })))
 
 import { ViralClipTrigger } from '@/components/editor/viral-clip-trigger'
+import { dispatchCompletionEvent } from '@/components/editor/completion-event'
 import { useSourceStage } from '@/hooks/use-source-stage'
 import { useViralClipJob } from '@/hooks/use-viral-clip-job'
 import { clearPendingEditorNavigation, getRememberedEditorReturnPath } from '@/lib/editor-navigation'
@@ -6374,6 +6375,19 @@ function OriginalEditorPage() {
     refreshBackendHealth: refreshViralClipBackendHealth,
     refreshResult: refreshViralClipResult,
   } = viralClipJob
+  const previousViralClipLifecycleRef = React.useRef(viralClipLifecycle)
+
+  React.useEffect(() => {
+    const becameComplete =
+      previousViralClipLifecycleRef.current !== 'completed' &&
+      viralClipLifecycle === 'completed'
+
+    if (becameComplete) {
+      dispatchCompletionEvent({ process: 'video-animation' })
+    }
+
+    previousViralClipLifecycleRef.current = viralClipLifecycle
+  }, [viralClipLifecycle])
 
   React.useEffect(() => {
     if (isEditingTitle) {

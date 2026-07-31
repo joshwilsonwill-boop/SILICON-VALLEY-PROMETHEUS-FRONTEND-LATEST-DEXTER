@@ -18,6 +18,7 @@ import { ChatSuggestions } from './ai-chat-suggestions'
 import { PrometheusChatHistoryDrawer } from './prometheus-chat-history-drawer'
 import { AIChatStreamingText } from './ai-chat-streaming-text'
 import { PrometheusChatActivity } from './prometheus-chat-activity'
+import { ActiveChatEngagement } from './active-chat-engagement'
 
 export type PrometheusChatMessage = {
   id: string
@@ -369,6 +370,20 @@ export function PrometheusChat({
               suggestionsHidden && "invisible pointer-events-none",
             )}
           />
+          <AnimatePresence initial={false}>
+            {!suggestionsHidden ? (
+              <ActiveChatEngagement
+                draft={composedDraft}
+                workspaceTab={workspaceTab}
+                hasProject={Boolean(projectId)}
+                onSelect={(prompt) => {
+                  setDraft(prompt)
+                  inputRef.current?.focus()
+                }}
+                className="mx-[-1.25rem] mb-3 md:mx-[-2.5rem]"
+              />
+            ) : null}
+          </AnimatePresence>
           <form
             className="mx-auto flex min-h-14 w-full max-w-3xl items-center gap-3 rounded-2xl border border-white/10 bg-black px-5 py-3 transition-colors focus-within:border-white/22"
             onSubmit={(event) => {
@@ -567,9 +582,10 @@ function EmptyChatGreeting({ greeting }: { greeting: string }) {
   return (
     <div className="flex min-h-full items-center justify-center px-4 pb-24 text-center">
       <CinematicTextReveal
-        as="h1"
-        variant="measured"
-        className="max-w-4xl text-balance font-display text-[clamp(2.25rem,5.2vw,5.75rem)] font-normal leading-[0.95] tracking-normal text-white/92"
+      as="h1"
+      variant="measured"
+      style={{ fontFamily: 'var(--font-elegist)' }}
+      className="max-w-4xl text-balance font-display text-[clamp(2.25rem,5.2vw,5.75rem)] font-normal leading-[0.95] tracking-normal text-white/92"
       >
         {greeting}
       </CinematicTextReveal>

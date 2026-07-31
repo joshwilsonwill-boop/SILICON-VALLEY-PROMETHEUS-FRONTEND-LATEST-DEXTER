@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { getSiteOrigin, normalizeNextPath } from '@/lib/auth/redirect'
 import { createClient } from '@/lib/supabase/client'
 import { normalizeUxError } from '@/lib/ux/errors'
+import { markOnboardingPending } from '@/lib/onboarding'
 import { toast } from 'sonner'
 
 import { GoogleIcon, AppleIcon } from './auth-visuals'
@@ -78,6 +79,7 @@ export function SocialAuthButtons({ providers }: SocialAuthButtonsProps) {
       }, 3000)
 
       try {
+        if (window.location.pathname === '/signup') markOnboardingPending()
         const supabase = createClient()
         const origin = getSiteOrigin()
         const redirectTo = new URL('/auth/confirm', origin)

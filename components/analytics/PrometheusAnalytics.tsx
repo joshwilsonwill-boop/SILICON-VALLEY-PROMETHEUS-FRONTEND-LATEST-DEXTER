@@ -2,8 +2,8 @@
 
 import * as React from 'react'
 import Image from 'next/image'
-import { LayoutGroup, motion, useReducedMotion } from 'framer-motion'
-import { Activity, Eye, Heart, PlayCircle, Share2 } from 'lucide-react'
+import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from 'framer-motion'
+import { Activity, ArrowUpRight, Eye, Heart, LoaderCircle, Play, PlayCircle, Share2, Sparkles } from 'lucide-react'
 
 import { BackButton } from '@/components/navigation/BackButton'
 import { cn } from '@/lib/utils'
@@ -17,16 +17,8 @@ type ChartPoint = {
   engagement: number
 }
 
-type AssetItem = {
-  id: string
-  title: string
-  kind: 'jpg' | 'gif'
-  src: string
-  alt: string
-}
-
 type MetricCard = {
-  key: keyof typeof mockMetrics
+  key: 'reach' | 'watchTime' | 'likes' | 'shares'
   label: string
   icon: React.ComponentType<{ className?: string }>
   sparkline: number[]
@@ -38,6 +30,20 @@ type TopSignal = {
   image: string
   retention: string
   engagement: string
+  views?: number
+  status?: string
+}
+
+type LiveVideo = {
+  id: string
+  title: string
+  status: string
+  thumbnailUrl: string | null
+  totals: {
+    views: number
+    retentionRate: number
+    engagementRate: number
+  }
 }
 
 type AnalyticsPayload = {
@@ -48,118 +54,13 @@ type AnalyticsPayload = {
     shares: number
     watchTimeSeconds: number
   }
-  videos: Array<{
-    id: string
-    title: string
-    status: string
-    thumbnailUrl: string | null
-    totals: {
-      views: number
-      retentionRate: number
-      engagementRate: number
-    }
-  }>
+  videos: LiveVideo[]
+  timeSeries: ChartPoint[]
+  dataSource: 'youtube_live' | 'cached_platform_reports' | 'unavailable'
+  metricsWarning: string | null
 }
 
-export const mockMetrics = {
-  reach: 284120,
-  watchTime: 18640,
-  likes: 9250,
-  shares: 1244,
-} as const
-
-export const mockChartData: Record<AnalyticsRange, ChartPoint[]> = {
-  '7D': [
-    { label: 'Mon', reach: 12480, watchTime: 4200, engagement: 6.2 },
-    { label: 'Tue', reach: 13820, watchTime: 4380, engagement: 6.8 },
-    { label: 'Wed', reach: 14530, watchTime: 4560, engagement: 7.2 },
-    { label: 'Thu', reach: 15920, watchTime: 4680, engagement: 7.8 },
-    { label: 'Fri', reach: 17360, watchTime: 4960, engagement: 8.1 },
-    { label: 'Sat', reach: 16420, watchTime: 4720, engagement: 7.6 },
-    { label: 'Sun', reach: 18120, watchTime: 5180, engagement: 8.4 },
-  ],
-  '30D': Array.from({ length: 12 }, (_, index) => {
-    const offset = index + 1
-    const reach = Math.round(11800 + offset * 1120 + Math.sin(index * 0.85) * 760 + Math.cos(index * 0.55) * 420)
-    return {
-      label: `W${offset}`,
-      reach,
-      watchTime: Math.round(reach * 0.34),
-      engagement: Math.round((5.8 + index * 0.22 + Math.sin(index * 0.65) * 0.55) * 10) / 10,
-    }
-  }),
-  '90D': Array.from({ length: 9 }, (_, index) => {
-    const offset = index + 1
-    const reach = Math.round(9650 + offset * 2340 + Math.sin(index * 0.9) * 1230 + Math.cos(index * 0.35) * 960)
-    return {
-      label: `M${offset}`,
-      reach,
-      watchTime: Math.round(reach * 0.31),
-      engagement: Math.round((4.9 + index * 0.28 + Math.sin(index * 0.4) * 0.42) * 10) / 10,
-    }
-  }),
-}
-
-export const mockAssets: Array<AssetItem | null> = [
-  {
-    id: 'asset-1',
-    title: 'Golden sky plate',
-    kind: 'jpg',
-    src: '/style-previews/dark-cinematic-1.jpg',
-    alt: 'Cinematic clouds with high contrast editorial lighting',
-  },
-  {
-    id: 'asset-2',
-    title: 'Portrait cut',
-    kind: 'jpg',
-    src: '/style-previews/iman-1.jpg',
-    alt: 'Editorial portrait still',
-  },
-  {
-    id: 'asset-3',
-    title: 'Archive frame',
-    kind: 'gif',
-    src: '/style-previews/podcast-1.jpg',
-    alt: 'Vintage documentary frame',
-  },
-  {
-    id: 'asset-4',
-    title: 'Motion note',
-    kind: 'jpg',
-    src: '/style-previews/reels-heat-1.webp',
-    alt: 'Dynamic social edit still',
-  },
-  null,
-  {
-    id: 'asset-5',
-    title: 'Soft grain',
-    kind: 'jpg',
-    src: '/style-previews/docs-story-1.jpg',
-    alt: 'Atmospheric documentary texture',
-  },
-  null,
-  {
-    id: 'asset-6',
-    title: 'Editorial still',
-    kind: 'jpg',
-    src: '/style-previews/red-statue-1.jpg',
-    alt: 'Classical high contrast portrait',
-  },
-  null,
-  null,
-  null,
-  null,
-]
-
-export const mockTopSignal: TopSignal = {
-  title: 'Signal No. 04',
-  subtitle: 'The strongest export in the current review window.',
-  image: '/style-previews/dark-cinematic-1.jpg',
-  retention: '78%',
-  engagement: '12.4%',
-}
-
-const mockMetricCards: MetricCard[] = [
+const metricCards: MetricCard[] = [
   { key: 'reach', label: 'Reach', icon: Eye, sparkline: [12, 18, 15, 24, 20, 28, 31, 29] },
   { key: 'watchTime', label: 'Watch time', icon: Activity, sparkline: [7, 11, 14, 12, 18, 20, 23, 25] },
   { key: 'likes', label: 'Likes', icon: Heart, sparkline: [4, 6, 8, 10, 11, 13, 12, 15] },
@@ -171,31 +72,41 @@ const rangeOptions: AnalyticsRange[] = ['7D', '30D', '90D']
 export function PrometheusAnalytics() {
   const reduceMotion = useReducedMotion()
   const [activeRange, setActiveRange] = React.useState<AnalyticsRange>('30D')
-  const [titleComplete, setTitleComplete] = React.useState(false)
-  const [assetSlots, setAssetSlots] = React.useState<Array<AssetItem | null>>(mockAssets)
   const [livePayload, setLivePayload] = React.useState<AnalyticsPayload | null>(null)
-  const chartData = React.useMemo(() => mockChartData[activeRange], [activeRange])
-  const handleTitleComplete = React.useCallback(() => setTitleComplete(true), [])
+  const [loadState, setLoadState] = React.useState<'loading' | 'ready' | 'error'>('loading')
+  const chartData = React.useMemo(() => selectChartRange(livePayload?.timeSeries ?? [], activeRange), [activeRange, livePayload])
   const displayMetrics = React.useMemo(
     () => ({
-      reach: livePayload?.totals.views ?? mockMetrics.reach,
-      watchTime: livePayload?.totals.watchTimeSeconds ?? mockMetrics.watchTime,
-      likes: livePayload?.totals.likes ?? mockMetrics.likes,
-      shares: livePayload?.totals.shares ?? mockMetrics.shares,
+      reach: livePayload?.totals.views ?? 0,
+      watchTime: livePayload?.totals.watchTimeSeconds ?? 0,
+      likes: livePayload?.totals.likes ?? 0,
+      shares: livePayload?.totals.shares ?? 0,
     }),
     [livePayload],
   )
-  const displaySignal = React.useMemo<TopSignal>(() => {
-    const topVideo = livePayload?.videos[0]
-    if (!topVideo) return mockTopSignal
+  const displaySignal = React.useMemo<TopSignal | null>(() => {
+    const topVideo = livePayload?.videos
+      .slice()
+      .sort((first, second) => second.totals.views - first.totals.views)[0]
+    if (!topVideo) return null
 
     return {
       title: topVideo.title,
       subtitle: topVideo.status,
-      image: topVideo.thumbnailUrl?.startsWith('/') ? topVideo.thumbnailUrl : mockTopSignal.image,
+      image: topVideo.thumbnailUrl ?? '',
       retention: `${topVideo.totals.retentionRate}%`,
       engagement: `${topVideo.totals.engagementRate}%`,
+      views: topVideo.totals.views,
+      status: topVideo.status,
     }
+  }, [livePayload])
+
+  const videoLedger = React.useMemo(() => {
+    if (!livePayload?.videos.length) return []
+    return livePayload.videos
+      .slice()
+      .sort((first, second) => second.totals.views - first.totals.views)
+      .slice(0, 6)
   }, [livePayload])
 
   React.useEffect(() => {
@@ -207,9 +118,15 @@ export function PrometheusAnalytics() {
         const data = (await response.json().catch(() => null)) as AnalyticsPayload | null
         if (!cancelled && response.ok && data?.success) {
           setLivePayload(data)
+          setLoadState('ready')
+        } else if (!cancelled) {
+          setLoadState('error')
         }
       } catch {
-        if (!cancelled) setLivePayload(null)
+        if (!cancelled) {
+          setLivePayload(null)
+          setLoadState('error')
+        }
       }
     }
 
@@ -220,38 +137,39 @@ export function PrometheusAnalytics() {
   }, [])
 
   return (
-    <main className="relative min-h-screen overflow-x-hidden bg-[#0A0A0C] text-[#EAEAEA]">
+    <main className="relative min-h-full overflow-x-hidden bg-[#080909] text-[#F1F0EA]">
       <SpectraNoise />
 
-      <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-[1600px] flex-col">
-        <header className="flex items-start gap-3 px-4 pt-5 sm:px-8 sm:pt-8">
-          <BackButton fallbackHref="/studio" className="border border-white/8 bg-white/[0.02]" />
-          <div className="min-w-0 pt-0.5">
-            <p className="text-[10px] uppercase tracking-[0.25em] text-[#444]">PERFORMANCE</p>
-            <div className="mt-4">
-              <TypewriterCustomFallback
+      <div className="relative z-10 mx-auto flex min-h-full w-full max-w-[1720px] flex-col px-4 pb-8 pt-4 sm:px-7 sm:pb-12 sm:pt-7 lg:px-10">
+        <header className="grid gap-6 border-b border-white/[0.09] pb-7 lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:items-end lg:gap-8">
+          <BackButton fallbackHref="/studio" className="mb-0 border border-white/[0.12] bg-white/[0.025] text-white hover:bg-white/[0.08]" />
+          <div className="min-w-0">
+            <div className="flex items-center gap-3">
+              <span className="size-1.5 animate-pulse rounded-full bg-[#D7FF4F]" />
+              <p className="text-[10px] uppercase tracking-[0.28em] text-[#8D8E85]">PERFORMANCE SUITE / 2026</p>
+            </div>
+            <div className="mt-4 flex flex-wrap items-end gap-x-5 gap-y-2">
+              <CinematicTitle
                 text="Analytics"
-                onComplete={handleTitleComplete}
-                delayMs={400}
-                className="text-[48px] font-light leading-none text-[#EAEAEA]"
-              />
-              <TextIlluminateFallback
-                text="Cross-platform telemetry, distilled."
-                delayMs={titleComplete ? 500 : 0}
-                className="mt-3 block text-[14px] font-normal leading-6 text-[#555]"
+                className="font-[family-name:var(--font-vogue-display)] text-[clamp(3.1rem,6vw,6.4rem)] font-normal leading-[0.78] text-[#F1F0EA]"
               />
             </div>
           </div>
+          <div className="flex items-center gap-3 text-[10px] uppercase tracking-[0.2em] text-[#8D8E85] lg:justify-self-end">
+            <span>Last 30 days</span>
+            <span className="h-px w-8 bg-white/20" />
+            <span className="text-[#D7FF4F]">Live read</span>
+          </div>
         </header>
 
-        <section className="mt-12 px-8">
-          <div className="flex gap-3 overflow-x-auto pb-2 sm:grid sm:grid-cols-2 sm:overflow-visible lg:grid-cols-4">
-            {mockMetricCards.map((card, index) => {
+        <section className="mt-7">
+          <div className="grid divide-y divide-white/[0.09] border-y border-white/[0.09] sm:grid-cols-2 sm:divide-x sm:divide-y-0 lg:grid-cols-4">
+            {metricCards.map((card, index) => {
               const Icon = card.icon
               return (
                 <motion.article
                   key={card.key}
-                  className="min-w-[15rem] rounded-[12px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.02)] p-6 backdrop-blur-[12px] transition-all duration-300 hover:-translate-y-0.5 hover:border-[rgba(255,255,255,0.1)] md:min-w-0"
+                  className="group min-w-0 px-4 py-5 first:pl-0 sm:px-5 sm:py-6 lg:px-7 lg:first:pl-0"
                   style={{
                     transition: 'all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
                   }}
@@ -263,14 +181,14 @@ export function PrometheusAnalytics() {
                     ease: [0.25, 0.46, 0.45, 0.94],
                   }}
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] uppercase tracking-[0.2em] text-[#555]">{card.label}</span>
-                    <Icon className="size-4 text-[#555]" />
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-[10px] uppercase tracking-[0.22em] text-[#8D8E85]">{card.label}</span>
+                    <Icon className="size-3.5 text-[#A8AA9D] transition-transform duration-500 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
                   </div>
-                  <div className="mt-5 text-[32px] font-light leading-none text-[#EAEAEA]">
-                    {formatMetric(card.key, displayMetrics[card.key])}
+                  <div className="mt-5 font-[family-name:var(--font-geist)] text-[clamp(2rem,3vw,3.3rem)] font-light leading-none tracking-tight text-[#F1F0EA]">
+                    <AnimatedMetric value={displayMetrics[card.key]} metricKey={card.key} />
                   </div>
-                  <div className="mt-4">
+                  <div className="mt-5 max-w-[11rem]">
                     <MetricSparkline values={card.sparkline} />
                   </div>
                 </motion.article>
@@ -279,16 +197,42 @@ export function PrometheusAnalytics() {
           </div>
         </section>
 
-        <section className="mt-6 grid gap-4 px-8 lg:grid-cols-[minmax(0,1fr)_320px]">
-          <ReachCurveChart data={chartData} activeRange={activeRange} onRangeChange={setActiveRange} />
+        <section className="mt-8 grid gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(300px,0.36fr)] xl:gap-10">
+          <div className="min-w-0">
+            <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.28em] text-[#8D8E85]">Signal trajectory</p>
+                <h2 className="mt-2 font-[family-name:var(--font-vogue-display)] text-[clamp(2rem,3.4vw,3.8rem)] leading-none text-[#F1F0EA]">Reach, without the noise.</h2>
+              </div>
+              <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-[#999A91]">
+                <span className="size-1.5 rounded-full bg-[#D7FF4F]" />
+                <span>All channels</span>
+              </div>
+            </div>
+            <ReachCurveChart
+              data={chartData}
+              activeRange={activeRange}
+              onRangeChange={setActiveRange}
+              loading={loadState === 'loading'}
+              message={loadState === 'error' ? 'Unable to load analytics. Refresh the page to try again.' : livePayload?.metricsWarning ?? null}
+            />
+          </div>
           <TiltSignalCard signal={displaySignal} />
         </section>
 
-
-        <section className="px-8 pb-12 pt-12">
-          <p className="text-[10px] uppercase tracking-[0.25em] text-[#444]">RECENT ASSETS</p>
-          <div className="mt-4">
-            <RecentAssetsGrid items={assetSlots} onItemsChange={setAssetSlots} />
+        <section className="mt-12 border-t border-white/[0.09] pt-6" data-legacy-section="RECENT ASSETS">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.28em] text-[#8D8E85]">Video ledger</p>
+              <h2 className="mt-2 font-[family-name:var(--font-vogue-display)] text-[clamp(2rem,3.4vw,3.8rem)] leading-none text-[#F1F0EA]">Every cut. Accounted for.</h2>
+            </div>
+            <div className="flex items-center gap-2 text-[11px] text-[#A8AA9D]">
+              <Sparkles className="size-3.5 text-[#D7FF4F]" />
+              Ranked by reach
+            </div>
+          </div>
+          <div className="mt-7">
+            <RecentAssetsGrid videos={videoLedger} />
           </div>
         </section>
       </div>
@@ -298,15 +242,15 @@ export function PrometheusAnalytics() {
 
 function SpectraNoise() {
   return (
-    <div className="pointer-events-none fixed inset-0 z-0 opacity-60" aria-hidden="true">
-      <div className="absolute inset-0 bg-[#0A0A0C]" />
+    <div className="pointer-events-none fixed inset-0 z-0 opacity-100" aria-hidden="true">
+      <div className="absolute inset-0 bg-[#080909]" />
       <div className="prometheus-analytics-noise absolute inset-0" />
       <style>{`
         .prometheus-analytics-noise {
           background-image:
             radial-gradient(circle at 25% 12%, rgba(160, 180, 140, 0.025) 0 1px, transparent 1px),
-            radial-gradient(circle at 78% 82%, rgba(200, 170, 120, 0.02) 0 1px, transparent 1px),
-            repeating-radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.016) 0 1px, transparent 1px 3px);
+            radial-gradient(circle at 78% 82%, rgba(215, 255, 79, 0.018) 0 1px, transparent 1px),
+            repeating-radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.012) 0 1px, transparent 1px 3px);
           background-size: 3px 3px, 4px 4px, 7px 7px;
           animation: prometheusAnalyticsNoise 8s steps(8) infinite;
         }
@@ -321,6 +265,82 @@ function SpectraNoise() {
       `}</style>
     </div>
   )
+}
+
+function CinematicTitle({ text, className }: { text: string; className?: string }) {
+  const reduceMotion = useReducedMotion()
+
+  return (
+    <h1 className={cn('inline-flex overflow-hidden', className)} aria-label={text}>
+      {text.split('').map((character, index) => (
+        <motion.span
+          key={`${character}-${index}`}
+          aria-hidden="true"
+          initial={reduceMotion ? false : { opacity: 0, y: '0.5em', rotateX: -76, filter: 'blur(8px)' }}
+          animate={reduceMotion ? undefined : { opacity: 1, y: 0, rotateX: 0, filter: 'blur(0px)' }}
+          transition={{ duration: 0.62, delay: 0.12 + index * 0.075, ease: [0.16, 1, 0.3, 1] }}
+          style={{ transformOrigin: '50% 100%', display: character === ' ' ? 'inline-block' : undefined }}
+        >
+          {character === ' ' ? '\u00A0' : character}
+        </motion.span>
+      ))}
+    </h1>
+  )
+}
+
+function AnimatedMetric({ value, metricKey }: { value: number; metricKey: MetricCard['key'] }) {
+  const reduceMotion = useReducedMotion()
+  const [displayValue, setDisplayValue] = React.useState(reduceMotion ? value : 0)
+  const previousValue = React.useRef(0)
+
+  React.useEffect(() => {
+    if (reduceMotion) {
+      setDisplayValue(value)
+      previousValue.current = value
+      return
+    }
+
+    const startValue = previousValue.current
+    const startTime = performance.now()
+    let frame = 0
+    const duration = 900
+    const tick = (now: number) => {
+      const progress = Math.min((now - startTime) / duration, 1)
+      const eased = 1 - (1 - progress) ** 4
+      setDisplayValue(Math.round(startValue + (value - startValue) * eased))
+      if (progress < 1) frame = requestAnimationFrame(tick)
+      else previousValue.current = value
+    }
+    frame = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(frame)
+  }, [reduceMotion, value])
+
+  return <span className="tabular-nums">{formatMetric(metricKey, displayValue)}</span>
+}
+
+function selectChartRange(series: ChartPoint[], range: AnalyticsRange) {
+  const visiblePoints = series.slice(-(range === '7D' ? 7 : range === '30D' ? 30 : 90))
+  if (range !== '90D' || visiblePoints.length <= 18) return visiblePoints.map(formatChartPoint)
+
+  const groups = Array.from({ length: Math.ceil(visiblePoints.length / 7) }, () => [] as ChartPoint[])
+  visiblePoints.forEach((point, index) => groups[Math.floor(index / 7)]?.push(point))
+  return groups.filter((group) => group.length > 0).map((group) => {
+    const last = group[group.length - 1]!
+    return formatChartPoint({
+      label: last.label,
+      reach: group.reduce((sum, point) => sum + point.reach, 0),
+      watchTime: group.reduce((sum, point) => sum + point.watchTime, 0),
+      engagement: Math.round((group.reduce((sum, point) => sum + point.engagement, 0) / group.length) * 10) / 10,
+    })
+  })
+}
+
+function formatChartPoint(point: ChartPoint): ChartPoint {
+  const date = new Date(`${point.label}T00:00:00`)
+  return {
+    ...point,
+    label: Number.isNaN(date.getTime()) ? point.label : new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric' }).format(date),
+  }
 }
 
 function TypewriterCustomFallback({
@@ -459,8 +479,8 @@ function MetricSparkline({ values }: { values: number[] }) {
       <motion.path
         d={path}
         fill="none"
-        stroke="rgba(255,255,255,0.22)"
-        strokeWidth="1"
+        stroke="rgba(215,255,79,0.68)"
+        strokeWidth="1.15"
         strokeLinecap="round"
         strokeLinejoin="round"
         initial={reduceMotion ? false : { opacity: 0, strokeDashoffset: 120 }}
@@ -470,7 +490,7 @@ function MetricSparkline({ values }: { values: number[] }) {
       />
       <motion.path
         d={`${path} L 120 40 L 0 40 Z`}
-        fill="rgba(255,255,255,0.06)"
+        fill="rgba(215,255,79,0.07)"
         initial={reduceMotion ? false : { opacity: 0 }}
         animate={reduceMotion ? undefined : { opacity: 1 }}
         transition={{ duration: 0.9, ease: 'easeOut' }}
@@ -483,10 +503,14 @@ function ReachCurveChart({
   data,
   activeRange,
   onRangeChange,
+  loading,
+  message,
 }: {
   data: ChartPoint[]
   activeRange: AnalyticsRange
   onRangeChange: (range: AnalyticsRange) => void
+  loading: boolean
+  message: string | null
 }) {
   const reduceMotion = useReducedMotion()
   const chartRef = React.useRef<HTMLDivElement | null>(null)
@@ -509,25 +533,25 @@ function ReachCurveChart({
 
   return (
     <motion.section
-      className="rounded-[12px] border border-[rgba(255,255,255,0.04)] bg-[rgba(255,255,255,0.015)] p-5 backdrop-blur-[12px]"
+      className="relative overflow-hidden border border-white/[0.1] bg-[#0C0D0C] px-4 pb-3 pt-4 sm:px-6 sm:pb-4 sm:pt-5"
       initial={reduceMotion ? false : { opacity: 0, y: 14 }}
       animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
       transition={{ duration: 0.8, ease: 'easeOut', delay: 1.4 }}
     >
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex items-center justify-between gap-4 border-b border-white/[0.08] pb-4">
         <div>
-          <p className="text-[10px] uppercase tracking-[0.25em] text-[#444]">REACH CURVE</p>
-          <h2 className="mt-2 text-xl font-light text-[#EAEAEA]">Cross-platform reach curve</h2>
+          <p className="text-[10px] uppercase tracking-[0.25em] text-[#8D8E85]">REACH CURVE</p>
+          <p className="mt-1.5 text-[12px] text-[#A8AA9D]">Verified video reach over time</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center border border-white/[0.09] bg-black/20 p-1">
           {rangeOptions.map((range) => (
             <button
               key={range}
               type="button"
               onClick={() => onRangeChange(range)}
               className={cn(
-                'rounded-full border border-[rgba(255,255,255,0.05)] px-3 py-1 text-[11px] text-[#555] transition-colors duration-300 hover:text-[#AAA]',
-                activeRange === range && 'bg-[rgba(255,255,255,0.04)] text-[#CCC]',
+                'min-h-11 min-w-11 px-2 py-1.5 text-[10px] tracking-[0.08em] text-[#777970] transition-colors duration-300 hover:text-[#E8E8E0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D7FF4F]',
+                activeRange === range && 'bg-[#D7FF4F] text-[#0B0C0A]',
               )}
             >
               {range}
@@ -540,19 +564,23 @@ function ReachCurveChart({
         ref={chartRef}
         onPointerMove={handlePointerMove}
         onPointerLeave={() => setHoverIndex(null)}
-        className="relative mt-5 h-[300px] lg:h-[420px]"
+        className="relative mt-4 h-[280px] sm:h-[340px] lg:h-[420px]"
       >
-        {data.length === 0 ? (
-          <div className="absolute inset-0 grid place-items-center text-[13px] italic text-[#333]">
-            Awaiting signal...
+        {loading ? (
+          <div className="absolute inset-0 grid place-items-center" role="status" aria-label="Loading analytics">
+            <LoaderCircle className="size-5 animate-spin text-[#D7FF4F]" />
+          </div>
+        ) : data.length === 0 ? (
+          <div className="absolute inset-0 grid place-items-center px-6 text-center text-[13px] leading-6 text-[#8D8E85]">
+            {message ?? 'No video measurements are available for this period.'}
           </div>
         ) : (
           <>
             <svg viewBox="0 0 800 320" className="h-full w-full" role="img" aria-label="Reach trend">
               <defs>
                 <linearGradient id="analytics-reach-fill" x1="0" x2="0" y1="0" y2="1">
-                  <stop offset="0%" stopColor="rgba(255,255,255,0.06)" />
-                  <stop offset="100%" stopColor="rgba(255,255,255,0)" />
+                  <stop offset="0%" stopColor="rgba(215,255,79,0.16)" />
+                  <stop offset="100%" stopColor="rgba(215,255,79,0)" />
                 </linearGradient>
               </defs>
 
@@ -563,7 +591,7 @@ function ReachCurveChart({
                   x2="768"
                   y1={line.y}
                   y2={line.y}
-                  stroke="rgba(255,255,255,0.03)"
+                  stroke="rgba(255,255,255,0.075)"
                   strokeDasharray="4 8"
                 />
               ))}
@@ -575,39 +603,46 @@ function ReachCurveChart({
                   x2={point.x}
                   y1="32"
                   y2="288"
-                  stroke="rgba(255,255,255,0.02)"
+                  stroke="rgba(255,255,255,0.045)"
                 />
               ))}
 
-              <motion.path
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.g key={activeRange}>
+                  <motion.path
                 d={areaPath}
                 fill="url(#analytics-reach-fill)"
                 initial={reduceMotion ? false : { opacity: 0 }}
                 animate={reduceMotion ? undefined : { opacity: 1 }}
-                transition={{ duration: 1.1, ease: 'easeOut' }}
+                transition={{ duration: 0.55, ease: 'easeOut' }}
               />
-              <motion.path
+                  <motion.path
                 d={linePath}
                 fill="none"
-                stroke="rgba(255,255,255,0.2)"
-                strokeWidth="1"
+                stroke="rgba(215,255,79,0.96)"
+                strokeWidth="1.5"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                initial={reduceMotion ? false : { opacity: 0, strokeDashoffset: 120 }}
-                animate={reduceMotion ? undefined : { opacity: 1, strokeDashoffset: 0 }}
-                transition={{ duration: 1.1, ease: 'easeOut' }}
-                style={{ strokeDasharray: 120, strokeDashoffset: 120 }}
+                initial={reduceMotion ? false : { opacity: 0, pathLength: 0 }}
+                animate={reduceMotion ? undefined : { opacity: 1, pathLength: 1 }}
+                exit={reduceMotion ? undefined : { opacity: 0 }}
+                transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
               />
 
               {points.map((point, index) => (
-                <circle
+                    <motion.circle
                   key={`${point.x}-${point.y}-${index}`}
                   cx={point.x}
                   cy={point.y}
                   r={hoverIndex === index ? 4 : 2.2}
-                  fill={hoverIndex === index ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.42)'}
+                  fill={hoverIndex === index ? 'rgba(215,255,79,1)' : 'rgba(215,255,79,0.68)'}
+                  initial={reduceMotion ? false : { opacity: 0, scale: 0 }}
+                  animate={reduceMotion ? undefined : { opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.38 + index * 0.035, duration: 0.24 }}
                 />
               ))}
+                </motion.g>
+              </AnimatePresence>
 
               {data.map((item, index) => (
                 <text key={`${item.label}-${index}`} x={points[index]?.x ?? 0} y="310" textAnchor="middle" fill="#555" fontSize="11">
@@ -624,9 +659,9 @@ function ReachCurveChart({
                   top: Math.max(hoverPoint.y - 18, 24),
                 }}
               >
-                <div className="text-[10px] uppercase tracking-[0.2em] text-[#555]">{hoverDatum.label}</div>
-                <div className="mt-1 text-sm text-[#EAEAEA]">{formatNumber(hoverDatum.reach)} reach</div>
-                <div className="mt-0.5 text-[11px] text-[#888]">{hoverDatum.engagement}% engagement</div>
+                <div className="text-[10px] uppercase tracking-[0.2em] text-[#A8AA9D]">{hoverDatum.label}</div>
+                <div className="mt-1 text-sm text-[#F1F0EA]">{formatNumber(hoverDatum.reach)} reach</div>
+                <div className="mt-0.5 text-[11px] text-[#A8AA9D]">{hoverDatum.engagement}% engagement</div>
               </div>
             ) : null}
           </>
@@ -636,7 +671,7 @@ function ReachCurveChart({
   )
 }
 
-function TiltSignalCard({ signal }: { signal: TopSignal }) {
+function TiltSignalCard({ signal }: { signal: TopSignal | null }) {
   const cardRef = React.useRef<HTMLDivElement | null>(null)
 
   const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
@@ -660,13 +695,16 @@ function TiltSignalCard({ signal }: { signal: TopSignal }) {
   }
 
   return (
-    <aside className="rounded-[12px] bg-transparent lg:mt-0">
-      <p className="text-[10px] uppercase tracking-[0.25em] text-[#444]">TOP SIGNAL</p>
+    <aside className="min-w-0 xl:pt-0">
+      <div className="flex items-center justify-between border-b border-white/[0.09] pb-4">
+        <p className="text-[10px] uppercase tracking-[0.28em] text-[#8D8E85]">TOP SIGNAL</p>
+        <span className="text-[10px] uppercase tracking-[0.18em] text-[#D7FF4F]">01 / 01</span>
+      </div>
       <div
         ref={cardRef}
         onPointerMove={handlePointerMove}
         onPointerLeave={handleLeave}
-        className="mt-4 overflow-hidden rounded-[12px] border border-[rgba(255,255,255,0.04)] bg-[#111112] shadow-[0_20px_60px_rgba(0,0,0,0.5)]"
+        className="group relative mt-5 overflow-hidden border border-white/[0.1] bg-[#111310] shadow-[0_28px_70px_rgba(0,0,0,0.4)]"
         style={{
           transform: 'perspective(800px) rotateX(var(--rx)) rotateY(var(--ry))',
           transition: 'transform 0.1s ease-out',
@@ -674,113 +712,117 @@ function TiltSignalCard({ signal }: { signal: TopSignal }) {
           '--ry': '0deg',
         } as React.CSSProperties}
       >
-        <div className="relative aspect-square overflow-hidden">
-          <Image src={signal.image} alt={signal.title} fill sizes="320px" className="object-cover" />
-          <div className="absolute inset-0 bg-[linear-gradient(to_top,rgba(0,0,0,0.8)_0%,transparent_60%)]" />
-          <div className="absolute bottom-0 left-0 right-0 p-5">
-            <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.2em] text-[#888]">
-              <PlayCircle className="size-4 text-[#999]" />
+        <div className="relative aspect-[4/5] overflow-hidden">
+          {signal?.image ? <Image src={signal.image} alt={signal.title} fill sizes="(max-width: 1280px) 100vw, 30vw" className="object-cover transition-transform duration-700 group-hover:scale-[1.035]" /> : null}
+          <div className={cn('absolute inset-0', signal?.image ? 'bg-[linear-gradient(180deg,rgba(0,0,0,0.06)_0%,rgba(0,0,0,0.12)_40%,rgba(3,4,3,0.94)_100%)]' : 'bg-[radial-gradient(circle_at_40%_25%,rgba(215,255,79,0.12),transparent_38%),#10110F]')} />
+          {signal ? <div className="absolute left-4 top-4 flex items-center gap-2 border border-white/[0.14] bg-black/20 px-2.5 py-1.5 text-[9px] uppercase tracking-[0.2em] text-white/80 backdrop-blur-sm">
+            <span className="size-1.5 rounded-full bg-[#D7FF4F]" />
+            Outperforming
+          </div> : null}
+          <div className="absolute bottom-0 left-0 right-0 p-5 sm:p-6">
+            <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.22em] text-[#C5C7B9]">
+              <PlayCircle className="size-3.5 text-[#D7FF4F]" />
               Featured signal
             </div>
-            <h3 className="mt-3 text-[16px] font-normal text-white">{signal.title}</h3>
-            <p className="mt-1 text-[11px] text-[#888]">{signal.subtitle}</p>
+            <div className="mt-3 flex items-start justify-between gap-3">
+              <div>
+                <h3 className="font-[family-name:var(--font-vogue-display)] text-[clamp(1.8rem,3vw,2.8rem)] leading-[0.9] text-white">{signal?.title ?? 'Awaiting report'}</h3>
+                <p className="mt-3 max-w-[22rem] text-[11px] leading-5 text-[#C5C7B9]">{signal?.subtitle ?? 'Connect a channel with analytics access to surface a top-performing video.'}</p>
+              </div>
+              <ArrowUpRight className="mt-1 size-5 shrink-0 text-[#D7FF4F] transition-transform duration-500 group-hover:translate-x-1 group-hover:-translate-y-1" />
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-3">
-        <div className="rounded-[12px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.02)] p-4">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-[#555]">Retention</div>
-          <div className="mt-3 text-[24px] font-light text-[#EAEAEA]">{signal.retention}</div>
+      <div className="grid grid-cols-3 divide-x divide-white/[0.09] border-b border-white/[0.09]">
+        <div className="py-4 pr-3">
+          <div className="text-[9px] uppercase tracking-[0.18em] text-[#8D8E85]">Views</div>
+          <div className="mt-2 text-[18px] font-light text-[#F1F0EA]">{formatNumber(signal?.views ?? 0)}</div>
         </div>
-        <div className="rounded-[12px] border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.02)] p-4">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-[#555]">Engagement</div>
-          <div className="mt-3 text-[24px] font-light text-[#EAEAEA]">{signal.engagement}</div>
+        <div className="px-3 py-4">
+          <div className="text-[9px] uppercase tracking-[0.18em] text-[#8D8E85]">Retention</div>
+          <div className="mt-2 text-[18px] font-light text-[#F1F0EA]">{signal?.retention ?? '--'}</div>
+        </div>
+        <div className="py-4 pl-3">
+          <div className="text-[9px] uppercase tracking-[0.18em] text-[#8D8E85]">Engage</div>
+          <div className="mt-2 text-[18px] font-light text-[#F1F0EA]">{signal?.engagement ?? '--'}</div>
         </div>
       </div>
     </aside>
   )
 }
 
-function RecentAssetsGrid({
-  items,
-  onItemsChange,
-}: {
-  items: Array<AssetItem | null>
-  onItemsChange: React.Dispatch<React.SetStateAction<Array<AssetItem | null>>>
-}) {
-  const [dragIndex, setDragIndex] = React.useState<number | null>(null)
-  const [dropIndex, setDropIndex] = React.useState<number | null>(null)
-
-  const handleDrop = (fromIndex: number, toIndex: number) => {
-    if (fromIndex === toIndex) return
-    onItemsChange((current) => {
-      const next = [...current]
-      const [moved] = next.splice(fromIndex, 1)
-      next.splice(fromIndex < toIndex ? toIndex - 1 : toIndex, 0, moved ?? null)
-      return next.slice(0, current.length)
-    })
-  }
+function RecentAssetsGrid({ videos = [] }: { videos?: LiveVideo[] }) {
+  const rows = React.useMemo(
+    () =>
+      videos.map((video) => ({
+        id: video.id,
+        title: video.title,
+        image: video.thumbnailUrl,
+        alt: video.title,
+        status: video.status,
+        views: video.totals.views,
+        retention: `${video.totals.retentionRate}%`,
+        engagement: `${video.totals.engagementRate}%`,
+      })),
+    [videos],
+  )
 
   return (
     <LayoutGroup>
-      <div className="grid grid-cols-3 gap-3 lg:grid-cols-6">
-        {items.map((item, index) => {
-          const isDropTarget = dropIndex === index
+      <div className="border-t border-white/[0.09]">
+        <div className="hidden grid-cols-[minmax(230px,1.65fr)_0.7fr_0.6fr_0.6fr_26px] gap-5 border-b border-white/[0.09] py-3 text-[9px] uppercase tracking-[0.2em] text-[#777970] lg:grid">
+          <span>Video</span>
+          <span>Reach</span>
+          <span>Retention</span>
+          <span>Engagement</span>
+          <span className="sr-only">Open</span>
+        </div>
+        {rows.length === 0 ? <div className="border-b border-white/[0.09] py-8 text-[13px] text-[#8D8E85]">No measured videos yet.</div> : null}
+        {rows.map((item, index) => {
           return (
             <motion.div
-              key={item?.id ?? `slot-${index}`}
+              key={item.id}
               layout
               transition={{ layout: { duration: 0.3, ease: 'easeOut' } }}
               className={cn(
-                'relative aspect-square overflow-hidden rounded-[12px] border border-[rgba(255,255,255,0.03)] bg-[rgba(255,255,255,0.03)]',
-                isDropTarget && 'border-[rgba(255,255,255,0.15)]',
+                'group relative grid gap-x-5 gap-y-3 border-b border-white/[0.09] py-4 transition-colors duration-300 lg:grid-cols-[minmax(230px,1.65fr)_0.7fr_0.6fr_0.6fr_26px] lg:items-center',
               )}
-              onDragOver={(event) => {
-                event.preventDefault()
-                setDropIndex(index)
-              }}
-              onDrop={() => {
-                if (dragIndex !== null) handleDrop(dragIndex, index)
-                setDragIndex(null)
-                setDropIndex(null)
-              }}
             >
-              {item ? (
-                <button
-                  type="button"
-                  draggable
-                  onDragStart={(event) => {
-                    event.dataTransfer.effectAllowed = 'move'
-                    setDragIndex(index)
-                  }}
-                  onDragEnd={() => {
-                    setDragIndex(null)
-                    setDropIndex(null)
-                  }}
-                  className="group relative h-full w-full"
-                >
-                  <Image
-                    src={item.src}
-                    alt={item.alt}
-                    fill
-                    sizes="(max-width: 640px) 33vw, (max-width: 768px) 25vw, 16vw"
-                    className="object-cover transition-all duration-300 group-hover:scale-[1.02] group-hover:brightness-110"
-                  />
-                  {item.kind === 'gif' ? (
-                    <span className="absolute left-0 top-0 rounded-br-[12px] bg-black/40 px-2 py-0.5 text-[9px] uppercase tracking-wider text-white/72">
-                      GIF
-                    </span>
-                  ) : null}
-                  <div className="absolute inset-x-0 bottom-0 bg-[linear-gradient(to_top,rgba(0,0,0,0.62)_0%,transparent_100%)] px-2 pb-2 pt-6 text-[11px] text-white/82 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                    {item.title}
+              <button
+                type="button"
+                className="contents text-left"
+              >
+                <div className="flex min-w-0 items-center gap-3.5">
+                  <div className="relative aspect-video w-24 shrink-0 overflow-hidden border border-white/[0.1] bg-[#131410] sm:w-32">
+                    {item.image ? <Image src={item.image} alt={item.alt} fill sizes="128px" className="object-cover transition-transform duration-500 group-hover:scale-[1.04]" /> : <div className="absolute inset-0 bg-[#1A1C18]" />}
+                    <div className="absolute inset-0 bg-black/15" />
+                    <Play className="absolute bottom-2 left-2 size-3 fill-white text-white" />
                   </div>
-                </button>
-              ) : (
-                <div className="grid h-full w-full place-items-center">
-                  <span className="size-2 rounded-full bg-[rgba(255,255,255,0.06)]" />
+                  <div className="min-w-0">
+                    <p className="truncate text-[13px] text-[#E9E9E1] transition-colors duration-300 group-hover:text-[#D7FF4F]">{item.title}</p>
+                    <div className="mt-1 flex items-center gap-2 text-[10px] uppercase tracking-[0.16em] text-[#777970]">
+                      <span>{item.status}</span>
+                      <span className="size-1 rounded-full bg-[#52544D]" />
+                      <span>Video {String(index + 1).padStart(2, '0')}</span>
+                    </div>
+                  </div>
                 </div>
-              )}
+                <div className="flex items-center justify-between border-t border-white/[0.07] pt-3 text-[16px] font-light text-[#F1F0EA] lg:block lg:border-0 lg:pt-0">
+                  <span className="text-[9px] uppercase tracking-[0.18em] text-[#777970] lg:hidden">Reach</span>
+                  {formatNumber(item.views)}
+                </div>
+                <div className="flex items-center justify-between border-t border-white/[0.07] pt-3 text-[16px] font-light text-[#F1F0EA] lg:block lg:border-0 lg:pt-0">
+                  <span className="text-[9px] uppercase tracking-[0.18em] text-[#777970] lg:hidden">Retention</span>
+                  {item.retention}
+                </div>
+                <div className="flex items-center justify-between border-t border-white/[0.07] pt-3 text-[16px] font-light text-[#F1F0EA] lg:block lg:border-0 lg:pt-0">
+                  <span className="text-[9px] uppercase tracking-[0.18em] text-[#777970] lg:hidden">Engagement</span>
+                  {item.engagement}
+                </div>
+                <ArrowUpRight className="hidden size-4 text-[#A8AA9D] transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-[#D7FF4F] lg:block" />
+              </button>
             </motion.div>
           )
         })}
@@ -814,7 +856,7 @@ function useIntersectionOnce<T extends Element>(threshold = 0.45) {
   return [ref, visible] as const
 }
 
-function formatMetric(key: keyof typeof mockMetrics, value: number) {
+function formatMetric(key: MetricCard['key'], value: number) {
   if (key === 'watchTime') return formatWatchTime(value)
   return formatNumber(value)
 }

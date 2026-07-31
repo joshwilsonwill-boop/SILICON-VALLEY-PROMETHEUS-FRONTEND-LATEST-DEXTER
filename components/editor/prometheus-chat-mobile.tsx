@@ -13,6 +13,7 @@ import { ChatCarousel } from "@/components/editor/chat-carousel";
 import { ChatSuggestions } from "@/components/editor/ai-chat-suggestions";
 import { PrometheusChatHistoryDrawer } from "@/components/editor/prometheus-chat-history-drawer";
 import { PrometheusChatActivity } from "@/components/editor/prometheus-chat-activity";
+import { ActiveChatEngagement } from "@/components/editor/active-chat-engagement";
 import { CinematicTextReveal } from "@/components/ui/cinematic-text-reveal";
 import { useAIChat, type CarouselItem } from "@/hooks/use-ai-chat";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
@@ -79,11 +80,11 @@ export function PrometheusChatMobile({
     const message = item.payload?.message?.trim();
     if (!message) return;
     void chat.sendMessage(message);
-  }, [chat.sendMessage]);
+  }, [chat]);
   const handleSuggestionSelect = useCallback((suggestion: string) => {
     chat.setDraft(suggestion);
     window.requestAnimationFrame(() => composerInputRef.current?.focus());
-  }, [chat.setDraft]);
+  }, [chat]);
   const lastMessage = chat.messages[chat.messages.length - 1];
   const suggestionsHidden = chat.isSending || chat.isAwaitingResponse;
 
@@ -220,6 +221,18 @@ export function PrometheusChatMobile({
             onSelect={handleSuggestionSelect}
           />
         </div>
+
+        <AnimatePresence initial={false}>
+          {!suggestionsHidden ? (
+            <ActiveChatEngagement
+              draft={chat.draft}
+              workspaceTab={workspaceTab}
+              hasProject={Boolean(projectId)}
+              onSelect={handleSuggestionSelect}
+              className="mb-2"
+            />
+          ) : null}
+        </AnimatePresence>
 
         <MobileChatInput
           inputRef={composerInputRef}

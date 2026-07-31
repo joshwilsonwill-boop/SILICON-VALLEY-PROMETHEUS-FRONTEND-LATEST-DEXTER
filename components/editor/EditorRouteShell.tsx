@@ -44,6 +44,7 @@ import { isStandaloneMobileEditorRoute } from "@/lib/editor-mobile-routes";
 import type { R2Track } from "@/lib/music/r2-sync";
 
 import { CommandZone } from "./CommandZone";
+import { CinematicCompletionOverlay } from "./cinematic-completion-overlay";
 import { EditorTopBar } from "./EditorTopBar";
 import { FocusModeToggle } from "./FocusModeToggle";
 import { KeyboardShortcuts } from "./KeyboardShortcuts";
@@ -194,6 +195,7 @@ export function EditorRouteShell({ children }: { children: ReactNode }) {
         onToggleFocusMode={toggleFocusMode}
         onToggleSidebar={toggleSidebar}
       />
+      <CinematicCompletionOverlay />
     </div>
   );
 }

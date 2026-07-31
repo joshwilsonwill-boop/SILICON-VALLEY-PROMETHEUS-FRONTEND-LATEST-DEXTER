@@ -28,6 +28,7 @@ const nextConfig = {
       { protocol: 'https', hostname: '**.r2.dev' },
       { protocol: 'https', hostname: 'assets.prometheusstudio.tech' },
       { protocol: 'https', hostname: 'cdn.prometheusstudio.tech' },
+      { protocol: 'https', hostname: 'i.ytimg.com' },
     ],
   },
 }

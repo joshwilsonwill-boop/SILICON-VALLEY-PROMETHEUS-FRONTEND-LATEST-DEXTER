@@ -31,7 +31,7 @@ import { useDisconnectPlatform } from '@/hooks/use-disconnect-platform'
 import { cn } from '@/lib/utils'
 
 const PLATFORMS = [
-  { id: 'youtube', name: 'YouTube', icon: Youtube, color: '#FF0000', scopes: ['Upload videos', 'Manage playlists'] },
+  { id: 'youtube', name: 'YouTube', icon: Youtube, color: '#FF0000', scopes: ['Upload videos', 'Read video analytics'] },
   { id: 'tiktok', name: 'TikTok', icon: Music2, color: '#000000', scopes: ['Post videos', 'Analytics'] },
   { id: 'instagram', name: 'Instagram', icon: Instagram, color: '#E4405F', scopes: ['Post reels', 'Stories'] },
   { id: 'x', name: 'X', icon: Twitter, color: '#000000', scopes: ['Post tweets', 'Media upload'] },

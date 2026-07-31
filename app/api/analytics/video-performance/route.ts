@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 
+import { readYouTubeVideoMetrics } from '@/lib/analytics/youtube-metrics'
 import { getProviderMetadata, parseConnectionScopes, type ProviderStatus } from '@/lib/oauth/provider-metadata'
 import { createClient } from '@/lib/supabase/server'
 
@@ -46,6 +47,9 @@ type MetricRow = {
   project_id: string | null
   export_id: string | null
   platform: string | null
+  external_video_id: string | null
+  title: string | null
+  thumbnail_url: string | null
   views: number | null
   likes: number | null
   comments: number | null
@@ -79,20 +83,6 @@ function deriveStatus(expiresAt: string | null, isActive: boolean | null): Provi
   return 'active'
 }
 
-function stableHash(seed: string) {
-  let hash = 2166136261
-  for (let index = 0; index < seed.length; index += 1) {
-    hash ^= seed.charCodeAt(index)
-    hash = Math.imul(hash, 16777619)
-  }
-  return hash >>> 0
-}
-
-function stableRange(seed: string, min: number, max: number) {
-  const value = stableHash(seed) / 0xffffffff
-  return Math.round(min + value * (max - min))
-}
-
 function isPublishingProvider(provider: string): provider is PublishingProvider {
   return PUBLISHING_PROVIDERS.includes(provider as PublishingProvider)
 }
@@ -111,7 +101,34 @@ function sumRows(rows: Array<{ views: number; likes: number; comments: number; s
 }
 
 function toNumber(value: unknown, fallback = 0) {
-  return typeof value === 'number' && Number.isFinite(value) ? value : fallback
+  const parsed = typeof value === 'number' ? value : Number(value)
+  return Number.isFinite(parsed) ? parsed : fallback
+}
+
+function buildTimeSeries(rows: MetricRow[]) {
+  const points = new Map<string, { label: string; reach: number; watchTime: number; engagementTotal: number; engagementCount: number }>()
+
+  for (const row of rows) {
+    if (!row.captured_at) continue
+    const label = row.captured_at.slice(0, 10)
+    const point = points.get(label) ?? { label, reach: 0, watchTime: 0, engagementTotal: 0, engagementCount: 0 }
+    point.reach += toNumber(row.views)
+    point.watchTime += toNumber(row.watch_time_seconds)
+    if (toNumber(row.engagement_rate) > 0) {
+      point.engagementTotal += toNumber(row.engagement_rate)
+      point.engagementCount += 1
+    }
+    points.set(label, point)
+  }
+
+  return [...points.values()]
+    .sort((first, second) => first.label.localeCompare(second.label))
+    .map((point) => ({
+      label: point.label,
+      reach: point.reach,
+      watchTime: point.watchTime,
+      engagement: point.engagementCount ? Math.round((point.engagementTotal / point.engagementCount) * 10) / 10 : 0,
+    }))
 }
 
 export async function GET() {
@@ -163,6 +180,57 @@ export async function GET() {
   )
   const needsConnections = activeProviders.size === 0
 
+  const selectMetrics = () =>
+    supabase
+      .from('video_platform_metrics')
+      .select('project_id, export_id, platform, external_video_id, title, thumbnail_url, views, likes, comments, shares, watch_time_seconds, retention_rate, engagement_rate, published_url, captured_at')
+      .eq('user_id', user.id)
+      .order('captured_at', { ascending: false })
+      .limit(5000)
+      .returns<MetricRow[]>()
+
+  let { data: metricRows, error: metricError } = await selectMetrics()
+  let syncedYouTube = false
+  const hasYouTubeConnection = activeProviders.has('youtube')
+  const latestYouTubeCapture = (metricRows ?? []).find((metric) => metric.platform === 'youtube')?.captured_at
+  const isYouTubeStale = !latestYouTubeCapture || Date.now() - new Date(latestYouTubeCapture).getTime() > 15 * 60 * 1000
+
+  if (hasYouTubeConnection && isYouTubeStale) {
+    try {
+      const snapshots = await readYouTubeVideoMetrics(user.id)
+      if (snapshots.length > 0) {
+        const { error: syncError } = await supabase.from('video_platform_metrics').upsert(
+          snapshots.map((snapshot) => ({
+            user_id: user.id,
+            platform: 'youtube',
+            external_video_id: snapshot.externalVideoId,
+            title: snapshot.title,
+            thumbnail_url: snapshot.thumbnailUrl,
+            views: snapshot.views,
+            likes: snapshot.likes,
+            comments: snapshot.comments,
+            shares: snapshot.shares,
+            watch_time_seconds: snapshot.watchTimeSeconds,
+            retention_rate: snapshot.retentionRate,
+            engagement_rate: snapshot.engagementRate,
+            published_url: snapshot.publishedUrl,
+            captured_at: snapshot.capturedAt,
+          })),
+          { onConflict: 'user_id,platform,external_video_id,captured_at' },
+        )
+
+        if (!syncError) {
+          const refreshed = await selectMetrics()
+          metricRows = refreshed.data
+          metricError = refreshed.error
+          syncedYouTube = true
+        }
+      }
+    } catch {
+      // Cached reports remain available if YouTube temporarily rejects a sync request.
+    }
+  }
+
   const { data: projectRows, error: projectsError } = await supabase
     .from('projects')
     .select('id, name, status, thumbnail_url, created_at, updated_at, source_profile, preview_kind')
@@ -188,14 +256,6 @@ export async function GET() {
           .returns<ExportRow[]>()
       : { data: [] as ExportRow[] }
 
-  const { data: metricRows, error: metricError } = await supabase
-    .from('video_platform_metrics')
-    .select('project_id, export_id, platform, views, likes, comments, shares, watch_time_seconds, retention_rate, engagement_rate, published_url, captured_at')
-    .eq('user_id', user.id)
-    .order('captured_at', { ascending: false })
-    .limit(240)
-    .returns<MetricRow[]>()
-
   const metricsAvailable = !metricError && Array.isArray(metricRows) && metricRows.length > 0
   const exportsByProjectId = new Map<string, ExportRow[]>()
 
@@ -214,36 +274,23 @@ export async function GET() {
     metricsByProjectId.set(metric.project_id, current)
   }
 
-  const activeProviderList = PUBLISHING_PROVIDERS.filter((provider) => activeProviders.has(provider))
-  const visibleProviders = activeProviderList.length > 0 ? activeProviderList : PUBLISHING_PROVIDERS
+  const visibleProviders = PUBLISHING_PROVIDERS.filter((provider) => activeProviders.has(provider))
 
-  const videos = (projectRows ?? []).map((project, index) => {
+  const videos = (projectRows ?? []).map((project) => {
     const projectMetrics = metricsByProjectId.get(project.id) ?? []
     const projectExports = exportsByProjectId.get(project.id) ?? []
     const latestExport = projectExports[0] ?? null
 
     const platformBreakdown = visibleProviders.map((provider) => {
       const metric = projectMetrics.find((row) => row.platform === provider)
-      const baseSeed = `${project.id}:${provider}:${latestExport?.id ?? 'draft'}`
       const connected = activeProviders.has(provider)
-      const multiplier = connected ? 1 : 0
-      const views = metricsAvailable
-        ? toNumber(metric?.views)
-        : multiplier * stableRange(`${baseSeed}:views`, 180 + index * 40, 9800 + index * 280)
-      const likes = metricsAvailable ? toNumber(metric?.likes) : multiplier * stableRange(`${baseSeed}:likes`, 18, Math.max(24, Math.round(views * 0.12)))
-      const comments = metricsAvailable ? toNumber(metric?.comments) : multiplier * stableRange(`${baseSeed}:comments`, 4, Math.max(8, Math.round(views * 0.028)))
-      const shares = metricsAvailable ? toNumber(metric?.shares) : multiplier * stableRange(`${baseSeed}:shares`, 3, Math.max(7, Math.round(views * 0.018)))
-      const watchTimeSeconds = metricsAvailable
-        ? toNumber(metric?.watch_time_seconds)
-        : multiplier * stableRange(`${baseSeed}:watch`, Math.max(30, views * 7), Math.max(120, views * 31))
-      const retentionRate = metricsAvailable
-        ? toNumber(metric?.retention_rate, 0)
-        : multiplier * stableRange(`${baseSeed}:retention`, 42, 86)
-      const engagementRate = metricsAvailable
-        ? toNumber(metric?.engagement_rate, 0)
-        : views > 0
-          ? Math.round(((likes + comments + shares) / views) * 1000) / 10
-          : 0
+      const views = toNumber(metric?.views)
+      const likes = toNumber(metric?.likes)
+      const comments = toNumber(metric?.comments)
+      const shares = toNumber(metric?.shares)
+      const watchTimeSeconds = toNumber(metric?.watch_time_seconds)
+      const retentionRate = toNumber(metric?.retention_rate, 0)
+      const engagementRate = toNumber(metric?.engagement_rate, 0)
       const metadata = getProviderMetadata(provider)
 
       return {
@@ -297,7 +344,61 @@ export async function GET() {
     }
   })
 
-  const allPlatformRows = videos.flatMap((video) => video.platformBreakdown)
+  const unlinkedMetrics = (metricRows ?? []).filter((metric) => !metric.project_id && metric.external_video_id && metric.platform)
+  const remoteVideosById = new Map<string, MetricRow[]>()
+
+  for (const metric of unlinkedMetrics) {
+    const key = `${metric.platform}:${metric.external_video_id}`
+    remoteVideosById.set(key, [...(remoteVideosById.get(key) ?? []), metric])
+  }
+
+  const remoteVideos = [...remoteVideosById.entries()].map(([key, records]) => {
+    const latest = records[0]!
+    const totals = sumRows(
+      records.map((record) => ({
+        views: toNumber(record.views),
+        likes: toNumber(record.likes),
+        comments: toNumber(record.comments),
+        shares: toNumber(record.shares),
+        watchTimeSeconds: toNumber(record.watch_time_seconds),
+      })),
+    )
+    const retentionValues = records.map((record) => toNumber(record.retention_rate)).filter((value) => value > 0)
+    const engagementValues = records.map((record) => toNumber(record.engagement_rate)).filter((value) => value > 0)
+    const retentionRate = retentionValues.length
+      ? Math.round((retentionValues.reduce((sum, value) => sum + value, 0) / retentionValues.length) * 10) / 10
+      : 0
+    const engagementRate = engagementValues.length
+      ? Math.round((engagementValues.reduce((sum, value) => sum + value, 0) / engagementValues.length) * 10) / 10
+      : 0
+    const metadata = getProviderMetadata(latest.platform ?? '')
+
+    return {
+      id: key,
+      title: latest.title ?? 'Connected video',
+      status: `${metadata?.name ?? latest.platform} report`,
+      thumbnailUrl: latest.thumbnail_url,
+      previewKind: 'video',
+      updatedAt: latest.captured_at,
+      createdAt: latest.captured_at,
+      latestExport: null,
+      totals: { ...totals, retentionRate, engagementRate },
+      platformBreakdown: [{
+        platform: latest.platform,
+        platformName: metadata?.name ?? latest.platform,
+        color: metadata?.color ?? '#ffffff',
+        connected: true,
+        ...totals,
+        retentionRate,
+        engagementRate,
+        publishedUrl: latest.published_url,
+        capturedAt: latest.captured_at,
+      }],
+    }
+  })
+
+  const allVideos = [...videos, ...remoteVideos]
+  const allPlatformRows = allVideos.flatMap((video) => video.platformBreakdown)
   const totals = sumRows(allPlatformRows)
   const connectedPlatforms = PUBLISHING_PROVIDERS.map((provider) => {
     const metadata = getProviderMetadata(provider)
@@ -327,16 +428,21 @@ export async function GET() {
     success: true,
     userId: user.id,
     generatedAt: new Date().toISOString(),
-    dataSource: metricsAvailable ? 'video_platform_metrics' : 'derived_from_exports',
-    metricsWarning: metricError ? 'video_platform_metrics is not available yet; showing export-derived telemetry.' : null,
+    dataSource: syncedYouTube ? 'youtube_live' : metricsAvailable ? 'cached_platform_reports' : 'unavailable',
+    metricsWarning: metricError
+      ? 'Analytics storage is unavailable. Apply the latest database migration, then reconnect the account.'
+      : metricsAvailable
+        ? null
+        : 'No platform reports are available yet. Connect a channel with analytics access to begin reading performance.',
     needsConnections,
     connections,
     platforms: connectedPlatforms,
-    videos,
+    videos: allVideos,
+    timeSeries: buildTimeSeries(metricRows ?? []),
     totals: {
       ...totals,
       connectedPlatformCount: activeProviders.size,
-      videoCount: videos.length,
+      videoCount: allVideos.length,
       exportCount: exportRows?.length ?? 0,
     },
   })

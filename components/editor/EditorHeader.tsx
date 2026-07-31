@@ -150,7 +150,7 @@ export function EditorHeader({
             className="h-10"
           />
 
-          <div className="ml-0 flex w-0 items-center overflow-hidden opacity-0 transition-[width,opacity,margin] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover/editor-command:ml-1 group-hover/editor-command:w-[13.75rem] group-hover/editor-command:opacity-100">
+          <div className="ml-0 flex w-0 items-center overflow-hidden opacity-0 transition-[width,opacity,margin] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover/editor-command:ml-1 group-hover/editor-command:w-[6.5rem] group-hover/editor-command:opacity-100">
             {isDeferredChromeReady ? (
               <CinematicExportCluster
                 onExport={onPrepareExport}
@@ -160,7 +160,7 @@ export function EditorHeader({
                 isDownloading={isDownloading}
               />
             ) : (
-              <div className="flex h-9 w-[180px] items-center justify-center">
+              <div className="flex h-9 w-[104px] items-center justify-center">
                 <InlineLoadingAnimation size={20} label="Loading export controls" />
               </div>
             )}

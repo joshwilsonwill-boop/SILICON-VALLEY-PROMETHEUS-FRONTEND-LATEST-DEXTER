@@ -55,6 +55,13 @@ const vogueDisplay = localFont({
   display: 'swap',
 })
 
+const blackDelights = localFont({
+  src: '../black_delights/Black Delights.ttf',
+  variable: '--font-black-delights',
+  display: 'swap',
+  preload: true,
+})
+
 const migraDisplay = localFont({
   src: [
     {
@@ -121,7 +128,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
-      <body className={`${inter.variable} ${geist.variable} ${jetbrainsMono.variable} ${playfairDisplay.variable} ${spaceGrotesk.variable} ${vogueDisplay.variable} ${migraDisplay.variable} ${elegistDisplay.variable} bg-background font-sans text-foreground antialiased`}>
+      <body className={`${inter.variable} ${geist.variable} ${jetbrainsMono.variable} ${playfairDisplay.variable} ${spaceGrotesk.variable} ${vogueDisplay.variable} ${blackDelights.variable} ${migraDisplay.variable} ${elegistDisplay.variable} bg-background font-sans text-foreground antialiased`}>
         <CookieConsentProvider>
           <ReactQueryProvider>
             <LoadingProvider>

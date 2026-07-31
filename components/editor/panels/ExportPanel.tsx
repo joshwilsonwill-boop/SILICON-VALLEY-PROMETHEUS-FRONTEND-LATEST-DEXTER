@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   Cloud,
   Facebook,
@@ -18,6 +18,7 @@ import {
 import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { cn } from '@/lib/utils'
 import { downloadMedia } from '@/lib/editor/browser-download'
+import { dispatchCompletionEvent } from '../completion-event'
 
 const resolutions = [
   { id: 'original', label: 'Original Source', desc: 'Keep source resolution' },
@@ -46,16 +47,30 @@ export function ExportPanel({ mediaUrl }: { mediaUrl?: string | null }) {
   const [selectedResolution, setSelectedResolution] = useState('1080p')
   const [exportMode, setExportMode] = useState<'cinematic' | 'fast'>('cinematic')
   const [exportStatus, setExportStatus] = useState<'idle' | 'loading' | 'success'>('idle')
+  const exportTimers = useRef<number[]>([])
   const [selectedPlatformId, setSelectedPlatformId] = useState('')
   const selectedPlatform = useMemo(
     () => socialPlatforms.find((platform) => platform.id === selectedPlatformId) ?? null,
     [selectedPlatformId],
   )
+  useEffect(() => () => {
+    exportTimers.current.forEach((timer) => window.clearTimeout(timer))
+  }, [])
+
   const startExportFeedback = (mode: 'cinematic' | 'fast') => {
+    exportTimers.current.forEach((timer) => window.clearTimeout(timer))
     setExportMode(mode)
     setExportStatus('loading')
-    window.setTimeout(() => setExportStatus('success'), mode === 'cinematic' ? 2600 : 1800)
-    window.setTimeout(() => setExportStatus('idle'), mode === 'cinematic' ? 5200 : 4400)
+    const completionTimer = window.setTimeout(() => {
+      setExportStatus('success')
+      dispatchCompletionEvent({
+        process: 'export',
+        title: `${mode === 'cinematic' ? 'Cinematic' : 'Fast'} export complete`,
+        message: 'Your finished cut is ready to share.',
+      })
+    }, mode === 'cinematic' ? 2600 : 1800)
+    const resetTimer = window.setTimeout(() => setExportStatus('idle'), mode === 'cinematic' ? 5200 : 4400)
+    exportTimers.current = [completionTimer, resetTimer]
   }
 
   return (
