@@ -3,9 +3,10 @@
 import * as React from 'react'
 import Image from 'next/image'
 import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from 'framer-motion'
-import { Activity, ArrowUpRight, Eye, Heart, LoaderCircle, Play, PlayCircle, Share2, Sparkles } from 'lucide-react'
+import { Activity, ArrowUpRight, Eye, Heart, Link2, LoaderCircle, MessageCircle, Play, PlayCircle, Share2, Sparkles } from 'lucide-react'
 
 import { BackButton } from '@/components/navigation/BackButton'
+import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet'
 import { cn } from '@/lib/utils'
 
 type AnalyticsRange = '7D' | '30D' | '90D'
@@ -44,6 +45,30 @@ type LiveVideo = {
     retentionRate: number
     engagementRate: number
   }
+  platformBreakdown: VideoPlatformMetric[]
+}
+
+type VideoPlatformMetric = {
+  platform: string
+  platformName: string
+  color: string
+  connected: boolean
+  views: number
+  likes: number
+  comments: number
+  shares: number
+  watchTimeSeconds: number
+  retentionRate: number
+  engagementRate: number
+  publishedUrl: string | null
+  capturedAt: string | null
+}
+
+type AnalyticsPlatform = {
+  id: string
+  name: string
+  color: string
+  connected: boolean
 }
 
 type AnalyticsPayload = {
@@ -55,6 +80,7 @@ type AnalyticsPayload = {
     watchTimeSeconds: number
   }
   videos: LiveVideo[]
+  platforms: AnalyticsPlatform[]
   timeSeries: ChartPoint[]
   dataSource: 'youtube_live' | 'cached_platform_reports' | 'unavailable'
   metricsWarning: string | null
@@ -74,6 +100,7 @@ export function PrometheusAnalytics() {
   const [activeRange, setActiveRange] = React.useState<AnalyticsRange>('30D')
   const [livePayload, setLivePayload] = React.useState<AnalyticsPayload | null>(null)
   const [loadState, setLoadState] = React.useState<'loading' | 'ready' | 'error'>('loading')
+  const [selectedVideo, setSelectedVideo] = React.useState<LiveVideo | null>(null)
   const chartData = React.useMemo(() => selectChartRange(livePayload?.timeSeries ?? [], activeRange), [activeRange, livePayload])
   const displayMetrics = React.useMemo(
     () => ({
@@ -137,7 +164,7 @@ export function PrometheusAnalytics() {
   }, [])
 
   return (
-    <main className="relative min-h-full overflow-x-hidden bg-[#080909] text-[#F1F0EA]">
+    <main className="relative min-h-full overflow-x-hidden bg-black text-[#F5F5F5]">
       <SpectraNoise />
 
       <div className="relative z-10 mx-auto flex min-h-full w-full max-w-[1720px] flex-col px-4 pb-8 pt-4 sm:px-7 sm:pb-12 sm:pt-7 lg:px-10">
@@ -145,20 +172,20 @@ export function PrometheusAnalytics() {
           <BackButton fallbackHref="/studio" className="mb-0 border border-white/[0.12] bg-white/[0.025] text-white hover:bg-white/[0.08]" />
           <div className="min-w-0">
             <div className="flex items-center gap-3">
-              <span className="size-1.5 animate-pulse rounded-full bg-[#D7FF4F]" />
+              <span className="size-1.5 animate-pulse rounded-full bg-white" />
               <p className="text-[10px] uppercase tracking-[0.28em] text-[#8D8E85]">PERFORMANCE SUITE / 2026</p>
             </div>
             <div className="mt-4 flex flex-wrap items-end gap-x-5 gap-y-2">
               <CinematicTitle
                 text="Analytics"
-                className="font-[family-name:var(--font-vogue-display)] text-[clamp(3.1rem,6vw,6.4rem)] font-normal leading-[0.78] text-[#F1F0EA]"
+                className="font-[family-name:var(--font-vogue-display)] text-[clamp(3.1rem,6vw,6.4rem)] font-normal leading-[0.9] text-[#F5F5F5]"
               />
             </div>
           </div>
           <div className="flex items-center gap-3 text-[10px] uppercase tracking-[0.2em] text-[#8D8E85] lg:justify-self-end">
             <span>Last 30 days</span>
             <span className="h-px w-8 bg-white/20" />
-            <span className="text-[#D7FF4F]">Live read</span>
+            <span className="text-white">Live read</span>
           </div>
         </header>
 
@@ -205,7 +232,7 @@ export function PrometheusAnalytics() {
                 <h2 className="mt-2 font-[family-name:var(--font-vogue-display)] text-[clamp(2rem,3.4vw,3.8rem)] leading-none text-[#F1F0EA]">Reach, without the noise.</h2>
               </div>
               <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-[#999A91]">
-                <span className="size-1.5 rounded-full bg-[#D7FF4F]" />
+                <span className="size-1.5 rounded-full bg-white" />
                 <span>All channels</span>
               </div>
             </div>
@@ -227,15 +254,21 @@ export function PrometheusAnalytics() {
               <h2 className="mt-2 font-[family-name:var(--font-vogue-display)] text-[clamp(2rem,3.4vw,3.8rem)] leading-none text-[#F1F0EA]">Every cut. Accounted for.</h2>
             </div>
             <div className="flex items-center gap-2 text-[11px] text-[#A8AA9D]">
-              <Sparkles className="size-3.5 text-[#D7FF4F]" />
+              <Sparkles className="size-3.5 text-white" />
               Ranked by reach
             </div>
           </div>
           <div className="mt-7">
-            <RecentAssetsGrid videos={videoLedger} />
+            <RecentAssetsGrid videos={videoLedger} onOpenVideo={setSelectedVideo} />
           </div>
         </section>
       </div>
+
+      <VideoPerformanceSheet
+        video={selectedVideo}
+        platforms={livePayload?.platforms ?? []}
+        onOpenChange={(open) => !open && setSelectedVideo(null)}
+      />
     </main>
   )
 }
@@ -243,13 +276,13 @@ export function PrometheusAnalytics() {
 function SpectraNoise() {
   return (
     <div className="pointer-events-none fixed inset-0 z-0 opacity-100" aria-hidden="true">
-      <div className="absolute inset-0 bg-[#080909]" />
+      <div className="absolute inset-0 bg-black" />
       <div className="prometheus-analytics-noise absolute inset-0" />
       <style>{`
         .prometheus-analytics-noise {
           background-image:
-            radial-gradient(circle at 25% 12%, rgba(160, 180, 140, 0.025) 0 1px, transparent 1px),
-            radial-gradient(circle at 78% 82%, rgba(215, 255, 79, 0.018) 0 1px, transparent 1px),
+            radial-gradient(circle at 25% 12%, rgba(255, 255, 255, 0.018) 0 1px, transparent 1px),
+            radial-gradient(circle at 78% 82%, rgba(255, 255, 255, 0.012) 0 1px, transparent 1px),
             repeating-radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.012) 0 1px, transparent 1px 3px);
           background-size: 3px 3px, 4px 4px, 7px 7px;
           animation: prometheusAnalyticsNoise 8s steps(8) infinite;
@@ -271,7 +304,7 @@ function CinematicTitle({ text, className }: { text: string; className?: string 
   const reduceMotion = useReducedMotion()
 
   return (
-    <h1 className={cn('inline-flex overflow-hidden', className)} aria-label={text}>
+    <h1 className={cn('inline-flex overflow-visible', className)} aria-label={text}>
       {text.split('').map((character, index) => (
         <motion.span
           key={`${character}-${index}`}
@@ -533,7 +566,7 @@ function ReachCurveChart({
 
   return (
     <motion.section
-      className="relative overflow-hidden border border-white/[0.1] bg-[#0C0D0C] px-4 pb-3 pt-4 sm:px-6 sm:pb-4 sm:pt-5"
+      className="relative overflow-hidden border border-white/[0.12] bg-black px-4 pb-3 pt-4 sm:px-6 sm:pb-4 sm:pt-5"
       initial={reduceMotion ? false : { opacity: 0, y: 14 }}
       animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
       transition={{ duration: 0.8, ease: 'easeOut', delay: 1.4 }}
@@ -550,8 +583,8 @@ function ReachCurveChart({
               type="button"
               onClick={() => onRangeChange(range)}
               className={cn(
-                'min-h-11 min-w-11 px-2 py-1.5 text-[10px] tracking-[0.08em] text-[#777970] transition-colors duration-300 hover:text-[#E8E8E0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D7FF4F]',
-                activeRange === range && 'bg-[#D7FF4F] text-[#0B0C0A]',
+                'min-h-11 min-w-11 border border-transparent px-2 py-1.5 text-[10px] tracking-[0.08em] text-white/55 transition-colors duration-300 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70',
+                activeRange === range && 'border-white/30 bg-white text-black',
               )}
             >
               {range}
@@ -568,7 +601,7 @@ function ReachCurveChart({
       >
         {loading ? (
           <div className="absolute inset-0 grid place-items-center" role="status" aria-label="Loading analytics">
-            <LoaderCircle className="size-5 animate-spin text-[#D7FF4F]" />
+            <LoaderCircle className="size-5 animate-spin text-white" />
           </div>
         ) : data.length === 0 ? (
           <div className="absolute inset-0 grid place-items-center px-6 text-center text-[13px] leading-6 text-[#8D8E85]">
@@ -698,13 +731,13 @@ function TiltSignalCard({ signal }: { signal: TopSignal | null }) {
     <aside className="min-w-0 xl:pt-0">
       <div className="flex items-center justify-between border-b border-white/[0.09] pb-4">
         <p className="text-[10px] uppercase tracking-[0.28em] text-[#8D8E85]">TOP SIGNAL</p>
-        <span className="text-[10px] uppercase tracking-[0.18em] text-[#D7FF4F]">01 / 01</span>
+        <span className="text-[10px] uppercase tracking-[0.18em] text-white/70">01 / 01</span>
       </div>
       <div
         ref={cardRef}
         onPointerMove={handlePointerMove}
         onPointerLeave={handleLeave}
-        className="group relative mt-5 overflow-hidden border border-white/[0.1] bg-[#111310] shadow-[0_28px_70px_rgba(0,0,0,0.4)]"
+        className="group relative mt-5 overflow-hidden border border-white/[0.12] bg-black shadow-[0_28px_70px_rgba(0,0,0,0.4)]"
         style={{
           transform: 'perspective(800px) rotateX(var(--rx)) rotateY(var(--ry))',
           transition: 'transform 0.1s ease-out',
@@ -714,14 +747,14 @@ function TiltSignalCard({ signal }: { signal: TopSignal | null }) {
       >
         <div className="relative aspect-[4/5] overflow-hidden">
           {signal?.image ? <Image src={signal.image} alt={signal.title} fill sizes="(max-width: 1280px) 100vw, 30vw" className="object-cover transition-transform duration-700 group-hover:scale-[1.035]" /> : null}
-          <div className={cn('absolute inset-0', signal?.image ? 'bg-[linear-gradient(180deg,rgba(0,0,0,0.06)_0%,rgba(0,0,0,0.12)_40%,rgba(3,4,3,0.94)_100%)]' : 'bg-[radial-gradient(circle_at_40%_25%,rgba(215,255,79,0.12),transparent_38%),#10110F]')} />
+          <div className={cn('absolute inset-0', signal?.image ? 'bg-[linear-gradient(180deg,rgba(0,0,0,0.06)_0%,rgba(0,0,0,0.12)_40%,rgba(0,0,0,0.94)_100%)]' : 'bg-black')} />
           {signal ? <div className="absolute left-4 top-4 flex items-center gap-2 border border-white/[0.14] bg-black/20 px-2.5 py-1.5 text-[9px] uppercase tracking-[0.2em] text-white/80 backdrop-blur-sm">
-            <span className="size-1.5 rounded-full bg-[#D7FF4F]" />
+            <span className="size-1.5 rounded-full bg-white" />
             Outperforming
           </div> : null}
           <div className="absolute bottom-0 left-0 right-0 p-5 sm:p-6">
             <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.22em] text-[#C5C7B9]">
-              <PlayCircle className="size-3.5 text-[#D7FF4F]" />
+              <PlayCircle className="size-3.5 text-white" />
               Featured signal
             </div>
             <div className="mt-3 flex items-start justify-between gap-3">
@@ -729,7 +762,7 @@ function TiltSignalCard({ signal }: { signal: TopSignal | null }) {
                 <h3 className="font-[family-name:var(--font-vogue-display)] text-[clamp(1.8rem,3vw,2.8rem)] leading-[0.9] text-white">{signal?.title ?? 'Awaiting report'}</h3>
                 <p className="mt-3 max-w-[22rem] text-[11px] leading-5 text-[#C5C7B9]">{signal?.subtitle ?? 'Connect a channel with analytics access to surface a top-performing video.'}</p>
               </div>
-              <ArrowUpRight className="mt-1 size-5 shrink-0 text-[#D7FF4F] transition-transform duration-500 group-hover:translate-x-1 group-hover:-translate-y-1" />
+              <ArrowUpRight className="mt-1 size-5 shrink-0 text-white transition-transform duration-500 group-hover:translate-x-1 group-hover:-translate-y-1" />
             </div>
           </div>
         </div>
@@ -753,7 +786,13 @@ function TiltSignalCard({ signal }: { signal: TopSignal | null }) {
   )
 }
 
-function RecentAssetsGrid({ videos = [] }: { videos?: LiveVideo[] }) {
+function RecentAssetsGrid({
+  videos = [],
+  onOpenVideo,
+}: {
+  videos?: LiveVideo[]
+  onOpenVideo: (video: LiveVideo) => void
+}) {
   const rows = React.useMemo(
     () =>
       videos.map((video) => ({
@@ -790,18 +829,15 @@ function RecentAssetsGrid({ videos = [] }: { videos?: LiveVideo[] }) {
                 'group relative grid gap-x-5 gap-y-3 border-b border-white/[0.09] py-4 transition-colors duration-300 lg:grid-cols-[minmax(230px,1.65fr)_0.7fr_0.6fr_0.6fr_26px] lg:items-center',
               )}
             >
-              <button
-                type="button"
-                className="contents text-left"
-              >
-                <div className="flex min-w-0 items-center gap-3.5">
-                  <div className="relative aspect-video w-24 shrink-0 overflow-hidden border border-white/[0.1] bg-[#131410] sm:w-32">
-                    {item.image ? <Image src={item.image} alt={item.alt} fill sizes="128px" className="object-cover transition-transform duration-500 group-hover:scale-[1.04]" /> : <div className="absolute inset-0 bg-[#1A1C18]" />}
+              <div className="contents text-left">
+                <div className="flex min-w-0 items-center gap-3.5 pr-11 lg:pr-0">
+                  <div className="relative aspect-video w-24 shrink-0 overflow-hidden border border-white/[0.1] bg-black sm:w-32">
+                    {item.image ? <Image src={item.image} alt={item.alt} fill sizes="128px" className="object-cover transition-transform duration-500 group-hover:scale-[1.04]" /> : <div className="absolute inset-0 bg-black" />}
                     <div className="absolute inset-0 bg-black/15" />
                     <Play className="absolute bottom-2 left-2 size-3 fill-white text-white" />
                   </div>
                   <div className="min-w-0">
-                    <p className="truncate text-[13px] text-[#E9E9E1] transition-colors duration-300 group-hover:text-[#D7FF4F]">{item.title}</p>
+                    <p className="truncate text-[13px] text-[#E9E9E1] transition-colors duration-300 group-hover:text-white">{item.title}</p>
                     <div className="mt-1 flex items-center gap-2 text-[10px] uppercase tracking-[0.16em] text-[#777970]">
                       <span>{item.status}</span>
                       <span className="size-1 rounded-full bg-[#52544D]" />
@@ -821,13 +857,150 @@ function RecentAssetsGrid({ videos = [] }: { videos?: LiveVideo[] }) {
                   <span className="text-[9px] uppercase tracking-[0.18em] text-[#777970] lg:hidden">Engagement</span>
                   {item.engagement}
                 </div>
-                <ArrowUpRight className="hidden size-4 text-[#A8AA9D] transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-[#D7FF4F] lg:block" />
+              </div>
+              <button
+                type="button"
+                aria-label={`Open performance for ${item.title}`}
+                onClick={() => onOpenVideo(videos[index]!)}
+                className="group/trigger absolute right-0 top-4 flex size-8 items-center justify-center border border-white/[0.12] bg-black text-[#A8AA9D] transition-[background-color,border-color,color,transform] duration-300 hover:-translate-y-0.5 hover:border-white/40 hover:bg-[#101010] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 lg:static lg:justify-self-end"
+              >
+                <span className="absolute inset-[5px] border border-current opacity-0 transition-all duration-300 group-hover/trigger:inset-[3px] group-hover/trigger:opacity-30" aria-hidden="true" />
+                <ArrowUpRight className="relative size-3.5 transition-transform duration-300 group-hover/trigger:-translate-y-0.5 group-hover/trigger:translate-x-0.5" />
               </button>
             </motion.div>
           )
         })}
       </div>
     </LayoutGroup>
+  )
+}
+
+function VideoPerformanceSheet({
+  video,
+  platforms,
+  onOpenChange,
+}: {
+  video: LiveVideo | null
+  platforms: AnalyticsPlatform[]
+  onOpenChange: (open: boolean) => void
+}) {
+  const trackedPlatforms = video?.platformBreakdown.filter((platform) => platform.connected) ?? []
+  const availablePlatforms = platforms.filter((platform) => !platform.connected)
+  const hasTrackedData = trackedPlatforms.length > 0
+
+  return (
+    <Sheet open={Boolean(video)} onOpenChange={onOpenChange}>
+      <SheetContent
+        side="right"
+        className="flex w-full max-w-[620px] flex-col overflow-y-auto border-l border-white/[0.1] bg-black px-5 pb-7 pt-6 shadow-[-24px_0_70px_rgba(0,0,0,0.55)] data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right sm:px-8 sm:pb-9 sm:pt-8"
+      >
+        {video ? (
+          <>
+            <div className="pr-10">
+              <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.22em] text-[#8D8E85]">
+                <span className={cn('size-1.5 rounded-full', hasTrackedData ? 'bg-white' : 'bg-[#777970]')} />
+                {hasTrackedData ? 'Performance detail' : 'Tracking setup'}
+              </div>
+              <SheetTitle className="mt-4 font-[family-name:var(--font-vogue-display)] text-[clamp(2.1rem,6vw,4.1rem)] font-normal leading-[0.92] text-[#F1F0EA]">
+                {video.title}
+              </SheetTitle>
+              <SheetDescription className="mt-3 max-w-[30rem] text-[12px] leading-5 text-[#A8AA9D]">
+                {hasTrackedData
+                  ? 'A live reading of the channels carrying this cut.'
+                  : 'Connect a publishing account to begin reading this video after it is published.'}
+              </SheetDescription>
+            </div>
+
+            {hasTrackedData ? (
+              <div className="mt-9 space-y-8">
+                <div className="grid grid-cols-2 border-y border-white/[0.1] sm:grid-cols-4">
+                  <PerformanceMetric label="Reach" value={formatNumber(video.totals.views)} />
+                  <PerformanceMetric label="Retention" value={`${video.totals.retentionRate}%`} />
+                  <PerformanceMetric label="Engagement" value={`${video.totals.engagementRate}%`} />
+                  <PerformanceMetric label="Watch time" value={formatWatchTime(trackedPlatforms.reduce((total, platform) => total + platform.watchTimeSeconds, 0))} />
+                </div>
+
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.22em] text-[#8D8E85]">Channel readings</p>
+                  <div className="mt-4 divide-y divide-white/[0.09] border-y border-white/[0.09]">
+                    {trackedPlatforms.map((platform) => (
+                      <article key={platform.platform} className="py-5">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex items-center gap-3">
+                            <span className="size-2 rounded-full" style={{ backgroundColor: platform.color }} />
+                            <div>
+                              <h3 className="text-[13px] text-[#F1F0EA]">{platform.platformName}</h3>
+                              <p className="mt-1 text-[10px] uppercase tracking-[0.16em] text-[#777970]">
+                                {platform.capturedAt ? `Read ${formatCaptureDate(platform.capturedAt)}` : 'Awaiting first read'}
+                              </p>
+                            </div>
+                          </div>
+                          {platform.publishedUrl ? (
+                            <a href={platform.publishedUrl} target="_blank" rel="noreferrer" className="flex size-8 items-center justify-center border border-white/[0.12] text-[#A8AA9D] transition-colors hover:border-white/40 hover:bg-white hover:text-black" aria-label={`Open ${video.title} on ${platform.platformName}`}>
+                              <ArrowUpRight className="size-3.5" />
+                            </a>
+                          ) : null}
+                        </div>
+                        <div className="mt-5 grid grid-cols-2 gap-x-5 gap-y-4 sm:grid-cols-4">
+                          <PerformanceDatum icon={Eye} label="Views" value={formatNumber(platform.views)} />
+                          <PerformanceDatum icon={Heart} label="Likes" value={formatNumber(platform.likes)} />
+                          <PerformanceDatum icon={MessageCircle} label="Comments" value={formatNumber(platform.comments)} />
+                          <PerformanceDatum icon={Share2} label="Shares" value={formatNumber(platform.shares)} />
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-9">
+                <div className="border-y border-white/[0.1] py-6">
+                  <Link2 className="size-5 text-white" />
+                  <p className="mt-4 text-[18px] font-light text-[#F1F0EA]">No channel is reading this cut yet.</p>
+                  <p className="mt-2 max-w-[28rem] text-[12px] leading-5 text-[#8D8E85]">Choose a channel to connect. Prometheus will begin capturing available performance once this video is live.</p>
+                </div>
+                <div className="mt-2 divide-y divide-white/[0.09] border-b border-white/[0.09]">
+                  {availablePlatforms.map((platform) => (
+                    <a
+                      key={platform.id}
+                      href={`/api/oauth/${platform.id}/initiate`}
+                      className="group/platform flex items-center justify-between gap-4 py-4 text-left transition-colors hover:text-white"
+                    >
+                      <span className="flex items-center gap-3">
+                        <span className="size-2 rounded-full" style={{ backgroundColor: platform.color }} />
+                        <span className="text-[13px] text-[#E9E9E1]">Connect {platform.name}</span>
+                      </span>
+                      <span className="flex size-7 items-center justify-center border border-white/[0.12] text-[#A8AA9D] transition-all duration-300 group-hover/platform:border-white group-hover/platform:bg-[#101010] group-hover/platform:text-white">
+                        <ArrowUpRight className="size-3.5 transition-transform duration-300 group-hover/platform:-translate-y-0.5 group-hover/platform:translate-x-0.5" />
+                      </span>
+                    </a>
+                  ))}
+                  {availablePlatforms.length === 0 ? <p className="py-5 text-[12px] leading-5 text-[#8D8E85]">Your connected channels are ready. Publish this cut to let the next analytics read locate it.</p> : null}
+                </div>
+              </div>
+            )}
+          </>
+        ) : null}
+      </SheetContent>
+    </Sheet>
+  )
+}
+
+function PerformanceMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="border-b border-white/[0.09] py-4 pr-3 last:border-b-0 sm:border-b-0 sm:border-r sm:px-4 sm:first:pl-0 sm:last:border-r-0">
+      <p className="text-[9px] uppercase tracking-[0.18em] text-[#777970]">{label}</p>
+      <p className="mt-2 truncate text-[18px] font-light text-[#F1F0EA]">{value}</p>
+    </div>
+  )
+}
+
+function PerformanceDatum({ icon: Icon, label, value }: { icon: React.ComponentType<{ className?: string }>; label: string; value: string }) {
+  return (
+    <div>
+      <div className="flex items-center gap-2 text-[9px] uppercase tracking-[0.16em] text-[#777970]"><Icon className="size-3" />{label}</div>
+      <p className="mt-2 text-[16px] font-light text-[#F1F0EA]">{value}</p>
+    </div>
   )
 }
 
@@ -873,6 +1046,12 @@ function formatWatchTime(seconds: number) {
   const hours = Math.floor(seconds / 3600)
   const minutes = Math.round((seconds % 3600) / 60)
   return `${hours}h ${minutes}m`
+}
+
+function formatCaptureDate(value: string) {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return 'recently'
+  return new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric' }).format(date)
 }
 
 function buildSparklinePoints(values: number[]) {

@@ -15,7 +15,7 @@ export function PrometheusShell({
   header,
   mainClassName = 'relative z-auto h-full overflow-y-auto overflow-x-hidden overscroll-contain',
   overlay,
-  rootClassName = 'relative flex h-full min-h-0 w-full flex-col overflow-hidden font-sans',
+  rootClassName = 'prometheus-page-reveal relative flex h-full min-h-0 w-full flex-col overflow-hidden font-sans',
 }: PrometheusShellProps) {
   return (
     <div className={rootClassName}>

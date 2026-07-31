@@ -243,8 +243,8 @@ async function run() {
 
   const musicPlayer = read("components/ui/music-player.tsx");
   assert.match(musicPlayer, /overflow-hidden/);
-  assert.match(musicPlayer, /truncate/);
-  assert.match(musicPlayer, /title=\{artistName\}/);
+  assert.match(musicPlayer, /flex-1/);
+  assert.doesNotMatch(musicPlayer, /music-player-title|music-player-meta|music-player-status/);
 
   const editorLoading = read("app/editor/loading.tsx");
   assert.match(editorLoading, /EditorLoadingScreen/);

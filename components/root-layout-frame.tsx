@@ -11,7 +11,7 @@ export function RootLayoutFrame({ children }: { children: ReactNode }) {
   const pathname = usePathname()
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="prometheus-motion-root flex min-h-screen flex-col">
       <div className="flex-1">
         <WorkspaceFrame>{children}</WorkspaceFrame>
       </div>

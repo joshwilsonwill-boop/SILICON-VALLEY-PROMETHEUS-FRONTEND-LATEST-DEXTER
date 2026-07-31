@@ -31,7 +31,6 @@ import {
     Film,
     Music2,
     FileText,
-    PanelsTopLeft,
     MessageSquare,
     ImageIcon, // Added import for ImageIcon
     Check,
@@ -45,11 +44,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { BillingRequiredDialog } from "@/components/billing/billing-required-dialog";
 import { GlassUploadModalView } from "@/components/ui/glass-upload-modal-view";
-import { DynamicFrameLayout } from "@/components/ui/dynamic-frame-layout";
 import { TextEffect } from "@/components/ui/text-effect";
 import { GooeyText } from "@/components/ui/gooey-text-morphing";
 import { InlineLoadingAnimation } from "@/components/loading-animation";
-import type { DynamicFrame } from "@/components/ui/dynamic-frame-layout";
 import { InteractiveOrb } from "@/components/ui/interactive-orb";
 import { ChatStyleSelector } from "@/components/editor/chat-style-selector";
 import { STYLE_TEMPLATES } from "@/lib/styles/style-templates";
@@ -496,7 +493,7 @@ const COMPOSER_MODES = [
 ] as const;
 
 const STUDIO_DISPLAY_FONT_STYLE: React.CSSProperties = {
-    fontFamily: 'var(--font-elegist)',
+    fontFamily: 'var(--font-migra)',
 };
 
 interface PromptComposerSubmitPayload {
@@ -595,91 +592,6 @@ function describeMultipartUploadProgress(progress: MultipartUploadProgress, file
 
     return `Uploading ${fileName} (${progress.percentage}%) — ${partLabel}.`;
 }
-
-const DEMO_FRAMES: DynamicFrame[] = [
-    {
-        id: 1,
-        video: "https://static.cdn-luma.com/files/981e483f71aa764b/Company%20Thing%20Exported.mp4",
-        poster: "/style-previews/iman-1.jpg",
-        priority: true,
-        defaultPos: { x: 0, y: 0, w: 4, h: 4 },
-        mediaSize: 1,
-        isHovered: false,
-    },
-    {
-        id: 2,
-        video: "https://static.cdn-luma.com/files/58ab7363888153e3/WebGL%20Exported%20(1).mp4",
-        poster: "/style-previews/reels-heat-1.webp",
-        defaultPos: { x: 4, y: 0, w: 4, h: 4 },
-        mediaSize: 1,
-        isHovered: false,
-        title: "Model Preview",
-        headline: "RAY 2",
-        description:
-            "A large-scale video model with natural, coherent motion. Handles text, image, and video prompts.",
-    },
-    {
-        id: 3,
-        video: "https://static.cdn-luma.com/files/58ab7363888153e3/Jitter%20Exported%20Poster.mp4",
-        poster: "/style-previews/red-statue-1.jpg",
-        defaultPos: { x: 8, y: 0, w: 4, h: 4 },
-        mediaSize: 1,
-        isHovered: false,
-        title: "Visual Prompt",
-        description: "Beautiful visuals at the speed of thought.",
-    },
-    {
-        id: 4,
-        video: "https://static.cdn-luma.com/files/58ab7363888153e3/Exported%20Web%20Video.mp4",
-        poster: "/style-previews/podcast-1.jpg",
-        defaultPos: { x: 0, y: 4, w: 4, h: 4 },
-        mediaSize: 1,
-        isHovered: false,
-    },
-    {
-        id: 5,
-        video: "https://static.cdn-luma.com/files/58ab7363888153e3/Logo%20Exported.mp4",
-        poster: "/style-previews/reels-heat-2.webp",
-        defaultPos: { x: 4, y: 4, w: 4, h: 4 },
-        mediaSize: 1,
-        isHovered: false,
-    },
-    {
-        id: 6,
-        video: "https://static.cdn-luma.com/files/58ab7363888153e3/Animation%20Exported%20(4).mp4",
-        poster: "/style-previews/docs-story-1.jpg",
-        defaultPos: { x: 8, y: 4, w: 4, h: 4 },
-        mediaSize: 1,
-        isHovered: false,
-        align: "bottom-right",
-        title: "Style Prompt",
-        description: "@style bird like the reference",
-    },
-    {
-        id: 7,
-        video: "https://static.cdn-luma.com/files/58ab7363888153e3/Illustration%20Exported%20(1).mp4",
-        poster: "/style-previews/iman-2.jpg",
-        defaultPos: { x: 0, y: 8, w: 4, h: 4 },
-        mediaSize: 1,
-        isHovered: false,
-    },
-    {
-        id: 8,
-        video: "https://static.cdn-luma.com/files/58ab7363888153e3/Art%20Direction%20Exported.mp4",
-        poster: "/style-previews/red-statue-1.jpg",
-        defaultPos: { x: 4, y: 8, w: 4, h: 4 },
-        mediaSize: 1,
-        isHovered: false,
-    },
-    {
-        id: 9,
-        video: "https://static.cdn-luma.com/files/58ab7363888153e3/Product%20Video.mp4",
-        poster: "/style-previews/docs-story-1.jpg",
-        defaultPos: { x: 8, y: 8, w: 4, h: 4 },
-        mediaSize: 1,
-        isHovered: false,
-    },
-];
 
 const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
   ({ className, containerClassName, showRing = true, ...props }, ref) => {
@@ -1607,7 +1519,6 @@ export function VideoUploadInterface() {
     const [selectedEditActions, setSelectedEditActions] = useState<EditAction[]>([]);
     const [editActionsRestored, setEditActionsRestored] = useState(false);
     const [composerFocusRequestKey, setComposerFocusRequestKey] = useState(0);
-    const [showInspirationWall, setShowInspirationWall] = useState(false);
     const [editorLaunchOverlay, setEditorLaunchOverlay] = useState<{
         title: string;
         detail: string;
@@ -2367,7 +2278,7 @@ export function VideoUploadInterface() {
                                 texts={["New", "Next", "Live"]}
                                 morphTime={0.95}
                                 cooldownTime={0.65}
-                                className="h-[0.95em] w-[3.35ch] translate-y-[0.04em]"
+                                className="h-[0.95em] w-[3.35ch] self-baseline"
                                 textClassName="left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-[1em] font-extrabold leading-none text-white"
                             />
                             <span>?</span>
@@ -2402,19 +2313,6 @@ export function VideoUploadInterface() {
                         onSubmit={handleComposerSubmit}
                         uploadStatus={uploadStatus}
                         uploadProgress={uploadProgress}
-                        footerAction={
-                            <motion.button
-                                type="button"
-                                onClick={() => setShowInspirationWall((prev) => !prev)}
-                                className={studioActionButtonClassName(showInspirationWall)}
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: COMMAND_SUGGESTIONS.length * 0.1 }}
-                            >
-                                <PanelsTopLeft className="h-3.5 w-3.5" />
-                                <span>{showInspirationWall ? "Hide Showcase" : "Reveal Showcase"}</span>
-                            </motion.button>
-                        }
                     />
 
                     <StudioCinematicMarqueeRails
@@ -2422,43 +2320,6 @@ export function VideoUploadInterface() {
                         onSelectAction={selectEditAction}
                     />
 
-                    <div className="space-y-4">
-                        <AnimatePresence>
-                            {showInspirationWall && (
-                                <motion.div
-                                    initial={{ opacity: 0, y: 16, scale: 0.98 }}
-                                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                                    exit={{ opacity: 0, y: 16, scale: 0.98 }}
-                                    transition={{ duration: 0.26, ease: "easeOut" }}
-                                    className="overflow-hidden rounded-2xl border border-white/12 bg-[linear-gradient(165deg,rgba(16,11,25,0.86)_0%,rgba(8,7,13,0.93)_100%)] shadow-[0_35px_90px_-45px_rgba(185,134,255,0.48)] backdrop-blur-xl"
-                                >
-                                    <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
-                                        <div>
-                                            <div className="text-sm font-medium text-white/92">Dynamic Inspiration Wall</div>
-                                            <div className="text-xs text-white/55">
-                                                Hover tiles to expand and inspect motion styling.
-                                            </div>
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowInspirationWall(false)}
-                                            className="rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-1 text-xs text-white/65 transition-colors hover:text-white"
-                                        >
-                                            Close
-                                        </button>
-                                    </div>
-                                    <div className="h-[360px] p-2 sm:h-[430px] md:h-[500px]">
-                                        <DynamicFrameLayout
-                                            frames={DEMO_FRAMES}
-                                            className="h-full w-full"
-                                            hoverSize={6}
-                                            gapSize={4}
-                                        />
-                                    </div>
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
-                    </div>
                 </motion.div>
             </div>
 
@@ -3035,9 +2896,6 @@ export function VideoUploadInterface() {
                                         )}
                                     </AnimatePresence>
                                     <div className="absolute inset-x-3 bottom-3 flex items-center gap-3 rounded-[26px] border border-[#d2cec5] bg-white/70 px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.82)] backdrop-blur-md sm:inset-x-4 sm:bottom-4 sm:px-4">
-                                        <div className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#cbc6bc] bg-[#26232c] text-[#f5f2ea]">
-                                            <PanelsTopLeft className="h-4 w-4" />
-                                        </div>
                                         <div className="min-w-0 flex-1">
                                             <div className="text-[10px] uppercase tracking-[0.18em] text-[#7b756d]">Studio rail</div>
                                             <p className="mt-1 text-xs text-white/46">

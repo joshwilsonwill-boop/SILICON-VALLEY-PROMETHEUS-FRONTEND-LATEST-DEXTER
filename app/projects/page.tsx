@@ -1635,10 +1635,12 @@ function FloatingBulkActionBar({
 
 export default function ProjectsPageWrapper(props: any) {
   return (
-    <EditorProvider>
-      <ProjectsPageV2 {...props} />
-      <ExportDrawer />
-      <CircularToast />
-    </EditorProvider>
+    <div className="projects-minimal-theme">
+      <EditorProvider>
+        <ProjectsPageV2 {...props} />
+        <ExportDrawer />
+        <CircularToast />
+      </EditorProvider>
+    </div>
   )
 }

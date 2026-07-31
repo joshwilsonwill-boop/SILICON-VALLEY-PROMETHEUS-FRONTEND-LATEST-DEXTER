@@ -5,13 +5,9 @@ import { AnimatePresence, motion, useAnimationFrame, useMotionValue } from 'fram
 import { Music, Pause, Play, Repeat, Shuffle, SkipBack, SkipForward } from 'lucide-react'
 import Image from 'next/image'
 
-import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { chamberEase } from '@/lib/chamber-motion'
 import { cn } from '@/lib/utils'
 import { useStableReducedMotion } from '@/hooks/use-stable-reduced-motion'
-
-const musicDisplayFont = 'tracking-[-0.035em]'
-const musicMetaFont = 'font-serif'
 
 const formatTime = (timeInSeconds: number): string => {
   if (Number.isNaN(timeInSeconds)) return '00:00'
@@ -24,7 +20,6 @@ type MusicPlayerProps = {
   albumArt: string
   albumArtPosition?: string
   songTitle: string
-  artistName: string
   audioSrc: string
   isPlaying?: boolean
   isMuted?: boolean
@@ -43,7 +38,6 @@ export function MusicPlayer({
   albumArt,
   albumArtPosition = 'center',
   songTitle,
-  artistName,
   audioSrc,
   isPlaying: isPlayingProp,
   isMuted = false,
@@ -63,7 +57,6 @@ export function MusicPlayer({
   const [currentTime, setCurrentTime] = React.useState(0)
   const [isShuffle, setIsShuffle] = React.useState(false)
   const [isRepeat, setIsRepeat] = React.useState(false)
-  const [isBuffering, setIsBuffering] = React.useState(false)
   const [albumArtFailed, setAlbumArtFailed] = React.useState(false)
 
   const audioRef = React.useRef<HTMLAudioElement | null>(null)
@@ -85,7 +78,6 @@ export function MusicPlayer({
 
   const setBufferingState = React.useCallback(
     (nextBuffering: boolean) => {
-      setIsBuffering(nextBuffering)
       onBufferingChange?.(nextBuffering)
     },
     [onBufferingChange],
@@ -262,29 +254,6 @@ export function MusicPlayer({
         }
 
         @media (max-height: 700px) {
-          .music-player-visual {
-            min-height: 6.5rem;
-            margin-bottom: 0.75rem;
-          }
-
-          .music-player-art {
-            width: 6rem;
-            height: 6rem;
-          }
-
-          .music-player-title {
-            font-size: 0.98rem;
-          }
-
-          .music-player-meta {
-            margin-top: 0.125rem;
-            font-size: 0.76rem;
-          }
-
-          .music-player-status {
-            margin-top: 0.25rem;
-          }
-
           .music-player-timeline {
             margin-top: 0.75rem;
           }
@@ -297,7 +266,7 @@ export function MusicPlayer({
 
       <audio ref={audioRef} src={audioSrc} loop={isRepeat} preload="metadata" />
 
-      <div className="music-player-visual relative mb-4 flex min-h-[clamp(9.5rem,28vh,13rem)] shrink items-center justify-center">
+      <div className="music-player-visual relative mb-4 flex min-h-0 flex-1 items-center justify-center">
         <motion.div
           key={albumArt}
           initial={reduceMotion ? false : { opacity: 0, scale: 0.96, filter: 'blur(8px)' }}
@@ -305,7 +274,7 @@ export function MusicPlayer({
           exit={reduceMotion ? undefined : { opacity: 0, scale: 1.02, filter: 'blur(8px)' }}
           transition={{ duration: reduceMotion ? 0 : 0.28, ease: chamberEase }}
           style={reduceMotion ? undefined : { rotate: rotation }}
-          className="music-player-art relative z-10 h-[clamp(8.75rem,24vh,11rem)] w-[clamp(8.75rem,24vh,11rem)] overflow-hidden rounded-full border border-white/8 shadow-[0_20px_42px_-30px_rgba(0,0,0,0.98)]"
+          className="music-player-art relative z-10 h-[min(100%,clamp(11rem,38vh,18rem))] w-[min(100%,clamp(11rem,38vh,18rem))] overflow-hidden rounded-full border border-white/8 shadow-[0_20px_42px_-30px_rgba(0,0,0,0.98)]"
         >
           {albumArtFailed ? (
             <div className="grid h-full w-full place-items-center bg-white/[0.04] text-white/24">
@@ -328,40 +297,6 @@ export function MusicPlayer({
           <div className="absolute left-1/2 top-1/2 h-8 w-8 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/10 bg-black shadow-[0_0_0_8px_rgba(0,0,0,0.92)]" />
         </motion.div>
       </div>
-
-      <AnimatePresence mode="wait" initial={false}>
-        <motion.div
-          key={`${songTitle}-${artistName}`}
-          initial={reduceMotion ? false : { opacity: 0, y: 8, filter: 'blur(6px)' }}
-          animate={reduceMotion ? undefined : { opacity: 1, y: 0, filter: 'blur(0px)' }}
-          exit={reduceMotion ? undefined : { opacity: 0, y: -6, filter: 'blur(4px)' }}
-          transition={{ duration: reduceMotion ? 0 : 0.24, ease: chamberEase }}
-          className="w-full min-w-0 max-w-full overflow-hidden px-1"
-        >
-          <div className="min-w-0 text-center">
-            <h2
-              className={cn(musicDisplayFont, 'music-player-title mx-auto max-w-full truncate text-[1.08rem] font-normal text-white sm:text-[1.18rem]')}
-              title={songTitle}
-            >
-              {songTitle}
-            </h2>
-            <p
-              className={cn(musicMetaFont, 'music-player-meta mx-auto mt-1 max-w-full truncate text-[0.82rem] font-normal text-white/72')}
-              title={artistName}
-            >
-              {artistName}
-            </p>
-            <div aria-live="polite" className="music-player-status mt-2 flex min-h-4 items-center justify-center gap-1.5 text-[11px] uppercase tracking-[0.18em] text-white/38">
-              {isBuffering && isPlaying ? (
-                <>
-                  <InlineLoadingAnimation size={12} label="Buffering track" />
-                  <span>Buffering...</span>
-                </>
-              ) : null}
-            </div>
-          </div>
-        </motion.div>
-      </AnimatePresence>
 
       <div className="music-player-timeline mt-4 w-full max-w-[18rem]">
         <div className="music-player-timeline-row mb-5 flex items-center gap-x-3">

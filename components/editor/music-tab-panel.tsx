@@ -459,6 +459,46 @@ const CATALOG_PAGE_SIZE = 200
 const INITIAL_VISIBLE_TRACKS = 50
 const VISIBLE_TRACK_INCREMENT = 50
 
+const musicCatalogScrollbarStyles = `
+  .music-catalog-scrollbar {
+    scrollbar-color: rgba(74, 158, 255, 0.56) transparent;
+    scrollbar-width: thin;
+  }
+
+  .music-catalog-scrollbar::-webkit-scrollbar {
+    width: 10px;
+  }
+
+  .music-catalog-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+    border-left: 1px solid rgba(118, 170, 226, 0.13);
+    margin-block: 8px;
+    transition: border-color 220ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .music-catalog-scrollbar::-webkit-scrollbar-thumb {
+    min-height: 32px;
+    border: 3px solid transparent;
+    border-radius: 999px;
+    background-clip: padding-box;
+    background-color: rgba(74, 158, 255, 0.56);
+    transition: background-color 220ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 220ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .music-catalog-scrollbar:hover {
+    scrollbar-color: rgba(103, 188, 255, 0.94) transparent;
+  }
+
+  .music-catalog-scrollbar:hover::-webkit-scrollbar-track {
+    border-color: rgba(118, 181, 255, 0.27);
+  }
+
+  .music-catalog-scrollbar:hover::-webkit-scrollbar-thumb {
+    background-color: rgba(103, 188, 255, 0.94);
+    box-shadow: 0 0 10px rgba(66, 156, 255, 0.48);
+  }
+`
+
 function mapCatalogApiTrack(track: CatalogApiTrack): MusicRecommendation {
   const genre = track.genreTags[0] ?? track.category ?? 'Soundtrack'
   const artist = track.artist?.trim() || 'Unknown Artist'
@@ -859,6 +899,7 @@ export function MusicTabPanel({
             from { transform: scaleY(0.38); opacity: 0.58; }
             to { transform: scaleY(1); opacity: 1; }
           }
+          ${musicCatalogScrollbarStyles}
         `}</style>
         <LuxuryVignette tone="music" />
 
@@ -868,7 +909,6 @@ export function MusicTabPanel({
               albumArt={selectedSong.artwork || FALLBACK_COVER_ART}
               albumArtPosition={selectedSong.artworkPosition}
               songTitle={selectedSong.title}
-              artistName={selectedSong.metadataLine}
               audioSrc={selectedSong.audioSrc}
               isMuted={isMuted}
               seekRequest={seekRequest}
@@ -928,7 +968,7 @@ export function MusicTabPanel({
             </Button>
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+          <div className="music-catalog-scrollbar min-h-0 flex-1 overflow-y-auto pr-1">
             <div className="space-y-2 pb-4">
               {catalogLoading && !visibleTracks.length ? (
                 <div className="flex min-h-[220px] flex-col items-center justify-center gap-3 px-4 text-center">
@@ -997,12 +1037,13 @@ export function MusicTabPanel({
       transition={{ duration: reduceMotion ? 0 : 0.3, ease: chamberEase }}
       className="premium-ambient-panel premium-vignette-surface editorial-light-effect relative flex min-h-0 w-full max-w-[1080px] flex-1 self-center overflow-hidden rounded-[32px] border border-white/8 bg-black px-4 pb-28 pt-4 sm:px-5 sm:pt-5"
     >
-      <style>{`
-        @keyframes music-eq {
-          from { transform: scaleY(0.38); opacity: 0.58; }
-          to { transform: scaleY(1); opacity: 1; }
-        }
-      `}</style>
+        <style>{`
+          @keyframes music-eq {
+            from { transform: scaleY(0.38); opacity: 0.58; }
+            to { transform: scaleY(1); opacity: 1; }
+          }
+          ${musicCatalogScrollbarStyles}
+        `}</style>
       <LuxuryVignette tone="music" />
       <div className="relative z-10 grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(18rem,1.04fr)_minmax(21rem,0.9fr)] xl:grid-cols-[minmax(20rem,1.08fr)_minmax(22rem,0.92fr)]">
         <div className="flex min-h-0 min-w-0">
@@ -1012,7 +1053,6 @@ export function MusicTabPanel({
                 albumArt={selectedSong.artwork || FALLBACK_COVER_ART}
                 albumArtPosition={selectedSong.artworkPosition}
                 songTitle={selectedSong.title}
-                artistName={selectedSong.metadataLine}
                 audioSrc={selectedSong.audioSrc}
                 isMuted={isMuted}
                 seekRequest={seekRequest}
@@ -1053,7 +1093,7 @@ export function MusicTabPanel({
             ) : null}
           </div>
 
-          <div className="mt-4 min-h-0 flex-1 overflow-y-auto pr-1">
+          <div className="music-catalog-scrollbar mt-4 min-h-0 flex-1 overflow-y-auto pr-1">
             <div className="space-y-2 pb-4">
               {catalogLoading && !visibleTracks.length ? (
                 <div className="flex min-h-[220px] flex-col items-center justify-center gap-3 px-4 text-center">

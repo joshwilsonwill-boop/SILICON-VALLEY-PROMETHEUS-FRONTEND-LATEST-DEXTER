@@ -13,7 +13,7 @@ const FOOTER_LINKS = [
 
 export function Footer() {
   return (
-    <footer className="w-full border-t border-white/[0.07] bg-[#05060a] px-5 py-10 text-white sm:px-8">
+    <footer className="prometheus-footer w-full border-t border-white/[0.07] bg-[#05060a] px-5 py-10 text-white sm:px-8">
       <div className="mx-auto grid max-w-7xl gap-8 md:grid-cols-[1fr_auto] md:items-end">
         <div className="max-w-md">
           <Link

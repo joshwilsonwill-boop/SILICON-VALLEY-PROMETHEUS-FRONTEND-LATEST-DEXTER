@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 
 import { useAIChat } from '@/hooks/use-ai-chat'
+import { getLastEditorialChamberPath, requestEditorialChatOpen } from '@/lib/editorial-chat-navigation'
 import { cn } from '@/lib/utils'
 import { openStudioOnboarding } from '@/components/onboarding/studio-onboarding'
 
@@ -66,7 +67,8 @@ export function GlobalHelpLauncher() {
   const inputRef = React.useRef<HTMLInputElement | null>(null)
   const chat = useAIChat({ projectId: null, enabled: isOpen && view === 'ask' })
 
-  const hideLauncher = AUTH_ROUTE_REGEX.test(pathname)
+  const isEditorialChamber = pathname.startsWith('/editor/')
+  const hideLauncher = AUTH_ROUTE_REGEX.test(pathname) || isEditorialChamber
   const workspaceLabel = currentWorkspaceLabel(pathname)
   const isSending = chat.isSending || chat.isAwaitingResponse
 
@@ -97,6 +99,22 @@ export function GlobalHelpLauncher() {
     setIsOpen(true)
     setView(nextView)
   }, [])
+
+  const openEditorialChat = React.useCallback(() => {
+    const chamberPath = getLastEditorialChamberPath()
+
+    requestEditorialChatOpen()
+    close()
+
+    if (!isEditorialChamber && chamberPath) {
+      router.push(chamberPath)
+      return
+    }
+
+    if (!isEditorialChamber && !chamberPath) {
+      router.push('/projects')
+    }
+  }, [close, isEditorialChamber, router])
 
   const sendQuestion = React.useCallback(
     async (question?: string) => {
@@ -143,7 +161,7 @@ export function GlobalHelpLauncher() {
 
           {view === 'menu' ? (
             <div className="space-y-2 p-3">
-              <HelpAction icon={Bot} label="Ask Prometheus" detail="Get help with the work in front of you" onClick={() => openView('ask')} />
+              <HelpAction icon={Bot} label="Ask Prometheus" detail="Open the editorial chamber chat" onClick={openEditorialChat} />
               <HelpAction icon={BookOpen} label="Production guides" detail="Learn the core studio workflows" onClick={() => openView('guides')} />
               <HelpAction icon={Sparkles} label="Studio introduction" detail="Replay the motion-led first look" onClick={() => { close(); openStudioOnboarding() }} />
               <HelpAction

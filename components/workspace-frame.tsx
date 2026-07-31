@@ -32,7 +32,7 @@ export function WorkspaceFrame({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="relative h-[100dvh] w-full overflow-hidden font-sans">
+    <div className="prometheus-workspace-shell relative h-[100dvh] w-full overflow-hidden font-sans">
       <div className="absolute inset-0 z-0 bg-[radial-gradient(circle_at_14%_2%,rgba(212,176,255,0.14)_0%,rgba(34,14,58,0.08)_38%,rgba(0,0,0,0)_68%),linear-gradient(180deg,rgba(14,9,24,0.96)_0%,rgba(6,4,10,1)_100%)]" />
       <IsoLevelWarp color="168, 124, 255" density={34} speed={0.08} />
 

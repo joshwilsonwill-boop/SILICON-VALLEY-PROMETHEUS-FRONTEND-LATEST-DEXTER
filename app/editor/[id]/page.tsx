@@ -87,6 +87,11 @@ import { clearPendingEditorNavigation, getRememberedEditorReturnPath } from '@/l
 import { useFrameTargeting } from '@/hooks/use-frame-targeting'
 import { parseFrameReference } from '@/lib/editorial-frame/parse-frame-reference'
 import {
+  consumePendingEditorialChatOpen,
+  EDITORIAL_CHAT_OPEN_EVENT,
+  rememberEditorialChamberPath,
+} from '@/lib/editorial-chat-navigation'
+import {
   formatAspectFamily,
   formatDurationBucket,
   formatProcessingClass,
@@ -3026,6 +3031,7 @@ function FloatingChatComposer({
   onApplyChatActions,
   onChatSeekToSec,
   workspaceTab = null,
+  focusPulse = 0,
 }: {
   projectId: string
   draft: string
@@ -3065,6 +3071,7 @@ function FloatingChatComposer({
   onApplyChatActions?: (drafts: EditorActionDraft[], messageId: string) => void
   onChatSeekToSec?: (seconds: number) => void
   workspaceTab?: string | null
+  focusPulse?: number
 }) {
   const isMobile = useMediaQuery('(max-width: 767px)')
   const responsivePlaceholderText = 'Ask about editing, color, sound...'
@@ -3121,6 +3128,13 @@ function FloatingChatComposer({
     })
     return () => window.cancelAnimationFrame(rafId)
   }, [isThreadOpen, latestThreadEntry?.id, latestThreadEntry?.text, reduceMotion])
+
+  React.useEffect(() => {
+    if (!focusPulse || !isThreadOpen) return
+
+    const frame = window.requestAnimationFrame(() => composerInputRef.current?.focus())
+    return () => window.cancelAnimationFrame(frame)
+  }, [composerInputRef, focusPulse, isThreadOpen])
   const frameAssistKey = React.useMemo(() => {
     if (!frameAssist.analysis.referenceText) return null
     return `${caretIndex}:${frameAssist.analysis.referenceStartIndex ?? 'na'}:${frameAssist.analysis.referenceEndIndex ?? 'na'}:${frameAssist.analysis.referenceText}`
@@ -3534,6 +3548,26 @@ function FloatingChatComposer({
         whileHover={!isThreadOpen && !reduceMotion ? { y: -2, scale: 1.025 } : undefined}
         whileTap={!isThreadOpen && !reduceMotion ? { scale: 0.96 } : undefined}
       >
+        <AnimatePresence initial={false}>
+          {focusPulse > 0 && isThreadOpen && !reduceMotion ? (
+            <motion.div
+              key={`editorial-chat-focus-${focusPulse}`}
+              aria-hidden
+              initial={{ opacity: 0, scale: 0.988 }}
+              animate={{
+                opacity: [0, 0.95, 0],
+                scale: [0.988, 1, 1.004],
+                boxShadow: [
+                  '0 0 0 rgba(56,189,248,0)',
+                  '0 0 30px rgba(56,189,248,0.58), 0 0 56px rgba(99,102,241,0.3)',
+                  '0 0 0 rgba(99,102,241,0)',
+                ],
+              }}
+              transition={{ duration: 1.05, ease: [0.18, 1, 0.3, 1] }}
+              className="pointer-events-none absolute inset-0 z-30 rounded-[inherit] bg-[linear-gradient(120deg,#38bdf8_0%,#60a5fa_32%,#818cf8_60%,#38bdf8_100%)] p-[1.5px] [-webkit-mask:linear-gradient(#fff_0_0)_content-box,linear-gradient(#fff_0_0)] [-webkit-mask-composite:xor] [mask:linear-gradient(#fff_0_0)_content-box,linear-gradient(#fff_0_0)] [mask-composite:exclude]"
+            />
+          ) : null}
+        </AnimatePresence>
         {!isThreadOpen ? (
           <button
             type="button"
@@ -3842,6 +3876,7 @@ const ChatWorkspacePanel = React.memo(function ChatWorkspacePanel({
   const [pendingReplies, setPendingReplies] = React.useState(0)
   const [isComposerOpen, setIsComposerOpen] = React.useState(false)
   const [isComposerThreadOpen, setIsComposerThreadOpen] = React.useState(false)
+  const [chatFocusPulse, setChatFocusPulse] = React.useState(0)
   const [composerFallbackPortalTarget, setComposerFallbackPortalTarget] = React.useState<HTMLElement | null>(null)
   const [pendingChatAttachments, setPendingChatAttachments] = React.useState<ChatAttachment[]>([])
   const [selectedChatStyleId, setSelectedChatStyleId] = React.useState<string | null>(null)
@@ -3865,6 +3900,21 @@ const ChatWorkspacePanel = React.memo(function ChatWorkspacePanel({
   React.useEffect(() => {
     setComposerFallbackPortalTarget(document.body)
   }, [])
+
+  const openEditorialChat = React.useCallback(() => {
+    setIsComposerOpen(true)
+    setIsComposerThreadOpen(true)
+    setChatFocusPulse((current) => current + 1)
+  }, [])
+
+  React.useEffect(() => {
+    const handleOpenEditorialChat = () => openEditorialChat()
+    window.addEventListener(EDITORIAL_CHAT_OPEN_EVENT, handleOpenEditorialChat)
+
+    if (consumePendingEditorialChatOpen()) openEditorialChat()
+
+    return () => window.removeEventListener(EDITORIAL_CHAT_OPEN_EVENT, handleOpenEditorialChat)
+  }, [openEditorialChat])
 
   const requestControllersRef = React.useRef<AbortController[]>([])
   const previewAudioRef = React.useRef<HTMLAudioElement | null>(null)
@@ -5725,6 +5775,7 @@ const ChatWorkspacePanel = React.memo(function ChatWorkspacePanel({
                   conversationEntries={entries}
                   threadOpen={isComposerThreadOpen}
                   onThreadOpenChange={setIsComposerThreadOpen}
+                  focusPulse={chatFocusPulse}
                   onConfirmPostingFile={confirmPostingFile}
                   onRejectPostingFile={rejectPostingFile}
                   onTogglePostingPlatform={togglePostingPlatform}
@@ -6193,6 +6244,10 @@ function OriginalEditorPage() {
   const projectId = params.id
   const isMobile = useMediaQuery('(max-width: 1024px)')
   const { setShowExport } = useEditor()
+
+  React.useEffect(() => {
+    rememberEditorialChamberPath(`/editor/${projectId}`)
+  }, [projectId])
 
   const [project, setProject] = React.useState<Project | null>(null)
   const [job, setJob] = React.useState<ProcessingJob | null>(null)

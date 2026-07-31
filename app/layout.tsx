@@ -7,6 +7,7 @@ import { RootClientEffects } from '@/components/root-client-effects'
 import { AuthProvider } from '@/components/auth/auth-provider'
 import { ReactQueryProvider } from '@/components/ReactQueryProvider'
 import { RootLayoutFrame } from '@/components/root-layout-frame'
+import { LuxuryMotionController } from '@/components/luxury-motion-controller'
 import { LoadingProvider } from '@/contexts/LoadingContext'
 import { CookieConsentBanner } from '@/components/cookie-consent/banner'
 import { ConsentGatedAnalytics } from '@/components/cookie-consent/consent-gated-analytics'
@@ -134,6 +135,7 @@ export default function RootLayout({
             <LoadingProvider>
               <AuthProvider>
                 <RootSmoothScroll />
+                <LuxuryMotionController />
                 <CustomCursor />
                 <div className="relative z-10">
                   <RootLayoutFrame>{children}</RootLayoutFrame>
