@@ -10,10 +10,10 @@ import { useProfile } from '@/hooks/use-profile'
 import { PROPOSE_NOT_APPLIED_MESSAGE, type EditorActionDraft } from '@/lib/editor-actions'
 import { getChatGreeting } from '@/lib/user/display-name'
 import { cn } from '@/lib/utils'
-import { CinematicTextReveal } from '@/components/ui/cinematic-text-reveal'
 
 import { AIChatHistoryButton } from './ai-chat-history-button'
 import { ChatCarousel } from './chat-carousel'
+import { ElegistChatGreeting } from './elegist-chat-greeting'
 import { ChatSuggestions } from './ai-chat-suggestions'
 import { PrometheusChatHistoryDrawer } from './prometheus-chat-history-drawer'
 import { AIChatStreamingText } from './ai-chat-streaming-text'
@@ -294,7 +294,12 @@ export function PrometheusChat({
             </div>
           ) : null}
           {renderedMessages.length === 0 && !showingThinking ? (
-            <EmptyChatGreeting greeting={getChatGreeting(session?.user, profile)} />
+            <div className="flex min-h-full items-center justify-center px-4 pb-24 text-center">
+              <ElegistChatGreeting
+                greeting={getChatGreeting(session?.user, profile)}
+                className="max-w-[52rem] text-balance text-[clamp(2.4rem,4.8vw,5.2rem)] font-normal leading-[0.9] tracking-normal text-white/92 [overflow-wrap:anywhere]"
+              />
+            </div>
           ) : (
             <div className="mx-auto flex w-full max-w-3xl flex-col gap-7 py-8 md:py-12">
               {renderedMessages.map((message) => (
@@ -575,19 +580,5 @@ function PrometheusMessageBubble({
         ) : null}
       </div>
     </article>
-  )
-}
-
-function EmptyChatGreeting({ greeting }: { greeting: string }) {
-  return (
-    <div className="flex min-h-full items-center justify-center px-4 pb-24 text-center">
-      <CinematicTextReveal
-      as="h1"
-      variant="measured"
-      className="max-w-4xl text-balance font-display text-[clamp(2.25rem,5.2vw,5.75rem)] font-normal leading-[0.95] tracking-normal text-white/92"
-      >
-        {greeting}
-      </CinematicTextReveal>
-    </div>
   )
 }

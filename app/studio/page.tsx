@@ -10,9 +10,9 @@ export default function StudioPage() {
   return (
     <MobileNavDrawer>
       {({ hamburger }) => (
-        <PrometheusShell header={<LandingHeader mobileNavControl={hamburger} />}>
+        <PrometheusShell header={<LandingHeader mobileNavControl={hamburger} showBrandName={false} studioSurface />}>
           <UploadErrorBoundary>
-            <div className="pt-20">
+            <div className="bg-[#050505] pt-20">
               <VideoUploadInterface />
             </div>
           </UploadErrorBoundary>

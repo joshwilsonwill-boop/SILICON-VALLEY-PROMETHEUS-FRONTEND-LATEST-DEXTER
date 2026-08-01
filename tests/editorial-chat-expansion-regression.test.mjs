@@ -14,6 +14,7 @@ function run() {
   const retrieval = read("lib/prometheus-assistant/retrieval.ts");
 
   const luxuryChat = read("components/editor/PrometheusChat.tsx");
+  const elegistGreeting = read("components/editor/elegist-chat-greeting.tsx");
 
   assert.match(luxuryChat, /onClose\?: \(\) => void/);
   assert.match(luxuryChat, /aria-label="Collapse editorial chat"/);
@@ -23,7 +24,8 @@ function run() {
   assert.match(luxuryChat, /AIChatStreamingText/);
   assert.doesNotMatch(luxuryChat, /InlineLoadingAnimation|AIChatOrb/);
   assert.doesNotMatch(luxuryChat, /function PrometheusTypingOrbit/);
-  assert.match(luxuryChat, /var\(--font-elegist\)/);
+  assert.match(luxuryChat, /ElegistChatGreeting/);
+  assert.match(elegistGreeting, /font-elegist/);
   assert.doesNotMatch(luxuryChat, /New chat|Generate Code|Launch App|UI Components|Theme Ideas|Image Assets/);
 
   assert.match(editorPage, /PrometheusChat/);

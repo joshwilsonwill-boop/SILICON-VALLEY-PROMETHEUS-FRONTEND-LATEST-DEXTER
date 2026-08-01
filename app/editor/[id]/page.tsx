@@ -48,9 +48,7 @@ import type { AIChatContextProvider, AIChatLiveContext } from '@/hooks/use-ai-ch
 import { ChatStyleSelector } from '@/components/editor/chat-style-selector'
 import { MusicTabPanel } from '@/components/editor/music-tab-panel'
 import { MotionPropertyCanvas } from '@/components/editor/motion-property-canvas'
-import { CinematicTimeline } from '@/components/editor/CinematicTimeline'
-import { MediaBin } from '@/components/editor/MediaBin'
-import { MotionBrainCanvas } from '@/components/editor/MotionBrainCanvas'
+import { MotionEditWorkspace } from '@/components/editor/motion-edit-workspace'
 import { IterationModal } from '@/components/editor/IterationModal'
 import { ContinueBanner } from '@/components/editor/ContinueBanner'
 import gsap from 'gsap'
@@ -156,8 +154,6 @@ import type {
   ProjectExport,
 } from '@/lib/types'
 import { EditorProvider, useEditor } from "@/components/editor/EditorContext";
-import { TimelineEngine } from "@/components/editor/TimelineEngine";
-import { SceneEditor } from "@/components/editor/SceneEditor";
 import { CommandBubble } from "@/components/editor/CommandBubble";
 import { ExportDrawer } from "@/components/editor/ExportDrawer";
 import { CircularToast } from "@/components/editor/CircularToast";
@@ -8067,41 +8063,35 @@ function OriginalEditorPage() {
                 ) : null}
 
                 {activeWorkspaceTab === 'Motion' ? (
-                  <div className="flex flex-col flex-1 min-h-0 bg-[#050608]">
-                    <div className="flex-1 min-h-0 relative">
-                      <MotionPropertyCanvas
-                        projectTitle={project?.title ?? 'Untitled Project'}
-                        previewUrl={previewUrl}
-                        previewKind={previewKind}
-                        hasPreviewMedia={hasPreviewMedia}
-                        sourceLabel={sourceAssetLabel ?? project?.title ?? 'Source video'}
-                        objectFit={fitMode === 'fill' ? 'cover' : 'contain'}
-                        mediaTransformStyle={shouldUseLegacySessionPreviewSurface ? undefined : previewFrameTransformStyle}
-                        currentTimeLabel={transportCurrentTime}
-                        durationLabel={transportTime}
-                        currentTimeSec={previewCurrentTimeSec}
-                        durationSec={transportDurationSec}
-                        previewPlaying={previewPlaying}
-                        previewMuted={isPreviewMuted}
-                        videoRef={previewVideoRef}
-                        onTogglePlayback={togglePreviewPlayback}
-                        onPickSource={openInlineSourcePicker}
-                        onSeek={handlePreviewSeekSeconds}
-                        onVideoLoadedMetadata={handlePreviewMetadataLoaded}
-                        onVideoLoadedData={handlePreviewVideoReady}
-                        onVideoCanPlay={handlePreviewVideoReady}
-                        onVideoTimeUpdate={handlePreviewTimeUpdate}
-                        onVideoEnded={handlePreviewEnded}
-                        onVideoPlay={handlePreviewVideoPlay}
-                        onVideoPause={handlePreviewVideoPause}
-                        onVideoError={handlePreviewVideoError}
-                        onImageLoaded={handlePreviewImageLoaded}
-                        onApplyPrompt={handleMotionCanvasPrompt}
-                      />
-                    </div>
-                    <TimelineEngine />
-                    <SceneEditor />
-                  </div>
+                  <MotionEditWorkspace
+                    projectTitle={project?.title ?? 'Untitled Project'}
+                    previewUrl={previewUrl}
+                    previewKind={previewKind}
+                    hasPreviewMedia={hasPreviewMedia}
+                    sourceLabel={sourceAssetLabel ?? project?.title ?? 'Source video'}
+                    objectFit={fitMode === 'fill' ? 'cover' : 'contain'}
+                    mediaTransformStyle={shouldUseLegacySessionPreviewSurface ? undefined : previewFrameTransformStyle}
+                    currentTimeLabel={transportCurrentTime}
+                    durationLabel={transportTime}
+                    currentTimeSec={previewCurrentTimeSec}
+                    durationSec={transportDurationSec}
+                    previewPlaying={previewPlaying}
+                    previewMuted={isPreviewMuted}
+                    videoRef={previewVideoRef}
+                    onTogglePlayback={togglePreviewPlayback}
+                    onPickSource={openInlineSourcePicker}
+                    onSeek={handlePreviewSeekSeconds}
+                    onVideoLoadedMetadata={handlePreviewMetadataLoaded}
+                    onVideoLoadedData={handlePreviewVideoReady}
+                    onVideoCanPlay={handlePreviewVideoReady}
+                    onVideoTimeUpdate={handlePreviewTimeUpdate}
+                    onVideoEnded={handlePreviewEnded}
+                    onVideoPlay={handlePreviewVideoPlay}
+                    onVideoPause={handlePreviewVideoPause}
+                    onVideoError={handlePreviewVideoError}
+                    onImageLoaded={handlePreviewImageLoaded}
+                    onApplyPrompt={handleMotionCanvasPrompt}
+                  />
                 ) : null}
 
                 {activeWorkspaceTab === 'Editor' && (

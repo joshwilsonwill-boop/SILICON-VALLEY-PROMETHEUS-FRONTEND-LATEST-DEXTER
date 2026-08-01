@@ -28,6 +28,7 @@ import {
     Sparkles,
     Command,
     Grid3X3,
+    PanelsTopLeft,
     Film,
     Music2,
     FileText,
@@ -48,6 +49,7 @@ import { TextEffect } from "@/components/ui/text-effect";
 import { GooeyText } from "@/components/ui/gooey-text-morphing";
 import { InlineLoadingAnimation } from "@/components/loading-animation";
 import { InteractiveOrb } from "@/components/ui/interactive-orb";
+import { PersonalStylizationShowcase, type PersonalStylizationItem } from "@/components/ui/personal-stylization-showcase";
 import { ChatStyleSelector } from "@/components/editor/chat-style-selector";
 import { STYLE_TEMPLATES } from "@/lib/styles/style-templates";
 import {
@@ -473,6 +475,39 @@ const EDIT_ACTIONS: EditAction[] = [
         label: "Trim every soft moment",
         instruction: "Remove soft beats and unnecessary pauses to make the pacing feel decisive throughout.",
         styleId: "style_iman_punchy",
+    },
+];
+
+const PERSONAL_STYLIZATION_ITEMS: Array<PersonalStylizationItem & { actionId: string }> = [
+    {
+        id: "user-brand",
+        actionId: "quiet-luxury",
+        label: "User Brand",
+        description: "Set the tone, typography, and finish that make the edit unmistakably yours.",
+    },
+    {
+        id: "footage-media",
+        actionId: "short-form",
+        label: "Footage / Media",
+        description: "Decide how the source is framed, paced, and brought into focus.",
+    },
+    {
+        id: "motion-design",
+        actionId: "cinematic-tension",
+        label: "Motion Design",
+        description: "Direct movement, transitions, and visual rhythm with restraint.",
+    },
+    {
+        id: "audio-design",
+        actionId: "sound-design",
+        label: "Audio Design",
+        description: "Give cuts, space, and momentum a deliberate sonic character.",
+    },
+    {
+        id: "story-structure",
+        actionId: "story-led",
+        label: "Story & Structure",
+        description: "Shape the opening, progression, and payoff around the strongest idea.",
     },
 ];
 
@@ -1519,6 +1554,7 @@ export function VideoUploadInterface() {
     const [selectedEditActions, setSelectedEditActions] = useState<EditAction[]>([]);
     const [editActionsRestored, setEditActionsRestored] = useState(false);
     const [composerFocusRequestKey, setComposerFocusRequestKey] = useState(0);
+    const [showPersonalStylization, setShowPersonalStylization] = useState(false);
     const [editorLaunchOverlay, setEditorLaunchOverlay] = useState<{
         title: string;
         detail: string;
@@ -1660,6 +1696,22 @@ export function VideoUploadInterface() {
         setSelectedEditActions((current) => current.filter((action) => action.id !== actionId));
     }, []);
 
+    const togglePersonalStylization = useCallback((itemId: string) => {
+        const item = PERSONAL_STYLIZATION_ITEMS.find((entry) => entry.id === itemId);
+        const action = item ? EDIT_ACTIONS.find((entry) => entry.id === item.actionId) : null;
+        if (!action) return;
+
+        setSelectedEditActions((current) => {
+            const selected = current.some((entry) => entry.id === action.id);
+            return selected ? current.filter((entry) => entry.id !== action.id) : [...current, action];
+        });
+        if (!selectedEditActions.some((entry) => entry.id === action.id)) {
+            setActiveStyleId(action.styleId);
+            persistActiveStyleId(action.styleId);
+            setComposerFocusRequestKey((current) => current + 1);
+        }
+    }, [selectedEditActions]);
+
     useEffect(() => {
         if (process.env.NODE_ENV !== "development") return;
         if (typeof window === "undefined") return;
@@ -1748,7 +1800,10 @@ export function VideoUploadInterface() {
         setAttachments((prev) => (prev.includes(trimmed) ? prev : [trimmed, ...prev]));
     };
 
-    const handleComposerSubmit = useCallback(async (payload: PromptComposerSubmitPayload) => {
+    const handleComposerSubmit = useCallback(async (
+        payload: PromptComposerSubmitPayload,
+        sourceUploadOverride?: QueuedSourceUpload,
+    ) => {
         if (submitLockRef.current) return false;
         
         if (!DISABLE_EDITOR_BILLING_GATE && !hasBillingAccess()) {
@@ -1757,10 +1812,12 @@ export function VideoUploadInterface() {
         }
 
         const { message, activeSlashCommand, creatorMentions, editActions } = payload;
-        const uploadedSourceLabel = uploadedFileName?.trim().length > 0
-            ? uploadedFileName.replace(/\.[^/.]+$/, "")
+        const sourceUpload = sourceUploadOverride ?? queuedSourceUpload;
+        const sourceFileName = sourceUpload?.file.name ?? uploadedFileName;
+        const uploadedSourceLabel = sourceFileName.trim().length > 0
+            ? sourceFileName.replace(/\.[^/.]+$/, "")
             : "the attached source";
-        const hasAttachedSource = attachments.length > 0 || uploadedFileName.trim().length > 0;
+        const hasAttachedSource = attachments.length > 0 || sourceFileName.trim().length > 0;
         const styleHint = creatorMentions.length
             ? ` Style reference creators: ${creatorMentions.map((creator) => creator.name).join(", ")}.`
             : "";
@@ -1786,16 +1843,16 @@ export function VideoUploadInterface() {
         }
 
         const nextProjectTitle =
-            uploadedFileName?.trim().length > 0
-                ? uploadedFileName.replace(/\.[^/.]+$/, "")
+            sourceFileName.trim().length > 0
+                ? sourceFileName.replace(/\.[^/.]+$/, "")
                 : (message || activeSlashCommand?.label || prompt).slice(0, 28);
-        const selectedSourceFile = queuedSourceUpload?.file ?? null;
-        let resolvedPreviewKind = queuedSourceUpload?.previewKind ?? null;
+        const selectedSourceFile = sourceUpload?.file ?? null;
+        let resolvedPreviewKind = sourceUpload?.previewKind ?? null;
         let resolvedSourceAssetId: string | null = null;
-        let resolvedSourceProfile = queuedSourceUpload?.sourceProfile ?? null;
+        let resolvedSourceProfile = sourceUpload?.sourceProfile ?? null;
         const launchProjectTitle = nextProjectTitle || "PROMETHEUS Project";
         const launchDetail =
-            selectedSourceFile || uploadedFileName.trim().length > 0
+            selectedSourceFile || sourceFileName.trim().length > 0
                 ? "Finalizing your upload and opening the editor."
                 : "Opening the editor workspace.";
 
@@ -2177,12 +2234,13 @@ export function VideoUploadInterface() {
 
     const applyUploadToPrompt = () => {
         if (!pendingUpload) return;
-        setUploadedFileName(pendingUpload.file.name);
-        setQueuedSourceUpload({
+        const sourceUpload: QueuedSourceUpload = {
             file: pendingUpload.file,
             previewKind: pendingUpload.kind === "video" || pendingUpload.kind === "image" ? pendingUpload.kind : null,
             sourceProfile: pendingUpload.sourceProfile ?? null,
-        });
+        };
+        setUploadedFileName(pendingUpload.file.name);
+        setQueuedSourceUpload(sourceUpload);
         addSourceChip(`Upload: ${pendingUpload.file.name}`);
         closeSourceModal();
 
@@ -2192,7 +2250,7 @@ export function VideoUploadInterface() {
             activeSlashCommand: null,
             creatorMentions: [],
             editActions: selectedEditActions,
-        });
+        }, sourceUpload);
     };
 
     const removeAttachment = (index: number) => {
@@ -2267,7 +2325,7 @@ export function VideoUploadInterface() {
                         <InteractiveOrb size={76} intensity="vivid" />
                         <motion.h1
                             aria-label="Ready to Create Something New?"
-                            className="flex flex-wrap items-baseline justify-center gap-x-2 text-[35px] font-extrabold leading-[0.94] tracking-normal text-white sm:text-[48px] md:text-[59px]"
+                            className="flex flex-wrap items-center justify-center gap-x-2 text-[35px] font-extrabold leading-[0.94] tracking-normal text-white sm:text-[48px] md:flex-nowrap lg:text-[59px]"
                             style={STUDIO_DISPLAY_FONT_STYLE}
                             initial={{ opacity: 0, y: 14, filter: "blur(8px)" }}
                             animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
@@ -2278,7 +2336,7 @@ export function VideoUploadInterface() {
                                 texts={["New", "Next", "Live"]}
                                 morphTime={0.95}
                                 cooldownTime={0.65}
-                                className="h-[0.95em] w-[3.35ch] self-baseline"
+                                className="h-[0.95em] w-[3.35ch] shrink-0"
                                 textClassName="left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-[1em] font-extrabold leading-none text-white"
                             />
                             <span>?</span>
@@ -2313,12 +2371,44 @@ export function VideoUploadInterface() {
                         onSubmit={handleComposerSubmit}
                         uploadStatus={uploadStatus}
                         uploadProgress={uploadProgress}
+                        footerAction={
+                            <motion.button
+                                type="button"
+                                onClick={() => setShowPersonalStylization((visible) => !visible)}
+                                className={studioActionButtonClassName(showPersonalStylization)}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: COMMAND_SUGGESTIONS.length * 0.1 }}
+                            >
+                                <PanelsTopLeft className="h-3.5 w-3.5" />
+                                <span>{showPersonalStylization ? "Hide Showcase" : "Reveal Showcase"}</span>
+                            </motion.button>
+                        }
                     />
 
                     <StudioCinematicMarqueeRails
                         selectedActionIds={selectedEditActions.map((action) => action.id)}
                         onSelectAction={selectEditAction}
                     />
+
+                    <AnimatePresence initial={false}>
+                        {showPersonalStylization && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 14 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: 10 }}
+                                transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+                            >
+                                <PersonalStylizationShowcase
+                                    items={PERSONAL_STYLIZATION_ITEMS}
+                                    selectedIds={PERSONAL_STYLIZATION_ITEMS
+                                        .filter((item) => selectedEditActions.some((action) => action.id === item.actionId))
+                                        .map((item) => item.id)}
+                                    onToggle={togglePersonalStylization}
+                                />
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
 
                 </motion.div>
             </div>

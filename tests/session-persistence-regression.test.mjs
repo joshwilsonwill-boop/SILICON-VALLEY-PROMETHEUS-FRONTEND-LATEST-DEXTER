@@ -38,8 +38,10 @@ assert.equal(existsSync(join(root, 'components/loading-animation/cinematic-logo-
 assert.equal(existsSync(join(root, 'public/branding/prometheus-logo-cinematic.webm')), true, 'The cinematic logo video must ship in public/branding.')
 
 const loader = read('components/loading-animation/cinematic-logo-loader.tsx')
-assert.match(loader, /mix-blend-screen/, 'The loader must screen-blend the logo video so its dark background disappears.')
+assert.doesNotMatch(loader, /prometheus-logo-no-bg\.png/, 'The loader must not flash a static logo before the video starts.')
+assert.doesNotMatch(loader, /mix-blend-screen|drop-shadow|radial-gradient/, 'The alpha video must render without blend tricks, glow, or a synthetic backdrop.')
 assert.match(loader, /cubic-bezier\(0?\.22,\s*0?\.61,\s*0?\.36,\s*1\)/, 'The loader exit must keep its calm cinematic easing.')
-assert.match(loader, /@keyframes prom-cine-exit[\s\S]*blur\(6px\)/, 'The loader exit must fade, scale and blur out.')
+assert.doesNotMatch(loader, /blur\(/, 'The loader must not bloom into a light halo during its exit.')
+assert.match(loader, /\.prom-cine-overlay\s*\{\s*background:\s*transparent;/, 'The loader overlay must remain visually transparent.')
 
 console.log('session-persistence-regression: all checks passed.')

@@ -1,6 +1,6 @@
 "use client";
 
-import type { ElementType } from "react";
+import type { ElementType, ReactNode } from "react";
 import { motion, useReducedMotion, type Variants } from "framer-motion";
 
 import { cn } from "@/lib/utils";
@@ -14,6 +14,7 @@ export type CinematicTextRevealProps = {
   variant?: "measured" | "hard-cut";
   className?: string;
   once?: boolean;
+  renderGrapheme?: (grapheme: string) => ReactNode;
 };
 
 export function segmentGraphemes(value: string): string[] {
@@ -69,12 +70,18 @@ export function CinematicTextReveal({
   variant = "measured",
   className,
   once = true,
+  renderGrapheme,
 }: CinematicTextRevealProps) {
   const reducedMotion = useReducedMotion() ?? false;
   const Tag = as as ElementType;
   const tokens = children.split(/(\s+)/);
   const glyphVariants = variant === "hard-cut" ? hardCutGlyph : measuredGlyph;
-  let glyphIndex = 0;
+  const glyphOffsets = tokens.map((_, tokenIndex) =>
+    tokens.slice(0, tokenIndex).reduce(
+      (count, token) => count + (/^\s+$/.test(token) ? 0 : segmentGraphemes(token).length),
+      0,
+    ),
+  );
 
   return (
     <Tag className={cn("relative", className)} role="text">
@@ -98,8 +105,7 @@ export function CinematicTextReveal({
           return (
             <span key={`word-${tokenIndex}`} className="inline-block whitespace-nowrap">
               {segmentGraphemes(token).map((grapheme, graphemeIndex) => {
-                const index = glyphIndex;
-                glyphIndex += 1;
+                const index = glyphOffsets[tokenIndex] + graphemeIndex;
 
                 return (
                   <motion.span
@@ -109,7 +115,7 @@ export function CinematicTextReveal({
                     variants={glyphVariants}
                     style={reducedMotion ? { opacity: 1, transform: "none", filter: "none", clipPath: "none" } : undefined}
                   >
-                    {grapheme}
+                    {renderGrapheme?.(grapheme) ?? grapheme}
                   </motion.span>
                 );
               })}

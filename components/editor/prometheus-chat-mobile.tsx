@@ -11,10 +11,10 @@ import { MobileChatInput } from "@/components/chat/mobile-chat-input";
 import { AIChatHistoryButton } from "@/components/editor/ai-chat-history-button";
 import { ChatCarousel } from "@/components/editor/chat-carousel";
 import { ChatSuggestions } from "@/components/editor/ai-chat-suggestions";
+import { ElegistChatGreeting } from "@/components/editor/elegist-chat-greeting";
 import { PrometheusChatHistoryDrawer } from "@/components/editor/prometheus-chat-history-drawer";
 import { PrometheusChatActivity } from "@/components/editor/prometheus-chat-activity";
 import { ActiveChatEngagement } from "@/components/editor/active-chat-engagement";
-import { CinematicTextReveal } from "@/components/ui/cinematic-text-reveal";
 import { useAIChat, type CarouselItem } from "@/hooks/use-ai-chat";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { useProfile } from "@/hooks/use-profile";
@@ -156,13 +156,10 @@ export function PrometheusChatMobile({
           ) : null}
           {chat.messages.length === 0 && !chat.isAwaitingResponse ? (
             <div className="flex min-h-full items-center justify-center px-4 pb-16 text-center">
-              <CinematicTextReveal
-                as="h1"
-                variant="measured"
-                className="max-w-xl text-balance font-display text-[clamp(2.25rem,11vw,4.5rem)] font-normal leading-[0.96] tracking-normal text-white/92"
-              >
-                {getChatGreeting(session?.user, profile)}
-              </CinematicTextReveal>
+              <ElegistChatGreeting
+                greeting={getChatGreeting(session?.user, profile)}
+                className="max-w-xl text-balance text-[clamp(2.5rem,10.5vw,4.35rem)] font-normal leading-[0.94] tracking-normal text-white/92 [overflow-wrap:anywhere]"
+              />
             </div>
           ) : (
             <div className="mx-auto w-full max-w-xl space-y-5 py-5">

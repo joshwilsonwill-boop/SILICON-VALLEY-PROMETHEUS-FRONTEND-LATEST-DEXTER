@@ -92,6 +92,15 @@ const elegistDisplay = localFont({
   // Editorial type must never flash a substitute font in the chamber.
   display: 'block',
   preload: true,
+  adjustFontFallback: false,
+  fallback: [],
+})
+
+const ztOtezItalic = localFont({
+  src: '../zt_otez/ZTOtez-Italic.ttf',
+  variable: '--font-zt-otez',
+  display: 'swap',
+  preload: false,
 })
 
 export const metadata: Metadata = {
@@ -129,7 +138,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
-      <body className={`${inter.variable} ${geist.variable} ${jetbrainsMono.variable} ${playfairDisplay.variable} ${spaceGrotesk.variable} ${vogueDisplay.variable} ${blackDelights.variable} ${migraDisplay.variable} ${elegistDisplay.variable} bg-background font-sans text-foreground antialiased`}>
+      <body className={`${inter.variable} ${geist.variable} ${jetbrainsMono.variable} ${playfairDisplay.variable} ${spaceGrotesk.variable} ${vogueDisplay.variable} ${blackDelights.variable} ${migraDisplay.variable} ${elegistDisplay.variable} ${ztOtezItalic.variable} bg-background font-sans text-foreground antialiased`}>
         <CookieConsentProvider>
           <ReactQueryProvider>
             <LoadingProvider>

@@ -7,7 +7,7 @@ import { usePasteDetector } from '@/hooks/usePasteDetector'
 import { useUserPreferencesHydrator } from '@/hooks/use-user-preferences'
 import { ThemeInjector } from '@/components/theme/theme-injector'
 import { GlobalHelpLauncher } from '@/components/global-help-launcher'
-import { StudioOnboarding } from '@/components/onboarding/studio-onboarding'
+import { CinematicOnboarding, EditorialOnboardingReplay } from '@/components/onboarding/cinematic-onboarding'
 
 const AppToaster = dynamic(() => import('@/components/ui/app-toaster').then((mod) => mod.AppToaster), {
   ssr: false,
@@ -34,7 +34,8 @@ export function RootClientEffects() {
       <ThemeInjector />
       {isAuthRoute ? null : <CinematicClickRipple />}
       <GlobalHelpLauncher />
-      <StudioOnboarding />
+      <CinematicOnboarding pathname={pathname} />
+      <EditorialOnboardingReplay pathname={pathname} />
       <AppToaster />
     </>
   )

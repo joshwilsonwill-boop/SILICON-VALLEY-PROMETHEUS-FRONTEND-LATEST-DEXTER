@@ -874,7 +874,7 @@ export function MusicTabPanel({
 
   return (
     <>
-      <CinematicLogoLoader variant="overlay" ready={catalogReady} caption="Preparing your soundtrack" />
+      <CinematicLogoLoader variant="overlay" ready={catalogReady} />
       {showCatalogLoader ? null : !displayTracks.length ? (
       <section className="premium-ambient-panel premium-vignette-surface flex w-full max-w-[1060px] self-center rounded-[30px] px-5 py-5 shadow-[0_28px_64px_-38px_rgba(0,0,0,0.95)]">
         <LuxuryVignette tone="music" />

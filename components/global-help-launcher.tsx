@@ -19,7 +19,7 @@ import {
 import { useAIChat } from '@/hooks/use-ai-chat'
 import { getLastEditorialChamberPath, requestEditorialChatOpen } from '@/lib/editorial-chat-navigation'
 import { cn } from '@/lib/utils'
-import { openStudioOnboarding } from '@/components/onboarding/studio-onboarding'
+import { openCinematicOnboarding } from '@/components/onboarding/cinematic-onboarding'
 
 type HelpView = 'menu' | 'ask' | 'guides'
 
@@ -163,7 +163,7 @@ export function GlobalHelpLauncher() {
             <div className="space-y-2 p-3">
               <HelpAction icon={Bot} label="Ask Prometheus" detail="Open the editorial chamber chat" onClick={openEditorialChat} />
               <HelpAction icon={BookOpen} label="Production guides" detail="Learn the core studio workflows" onClick={() => openView('guides')} />
-              <HelpAction icon={Sparkles} label="Studio introduction" detail="Replay the motion-led first look" onClick={() => { close(); openStudioOnboarding() }} />
+              <HelpAction icon={Sparkles} label="Onboarding" detail="Replay the guided Studio introduction" onClick={() => { close(); openCinematicOnboarding('studio') }} />
               <HelpAction
                 icon={Mail}
                 label="Contact support"

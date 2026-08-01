@@ -84,15 +84,11 @@ export function GlassUploadModalView({
       >
         <header className="absolute inset-x-0 top-0 z-30 flex items-start justify-between gap-4 px-5 py-5 sm:px-8 sm:py-7">
           <div>
-            <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.28em] text-white/45">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#d9ff64] shadow-[0_0_14px_rgba(217,255,100,0.8)]" />
-              Source studio
-            </div>
-            <DialogTitle className="mt-2 text-[clamp(1.65rem,3.6vw,2.8rem)] font-medium leading-[0.95] tracking-[-0.04em] text-white">
-              {pendingUpload ? 'Source staged' : 'Upload source'}
+            <DialogTitle className="text-[clamp(1.65rem,3.6vw,2.8rem)] font-normal leading-[0.95] tracking-normal text-white [font-family:var(--font-zt-otez),Georgia,serif]">
+              Upload Source
             </DialogTitle>
-            <DialogDescription className="mt-2 max-w-sm text-xs leading-5 text-white/55 sm:text-sm">
-              {pendingUpload ? 'Your media is ready for the edit.' : 'Drop an image or video into the frame.'}
+            <DialogDescription className="sr-only">
+              Upload an image or video source.
             </DialogDescription>
           </div>
 
@@ -151,7 +147,7 @@ export function GlassUploadModalView({
                   pendingUpload.kind === 'image' ? (
                     <img src={pendingUpload.previewUrl} alt={pendingUpload.file.name} className="max-h-full max-w-full object-contain drop-shadow-[0_32px_70px_rgba(0,0,0,0.6)]" />
                   ) : (
-                    <video src={pendingUpload.previewUrl} muted autoPlay loop playsInline controls className="max-h-full max-w-full object-contain drop-shadow-[0_32px_70px_rgba(0,0,0,0.6)]" />
+                    <video src={pendingUpload.previewUrl} muted autoPlay loop playsInline controls className="max-h-full max-w-full rounded-[12px] object-contain drop-shadow-[0_32px_70px_rgba(0,0,0,0.6)]" />
                   )
                 ) : (
                   <div className="flex flex-col items-center justify-center text-center text-white/70">

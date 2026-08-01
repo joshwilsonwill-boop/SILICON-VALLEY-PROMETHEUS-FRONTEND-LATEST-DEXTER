@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Elegist chat greeting directions</title>
+  <style>
+    @font-face {
+      font-family: "Elegist Preview";
+      src: url("../../../../elegist/Elegist.otf") format("opentype");
+      font-display: block;
+      font-style: normal;
+      font-weight: 400;
+    }
+
+    :root {
+      color-scheme: dark;
+      --paper: #050505;
+      --ink: #f5f3ef;
+      --muted: rgba(245, 243, 239, 0.48);
+      --line: rgba(245, 243, 239, 0.12);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: Arial, sans-serif;
+    }
+
+    main {
+      width: min(1440px, 100%);
+      margin: 0 auto;
+      padding: 42px 28px 64px;
+    }
+
+    header {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 24px;
+      padding-bottom: 22px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    h1, p { margin: 0; }
+
+    h1 {
+      max-width: 620px;
+      font-size: 18px;
+      font-weight: 500;
+      letter-spacing: 0;
+    }
+
+    .intro {
+      max-width: 460px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+      text-align: right;
+    }
+
+    .options {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1px;
+      margin-top: 28px;
+      background: var(--line);
+      border: 1px solid var(--line);
+    }
+
+    .option {
+      position: relative;
+      min-width: 0;
+      background: #000;
+      cursor: pointer;
+    }
+
+    .option input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .option-shell {
+      display: block;
+      min-height: 600px;
+      padding: 18px;
+      outline: 1px solid transparent;
+      outline-offset: -1px;
+      transition: outline-color 180ms ease, background-color 180ms ease;
+    }
+
+    .option:hover .option-shell,
+    .option input:focus-visible + .option-shell {
+      background: #070707;
+      outline-color: rgba(245, 243, 239, 0.25);
+    }
+
+    .option input:checked + .option-shell {
+      background: #080808;
+      outline-color: rgba(245, 243, 239, 0.72);
+    }
+
+    .meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 11px;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
+    .recommended {
+      color: rgba(245, 243, 239, 0.82);
+    }
+
+    .stage {
+      display: flex;
+      min-height: 468px;
+      align-items: center;
+      justify-content: center;
+      padding: 36px 6px 14px;
+      overflow: hidden;
+    }
+
+    .greeting {
+      visibility: hidden;
+      width: 100%;
+      font-family: "Elegist Preview";
+      font-synthesis: none;
+      font-size: clamp(40px, 3.8vw, 62px);
+      font-weight: 400;
+      letter-spacing: 0;
+      line-height: 0.9;
+      text-wrap: balance;
+    }
+
+    .fonts-ready .greeting {
+      visibility: visible;
+      animation: reveal 680ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    .a .greeting {
+      max-width: 430px;
+      text-align: center;
+    }
+
+    .a .name { color: #fff; }
+
+    .b .stage {
+      align-items: flex-end;
+      justify-content: flex-start;
+      padding-bottom: 72px;
+    }
+
+    .b .greeting {
+      max-width: 390px;
+      font-size: clamp(39px, 3.5vw, 57px);
+      line-height: 0.92;
+      text-align: left;
+    }
+
+    .b .name {
+      display: block;
+      margin-top: 0.12em;
+      color: rgba(245, 243, 239, 0.58);
+    }
+
+    .c .greeting {
+      max-width: 440px;
+      font-size: clamp(38px, 3.4vw, 55px);
+      line-height: 0.94;
+      text-align: center;
+    }
+
+    .c .prompt {
+      display: block;
+      color: rgba(245, 243, 239, 0.62);
+    }
+
+    .c .name {
+      display: block;
+      margin-top: 0.04em;
+      color: #fff;
+      font-size: 1.18em;
+    }
+
+    .caption {
+      min-height: 66px;
+      padding: 16px 0 0;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .font-status {
+      margin-top: 18px;
+      color: rgba(245, 243, 239, 0.38);
+      font-size: 11px;
+    }
+
+    .fonts-ready .font-status::before {
+      content: "Elegist loaded from the repository. Select a direction, then reply A, B, or C.";
+    }
+
+    body:not(.fonts-ready) .font-status::before {
+      content: "Loading the repository's Elegist file...";
+    }
+
+    @keyframes reveal {
+      from { opacity: 0; transform: translateY(12px); filter: blur(4px); }
+      to { opacity: 1; transform: translateY(0); filter: blur(0); }
+    }
+
+    @media (max-width: 900px) {
+      main { padding: 24px 16px 40px; }
+      header { align-items: start; flex-direction: column; }
+      .intro { text-align: left; }
+      .options { grid-template-columns: 1fr; }
+      .option-shell { min-height: 480px; }
+      .stage { min-height: 350px; }
+      .b .stage { padding-bottom: 48px; }
+      .greeting,
+      .b .greeting,
+      .c .greeting { font-size: clamp(42px, 11vw, 68px); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .fonts-ready .greeting { animation: none; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Chat greeting typography</h1>
+      <p class="intro">Three minimalist compositions using the project&rsquo;s actual Elegist font. The production greeting will remain hidden until Elegist is ready, so a system sans-serif never appears in its place.</p>
+    </header>
+
+    <section class="options" aria-label="Greeting directions">
+      <label class="option a">
+        <input type="radio" name="direction" value="A" checked>
+        <span class="option-shell">
+          <span class="meta"><span>A / Measured</span><span class="recommended">Recommended</span></span>
+          <span class="stage">
+            <span class="greeting">What would you like<br>to create, <span class="name">Great?</span></span>
+          </span>
+          <span class="caption">Balanced and cinematic. The name completes the sentence rather than becoming a separate UI element.</span>
+        </span>
+      </label>
+
+      <label class="option b">
+        <input type="radio" name="direction" value="B">
+        <span class="option-shell">
+          <span class="meta"><span>B / Editorial</span><span>Left anchored</span></span>
+          <span class="stage">
+            <span class="greeting">What would you like to create,<span class="name">Great?</span></span>
+          </span>
+          <span class="caption">More magazine-like and asymmetric. Quietly distinctive, but it pulls the empty state away from the composer&rsquo;s center line.</span>
+        </span>
+      </label>
+
+      <label class="option c">
+        <input type="radio" name="direction" value="C">
+        <span class="option-shell">
+          <span class="meta"><span>C / Personal</span><span>Name forward</span></span>
+          <span class="stage">
+            <span class="greeting"><span class="prompt">What would you like to create,</span><span class="name">Great?</span></span>
+          </span>
+          <span class="caption">The warmest greeting. It gives the username more presence, at the cost of feeling slightly less restrained.</span>
+        </span>
+      </label>
+    </section>
+
+    <p class="font-status" role="status"></p>
+  </main>
+
+  <script>
+    document.fonts.load('400 64px "Elegist Preview"').then(function (fonts) {
+      if (fonts.length > 0) document.body.classList.add('fonts-ready');
+    });
+  </script>
+</body>
+</html>

@@ -57,6 +57,8 @@ const FOUNDER_STRIP = [
   { id: 7, name: 'Ray Dalio', designation: 'Macro Thinker', image: '/library/people/ray-dalio.png' },
 ] as const
 
+export const LIBRARY_CREATOR_CARDS = FOUNDER_STRIP
+
 export type SavedCharacterPreference = {
   id: string
   title: string
@@ -79,6 +81,7 @@ export function CinematicLibrary({
   savedCharacterIds,
   onTogglePreference,
   onActiveItemChange,
+  initialShowcaseId,
 }: {
   tab: LibraryTab
   onTabChange: (tab: LibraryTab) => void
@@ -88,15 +91,24 @@ export function CinematicLibrary({
   savedCharacterIds: string[]
   onTogglePreference: (item: ShowcaseItem, tab: LibraryTab) => void
   onActiveItemChange?: (item: ShowcaseItem | null) => void
+  initialShowcaseId?: string
 }) {
   const reduceMotion = useReducedMotion() ?? false
   const showcaseItems = React.useMemo(() => buildShowcaseItems(tab, filteredAssets), [filteredAssets, tab])
   const assetCounts = React.useMemo(() => countAssetsByTab(assets), [assets])
-  const [activeId, setActiveId] = React.useState<string | null>(showcaseItems[0]?.id ?? null)
+  const [activeId, setActiveId] = React.useState<string | null>(() =>
+    initialShowcaseId && showcaseItems.some((item) => item.id === initialShowcaseId)
+      ? initialShowcaseId
+      : showcaseItems[0]?.id ?? null,
+  )
 
   React.useEffect(() => {
-    setActiveId(showcaseItems[0]?.id ?? null)
-  }, [showcaseItems, tab])
+    setActiveId(
+      initialShowcaseId && showcaseItems.some((item) => item.id === initialShowcaseId)
+        ? initialShowcaseId
+        : showcaseItems[0]?.id ?? null,
+    )
+  }, [initialShowcaseId, showcaseItems, tab])
   const active = showcaseItems.find((item) => item.id === activeId) ?? showcaseItems[0]
   const config = TAB_CONFIG[tab]
   const posterItems = React.useMemo(

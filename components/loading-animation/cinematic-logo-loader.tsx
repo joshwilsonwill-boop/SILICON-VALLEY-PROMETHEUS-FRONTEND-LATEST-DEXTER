@@ -3,7 +3,6 @@
 import * as React from 'react'
 
 const VIDEO_SRC = '/branding/prometheus-logo-cinematic.webm'
-const FALLBACK_IMAGE_SRC = '/branding/prometheus-logo-no-bg.png'
 const EXIT_DURATION_MS = 650
 
 export interface CinematicLogoLoaderProps {
@@ -17,14 +16,13 @@ export interface CinematicLogoLoaderProps {
 }
 
 /**
- * Cinematic logo-video loader. The overlay variant covers the viewport with a
- * near-black vignette while the Prometheus logo loops behind a screen blend;
- * the inline variant is a compact glowing logo loop for pagination spinners.
- * The overlay plays a single fade/blur exit when `ready` flips true, then
+ * Transparent logo-video loader. The alpha-enabled WebM is rendered directly,
+ * without a fallback frame, blend mode, backdrop, or synthetic glow.
+ * The overlay plays a single fade/scale exit when `ready` flips true, then
  * unmounts itself.
  */
 export function CinematicLogoLoader({
-  caption = 'Preparing your soundtrack',
+  caption,
   className,
   label,
   onExited,
@@ -32,7 +30,6 @@ export function CinematicLogoLoader({
   size,
   variant = 'overlay',
 }: CinematicLogoLoaderProps) {
-  const [videoReady, setVideoReady] = React.useState(false)
   const [exiting, setExiting] = React.useState(false)
   const [dismissed, setDismissed] = React.useState(ready)
   const exitStartedRef = React.useRef(false)
@@ -53,16 +50,6 @@ export function CinematicLogoLoader({
       className="prom-cine-logo relative"
       style={variant === 'inline' ? { width: size ?? 24, height: size ?? 24 } : undefined}
     >
-      {/* PNG fallback keeps the glow visible until the video stream is ready,
-          so there is never a black flash or empty rectangle. */}
-      <img
-        src={FALLBACK_IMAGE_SRC}
-        alt=""
-        aria-hidden
-        draggable={false}
-        className="absolute inset-0 h-full w-full object-contain mix-blend-screen transition-opacity duration-500"
-        style={{ opacity: videoReady ? 0 : 1 }}
-      />
       <video
         autoPlay
         muted
@@ -71,9 +58,7 @@ export function CinematicLogoLoader({
         preload="auto"
         src={VIDEO_SRC}
         aria-hidden
-        className="absolute inset-0 h-full w-full object-contain mix-blend-screen transition-opacity duration-500"
-        style={{ opacity: videoReady ? 1 : 0 }}
-        onLoadedData={() => setVideoReady(true)}
+        className="absolute inset-0 h-full w-full bg-transparent object-contain"
       />
     </div>
   )
@@ -108,14 +93,15 @@ export function CinematicLogoLoader({
 
 const PROM_CINE_STYLES = `
   .prom-cine-overlay {
-    background: radial-gradient(115% 90% at 50% 44%, #0a0a0e 0%, #070708 46%, #050506 78%, #030304 100%);
+    background: transparent;
   }
   .prom-cine-overlay .prom-cine-logo {
     width: 44vmin;
     height: 44vmin;
   }
-  .prom-cine-logo {
-    filter: drop-shadow(0 0 34px rgba(196, 208, 255, 0.22)) drop-shadow(0 0 9px rgba(255, 244, 224, 0.12));
+  .prom-cine-logo,
+  .prom-cine-logo video {
+    background: transparent;
   }
   .prom-cine-caption {
     margin-top: 3.5vmin;
@@ -136,7 +122,7 @@ const PROM_CINE_STYLES = `
     to { opacity: 1; transform: scale(1); }
   }
   @keyframes prom-cine-exit {
-    from { opacity: 1; transform: scale(1); filter: blur(0); }
-    to { opacity: 0; transform: scale(1.04); filter: blur(6px); }
+    from { opacity: 1; transform: scale(1); }
+    to { opacity: 0; transform: scale(1.04); }
   }
 `
