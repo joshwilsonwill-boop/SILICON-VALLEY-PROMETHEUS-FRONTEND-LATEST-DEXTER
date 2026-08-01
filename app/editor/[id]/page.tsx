@@ -6266,7 +6266,7 @@ function OriginalEditorPage() {
   const [previewFramePreset, setPreviewFramePreset] = React.useState<PreviewFramePreset>('source')
   const [bottomMode, setBottomMode] = React.useState<BottomMode>('Original')
   const [activeWorkspaceTab, setActiveWorkspaceTab] = React.useState<HeaderNavMode>(
-    () => (requestedWorkspaceTab && requestedWorkspaceTab !== 'Motion' ? requestedWorkspaceTab : 'Editor'),
+    () => requestedWorkspaceTab ?? 'Editor',
   )
   const [isExporting, setIsExporting] = React.useState(false)
   const [isDownloading, setIsDownloading] = React.useState(false)
@@ -6279,15 +6279,9 @@ function OriginalEditorPage() {
 
   React.useEffect(() => {
     if (!requestedWorkspaceTab) return
-
-    if (requestedWorkspaceTab === 'Motion') {
-      router.replace('/editor/motion')
-      return
-    }
-
     setActiveWorkspaceTab(requestedWorkspaceTab)
     setBottomMode(requestedWorkspaceTab === 'Music' ? 'Music' : 'Original')
-  }, [requestedWorkspaceTab, router])
+  }, [requestedWorkspaceTab])
 
   React.useEffect(() => {
     const handleEditorCommand = (event: Event) => {
@@ -7984,12 +7978,8 @@ function OriginalEditorPage() {
           onTitleKeyDown={handleTitleKeyDown}
           onTitleStartEdit={handleTitleStartEdit}
           onWorkspaceTabChange={(tab) => {
-            if (tab === 'Motion') {
-              router.push('/editor/motion')
-              return
-            }
-
             setActiveWorkspaceTab(tab as HeaderNavMode)
+            setBottomMode(tab === 'Music' ? 'Music' : 'Original')
           }}
           onPrepareExport={handlePrepareExport}
           onDownload={handleDownload}

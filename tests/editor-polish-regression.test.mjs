@@ -71,6 +71,7 @@ async function run() {
   const editorIndexPage = read("app/editor/page.tsx");
   assert.match(editorIndexPage, /getMostRecentProject/);
   assert.match(editorIndexPage, /normalizeRequestedWorkspaceTab/);
+  assert.match(editorIndexPage, /normalized === 'motion'/);
   assert.match(editorIndexPage, /tabSuffix/);
   assert.match(
     editorIndexPage,
@@ -78,10 +79,8 @@ async function run() {
   );
 
   const motionEditorPage = read("app/editor/motion/page.tsx");
-  assert.match(motionEditorPage, /fixed inset-0 z-\[9999\] bg-black/);
-  assert.match(motionEditorPage, /aria-label="Motion workspace"/);
-  assert.doesNotMatch(motionEditorPage, /MotionCanvas|NodeGraphProvider|WorkspaceNavBar/);
-  assert.doesNotMatch(motionEditorPage, /\/editor\?tab=Editor|\/editor\?tab=Music/);
+  assert.match(motionEditorPage, /redirect\(['"]\/editor\?tab=Motion['"]\)/);
+  assert.doesNotMatch(motionEditorPage, /fixed inset-0 z-\[9999\] bg-black/);
   const animeNavbar = read("components/ui/anime-navbar.tsx");
   assert.equal(animeNavbar.includes("TextReveal"), false);
   assert.match(animeNavbar, /translate3d\(\$\{indicatorStyle\.left\}px,0,0\)/);
@@ -106,8 +105,9 @@ async function run() {
   assert.match(editorProjectPage, /function MagneticSparkleButton/);
   assert.equal(editorProjectPage.includes("AiLampDialog"), false);
   assert.equal(editorProjectPage.includes("setIsAiLampOpen"), false);
-  assert.match(editorProjectPage, /router\.push\('\/editor\/motion'\)/);
-  assert.match(editorProjectPage, /if \(tab === 'Motion'\)/);
+  assert.doesNotMatch(editorProjectPage, /router\.(?:push|replace)\('\/editor\/motion'\)/);
+  assert.match(editorProjectPage, /setActiveWorkspaceTab\(tab as HeaderNavMode\)/);
+  assert.match(editorProjectPage, /<MotionEditWorkspace/);
   assert.match(editorProjectPage, /useSearchParams/);
   assert.match(editorProjectPage, /normalizeWorkspaceTabParam/);
   assert.equal(

@@ -24,5 +24,6 @@ function normalizeRequestedWorkspaceTab(value: string | null) {
   const normalized = value.trim().toLowerCase()
   if (normalized === 'editor') return 'Editor'
   if (normalized === 'music') return 'Music'
+  if (normalized === 'motion') return 'Motion'
   return null
 }
