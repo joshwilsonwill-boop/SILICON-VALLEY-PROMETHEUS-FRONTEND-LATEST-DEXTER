@@ -6,22 +6,16 @@ import { useReducedMotion } from '@/hooks/useReducedMotion'
 
 type CursorPoint = { x: number; y: number }
 
-function lerp(current: CursorPoint, target: CursorPoint, factor = 0.15) {
-  return {
-    x: current.x + (target.x - current.x) * factor,
-    y: current.y + (target.y - current.y) * factor,
-  }
-}
-
 export function CustomCursor() {
   const reduceMotion = useReducedMotion()
   const [enabled, setEnabled] = React.useState(false)
   const [hoveringInteractive, setHoveringInteractive] = React.useState(false)
   const [pressed, setPressed] = React.useState(false)
-  const [position, setPosition] = React.useState<CursorPoint>({ x: 0, y: 0 })
+  const cursorRef = React.useRef<HTMLDivElement | null>(null)
   const frameRef = React.useRef<number | null>(null)
   const targetRef = React.useRef<CursorPoint>({ x: 0, y: 0 })
   const positionRef = React.useRef<CursorPoint>({ x: 0, y: 0 })
+  const interactiveRef = React.useRef(false)
 
   React.useEffect(() => {
     if (reduceMotion) return
@@ -30,30 +24,37 @@ export function CustomCursor() {
 
     setEnabled(true)
 
-    const step = () => {
-      positionRef.current = lerp(positionRef.current, targetRef.current)
-      setPosition(positionRef.current)
-      frameRef.current = window.requestAnimationFrame(step)
+    const paint = () => {
+      frameRef.current = null
+      positionRef.current = targetRef.current
+      const { x, y } = positionRef.current
+      if (cursorRef.current) {
+        cursorRef.current.style.transform = `translate3d(${x}px, ${y}px, 0)`
+      }
     }
 
     const handleMove = (event: MouseEvent) => {
       targetRef.current = { x: event.clientX, y: event.clientY }
+      if (frameRef.current === null) frameRef.current = window.requestAnimationFrame(paint)
       const target = event.target
       if (target instanceof HTMLElement) {
-        setHoveringInteractive(Boolean(target.closest('a, button, [role="button"], [data-cursor="pointer"]')))
+        const nextInteractive = Boolean(target.closest('a, button, [role="button"], [data-cursor="pointer"]'))
+        if (nextInteractive !== interactiveRef.current) {
+          interactiveRef.current = nextInteractive
+          setHoveringInteractive(nextInteractive)
+        }
       }
     }
 
     const handleDown = () => setPressed(true)
     const handleUp = () => setPressed(false)
 
-    frameRef.current = window.requestAnimationFrame(step)
     window.addEventListener('mousemove', handleMove)
     window.addEventListener('mousedown', handleDown)
     window.addEventListener('mouseup', handleUp)
 
     return () => {
-      if (frameRef.current) cancelAnimationFrame(frameRef.current)
+      if (frameRef.current !== null) cancelAnimationFrame(frameRef.current)
       window.removeEventListener('mousemove', handleMove)
       window.removeEventListener('mousedown', handleDown)
       window.removeEventListener('mouseup', handleUp)
@@ -65,10 +66,8 @@ export function CustomCursor() {
   return (
     <div
       aria-hidden="true"
+      ref={cursorRef}
       className="pointer-events-none fixed left-0 top-0 z-[9999] mix-blend-difference"
-      style={{
-        transform: `translate3d(${position.x}px, ${position.y}px, 0)`,
-      }}
     >
       <div
         className="rounded-full border border-white/80 bg-white transition-[width,height,margin,transform,opacity] duration-150 ease-out"

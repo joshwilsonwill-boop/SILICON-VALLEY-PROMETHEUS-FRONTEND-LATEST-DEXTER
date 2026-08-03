@@ -20,6 +20,11 @@ interface IsoLevelWarpProps extends React.HTMLAttributes<HTMLDivElement> {
   density?: number;
 }
 
+type IdleCallbackWindow = Window & {
+  requestIdleCallback?: (callback: IdleRequestCallback, options?: IdleRequestOptions) => number;
+  cancelIdleCallback?: (handle: number) => void;
+};
+
 const IsoLevelWarp = ({
   className,
   color = "168, 124, 255",
@@ -41,17 +46,34 @@ const IsoLevelWarp = ({
     };
 
     const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    let idleCallbackId: number | undefined;
     const updateMotionPreference = () => {
       const connection = (navigator as ConnectionNavigator).connection;
-      const shouldAnimate = !motionQuery.matches && !connection?.saveData && window.innerWidth >= 1024;
+      const shouldAnimate = !motionQuery.matches
+        && !connection?.saveData
+        && window.innerWidth >= 1024
+        && (navigator.hardwareConcurrency ?? 8) > 4;
       setMotionEnabled(shouldAnimate);
     };
 
-    updateMotionPreference();
+    // Keep the first render free for real application work, then start this
+    // decorative canvas once the browser is idle.
+    const idleWindow = window as IdleCallbackWindow;
+    if (idleWindow.requestIdleCallback) {
+      idleCallbackId = idleWindow.requestIdleCallback(updateMotionPreference, { timeout: 1200 });
+    } else {
+      const timer = window.setTimeout(updateMotionPreference, 500);
+      idleCallbackId = timer;
+    }
     motionQuery.addEventListener("change", updateMotionPreference);
     window.addEventListener("resize", updateMotionPreference);
 
     return () => {
+      if (idleWindow.cancelIdleCallback && idleCallbackId !== undefined) {
+        idleWindow.cancelIdleCallback(idleCallbackId);
+      } else if (idleCallbackId !== undefined) {
+        window.clearTimeout(idleCallbackId);
+      }
       motionQuery.removeEventListener("change", updateMotionPreference);
       window.removeEventListener("resize", updateMotionPreference);
     };
@@ -111,8 +133,17 @@ const IsoLevelWarp = ({
       return a + (b - a) * t;
     };
 
-    const draw = () => {
+    const targetFrameDuration = 1000 / 30;
+    let lastDrawTime = 0;
+
+    const draw = (timestamp: number) => {
       if (isPaused) return;
+
+      if (timestamp - lastDrawTime < targetFrameDuration) {
+        animationFrameId = requestAnimationFrame(draw);
+        return;
+      }
+      lastDrawTime = timestamp;
 
       // Clear Screen with trail effect (optional, simplified here for clarity)
       ctx.clearRect(0, 0, width, height);
@@ -185,6 +216,7 @@ const IsoLevelWarp = ({
     const handleVisibilityChange = () => {
       isPaused = document.hidden;
       if (!isPaused) {
+        lastDrawTime = 0;
         animationFrameId = requestAnimationFrame(draw);
       }
     };

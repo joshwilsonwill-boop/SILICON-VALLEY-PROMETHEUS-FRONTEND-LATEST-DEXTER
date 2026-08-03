@@ -2,7 +2,6 @@ import type { Metadata } from 'next'
 import { Inter, Geist, JetBrains_Mono, Playfair_Display, Space_Grotesk } from 'next/font/google'
 import localFont from 'next/font/local'
 import { CustomCursor } from '@/components/ui/custom-cursor'
-import { RootSmoothScroll } from '@/components/root-smooth-scroll'
 import { RootClientEffects } from '@/components/root-client-effects'
 import { AuthProvider } from '@/components/auth/auth-provider'
 import { ReactQueryProvider } from '@/components/ReactQueryProvider'
@@ -54,13 +53,14 @@ const vogueDisplay = localFont({
   src: '../Vogue.ttf',
   variable: '--font-vogue-display',
   display: 'swap',
+  preload: false,
 })
 
 const blackDelights = localFont({
   src: '../black_delights/Black Delights.ttf',
   variable: '--font-black-delights',
   display: 'swap',
-  preload: true,
+  preload: false,
 })
 
 const migraDisplay = localFont({
@@ -89,11 +89,9 @@ const migraDisplay = localFont({
 const elegistDisplay = localFont({
   src: '../elegist/Elegist.otf',
   variable: '--font-elegist',
-  // Editorial type must never flash a substitute font in the chamber.
-  display: 'block',
-  preload: true,
-  adjustFontFallback: false,
-  fallback: [],
+  // This display face is not needed for first paint on every route.
+  display: 'swap',
+  preload: false,
 })
 
 const ztOtezItalic = localFont({
@@ -143,7 +141,6 @@ export default function RootLayout({
           <ReactQueryProvider>
             <LoadingProvider>
               <AuthProvider>
-                <RootSmoothScroll />
                 <LuxuryMotionController />
                 <CustomCursor />
                 <div className="relative z-10">

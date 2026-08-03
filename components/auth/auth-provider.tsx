@@ -17,7 +17,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = React.useState<Session | null>(null)
   const [isLoading, setIsLoading] = React.useState(true)
   const router = useRouter()
-  const supabase = createClient()
+  // Keep one browser client for the provider lifetime. Recreating it on every
+  // session update re-subscribed and re-ran session initialization work.
+  const supabase = React.useMemo(() => createClient(), [])
 
   React.useEffect(() => {
     let mounted = true

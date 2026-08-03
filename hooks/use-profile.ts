@@ -2,6 +2,7 @@
 
 import * as React from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { useAuth } from '@/components/auth/auth-provider'
 
 export type ProfileV2 = {
   id: string
@@ -28,36 +29,32 @@ export function getProfileDisplayName(profile: ProfileV2 | null | undefined) {
 }
 
 export function useProfile() {
+  const { session, isLoading: isAuthLoading } = useAuth()
+  const userId = session?.user.id
+  const userEmail = session?.user.email
   const [profile, setProfile] = React.useState<ProfileV2 | null>(null)
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState<string | null>(null)
 
   React.useEffect(() => {
     let disposed = false
-    const supabase = createClient()
+    const user = session?.user
+
+    if (isAuthLoading) return
+
+    if (!user) {
+      setProfile(null)
+      setError(null)
+      setLoading(false)
+      return
+    }
 
     async function fetchProfile() {
       setLoading(true)
       setError(null)
 
       try {
-        const {
-          data: { user },
-          error: authError,
-        } = await supabase.auth.getUser()
-
-        if (disposed) return
-
-        if (authError) {
-          setError(authError.message)
-          setProfile(null)
-          return
-        }
-
-        if (!user) {
-          setProfile(null)
-          return
-        }
+        const supabase = createClient()
 
         const { data, error: queryError } = await supabase
           .from('profiles')
@@ -84,17 +81,11 @@ export function useProfile() {
     }
 
     void fetchProfile()
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(() => {
-      void fetchProfile()
-    })
 
     return () => {
       disposed = true
-      subscription.unsubscribe()
     }
-  }, [])
+  }, [isAuthLoading, userEmail, userId])
 
   const refresh = React.useCallback(async () => {
     setLoading(true)
@@ -102,12 +93,7 @@ export function useProfile() {
 
     try {
       const supabase = createClient()
-      const {
-        data: { user },
-        error: authError,
-      } = await supabase.auth.getUser()
-
-      if (authError) throw new Error(authError.message)
+      const user = session?.user
       if (!user) {
         setProfile(null)
         return
@@ -128,7 +114,7 @@ export function useProfile() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [userEmail, userId])
 
   const updateProfile = React.useCallback(async (path: string, init: RequestInit) => {
     const response = await fetch(path, init)
