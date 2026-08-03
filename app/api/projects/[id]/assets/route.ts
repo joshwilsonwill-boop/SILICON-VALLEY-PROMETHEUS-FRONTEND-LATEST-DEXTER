@@ -83,7 +83,8 @@ export async function POST(
     })
     if (commitError) {
       if (commitError.message?.includes('STORAGE_QUOTA_EXCEEDED')) {
-        await supabase.rpc('maul_abort_source_upload', { p_session_id: uploadSessionId }).catch(() => undefined)
+        const { error: abortError } = await supabase.rpc('maul_abort_source_upload', { p_session_id: uploadSessionId })
+        if (abortError) console.warn('[SOURCE_UPLOAD_ABORT_AFTER_QUOTA]', { uploadSessionId, error: abortError })
         await r2Client.send(new DeleteObjectCommand({ Bucket: session.bucket, Key: session.object_key })).catch(() => undefined)
       }
       return sourceControlPlaneErrorResponse(commitError, 'SOURCE_COMMIT_FAILED', 'Failed to commit source revision.')
