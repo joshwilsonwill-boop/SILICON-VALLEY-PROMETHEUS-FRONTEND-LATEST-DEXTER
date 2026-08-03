@@ -255,6 +255,11 @@ async function run() {
   assert.match(workspaceFrame, /overflow-y-auto/);
   assert.match(workspaceFrame, /touch-pan-y/);
   assert.match(workspaceFrame, /speed=\{0\.08\}/);
+  assert.match(workspaceFrame, /color="148, 148, 156"/);
+  assert.doesNotMatch(workspaceFrame, /212,176,255|34,14,58|168, 124, 255/);
+
+  const dashboardSidebar = read("components/dashboard-sidebar.tsx");
+  assert.match(dashboardSidebar, /rgba\(219,194,255,0\.10\)/);
 
   const awwwardsSidebar = read("components/sidebar/AwwwardsSidebar.tsx");
   assert.match(awwwardsSidebar, /href: "\/editor\/motion"/);

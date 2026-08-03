@@ -33,10 +33,10 @@ export function WorkspaceFrame({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="prometheus-workspace-shell relative h-[100dvh] w-full overflow-hidden font-sans">
-      <div className="absolute inset-0 z-0 bg-[radial-gradient(circle_at_14%_2%,rgba(212,176,255,0.14)_0%,rgba(34,14,58,0.08)_38%,rgba(0,0,0,0)_68%),linear-gradient(180deg,rgba(14,9,24,0.96)_0%,rgba(6,4,10,1)_100%)]" />
-      <IsoLevelWarp color="168, 124, 255" density={34} speed={0.08} />
+      <div className="absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_50%_-20%,rgba(255,255,255,0.065)_0%,rgba(255,255,255,0.018)_34%,rgba(0,0,0,0)_64%),linear-gradient(180deg,#0b0b0c_0%,#050506_46%,#000_100%)]" />
+      <IsoLevelWarp color="148, 148, 156" density={34} speed={0.08} />
 
-      <div className="pointer-events-none absolute inset-0 z-[1] bg-[radial-gradient(circle_at_14%_2%,rgba(212,176,255,0.22)_0%,rgba(34,14,58,0.12)_38%,rgba(0,0,0,0)_68%),linear-gradient(180deg,rgba(12,7,20,0.62)_0%,rgba(6,4,10,0.84)_100%)]" />
+      <div className="pointer-events-none absolute inset-0 z-[1] bg-[radial-gradient(ellipse_at_50%_-20%,rgba(255,255,255,0.055)_0%,rgba(255,255,255,0.012)_42%,rgba(0,0,0,0)_70%),linear-gradient(180deg,rgba(7,7,8,0.42)_0%,rgba(0,0,0,0.72)_100%)]" />
 
       <div className="relative z-10 flex h-full min-h-0 w-full">
         {shouldRenderSidebar ? <DashboardSidebar /> : null}
