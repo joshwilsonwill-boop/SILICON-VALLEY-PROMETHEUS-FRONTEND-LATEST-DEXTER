@@ -12,6 +12,7 @@ export type MultipartSourceAsset = {
   projectId: string
   sizeBytes: number
   storageProvider: 'r2'
+  uploadSessionId: string
 }
 
 export type MultipartUploadProgress = {
@@ -27,9 +28,11 @@ export type MultipartUploadProgress = {
 type MultipartInitiateResponse = {
   asset: MultipartSourceAsset
   upload: {
+    sessionId: string
     key: string
     partSize: number
     uploadId: string
+    status: 'reserved' | 'uploading' | 'verified' | 'committed'
   }
 }
 
@@ -254,16 +257,14 @@ async function uploadPartWithProgress(input: {
 }
 
 export async function abortProjectSourceMultipartUpload(input: {
-  key: string
   projectId: string
-  uploadId: string
+  sessionId: string
 }) {
   const response = await fetch(`/api/projects/${input.projectId}/upload-multipart/abort`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      key: input.key,
-      uploadId: input.uploadId,
+      sessionId: input.sessionId,
     }),
   })
 
@@ -319,6 +320,10 @@ export async function uploadProjectSourceMultipart({
   )
 
   const { asset, upload } = initiate
+  if (upload.status === 'verified' || upload.status === 'committed') {
+    onProgress?.({ ...baseProgress, bytesUploaded: file.size, percentage: 100, phase: 'done' })
+    return { asset, bucket: asset.bucket, key: asset.objectKey }
+  }
   const uploadedParts: UploadedPart[] = []
   let completedBytes = 0
 
@@ -350,6 +355,7 @@ export async function uploadProjectSourceMultipart({
             headers: { 'Content-Type': 'application/json' },
             signal,
             body: JSON.stringify({
+              sessionId: upload.sessionId,
               key: upload.key,
               partNumber,
               uploadId: upload.uploadId,
@@ -423,6 +429,7 @@ export async function uploadProjectSourceMultipart({
           headers: { 'Content-Type': 'application/json' },
           signal,
           body: JSON.stringify({
+            sessionId: upload.sessionId,
             key: upload.key,
             parts: uploadedParts,
             sizeBytes: file.size,
@@ -474,9 +481,8 @@ export async function uploadProjectSourceMultipart({
     // Multipart uploads bill for orphaned parts until lifecycle cleanup runs.
     // Explicit abort keeps failed/cancelled uploads from accumulating storage charges.
     await abortProjectSourceMultipartUpload({
-      key: upload.key,
       projectId,
-      uploadId: upload.uploadId,
+      sessionId: upload.sessionId,
     }).catch(() => undefined)
 
     throw error

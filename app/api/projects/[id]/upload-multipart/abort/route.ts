@@ -1,16 +1,9 @@
-import { AbortMultipartUploadCommand } from '@aws-sdk/client-s3'
+import { AbortMultipartUploadCommand, DeleteObjectCommand } from '@aws-sdk/client-s3'
 import { NextResponse } from 'next/server'
 
-import { requireOwnedProjectSourceKey } from '@/lib/r2/project-source-multipart'
+import { sourceControlPlaneErrorResponse } from '@/lib/api/source-control-plane-errors'
 import { r2Client } from '@/lib/r2/client'
-
-function isNoSuchUpload(error: unknown) {
-  if (!error || typeof error !== 'object') return false
-  const candidate = error as { name?: string; Code?: string; $metadata?: { httpStatusCode?: number } }
-  return candidate.name === 'NoSuchUpload'
-    || candidate.Code === 'NoSuchUpload'
-    || candidate.$metadata?.httpStatusCode === 404
-}
+import { createClient } from '@/lib/supabase/server'
 
 export async function POST(
   req: Request,
@@ -19,39 +12,31 @@ export async function POST(
   try {
     const { id: projectId } = await params
     const body = await req.json().catch(() => ({}))
-    const keyContext = await requireOwnedProjectSourceKey(projectId, body.key)
+    const sessionId = typeof body.sessionId === 'string' ? body.sessionId.trim() : ''
+    if (!sessionId) return NextResponse.json({ error: 'Missing session id.', code: 'UPLOAD_SESSION_REQUIRED' }, { status: 400 })
 
-    if ('error' in keyContext) {
-      return NextResponse.json({ error: keyContext.error }, { status: keyContext.status })
+    const supabase = await createClient()
+    const { data: session, error: readError } = await supabase.from('source_upload_sessions').select('*')
+      .eq('id', sessionId).eq('project_id', projectId).single()
+    if (readError || !session) return NextResponse.json({ error: 'Upload session not found.', code: 'UPLOAD_SESSION_NOT_FOUND' }, { status: 404 })
+
+    const { data: aborted, error: abortError } = await supabase.rpc('maul_abort_source_upload', { p_session_id: sessionId })
+    if (abortError) return sourceControlPlaneErrorResponse(abortError, 'UPLOAD_ABORT_FAILED', 'Failed to abort upload session.')
+    if (aborted.status === 'committed') return NextResponse.json({ success: true, alreadyCommitted: true, session: aborted })
+
+    if (session.multipart_upload_id) {
+      await r2Client.send(new AbortMultipartUploadCommand({
+        Bucket: session.bucket, Key: session.object_key, UploadId: session.multipart_upload_id,
+      })).catch((error) => console.warn('[SOURCE_MULTIPART_ABORT_CLEANUP]', { sessionId, error }))
     }
+    // Handles a completion/abort race and verified-but-uncommitted objects. The
+    // control-plane transition above prevents a later commit of this object.
+    await r2Client.send(new DeleteObjectCommand({ Bucket: session.bucket, Key: session.object_key }))
+      .catch((error) => console.warn('[SOURCE_OBJECT_ABORT_CLEANUP]', { sessionId, error }))
 
-    const uploadId = typeof body.uploadId === 'string' ? body.uploadId.trim() : ''
-    if (!uploadId) {
-      return NextResponse.json({ error: 'Missing upload id.' }, { status: 400 })
-    }
-
-    let alreadyFinalized = false
-    try {
-      await r2Client.send(
-        new AbortMultipartUploadCommand({
-          Bucket: keyContext.bucket,
-          Key: keyContext.key,
-          UploadId: uploadId,
-        }),
-      )
-    } catch (error) {
-      // Abort is intentionally idempotent: an already-completed/already-aborted
-      // upload has no orphaned parts left to clean up.
-      if (!isNoSuchUpload(error)) throw error
-      alreadyFinalized = true
-    }
-
-    return NextResponse.json({ success: true, alreadyFinalized })
+    return NextResponse.json({ success: true, session: aborted })
   } catch (err) {
     console.error('[api/projects/[id]/upload-multipart/abort] POST error:', err)
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'Failed to abort multipart upload' },
-      { status: err instanceof Error && err.message === 'Unauthorized' ? 401 : 500 },
-    )
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'Failed to abort multipart upload', code: 'UPLOAD_ABORT_FAILED', retryable: true }, { status: 500 })
   }
 }

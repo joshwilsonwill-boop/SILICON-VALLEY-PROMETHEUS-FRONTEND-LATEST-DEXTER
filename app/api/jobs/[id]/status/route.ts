@@ -18,7 +18,17 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   }
   if (!job) return NextResponse.json({ error: 'Job not found', code: 'JOB_NOT_FOUND' }, { status: 404 })
 
-  const etag = `W/\"${job.id}:${job.updated_at}\"`
+  const { data: ingestion, error: ingestionError } = await supabase
+    .from('source_ingestions')
+    .select('*')
+    .eq('durable_job_id', id)
+    .eq('user_id', user.id)
+    .maybeSingle()
+  if (ingestionError) {
+    return NextResponse.json({ error: ingestionError.message, code: 'INGESTION_READ_FAILED', retryable: true }, { status: 500 })
+  }
+
+  const etag = `W/\"${job.id}:${job.updated_at}:${ingestion?.updated_at ?? 'legacy'}\"`
   if (request.headers.get('if-none-match') === etag) {
     return new NextResponse(null, { status: 304, headers: { ETag: etag, 'Cache-Control': 'no-store' } })
   }
@@ -30,6 +40,21 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     progress: job.progress,
     result: job.result_metadata,
     error: job.error_message,
+    ingestion: ingestion ? {
+      id: ingestion.id,
+      sourceRevisionId: ingestion.source_revision_id,
+      status: ingestion.status,
+      stage: ingestion.stage,
+      progress: ingestion.progress,
+      attempt: ingestion.attempt,
+      maxAttempts: ingestion.max_attempts,
+      retryable: ingestion.retryable,
+      errorCode: ingestion.error_code,
+      error: ingestion.error_message,
+      leaseGeneration: ingestion.lease_generation,
+      heartbeatAt: ingestion.heartbeat_at,
+      updatedAt: ingestion.updated_at,
+    } : null,
     retryAfterMs: job.status === 'pending' || job.status === 'processing' ? 2000 : null,
     updatedAt: job.updated_at,
   }, {

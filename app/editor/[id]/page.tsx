@@ -7725,6 +7725,7 @@ function OriginalEditorPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             assetId: uploadAsset.id,
+            uploadSessionId: uploadAsset.uploadSessionId,
             bucket: uploadAsset.bucket,
             objectKey: uploadAsset.objectKey,
             filename: input.file.name,
