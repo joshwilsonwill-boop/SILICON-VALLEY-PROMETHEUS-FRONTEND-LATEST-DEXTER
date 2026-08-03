@@ -153,6 +153,15 @@ body {
     box-shadow: 0 12px 34px -28px rgba(0, 0, 0, 0.9);
   }
 
+  /* The Studio masthead is intentionally a continuation of its #050505 canvas,
+     rather than the shared translucent/hover-reactive marketing masthead. */
+  .prometheus-masthead.studio-masthead--studio,
+  .prometheus-masthead.studio-masthead--studio:hover {
+    background-color: #050505;
+    background-image: none;
+    box-shadow: none;
+  }
+
   .prometheus-footer {
     transition: border-color 360ms cubic-bezier(0.16, 1, 0.3, 1);
   }

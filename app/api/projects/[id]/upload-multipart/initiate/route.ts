@@ -33,6 +33,7 @@ export async function POST(
         Metadata: {
           'asset-id': context.assetId,
           'original-filename': context.filename,
+          'size-bytes': String(context.sizeBytes),
           'project-id': context.projectId,
           'user-id': context.userId,
         },

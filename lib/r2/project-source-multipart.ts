@@ -34,10 +34,16 @@ export function normalizeSourceFilename(filename: unknown) {
   return typeof filename === 'string' ? filename.trim() : ''
 }
 
-export function normalizeSourceContentType(contentType: unknown) {
-  return typeof contentType === 'string' && contentType.trim()
-    ? contentType.trim().toLowerCase()
-    : 'application/octet-stream'
+export function normalizeSourceContentType(contentType: unknown, filename = '') {
+  const normalized = typeof contentType === 'string' ? contentType.trim().toLowerCase() : ''
+  if (normalized && normalized !== 'application/octet-stream') return normalized
+  const extension = filename.split('.').pop()?.toLowerCase() ?? ''
+  const inferred: Record<string, string> = {
+    mp4: 'video/mp4', mov: 'video/quicktime', webm: 'video/webm', m4v: 'video/x-m4v', mkv: 'video/x-matroska',
+    png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp', gif: 'image/gif',
+    bmp: 'image/bmp', svg: 'image/svg+xml', avif: 'image/avif',
+  }
+  return inferred[extension] ?? 'application/octet-stream'
 }
 
 export function normalizeSourceSizeBytes(sizeBytes: unknown) {
@@ -128,7 +134,7 @@ export async function requireProjectSourceUploadContext(
   },
 ): Promise<ProjectSourceUploadContext | { error: string; status: number }> {
   const filename = normalizeSourceFilename(input.filename)
-  const contentType = normalizeSourceContentType(input.contentType)
+  const contentType = normalizeSourceContentType(input.contentType, filename)
   const sizeBytes = normalizeSourceSizeBytes(input.sizeBytes)
   const validationError = validateProjectSourceUploadInput({ contentType, filename, sizeBytes })
 

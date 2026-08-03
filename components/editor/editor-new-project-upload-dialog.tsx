@@ -18,7 +18,7 @@ import {
   inspectSourceFile,
 } from '@/lib/media/source-profile'
 import { clearPendingEditorNavigation, markPendingEditorNavigation, rememberCurrentPathForEditorReturn } from '@/lib/editor-navigation'
-import { createProcessingJob, startProcessing as persistStartProcessing, upsertProject } from '@/lib/mock'
+import { upsertProject } from '@/lib/mock'
 import { uploadProjectSourceMultipart, type MultipartUploadProgress } from '@/lib/r2/multipart-client'
 import { setSessionSourcePreview } from '@/lib/source-preview-session'
 import { createClient } from '@/lib/supabase/client'
@@ -223,7 +223,7 @@ export function EditorNewProjectUploadDialog({ open, onOpenChange }: EditorNewPr
           title,
           name: title.slice(0, 50),
           prompt: `Create a cinematic edit from ${file.name}.`,
-          previewKind: 'video',
+          previewKind: pendingUpload.kind === 'image' ? 'image' : 'video',
           sourceProfile: profile ?? undefined,
           workspaceId,
         }),
@@ -270,7 +270,7 @@ export function EditorNewProjectUploadDialog({ open, onOpenChange }: EditorNewPr
           bucket: uploadAsset.bucket,
           objectKey: uploadAsset.objectKey,
           filename: file.name,
-          mimeType: file.type,
+          mimeType: uploadAsset.mimeType,
           sizeBytes: file.size,
           durationMs: profile?.inspection.durationSec ? Math.round(profile.inspection.durationSec * 1000) : undefined,
           width: profile?.inspection.width,
@@ -287,18 +287,9 @@ export function EditorNewProjectUploadDialog({ open, onOpenChange }: EditorNewPr
       setSessionSourcePreview({
         projectId: project.id,
         file,
-        previewKind: 'video',
+        previewKind: pendingUpload.kind === 'image' ? 'image' : 'video',
         sourceAssetId: uploadAsset.id,
       })
-
-      const job = createProcessingJob({
-        projectId: project.id,
-        input: {
-          prompt: `Create a cinematic edit from ${file.name}.`,
-          sources: [`Upload: ${file.name}`],
-        },
-      })
-      persistStartProcessing(job)
 
       const editorRoute = `/editor/${project.id}`
       rememberCurrentPathForEditorReturn()

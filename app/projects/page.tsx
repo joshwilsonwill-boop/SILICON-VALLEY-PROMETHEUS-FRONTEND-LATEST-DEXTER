@@ -23,7 +23,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 
-import { ProjectsPageV2 } from '@/components/projects/projects-page-v2'
+import { ProjectsPageEditorial } from '@/components/projects/projects-page-editorial'
 import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { BackButton } from '@/components/navigation/BackButton'
 import { PrometheusShell } from '@/components/prometheus-shell'
@@ -1635,9 +1635,9 @@ function FloatingBulkActionBar({
 
 export default function ProjectsPageWrapper(props: any) {
   return (
-    <div className="projects-minimal-theme">
+    <div className="projects-editorial-theme">
       <EditorProvider>
-        <ProjectsPageV2 {...props} />
+        <ProjectsPageEditorial {...props} />
         <ExportDrawer />
         <CircularToast />
       </EditorProvider>

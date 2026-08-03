@@ -8,8 +8,9 @@ const read = (relativePath) => readFileSync(join(root, relativePath), 'utf8')
 function run() {
   const studioPage = read('app/studio/page.tsx')
   const landingHeader = read('components/LandingHeader.tsx')
-  assert.match(studioPage, /<LandingHeader mobileNavControl=\{hamburger\} showBrandName=\{false\} \/>/)
+  assert.match(studioPage, /<LandingHeader mobileNavControl=\{hamburger\} showBrandName=\{false\} studioSurface \/>/)
   assert.match(landingHeader, /showBrandName\?: boolean/)
+  assert.match(landingHeader, /studioSurface \? ' studio-masthead--studio' : ''/)
   assert.doesNotMatch(landingHeader, /showPricing|href="\/pricing"|>\s*Pricing\s*</)
 
   const mobileDrawerHeader = read('app/components/mobile/NavDrawerHeader.tsx')

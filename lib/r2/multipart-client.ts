@@ -287,6 +287,7 @@ export async function uploadProjectSourceMultipart({
   if (file.size > R2_MULTIPART_CLIENT_MAX_BYTES) {
     throw new MultipartUploadError('File too large. Prometheus supports source videos up to 10GB.')
   }
+  const stableAssetId = assetId || crypto.randomUUID()
 
   const totalParts = Math.ceil(file.size / R2_MULTIPART_CLIENT_PART_SIZE)
   const baseProgress = {
@@ -305,7 +306,7 @@ export async function uploadProjectSourceMultipart({
     headers: { 'Content-Type': 'application/json' },
     signal,
     body: JSON.stringify({
-      assetId,
+      assetId: stableAssetId,
       contentType: file.type || 'application/octet-stream',
       filename: file.name,
       sizeBytes: file.size,
@@ -413,21 +414,32 @@ export async function uploadProjectSourceMultipart({
       totalParts,
     })
 
-    const completeResponse = await fetch(`/api/projects/${projectId}/upload-multipart/complete`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      signal,
-      body: JSON.stringify({
-        key: upload.key,
-        parts: uploadedParts,
-        uploadId: upload.uploadId,
-      }),
-    })
+    let completed: { bucket: string; etag?: string; key: string; location?: string; sizeBytes: number; url?: string; verified: boolean } | null = null
+    let completionError: unknown
+    for (let attempt = 1; attempt <= 2 && !completed; attempt += 1) {
+      try {
+        const completeResponse = await fetch(`/api/projects/${projectId}/upload-multipart/complete`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal,
+          body: JSON.stringify({
+            key: upload.key,
+            parts: uploadedParts,
+            sizeBytes: file.size,
+            uploadId: upload.uploadId,
+          }),
+        })
 
-    const completed = await readJsonResponse<{ bucket: string; key: string; location?: string; url?: string }>(
-      completeResponse,
-      'Unable to complete R2 multipart upload',
-    )
+        completed = await readJsonResponse<{ bucket: string; etag?: string; key: string; location?: string; sizeBytes: number; url?: string; verified: boolean }>(
+          completeResponse,
+          'Unable to complete R2 multipart upload',
+        )
+      } catch (error) {
+        completionError = error
+        if (attempt < 2) await wait(getRetryDelayMs(attempt), signal)
+      }
+    }
+    if (!completed) throw completionError
 
     onProgress?.({
       bytesUploaded: file.size,
@@ -444,6 +456,8 @@ export async function uploadProjectSourceMultipart({
       bucket: completed.bucket,
       key: completed.key,
       location: completed.location,
+      // The registration endpoint repeats HEAD verification before committing metadata.
+      // Returning only after verified=true prevents optimistic client-side commits.
       url: completed.url,
     }
   } catch (error) {

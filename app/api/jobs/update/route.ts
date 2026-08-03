@@ -1,42 +1,11 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import type { UpdateJobRequest } from '@/lib/types/jobs'
 
-export async function PATCH(request: Request) {
-  try {
-    const payload = (await request.json()) as UpdateJobRequest
-    const supabase = await createClient()
-
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const { data, error } = await supabase
-      .from('durable_jobs')
-      .update({
-        status: payload.status,
-        progress: payload.progress,
-        result_metadata: payload.metadata,
-        error_message: payload.errorMessage,
-      })
-      .eq('id', payload.id)
-      .eq('user_id', user.id)
-      .select()
-      .single()
-
-    if (error) {
-      console.error('[Update Job Error]', error)
-      return NextResponse.json({ error: error.message }, { status: 500 })
-    }
-
-    return NextResponse.json(data)
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Internal Server Error'
-    return NextResponse.json({ error: message }, { status: 500 })
-  }
+export async function PATCH() {
+  // Browsers may observe jobs, but may never assert worker progress/completion.
+  // MAUL writes through Supabase with its server-only service role and must fence
+  // completion against projects.source_asset_id before publishing results.
+  return NextResponse.json(
+    { error: 'Job mutation is worker-only.', code: 'WORKER_AUTH_REQUIRED', retryable: false },
+    { status: 403 },
+  )
 }

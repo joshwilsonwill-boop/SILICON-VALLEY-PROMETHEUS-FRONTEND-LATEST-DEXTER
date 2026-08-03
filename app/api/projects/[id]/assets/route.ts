@@ -1,8 +1,10 @@
+import { HeadObjectCommand } from '@aws-sdk/client-s3'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { ProjectService } from '@/lib/projects/service'
 import { getPresignedGetUrl } from '@/lib/r2/presigned-url'
 import { requireOwnedProjectSourceKey } from '@/lib/r2/project-source-multipart'
+import { r2Client } from '@/lib/r2/client'
 import { startAssemblyAITranscription } from '@/lib/api/assemblyai'
 import { formatStorage, getStorageLimit, getStorageTierFromPlan } from '@/lib/storage-limits'
 
@@ -109,6 +111,39 @@ export async function POST(
       return NextResponse.json({ error: keyContext.error }, { status: keyContext.status })
     }
 
+    // Never trust the browser's claim that completion succeeded. R2 HEAD is the
+    // commit witness and the metadata written at initiation binds object identity.
+    const head = await r2Client.send(new HeadObjectCommand({
+      Bucket: keyContext.bucket,
+      Key: keyContext.key,
+    }))
+    const verifiedSizeBytes = Number(head.ContentLength)
+    const expectedSizeBytes = Number(sizeBytes)
+    const metadata = head.Metadata ?? {}
+    if (!Number.isSafeInteger(verifiedSizeBytes) || verifiedSizeBytes <= 0 || verifiedSizeBytes !== expectedSizeBytes) {
+      return NextResponse.json(
+        { error: 'R2 object size does not match the source registration.', code: 'SOURCE_SIZE_MISMATCH', retryable: false },
+        { status: 409 },
+      )
+    }
+    if (
+      metadata['asset-id'] !== assetId
+      || metadata['project-id'] !== projectId
+      || metadata['user-id'] !== user.id
+      || Number(metadata['size-bytes']) !== verifiedSizeBytes
+    ) {
+      return NextResponse.json(
+        { error: 'R2 object identity does not match this source asset.', code: 'SOURCE_IDENTITY_MISMATCH', retryable: false },
+        { status: 409 },
+      )
+    }
+    if (head.ContentType && head.ContentType.toLowerCase() !== mimeType.trim().toLowerCase()) {
+      return NextResponse.json(
+        { error: 'R2 object MIME type does not match this source asset.', code: 'SOURCE_MIME_MISMATCH', retryable: false },
+        { status: 409 },
+      )
+    }
+
     // Confirm user owns the project
     const project = await ProjectService.getProject(projectId)
     if (!project) {
@@ -137,7 +172,7 @@ export async function POST(
     if (existingAssetsError) throw existingAssetsError
 
     const usedBytes = (existingAssets ?? []).reduce((total, asset) => total + (Number(asset.size_bytes) || 0), 0)
-    const nextAssetBytes = Number(sizeBytes) || 0
+    const nextAssetBytes = verifiedSizeBytes
 
     if (usedBytes + nextAssetBytes > storageLimit) {
       return NextResponse.json(
@@ -170,7 +205,7 @@ export async function POST(
         storage_path: keyContext.key,
         original_filename: filename,
         mime_type: mimeType,
-        size_bytes: sizeBytes,
+        size_bytes: verifiedSizeBytes,
         duration_ms: durationMs,
         width: width,
         height: height,
@@ -181,52 +216,126 @@ export async function POST(
 
     if (assetError) throw assetError
 
-    // Update project with the new source_asset_id
+    // These writes are retry-convergent: the asset UUID is the idempotency key,
+    // and the durable job UUID deliberately equals the source asset UUID.
     await ProjectService.updateProject(projectId, {
       sourceAssetId: assetId
     })
 
-    // Phase 1D: Trigger AssemblyAI transcription
-    if (mimeType.startsWith('video/') || mimeType.startsWith('audio/')) {
-      try {
-        const assemblyAiKey = process.env.ASSEMBLYAI_API_KEY
-        if (!assemblyAiKey) {
-          console.warn('[api/projects/[id]/assets] ASSEMBLYAI_API_KEY missing. Skipping transcription.')
-          await supabase
-            .from('source_assets')
-            .update({ transcript_status: 'skipped' })
-            .eq('id', assetId)
-        } else {
-          // Generate a temporary signed GET URL for AssemblyAI
-          const sourceUrl = await getPresignedGetUrl(bucket, objectKey)
-          
-          const transcriptResponse = await startAssemblyAITranscription({
-            audio_url: sourceUrl,
-          })
+    const sourceJobMetadata = {
+      pipeline_version: 1,
+      source_asset_id: assetId,
+      source_bucket: keyContext.bucket,
+      source_etag: head.ETag ?? null,
+      source_mime_type: mimeType,
+      source_object_key: keyContext.key,
+      source_size_bytes: verifiedSizeBytes,
+    }
+    const isMaulVideo = mimeType.toLowerCase().startsWith('video/')
+    if (isMaulVideo) {
+      const { error: supersedeError } = await supabase
+        .from('durable_jobs')
+        .update({
+          status: 'failed',
+          progress: 100,
+          error_message: 'SOURCE_SUPERSEDED: project now points to a newer source asset.',
+        })
+        .eq('project_id', projectId)
+        .eq('user_id', user.id)
+        .eq('type', 'video_analysis')
+        .in('status', ['pending', 'processing'])
+        .neq('id', assetId)
+      if (supersedeError) throw supersedeError
+    }
+    const { data: existingJob, error: existingJobError } = await supabase
+      .from('durable_jobs')
+      .select('*')
+      .eq('id', assetId)
+      .eq('user_id', user.id)
+      .maybeSingle()
+    if (existingJobError) throw existingJobError
 
-          await supabase
-            .from('source_assets')
-            .update({
-              transcript_status: 'queued',
-              transcript_job_id: transcriptResponse.id,
-              transcript_provider: 'assemblyai',
-              transcript_started_at: new Date().toISOString(),
-            })
-            .eq('id', assetId)
-        }
-      } catch (transcribeErr) {
-        console.error('[api/projects/[id]/assets] Failed to start transcription:', transcribeErr)
-        await supabase
-          .from('source_assets')
-          .update({ 
-            transcript_status: 'failed',
-            transcript_error: transcribeErr instanceof Error ? transcribeErr.message : 'Unknown error'
-          })
+    let job = existingJob
+    if (!job && isMaulVideo) {
+      const { data: insertedJob, error: insertJobError } = await supabase
+        .from('durable_jobs')
+        .insert({
+          id: assetId,
+          user_id: user.id,
+          project_id: projectId,
+          type: 'video_analysis',
+          status: 'pending',
+          progress: 0,
+          result_metadata: sourceJobMetadata,
+        })
+        .select()
+        .single()
+      if (insertJobError) {
+        // A concurrent identical registration may have inserted first.
+        if (insertJobError.code !== '23505') throw insertJobError
+        const { data: racedJob, error: racedJobError } = await supabase
+          .from('durable_jobs')
+          .select('*')
           .eq('id', assetId)
+          .eq('user_id', user.id)
+          .single()
+        if (racedJobError) throw racedJobError
+        job = racedJob
+      } else {
+        job = insertedJob
       }
     }
 
-    return NextResponse.json({ asset })
+    // Claim transcription by conditional state transition before calling the
+    // provider. Concurrent/retried registration requests cannot both win.
+    if (mimeType.startsWith('video/') || mimeType.startsWith('audio/')) {
+      const { data: transcriptionClaim, error: claimError } = await supabase
+        .from('source_assets')
+        .update({
+          transcript_status: 'transcribing',
+          transcript_error: null,
+          transcript_started_at: new Date().toISOString(),
+        })
+        .eq('id', assetId)
+        .eq('transcript_status', 'idle')
+        .is('transcript_job_id', null)
+        .select('id')
+        .maybeSingle()
+      if (claimError) throw claimError
+
+      if (transcriptionClaim) {
+        try {
+          if (!process.env.ASSEMBLYAI_API_KEY) {
+            console.warn('[api/projects/[id]/assets] ASSEMBLYAI_API_KEY missing. Skipping transcription.')
+            await supabase.from('source_assets').update({ transcript_status: 'skipped' }).eq('id', assetId)
+          } else {
+            const sourceUrl = await getPresignedGetUrl(keyContext.bucket, keyContext.key)
+            const transcriptResponse = await startAssemblyAITranscription({ audio_url: sourceUrl })
+            await supabase.from('source_assets').update({
+              transcript_status: 'queued',
+              transcript_job_id: transcriptResponse.id,
+              transcript_provider: 'assemblyai',
+            }).eq('id', assetId).eq('transcript_status', 'transcribing')
+          }
+        } catch (transcribeErr) {
+          console.error('[api/projects/[id]/assets] Failed to start transcription:', transcribeErr)
+          await supabase.from('source_assets').update({
+            transcript_status: 'failed',
+            transcript_error: transcribeErr instanceof Error ? transcribeErr.message : 'Unknown error'
+          }).eq('id', assetId).eq('transcript_status', 'transcribing')
+        }
+      }
+    }
+
+    const { data: committedAsset, error: committedAssetError } = await supabase
+      .from('source_assets')
+      .select('*')
+      .eq('id', assetId)
+      .eq('user_id', user.id)
+      .single()
+    if (committedAssetError) throw committedAssetError
+
+    return NextResponse.json({ asset: committedAsset, job })
   } catch (err) {
     console.error('[api/projects/[id]/assets] POST error:', err)
     return NextResponse.json(
