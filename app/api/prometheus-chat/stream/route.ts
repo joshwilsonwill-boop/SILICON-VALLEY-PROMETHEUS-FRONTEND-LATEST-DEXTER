@@ -82,7 +82,7 @@ export async function POST(request: Request) {
       ).filter((match) => match.score >= 2)
     : [];
   // Project metadata (video + transcript) so the assistant knows the video exists.
-  const projectContext = projectId ? await loadProjectChatContext(projectId) : null;
+  const projectContext = projectId ? await loadProjectChatContext(projectId, {playheadSec: editorContext?.playheadSec}) : null;
   const toolsEnabled =
     intent.allowTools || Boolean(editorContext) || Boolean(projectContext?.video);
   const encoder = new TextEncoder();
@@ -264,13 +264,23 @@ export async function POST(request: Request) {
         const persisted = await persistAssistantReply(sessionId, reply, clientMessageId);
         const actionDrafts = collectActionDrafts(toolCalls);
         const frames = toolCalls.length ? toFramePayload(frameReferences, toolCalls) : [];
-        if (knowledge.length || toolCalls.length || actionDrafts.length || frames.length) {
+        if (knowledge.length || toolCalls.length || actionDrafts.length || frames.length || projectContext?.editorialAnalysis || projectContext?.transcript?.text) {
           send({
             type: "metadata",
-            sources: knowledge.slice(0, 5).map((match) => ({
-              title: match.title || "Prometheus guidance",
-              type: "knowledge",
-            })),
+            sources: [
+              ...(projectContext?.editorialAnalysis || projectContext?.transcript?.text
+                ? [{
+                    title: projectContext.transcript?.rangeMs
+                      ? "Saved video analysis at the current playhead"
+                      : "Saved video analysis",
+                    type: "video-context",
+                  }]
+                : []),
+              ...knowledge.slice(0, 5).map((match) => ({
+                title: match.title || "Prometheus guidance",
+                type: "knowledge",
+              })),
+            ],
             frames,
             toolCalls,
             actionDrafts,

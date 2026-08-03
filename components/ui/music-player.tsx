@@ -3,8 +3,6 @@
 import * as React from 'react'
 import { AnimatePresence, motion, useAnimationFrame, useMotionValue } from 'framer-motion'
 import { Music, Pause, Play, Repeat, Shuffle, SkipBack, SkipForward } from 'lucide-react'
-import Image from 'next/image'
-
 import { chamberEase } from '@/lib/chamber-motion'
 import { cn } from '@/lib/utils'
 import { useStableReducedMotion } from '@/hooks/use-stable-reduced-motion'
@@ -98,7 +96,7 @@ export function MusicPlayer({
     if (!reduceMotion) {
       rotation.set((rotation.get() + 24) % 360)
     }
-  }, [audioSrc, reduceMotion, rotation, setBufferingState, syncProgressVisual])
+  }, [albumArt, audioSrc, reduceMotion, rotation, setBufferingState, syncProgressVisual])
 
   React.useEffect(() => {
     const audio = audioRef.current
@@ -281,13 +279,11 @@ export function MusicPlayer({
               <Music className="size-12" strokeWidth={1.5} />
             </div>
           ) : (
-            <Image
+            <img
               src={albumArt}
               alt={`${songTitle} album art`}
-              fill
-              sizes="192px"
-              priority
-              className="object-cover"
+              className="absolute inset-0 h-full w-full object-cover"
+              loading="eager"
               onError={() => setAlbumArtFailed(true)}
               style={{ objectPosition: albumArtPosition }}
             />

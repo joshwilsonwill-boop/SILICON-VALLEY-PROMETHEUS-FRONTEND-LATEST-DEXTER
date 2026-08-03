@@ -27,6 +27,7 @@ import { cn } from '@/lib/utils'
 type PreviewMediaKind = 'video' | 'image'
 type MotionToolId = 'enhance' | 'captions' | 'media' | 'layout'
 type PreviewTreatment = 'clean' | 'contrast' | 'warm' | 'mono'
+type CropRect = { left: number; top: number; width: number; height: number }
 
 export type MotionTranscriptSegment = {
   id: string
@@ -92,6 +93,8 @@ const TREATMENTS: { id: PreviewTreatment; label: string; filter: string }[] = [
   { id: 'mono', label: 'Mono', filter: 'grayscale(1) contrast(1.12)' },
 ]
 
+const DEFAULT_CROP_RECT: CropRect = { left: 0, top: 0, width: 100, height: 100 }
+
 function formatTime(seconds: number) {
   const safe = Math.max(0, seconds)
   const minutes = Math.floor(safe / 60)
@@ -126,6 +129,7 @@ export function MotionEditWorkspace({
   const [zoom, setZoom] = React.useState(1)
   const [showTimeline, setShowTimeline] = React.useState(true)
   const [cropEnabled, setCropEnabled] = React.useState(true)
+  const [cropRect, setCropRect] = React.useState<CropRect>(DEFAULT_CROP_RECT)
   const [captionsVisible, setCaptionsVisible] = React.useState(false)
   const [treatment, setTreatment] = React.useState<PreviewTreatment>('clean')
   const [transcriptQuery, setTranscriptQuery] = React.useState('')
@@ -203,12 +207,14 @@ export function MotionEditWorkspace({
 
           <div className="relative min-h-[250px] flex-1 overflow-hidden bg-[#0a0b0d] p-3 sm:min-h-[320px] sm:p-6 lg:min-h-0 lg:p-8">
             <div className="grid h-full w-full place-items-center">
-              <div className="relative h-full max-h-full w-auto max-w-full overflow-hidden border border-white/18 bg-black shadow-[0_28px_80px_rgba(0,0,0,0.56)]" style={{ aspectRatio: safeAspectRatio }}>
-                {renderMedia()}
-                <div className="pointer-events-none absolute left-3 top-3 inline-flex max-w-[calc(100%-1.5rem)] items-center gap-2 rounded bg-black/60 px-2.5 py-1.5 text-[10px] text-white/72 backdrop-blur-sm"><Frame className="size-3 shrink-0 text-[#98f237]" /><span className="truncate">{sourceLabel ?? 'Source video'}</span></div>
-                {cropEnabled ? <div className="pointer-events-none absolute left-[19%] top-[11%] h-[76%] w-[62%] border border-white/80 shadow-[0_0_0_1px_rgba(0,0,0,0.65)]"><span className="absolute -left-1 -top-1 size-2.5 rounded-full border border-white bg-[#111]" /><span className="absolute -right-1 -top-1 size-2.5 rounded-full border border-white bg-[#111]" /><span className="absolute -bottom-1 -left-1 size-2.5 rounded-full border border-white bg-[#111]" /><span className="absolute -bottom-1 -right-1 size-2.5 rounded-full border border-white bg-[#111]" /></div> : null}
-                {captionsVisible && activeSegment ? <div className="pointer-events-none absolute inset-x-[10%] bottom-8 text-center text-[clamp(.7rem,1.7vw,1.2rem)] font-semibold leading-snug text-white [text-shadow:0_2px_12px_rgba(0,0,0,1)]">{activeSegment.text}</div> : null}
-                <button type="button" onClick={onTogglePlayback} disabled={previewKind !== 'video' || !previewUrl} className="absolute bottom-3 left-3 grid size-10 place-items-center rounded-full border border-white/12 bg-black/60 text-white backdrop-blur-sm transition-colors hover:bg-black/82 disabled:cursor-not-allowed disabled:opacity-35" aria-label={previewPlaying ? 'Pause preview' : 'Play preview'}>{previewPlaying ? <Pause className="size-4 fill-current" /> : <Play className="ml-0.5 size-4 fill-current" />}</button>
+              <div className="relative h-full max-h-full w-auto max-w-full" style={{ aspectRatio: safeAspectRatio }}>
+                <div className="relative h-full w-full overflow-hidden border border-white/18 bg-black shadow-[0_28px_80px_rgba(0,0,0,0.56)]">
+                  {renderMedia()}
+                  <div className="pointer-events-none absolute left-3 top-3 inline-flex max-w-[calc(100%-1.5rem)] items-center gap-2 rounded bg-black/60 px-2.5 py-1.5 text-[10px] text-white/72 backdrop-blur-sm"><Frame className="size-3 shrink-0 text-[#98f237]" /><span className="truncate">{sourceLabel ?? 'Source video'}</span></div>
+                  {captionsVisible && activeSegment ? <div className="pointer-events-none absolute inset-x-[10%] bottom-8 text-center text-[clamp(.7rem,1.7vw,1.2rem)] font-semibold leading-snug text-white [text-shadow:0_2px_12px_rgba(0,0,0,1)]">{activeSegment.text}</div> : null}
+                  <button type="button" onClick={onTogglePlayback} disabled={previewKind !== 'video' || !previewUrl} className="absolute bottom-3 left-3 grid size-10 place-items-center rounded-full border border-white/12 bg-black/60 text-white backdrop-blur-sm transition-colors hover:bg-black/82 disabled:cursor-not-allowed disabled:opacity-35" aria-label={previewPlaying ? 'Pause preview' : 'Play preview'}>{previewPlaying ? <Pause className="size-4 fill-current" /> : <Play className="ml-0.5 size-4 fill-current" />}</button>
+                </div>
+                {cropEnabled ? <CropFrame rect={cropRect} onChange={setCropRect} /> : null}
               </div>
             </div>
           </div>
@@ -220,6 +226,66 @@ export function MotionEditWorkspace({
       {showTimeline ? <section className="h-[176px] shrink-0 border-t border-white/12 bg-[#070809] sm:h-[224px]" aria-label="Video timeline"><div className="flex h-12 items-center justify-between border-b border-white/8 px-3 sm:px-6"><div className="flex items-center gap-1.5 sm:gap-3"><button type="button" onClick={() => setShowTimeline(false)} className="min-h-9 text-xs font-medium text-white/86">Hide timeline</button><button type="button" onClick={() => setCropEnabled((value) => !value)} className={cn('grid size-9 place-items-center rounded border transition-colors', cropEnabled ? 'border-[#98f237]/35 bg-[#98f237]/10 text-[#b4fb60]' : 'border-white/10 text-white/56 hover:text-white')} aria-label="Toggle crop frame"><Crop className="size-3.5" /></button><button type="button" onClick={onTogglePlayback} disabled={previewKind !== 'video' || !previewUrl} className="grid size-9 place-items-center text-white/82 disabled:opacity-35" aria-label={previewPlaying ? 'Pause timeline' : 'Play timeline'}>{previewPlaying ? <Pause className="size-4 fill-current" /> : <Play className="size-4 fill-current" />}</button><button type="button" onClick={() => onPreviewMutedChange(!previewMuted)} disabled={previewKind !== 'video' || !previewUrl} className={cn('grid size-9 place-items-center transition-colors disabled:opacity-35', previewMuted ? 'text-white/42' : 'text-[#b4fb60]')} aria-label={previewMuted ? 'Unmute preview' : 'Mute preview'}><Volume2 className="size-3.5" /></button><span className="hidden font-mono text-xs tabular-nums text-white/78 sm:inline">{currentTimeLabel} <span className="mx-1 text-white/28">/</span> {durationLabel}</span></div><label className="flex items-center gap-2 text-white/52"><ZoomOut className="size-3.5" /><span className="sr-only">Timeline zoom</span><input aria-label="Timeline zoom" type="range" min="0.7" max="2.4" step="0.1" value={zoom} onChange={(event) => setZoom(Number(event.target.value))} className="h-1 w-16 accent-[#98f237] sm:w-20" /><ZoomIn className="size-3.5" /></label></div><div className="flex min-h-0"><div className="hidden w-24 shrink-0 border-r border-white/8 pt-8 text-right text-[10px] text-white/40 sm:block"><div className="pr-3">Video</div><div className="mt-7 pr-3">Audio</div><div className="mt-6 pr-3">Captions</div></div><div onClick={seekFromPointer} className="relative min-w-0 flex-1 cursor-crosshair overflow-hidden px-3 pt-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#98f237]/60" role="slider" aria-label="Seek motion timeline" aria-valuemin={0} aria-valuemax={effectiveDuration} aria-valuenow={currentTimeSec} tabIndex={0} onKeyDown={(event) => { if (event.key === 'ArrowLeft') { event.preventDefault(); onSeek(Math.max(0, currentTimeSec - 1)) } if (event.key === 'ArrowRight') { event.preventDefault(); onSeek(Math.min(effectiveDuration, currentTimeSec + 1)) } if (event.key === 'Home') { event.preventDefault(); onSeek(0) } if (event.key === 'End') { event.preventDefault(); onSeek(effectiveDuration) } }}><TimelineTracks zoom={zoom} effectiveDuration={effectiveDuration} sourceLabel={sourceLabel ?? projectTitle} transcriptSegments={transcriptSegments} captionsVisible={captionsVisible} /><div className="pointer-events-none absolute bottom-0 top-0 z-10 border-l border-white shadow-[0_0_12px_rgba(255,255,255,.75)]" style={{ left: `calc(${playheadPercent}% + 0.75rem)` }}><span className="absolute -left-1.5 -top-1 size-3 rotate-45 bg-white" /></div></div></div></section> : <button type="button" onClick={() => setShowTimeline(true)} className="h-10 shrink-0 border-t border-white/10 bg-[#070809] text-xs text-white/58 hover:text-white">Show timeline</button>}
     </section>
   )
+}
+
+type CropHandle = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
+
+const MIN_CROP_SIZE = 18
+
+function resizeCropRect(rect: CropRect, handle: CropHandle, deltaX: number, deltaY: number): CropRect {
+  const right = rect.left + rect.width
+  const bottom = rect.top + rect.height
+  const changesLeft = handle === 'top-left' || handle === 'bottom-left'
+  const changesTop = handle === 'top-left' || handle === 'top-right'
+  const nextLeft = changesLeft ? Math.min(right - MIN_CROP_SIZE, Math.max(0, rect.left + deltaX)) : rect.left
+  const nextRight = changesLeft ? right : Math.max(rect.left + MIN_CROP_SIZE, Math.min(100, right + deltaX))
+  const nextTop = changesTop ? Math.min(bottom - MIN_CROP_SIZE, Math.max(0, rect.top + deltaY)) : rect.top
+  const nextBottom = changesTop ? bottom : Math.max(rect.top + MIN_CROP_SIZE, Math.min(100, bottom + deltaY))
+  return { left: nextLeft, top: nextTop, width: nextRight - nextLeft, height: nextBottom - nextTop }
+}
+
+function CropFrame({ rect, onChange }: { rect: CropRect; onChange: (rect: CropRect) => void }) {
+  const frameRef = React.useRef<HTMLDivElement>(null)
+  const dragRef = React.useRef<{ handle: CropHandle; pointerId: number; clientX: number; clientY: number; rect: CropRect; bounds: DOMRect } | null>(null)
+  const updateFromPointer = React.useCallback((clientX: number, clientY: number) => {
+    const drag = dragRef.current
+    if (!drag || !drag.bounds.width || !drag.bounds.height) return
+    const deltaX = ((clientX - drag.clientX) / drag.bounds.width) * 100
+    const deltaY = ((clientY - drag.clientY) / drag.bounds.height) * 100
+    onChange(resizeCropRect(drag.rect, drag.handle, deltaX, deltaY))
+  }, [onChange])
+  const startResize = (event: React.PointerEvent<HTMLButtonElement>, handle: CropHandle) => {
+    const bounds = frameRef.current?.getBoundingClientRect()
+    if (!bounds) return
+    event.preventDefault()
+    event.stopPropagation()
+    frameRef.current?.setPointerCapture(event.pointerId)
+    dragRef.current = { handle, pointerId: event.pointerId, clientX: event.clientX, clientY: event.clientY, rect, bounds }
+  }
+  const endResize = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (dragRef.current?.pointerId !== event.pointerId) return
+    if (frameRef.current?.hasPointerCapture(event.pointerId)) frameRef.current.releasePointerCapture(event.pointerId)
+    dragRef.current = null
+  }
+  const nudgeHandle = (event: React.KeyboardEvent<HTMLButtonElement>, handle: CropHandle) => {
+    const step = event.shiftKey ? 5 : 1
+    const deltaX = event.key === 'ArrowLeft' ? -step : event.key === 'ArrowRight' ? step : 0
+    const deltaY = event.key === 'ArrowUp' ? -step : event.key === 'ArrowDown' ? step : 0
+    if (!deltaX && !deltaY) return
+    event.preventDefault()
+    onChange(resizeCropRect(rect, handle, deltaX, deltaY))
+  }
+  const handles: { id: CropHandle; label: string; className: string }[] = [
+    { id: 'top-left', label: 'Resize crop from top left', className: 'left-0 top-0 -translate-x-1/2 -translate-y-1/2 cursor-nwse-resize' },
+    { id: 'top-right', label: 'Resize crop from top right', className: 'right-0 top-0 translate-x-1/2 -translate-y-1/2 cursor-nesw-resize' },
+    { id: 'bottom-left', label: 'Resize crop from bottom left', className: 'bottom-0 left-0 -translate-x-1/2 translate-y-1/2 cursor-nesw-resize' },
+    { id: 'bottom-right', label: 'Resize crop from bottom right', className: 'bottom-0 right-0 translate-x-1/2 translate-y-1/2 cursor-nwse-resize' },
+  ]
+  return <div ref={frameRef} className="pointer-events-none absolute inset-0 z-20 touch-none" onPointerMove={(event) => updateFromPointer(event.clientX, event.clientY)} onPointerUp={endResize} onPointerCancel={endResize}>
+    <div className="pointer-events-none absolute border-2 border-[#b4fb60] shadow-[0_0_0_1px_rgba(0,0,0,0.82),0_0_18px_rgba(180,251,96,0.28)]" style={{ left: rect.left + '%', top: rect.top + '%', width: rect.width + '%', height: rect.height + '%' }}>
+      {handles.map(({ id, label, className }) => <button key={id} type="button" aria-label={label} title={label + '. Drag or use arrow keys.'} onPointerDown={(event) => startResize(event, id)} onKeyDown={(event) => nudgeHandle(event, id)} className={'pointer-events-auto absolute grid size-5 place-items-center rounded-full border-2 border-[#b4fb60] bg-[#111]/95 shadow-[0_2px_8px_rgba(0,0,0,0.8)] transition-transform hover:scale-110 focus-visible:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ' + className}><span className="size-1.5 rounded-full bg-[#b4fb60]" /></button>)}
+    </div>
+  </div>
 }
 
 function ToolPanel({ activeTool, treatment, captionsVisible, cropEnabled, fitMode, onTreatment, onToggleCaptions, onToggleCrop, onToggleFit, onPickSource }: { activeTool: MotionToolId; treatment: PreviewTreatment; captionsVisible: boolean; cropEnabled: boolean; fitMode: 'fill' | 'fit'; onTreatment: (value: PreviewTreatment) => void; onToggleCaptions: () => void; onToggleCrop: () => void; onToggleFit: () => void; onPickSource: () => void }) {

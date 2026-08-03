@@ -1250,3 +1250,85 @@ begin
   end if;
 end;
 $$;
+
+-- Chat reads only a bounded, playhead-aware slice of the immutable source snapshot.
+-- The full transcript remains durable in source_observation_snapshots; it is never sent
+-- wholesale to the model or browser on each chat turn.
+create or replace function public.maul_get_chat_video_context(
+  p_project_id uuid,
+  p_playhead_ms bigint default null,
+  p_window_ms integer default 45000
+)
+returns jsonb
+language plpgsql
+security invoker
+set search_path = public, pg_temp
+as $$
+declare
+  v_payload jsonb;
+  v_status text;
+  v_filename text;
+  v_mime_type text;
+  v_start bigint;
+  v_end bigint;
+  v_duration bigint;
+  v_window integer := greatest(15000, least(coalesce(p_window_ms, 45000), 90000));
+  v_words jsonb := '[]'::jsonb;
+  v_motion jsonb := '[]'::jsonb;
+begin
+  if auth.uid() is null or not exists (
+    select 1 from public.projects where id = p_project_id and user_id = auth.uid()
+  ) then
+    raise exception 'Project not found' using errcode = 'P0001';
+  end if;
+
+  select snapshots.payload, ingestions.status, assets.original_filename, assets.mime_type
+    into v_payload, v_status, v_filename, v_mime_type
+  from public.source_observation_snapshots snapshots
+  join public.source_ingestions ingestions on ingestions.id = snapshots.ingestion_id
+  join public.source_revisions revisions on revisions.id = snapshots.source_revision_id
+  join public.source_assets assets on assets.id = revisions.source_asset_id
+  where snapshots.project_id = p_project_id
+  order by snapshots.created_at desc
+  limit 1;
+
+  if v_payload is null then
+    select status into v_status from public.source_ingestions
+    where project_id = p_project_id
+    order by created_at desc
+    limit 1;
+    return jsonb_build_object('status', coalesce(v_status, 'not_started'), 'ready', false);
+  end if;
+
+  v_duration := coalesce((v_payload #>> '{metadata,durationMs}')::bigint, 0);
+  v_start := greatest(0, least(coalesce(p_playhead_ms, 0) - v_window / 2, greatest(0, v_duration - v_window)));
+  v_end := case when v_duration > 0 then least(v_duration, v_start + v_window) else v_start + v_window end;
+
+  select coalesce(jsonb_agg(word order by coalesce((word ->> 'start_ms')::bigint, 0)), '[]'::jsonb)
+    into v_words
+  from jsonb_array_elements(coalesce(v_payload #> '{transcript,mergedWords}', '[]'::jsonb)) word
+  where coalesce((word ->> 'start_ms')::bigint, 0) <= v_end
+    and coalesce((word ->> 'end_ms')::bigint, 0) >= v_start;
+
+  select coalesce(jsonb_agg(segment order by coalesce((segment ->> 'startMs')::bigint, 0)), '[]'::jsonb)
+    into v_motion
+  from jsonb_array_elements(coalesce(v_payload #> '{motion,segments}', '[]'::jsonb)) segment
+  where coalesce((segment ->> 'startMs')::bigint, 0) <= v_end
+    and coalesce((segment ->> 'endMs')::bigint, 0) >= v_start;
+
+  return jsonb_build_object(
+    'status', coalesce(v_status, 'completed'),
+    'ready', true,
+    'range_ms', jsonb_build_array(v_start, v_end),
+    'filename', v_filename,
+    'mime_type', v_mime_type,
+    'metadata', coalesce(v_payload -> 'metadata', '{}'::jsonb),
+    'transcript', jsonb_build_object('mergedWords', v_words),
+    'motion', jsonb_build_object('segments', v_motion),
+    'editorial_analysis', coalesce(v_payload -> 'editorialAnalysis', '{}'::jsonb)
+  );
+end;
+$$;
+
+revoke all on function public.maul_get_chat_video_context(uuid, bigint, integer) from public, anon;
+grant execute on function public.maul_get_chat_video_context(uuid, bigint, integer) to authenticated, service_role;
