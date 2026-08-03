@@ -772,10 +772,15 @@ export function MusicTabPanel({
     [displayTracks, filteredTracks, focusedTrackId, selectedTrack],
   )
   const activeTrack = selectedTrack ?? focusedTrack
-  const selectedSong = React.useMemo(() => (activeTrack ? buildSelectedSongDisplay(activeTrack) : null), [activeTrack])
   const currentPlayerTrack = React.useMemo(
-    () => displayTracks.find((track) => track.id === playingTrackId) ?? selectedTrack ?? null,
-    [displayTracks, playingTrackId, selectedTrack],
+    () => displayTracks.find((track) => track.id === playingTrackId) ?? activeTrack ?? null,
+    [activeTrack, displayTracks, playingTrackId],
+  )
+  // The deck is a playback surface: its spinning artwork must follow audio, not
+  // merely the track last focused in the catalog.
+  const selectedSong = React.useMemo(
+    () => (currentPlayerTrack ? buildSelectedSongDisplay(currentPlayerTrack) : null),
+    [currentPlayerTrack],
   )
 
   const handleTrackFocus = React.useCallback(

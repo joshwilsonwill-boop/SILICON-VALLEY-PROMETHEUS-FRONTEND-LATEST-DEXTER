@@ -20,6 +20,8 @@ function run() {
   assert.match(musicPanel, /onFocus=\{\(\) => handleTrackActivate\(track\)\}/)
   assert.match(musicPanel, /onClick=\{\(\) => onPlayPause\(track\)\}/)
   assert.match(musicPanel, /aria-label=\{playing \? `Pause \$\{track\.title\}` : `Play \$\{track\.title\}`\}/)
+  assert.match(musicPanel, /displayTracks\.find\(\(track\) => track\.id === playingTrackId\) \?\? activeTrack \?\? null/)
+  assert.match(musicPanel, /currentPlayerTrack \? buildSelectedSongDisplay\(currentPlayerTrack\) : null/)
 
   const chatStyleSelectorPath = 'components/editor/chat-style-selector.tsx'
   assert.equal(existsSync(join(root, chatStyleSelectorPath)), true)
