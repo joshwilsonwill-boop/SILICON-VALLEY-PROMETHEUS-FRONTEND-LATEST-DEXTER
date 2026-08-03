@@ -49,7 +49,7 @@ export function useProfile() {
       return
     }
 
-    async function fetchProfile() {
+    async function fetchProfile(profileUser: NonNullable<typeof session>['user']) {
       setLoading(true)
       setError(null)
 
@@ -61,7 +61,7 @@ export function useProfile() {
           .select(
             'id, username, full_name, name, display_name, first_name, last_name, email, avatar_url, bio, pronouns, location, theme_preference, font_preference, notification_preferences, storage_quota_bytes',
           )
-          .eq('id', user.id)
+          .eq('id', profileUser.id)
           .maybeSingle()
 
         if (disposed) return
@@ -72,7 +72,7 @@ export function useProfile() {
           return
         }
 
-        setProfile(((data ?? { id: user.id, email: user.email ?? null }) as ProfileV2) ?? null)
+        setProfile(((data ?? { id: profileUser.id, email: profileUser.email ?? null }) as ProfileV2) ?? null)
       } catch (caught) {
         if (!disposed) setError(caught instanceof Error ? caught.message : 'Unable to load profile.')
       } finally {
@@ -80,7 +80,7 @@ export function useProfile() {
       }
     }
 
-    void fetchProfile()
+    void fetchProfile(user)
 
     return () => {
       disposed = true
