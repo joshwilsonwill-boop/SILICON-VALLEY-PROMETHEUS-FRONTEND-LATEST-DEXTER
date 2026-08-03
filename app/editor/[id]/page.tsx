@@ -8059,6 +8059,9 @@ function OriginalEditorPage() {
                     previewKind={previewKind}
                     hasPreviewMedia={hasPreviewMedia}
                     sourceLabel={sourceAssetLabel ?? project?.title ?? 'Source video'}
+                    previewAspectRatio={resolvedPreviewAspectRatio}
+                    fitMode={fitMode}
+                    onFitModeChange={setFitMode}
                     objectFit={fitMode === 'fill' ? 'cover' : 'contain'}
                     mediaTransformStyle={shouldUseLegacySessionPreviewSurface ? undefined : previewFrameTransformStyle}
                     currentTimeLabel={transportCurrentTime}
@@ -8067,6 +8070,7 @@ function OriginalEditorPage() {
                     durationSec={transportDurationSec}
                     previewPlaying={previewPlaying}
                     previewMuted={isPreviewMuted}
+                    onPreviewMutedChange={setIsPreviewMuted}
                     videoRef={previewVideoRef}
                     onTogglePlayback={togglePreviewPlayback}
                     onPickSource={openInlineSourcePicker}
