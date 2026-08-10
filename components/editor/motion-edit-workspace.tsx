@@ -11,6 +11,8 @@ import {
   Grid2X2,
   Maximize2,
   Pause,
+  PanelBottomClose,
+  PanelBottomOpen,
   Play,
   Plus,
   Search,
@@ -135,6 +137,9 @@ export function MotionEditWorkspace({
   const [transcriptQuery, setTranscriptQuery] = React.useState('')
   const [activeOnly, setActiveOnly] = React.useState(false)
   const transcriptRef = React.useRef<HTMLDivElement>(null)
+  const timelineRef = React.useRef<HTMLDivElement>(null)
+  const timelineDragRef = React.useRef<{ pointerId: number; startX: number; startScrollLeft: number; moved: boolean } | null>(null)
+  const [timelineDragging, setTimelineDragging] = React.useState(false)
 
   const effectiveDuration = durationSec > 0 ? durationSec : Math.max(60, ...transcriptSegments.map((segment) => segment.end))
   const playheadPercent = Math.min(100, Math.max(0, (currentTimeSec / effectiveDuration) * 100))
@@ -151,11 +156,47 @@ export function MotionEditWorkspace({
     root?.querySelector<HTMLElement>('[data-active-transcript="true"]')?.scrollIntoView({ block: 'nearest', behavior: previewPlaying ? 'smooth' : 'auto' })
   }, [activeSegment?.id, previewPlaying])
 
-  const seekFromPointer = React.useCallback((event: React.MouseEvent<HTMLDivElement>) => {
-    const bounds = event.currentTarget.getBoundingClientRect()
-    onSeek(Math.min(1, Math.max(0, (event.clientX - bounds.left) / bounds.width)) * effectiveDuration)
+  React.useEffect(() => {
+    window.dispatchEvent(new CustomEvent('prometheus:motion-chamber', { detail: { active: true } }))
+    return () => {
+      window.dispatchEvent(new CustomEvent('prometheus:motion-chamber', { detail: { active: false } }))
+    }
+  }, [])
+
+  const seekFromPointer = React.useCallback((clientX: number) => {
+    const timeline = timelineRef.current
+    if (!timeline) return
+    const bounds = timeline.getBoundingClientRect()
+    const contentX = clientX - bounds.left + timeline.scrollLeft
+    onSeek(Math.min(1, Math.max(0, contentX / timeline.scrollWidth)) * effectiveDuration)
   }, [effectiveDuration, onSeek])
 
+  const startTimelineDrag = (event: React.PointerEvent<HTMLDivElement>) => {
+    const timeline = timelineRef.current
+    if (!timeline) return
+    timeline.setPointerCapture(event.pointerId)
+    timelineDragRef.current = { pointerId: event.pointerId, startX: event.clientX, startScrollLeft: timeline.scrollLeft, moved: false }
+    setTimelineDragging(true)
+  }
+
+  const moveTimelineDrag = (event: React.PointerEvent<HTMLDivElement>) => {
+    const timeline = timelineRef.current
+    const drag = timelineDragRef.current
+    if (!timeline || !drag || drag.pointerId !== event.pointerId) return
+    const delta = event.clientX - drag.startX
+    if (Math.abs(delta) > 4) drag.moved = true
+    timeline.scrollLeft = drag.startScrollLeft - delta
+  }
+
+  const endTimelineDrag = (event: React.PointerEvent<HTMLDivElement>) => {
+    const timeline = timelineRef.current
+    const drag = timelineDragRef.current
+    if (!timeline || !drag || drag.pointerId !== event.pointerId) return
+    if (!drag.moved) seekFromPointer(event.clientX)
+    if (timeline.hasPointerCapture(event.pointerId)) timeline.releasePointerCapture(event.pointerId)
+    timelineDragRef.current = null
+    setTimelineDragging(false)
+  }
   const selectTool = (tool: MotionToolId) => {
     setActiveTool(tool)
     if (tool === 'media') onPickSource()
@@ -177,7 +218,8 @@ export function MotionEditWorkspace({
   )
 
   return (
-    <section className="flex h-full min-h-0 flex-col overflow-hidden bg-[#060708] text-white" aria-label="Motion editing workspace">
+    <section data-motion-chamber className="relative flex h-full min-h-0 flex-col overflow-hidden bg-[#060708] text-white" aria-label="Motion editing workspace">
+      <div className="pointer-events-none absolute inset-0 opacity-[0.055] motion-safe:animate-[pulse_8s_ease-in-out_infinite] [background-image:linear-gradient(rgba(255,255,255,.12)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.12)_1px,transparent_1px)] [background-size:40px_40px]" aria-hidden="true" />
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
         <aside className="hidden w-[32%] min-w-[280px] max-w-[460px] flex-col border-r border-white/10 xl:flex">
           <div className="flex min-h-14 shrink-0 items-center gap-3 border-b border-white/8 px-5">
@@ -196,16 +238,16 @@ export function MotionEditWorkspace({
         </aside>
 
         <main className="flex min-h-0 min-w-0 flex-1 flex-col">
-          <header className="shrink-0 border-b border-white/8 px-3 py-2 sm:px-5">
+          <header className="relative shrink-0 border-b border-white/8 px-3 py-1.5 sm:px-5">
             <div className="flex min-h-10 flex-wrap items-center justify-between gap-2">
               <div className="flex min-w-0 items-center gap-2 text-xs text-white/62"><span className="hidden sm:inline">Motion edit</span><span className="rounded border border-white/10 px-2 py-1 text-[11px] tabular-nums">{safeAspectRatio.toFixed(2)}:1</span><button type="button" onClick={() => onFitModeChange(fitMode === 'fill' ? 'fit' : 'fill')} className="inline-flex min-h-9 items-center gap-1.5 rounded px-1.5 transition-colors hover:bg-white/[0.06] hover:text-white"><Maximize2 className="size-3.5" /> {fitMode === 'fill' ? 'Fill frame' : 'Fit frame'}</button></div>
               <div className="flex items-center gap-1.5"><button type="button" onClick={() => onApplyPrompt?.(`Add a motion marker at ${formatTime(currentTimeSec)} in ${projectTitle}.`)} className="grid size-9 place-items-center rounded-md border border-white/10 bg-white/[0.045] text-white/72 transition-colors hover:bg-white/[0.1] hover:text-white" aria-label="Add motion marker"><Plus className="size-4" /></button><button type="button" onClick={() => onApplyPrompt?.('Prepare the current motion edit for export.')} className="inline-flex min-h-9 items-center gap-2 rounded-md bg-white px-3 py-2 text-xs font-semibold text-black transition-colors hover:bg-white/85"><Download className="size-3.5" /> <span className="hidden sm:inline">Export</span></button></div>
             </div>
-            <div className="mt-2 flex gap-1 overflow-x-auto pb-0.5 lg:hidden" aria-label="Motion tools">{TOOLS.map(({ id, label, icon: Icon }) => <button key={id} type="button" onClick={() => selectTool(id)} className={cn('inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-md border px-2.5 text-xs transition-colors', activeTool === id ? 'border-[#98f237]/35 bg-[#98f237]/10 text-[#c9ff7d]' : 'border-white/10 text-white/58 hover:text-white')}><Icon className="size-3.5" />{label}</button>)}</div>
+            <div className="mt-1.5 flex gap-1 overflow-x-auto pb-0.5 lg:hidden" aria-label="Motion tools">{TOOLS.map(({ id, label, icon: Icon }) => <button key={id} type="button" onClick={() => selectTool(id)} className={cn('inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-md border px-2.5 text-xs transition-colors', activeTool === id ? 'border-[#98f237]/35 bg-[#98f237]/10 text-[#c9ff7d]' : 'border-white/10 text-white/58 hover:text-white')}><Icon className="size-3.5" />{label}</button>)}</div>
             <ToolPanel activeTool={activeTool} treatment={treatment} captionsVisible={captionsVisible} cropEnabled={cropEnabled} fitMode={fitMode} onTreatment={applyTreatment} onToggleCaptions={() => setCaptionsVisible((value) => !value)} onToggleCrop={() => setCropEnabled((value) => !value)} onToggleFit={() => onFitModeChange(fitMode === 'fill' ? 'fit' : 'fill')} onPickSource={onPickSource} />
           </header>
 
-          <div className="relative min-h-[250px] flex-1 overflow-hidden bg-[#0a0b0d] p-3 sm:min-h-[320px] sm:p-6 lg:min-h-0 lg:p-8">
+          <div className="relative min-h-[250px] flex-1 overflow-hidden bg-[#0a0b0d]/80 p-2 sm:min-h-[320px] sm:p-3 lg:min-h-0 lg:p-4">
             <div className="grid h-full w-full place-items-center">
               <div className="relative h-full max-h-full w-auto max-w-full" style={{ aspectRatio: safeAspectRatio }}>
                 <div className="relative h-full w-full overflow-hidden border border-white/18 bg-black shadow-[0_28px_80px_rgba(0,0,0,0.56)]">
@@ -223,7 +265,7 @@ export function MotionEditWorkspace({
         <aside className="hidden w-[86px] shrink-0 border-l border-white/8 bg-[#090a0c] lg:flex lg:flex-col lg:items-center lg:gap-4 lg:pt-5">{TOOLS.map(({ id, label, icon: Icon }) => <button key={id} type="button" onClick={() => selectTool(id)} className={cn('group flex min-h-14 w-full flex-col items-center gap-1.5 border-l-2 px-1 py-2 text-[10px] font-medium transition-colors', activeTool === id ? 'border-[#98f237] text-white' : 'border-transparent text-white/46 hover:text-white/82')}><span className={cn('grid size-8 place-items-center rounded-md transition-colors', activeTool === id ? 'bg-[#98f237]/12 text-[#b4fb60]' : 'text-white/65 group-hover:bg-white/[0.06]')}><Icon className="size-4" /></span>{label}</button>)}<div className="mt-auto mb-5 text-[9px] uppercase tracking-[0.14em] text-white/28">{activeTool}</div></aside>
       </div>
 
-      {showTimeline ? <section className="h-[176px] shrink-0 border-t border-white/12 bg-[#070809] sm:h-[224px]" aria-label="Video timeline"><div className="flex h-12 items-center justify-between border-b border-white/8 px-3 sm:px-6"><div className="flex items-center gap-1.5 sm:gap-3"><button type="button" onClick={() => setShowTimeline(false)} className="min-h-9 text-xs font-medium text-white/86">Hide timeline</button><button type="button" onClick={() => setCropEnabled((value) => !value)} className={cn('grid size-9 place-items-center rounded border transition-colors', cropEnabled ? 'border-[#98f237]/35 bg-[#98f237]/10 text-[#b4fb60]' : 'border-white/10 text-white/56 hover:text-white')} aria-label="Toggle crop frame"><Crop className="size-3.5" /></button><button type="button" onClick={onTogglePlayback} disabled={previewKind !== 'video' || !previewUrl} className="grid size-9 place-items-center text-white/82 disabled:opacity-35" aria-label={previewPlaying ? 'Pause timeline' : 'Play timeline'}>{previewPlaying ? <Pause className="size-4 fill-current" /> : <Play className="size-4 fill-current" />}</button><button type="button" onClick={() => onPreviewMutedChange(!previewMuted)} disabled={previewKind !== 'video' || !previewUrl} className={cn('grid size-9 place-items-center transition-colors disabled:opacity-35', previewMuted ? 'text-white/42' : 'text-[#b4fb60]')} aria-label={previewMuted ? 'Unmute preview' : 'Mute preview'}><Volume2 className="size-3.5" /></button><span className="hidden font-mono text-xs tabular-nums text-white/78 sm:inline">{currentTimeLabel} <span className="mx-1 text-white/28">/</span> {durationLabel}</span></div><label className="flex items-center gap-2 text-white/52"><ZoomOut className="size-3.5" /><span className="sr-only">Timeline zoom</span><input aria-label="Timeline zoom" type="range" min="0.7" max="2.4" step="0.1" value={zoom} onChange={(event) => setZoom(Number(event.target.value))} className="h-1 w-16 accent-[#98f237] sm:w-20" /><ZoomIn className="size-3.5" /></label></div><div className="flex min-h-0"><div className="hidden w-24 shrink-0 border-r border-white/8 pt-8 text-right text-[10px] text-white/40 sm:block"><div className="pr-3">Video</div><div className="mt-7 pr-3">Audio</div><div className="mt-6 pr-3">Captions</div></div><div onClick={seekFromPointer} className="relative min-w-0 flex-1 cursor-crosshair overflow-hidden px-3 pt-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#98f237]/60" role="slider" aria-label="Seek motion timeline" aria-valuemin={0} aria-valuemax={effectiveDuration} aria-valuenow={currentTimeSec} tabIndex={0} onKeyDown={(event) => { if (event.key === 'ArrowLeft') { event.preventDefault(); onSeek(Math.max(0, currentTimeSec - 1)) } if (event.key === 'ArrowRight') { event.preventDefault(); onSeek(Math.min(effectiveDuration, currentTimeSec + 1)) } if (event.key === 'Home') { event.preventDefault(); onSeek(0) } if (event.key === 'End') { event.preventDefault(); onSeek(effectiveDuration) } }}><TimelineTracks zoom={zoom} effectiveDuration={effectiveDuration} sourceLabel={sourceLabel ?? projectTitle} transcriptSegments={transcriptSegments} captionsVisible={captionsVisible} /><div className="pointer-events-none absolute bottom-0 top-0 z-10 border-l border-white shadow-[0_0_12px_rgba(255,255,255,.75)]" style={{ left: `calc(${playheadPercent}% + 0.75rem)` }}><span className="absolute -left-1.5 -top-1 size-3 rotate-45 bg-white" /></div></div></div></section> : <button type="button" onClick={() => setShowTimeline(true)} className="h-10 shrink-0 border-t border-white/10 bg-[#070809] text-xs text-white/58 hover:text-white">Show timeline</button>}
+      {showTimeline ? <section className="relative h-[164px] shrink-0 border-t border-white/12 bg-[#070809]/95 sm:h-[196px]" aria-label="Video timeline"><div className="flex h-11 items-center justify-between border-b border-white/8 px-3 sm:px-5"><div className="flex items-center gap-1.5 sm:gap-3"><span className="text-xs font-medium text-white/86">Timeline</span><button type="button" onClick={() => setShowTimeline(false)} className="grid size-8 place-items-center rounded-md border border-white/10 bg-white/[0.035] text-white/62 transition-all hover:border-white/20 hover:bg-white/[0.08] hover:text-white" aria-label="Collapse timeline" title="Collapse timeline"><PanelBottomClose className="size-3.5" /></button><button type="button" onClick={() => setCropEnabled((value) => !value)} className={cn('grid size-8 place-items-center rounded border transition-colors', cropEnabled ? 'border-[#98f237]/35 bg-[#98f237]/10 text-[#b4fb60]' : 'border-white/10 text-white/56 hover:text-white')} aria-label="Toggle crop frame"><Crop className="size-3.5" /></button><button type="button" onClick={onTogglePlayback} disabled={previewKind !== 'video' || !previewUrl} className="grid size-8 place-items-center text-white/82 disabled:opacity-35" aria-label={previewPlaying ? 'Pause timeline' : 'Play timeline'}>{previewPlaying ? <Pause className="size-4 fill-current" /> : <Play className="size-4 fill-current" />}</button><button type="button" onClick={() => onPreviewMutedChange(!previewMuted)} disabled={previewKind !== 'video' || !previewUrl} className={cn('grid size-8 place-items-center transition-colors disabled:opacity-35', previewMuted ? 'text-white/42' : 'text-[#b4fb60]')} aria-label={previewMuted ? 'Unmute preview' : 'Mute preview'}><Volume2 className="size-3.5" /></button><span className="hidden font-mono text-xs tabular-nums text-white/78 sm:inline">{currentTimeLabel} <span className="mx-1 text-white/28">/</span> {durationLabel}</span></div><label className="flex items-center gap-2 text-white/52"><ZoomOut className="size-3.5" /><span className="sr-only">Timeline zoom</span><input aria-label="Timeline zoom" type="range" min="0.7" max="2.4" step="0.1" value={zoom} onChange={(event) => setZoom(Number(event.target.value))} className="h-1 w-16 accent-[#98f237] sm:w-20" /><ZoomIn className="size-3.5" /></label></div><div className="flex min-h-0"><div className="hidden w-24 shrink-0 border-r border-white/8 pt-8 text-right text-[10px] text-white/40 sm:block"><div className="pr-3">Video</div><div className="mt-7 pr-3">Audio</div><div className="mt-6 pr-3">Captions</div></div><div ref={timelineRef} onPointerDown={startTimelineDrag} onPointerMove={moveTimelineDrag} onPointerUp={endTimelineDrag} onPointerCancel={endTimelineDrag} className={cn('premium-scroll-hide relative min-w-0 flex-1 touch-none select-none overflow-x-auto overflow-y-hidden px-3 pt-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#98f237]/60', timelineDragging ? 'cursor-grabbing' : 'cursor-grab')} role="slider" aria-label="Timeline. Drag to scroll, click to seek." aria-valuemin={0} aria-valuemax={effectiveDuration} aria-valuenow={currentTimeSec} tabIndex={0} onKeyDown={(event) => { if (event.key === 'ArrowLeft') { event.preventDefault(); onSeek(Math.max(0, currentTimeSec - 1)) } if (event.key === 'ArrowRight') { event.preventDefault(); onSeek(Math.min(effectiveDuration, currentTimeSec + 1)) } if (event.key === 'Home') { event.preventDefault(); onSeek(0) } if (event.key === 'End') { event.preventDefault(); onSeek(effectiveDuration) } }}><TimelineTracks zoom={zoom} effectiveDuration={effectiveDuration} sourceLabel={sourceLabel ?? projectTitle} transcriptSegments={transcriptSegments} captionsVisible={captionsVisible} /><div className="pointer-events-none absolute bottom-0 top-0 z-10 border-l border-white shadow-[0_0_12px_rgba(255,255,255,.75)]" style={{ left: `calc(${playheadPercent * zoom}% + 0.75rem)` }}><span className="absolute -left-1.5 -top-1 size-3 rotate-45 bg-white" /></div></div></div></section> : <button type="button" onClick={() => setShowTimeline(true)} className="group flex h-10 shrink-0 items-center justify-center gap-2 border-t border-white/10 bg-[#070809] text-xs text-white/58 transition-colors hover:bg-white/[0.025] hover:text-white"><PanelBottomOpen className="size-3.5 transition-transform group-hover:-translate-y-0.5" /> Show timeline</button>}
     </section>
   )
 }

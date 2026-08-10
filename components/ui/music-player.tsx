@@ -7,6 +7,8 @@ import { chamberEase } from '@/lib/chamber-motion'
 import { cn } from '@/lib/utils'
 import { useStableReducedMotion } from '@/hooks/use-stable-reduced-motion'
 
+const FALLBACK_ALBUM_ART = '/style-previews/dark-cinematic-1.jpg'
+
 const formatTime = (timeInSeconds: number): string => {
   if (Number.isNaN(timeInSeconds)) return '00:00'
   const minutes = Math.floor(timeInSeconds / 60)
@@ -56,6 +58,7 @@ export function MusicPlayer({
   const [isShuffle, setIsShuffle] = React.useState(false)
   const [isRepeat, setIsRepeat] = React.useState(false)
   const [albumArtFailed, setAlbumArtFailed] = React.useState(false)
+  const [resolvedAlbumArt, setResolvedAlbumArt] = React.useState(albumArt || FALLBACK_ALBUM_ART)
 
   const audioRef = React.useRef<HTMLAudioElement | null>(null)
   const progressBarRef = React.useRef<HTMLInputElement | null>(null)
@@ -91,6 +94,7 @@ export function MusicPlayer({
     setCurrentTime(0)
     setDuration(0)
     setAlbumArtFailed(false)
+    setResolvedAlbumArt(albumArt || FALLBACK_ALBUM_ART)
     setBufferingState(false)
     syncProgressVisual(0, 0)
     if (!reduceMotion) {
@@ -272,6 +276,7 @@ export function MusicPlayer({
           exit={reduceMotion ? undefined : { opacity: 0, scale: 1.02, filter: 'blur(8px)' }}
           transition={{ duration: reduceMotion ? 0 : 0.28, ease: chamberEase }}
           style={reduceMotion ? undefined : { rotate: rotation }}
+          data-testid="rotating-album-art"
           className="music-player-art relative z-10 h-[min(100%,clamp(11rem,38vh,18rem))] w-[min(100%,clamp(11rem,38vh,18rem))] overflow-hidden rounded-full border border-white/8 shadow-[0_20px_42px_-30px_rgba(0,0,0,0.98)]"
         >
           {albumArtFailed ? (
@@ -280,11 +285,17 @@ export function MusicPlayer({
             </div>
           ) : (
             <img
-              src={albumArt}
+              src={resolvedAlbumArt}
               alt={`${songTitle} album art`}
-              className="absolute inset-0 h-full w-full object-cover"
+              className="absolute inset-0 z-0 h-full w-full object-cover"
               loading="eager"
-              onError={() => setAlbumArtFailed(true)}
+              onError={() => {
+                if (resolvedAlbumArt !== FALLBACK_ALBUM_ART) {
+                  setResolvedAlbumArt(FALLBACK_ALBUM_ART)
+                  return
+                }
+                setAlbumArtFailed(true)
+              }}
               style={{ objectPosition: albumArtPosition }}
             />
           )}

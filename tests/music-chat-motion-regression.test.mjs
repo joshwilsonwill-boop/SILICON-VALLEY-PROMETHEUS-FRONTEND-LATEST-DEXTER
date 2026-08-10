@@ -13,6 +13,10 @@ function run() {
   assert.equal(musicPlayer.includes('ARTIFICIAL_BUFFER_MS'), false)
   assert.equal(musicPlayer.includes('canStartPlayback'), false)
   assert.match(musicPlayer, /void audio\.play\(\)\.catch/)
+  assert.match(musicPlayer, /data-testid="rotating-album-art"/)
+  assert.match(musicPlayer, /src=\{resolvedAlbumArt\}/)
+  assert.match(musicPlayer, /setResolvedAlbumArt\(FALLBACK_ALBUM_ART\)/)
+  assert.match(musicPlayer, /style=\{reduceMotion \? undefined : \{ rotate: rotation \}\}/)
 
   const musicPanel = read('components/editor/music-tab-panel.tsx')
   assert.match(musicPanel, /const handleTrackActivate = React\.useCallback/)
@@ -40,7 +44,7 @@ function run() {
   assert.match(uploadInterface, /activeStyleSignal/)
   assert.match(uploadInterface, /editActionPrompt/)
   assert.match(uploadInterface, /focusRequestKey/)
-  assert.match(uploadInterface, /text-\[35px\].*sm:text-\[48px\].*md:text-\[59px\]/)
+  assert.match(uploadInterface, /text-\[35px\].*sm:text-\[48px\].*lg:text-\[59px\]/)
 
   const editorPage = read('app/editor/[id]/page.tsx')
   assert.match(editorPage, /ChatStyleSelector/)

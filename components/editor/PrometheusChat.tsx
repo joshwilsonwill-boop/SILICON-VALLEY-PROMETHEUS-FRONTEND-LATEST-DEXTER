@@ -6,6 +6,7 @@ import { ArrowDown, ArrowUp, X } from 'lucide-react'
 
 import { useAuth } from '@/components/auth/auth-provider'
 import { useAIChat, type AIChatContextProvider, type AIChatFrameReference, type CarouselItem } from '@/hooks/use-ai-chat'
+import type { ChatMediaItem, ChatMediaJob } from '@/lib/prometheus-assistant/chat-media'
 import { useProfile } from '@/hooks/use-profile'
 import { PROPOSE_NOT_APPLIED_MESSAGE, type EditorActionDraft } from '@/lib/editor-actions'
 import { getChatGreeting } from '@/lib/user/display-name'
@@ -18,6 +19,7 @@ import { ChatSuggestions } from './ai-chat-suggestions'
 import { PrometheusChatHistoryDrawer } from './prometheus-chat-history-drawer'
 import { AIChatStreamingText } from './ai-chat-streaming-text'
 import { PrometheusChatActivity } from './prometheus-chat-activity'
+import { PrometheusChatMedia } from './prometheus-chat-media'
 import { ActiveChatEngagement } from './active-chat-engagement'
 
 export type PrometheusChatMessage = {
@@ -35,6 +37,8 @@ export type PrometheusChatMessage = {
   actionDrafts?: EditorActionDraft[]
   carousel?: CarouselItem[]
   suggestions?: string[]
+  media?: ChatMediaItem[]
+  jobs?: ChatMediaJob[]
 }
 
 export type PrometheusChatHistoryItem = {
@@ -121,6 +125,8 @@ export function PrometheusChat({
       actionDrafts: message.actionDrafts,
       carousel: message.carousel,
       suggestions: message.suggestions,
+      media: message.media,
+      jobs: message.jobs,
     })),
     [persistentChat.messages],
   )
@@ -202,6 +208,11 @@ export function PrometheusChat({
     },
     [persistentChat],
   )
+  const handleMediaSelect = React.useCallback((item: ChatMediaItem) => {
+    const time = typeof item.seconds === 'number' ? ` at ${item.seconds.toFixed(2)}s` : ''
+    setDraft(`Edit the selected ${item.kind}${time}: ${item.title ?? item.id}`)
+    inputRef.current?.focus()
+  }, [setDraft])
 
   const handleThreadScroll = React.useCallback(() => {
     const viewport = scrollViewportRef.current
@@ -312,6 +323,7 @@ export function PrometheusChat({
                   onDismissActions={handleDismissActions}
                   onSeekToSec={onSeekToSec}
                   onCarouselSelect={handleCarouselSelect}
+                  onMediaSelect={handleMediaSelect}
                   carouselDisabled={persistentChat.isSending || persistentChat.isAwaitingResponse}
                   onStreamingComplete={() => {
                     if (usesPersistentChat) persistentChat.completeAssistantMessage(message.id)
@@ -443,6 +455,7 @@ function PrometheusMessageBubble({
   onDismissActions,
   onSeekToSec,
   onCarouselSelect,
+  onMediaSelect,
   carouselDisabled = false,
   onStreamingComplete,
   onStreamingProgress,
@@ -454,6 +467,7 @@ function PrometheusMessageBubble({
   onDismissActions?: (messageId: string) => void
   onSeekToSec?: (seconds: number) => void
   onCarouselSelect?: (item: CarouselItem) => void
+  onMediaSelect?: (item: ChatMediaItem) => void
   carouselDisabled?: boolean
   onStreamingComplete: () => void
   onStreamingProgress: () => void
@@ -501,6 +515,13 @@ function PrometheusMessageBubble({
             items={message.carousel}
             disabled={carouselDisabled}
             onSelect={(item) => onCarouselSelect?.(item)}
+          />
+        ) : null}
+        {!isUser ? (
+          <PrometheusChatMedia
+            media={message.media}
+            jobs={message.jobs}
+            onSelect={onMediaSelect}
           />
         ) : null}
 

@@ -18,7 +18,7 @@ import {
   Zap,
   type LucideIcon,
 } from "lucide-react";
-import { useCallback, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 
 import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { MiniPlayer } from "@/app/editor/components/mini-player";
@@ -63,6 +63,7 @@ export function EditorRouteShell({ children }: { children: ReactNode }) {
   const [railExpanded, setRailExpanded] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
+  const [motionChamberActive, setMotionChamberActive] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsInitialTab, setSettingsInitialTab] =
     useState<EditorSettingsPanelKey>("appearance");
@@ -89,6 +90,13 @@ export function EditorRouteShell({ children }: { children: ReactNode }) {
     [openSettingsPanel],
   );
 
+  useEffect(() => {
+    const handleMotionChamber = (event: Event) => {
+      setMotionChamberActive(Boolean((event as CustomEvent<{ active?: boolean }>).detail?.active));
+    };
+    window.addEventListener("prometheus:motion-chamber", handleMotionChamber);
+    return () => window.removeEventListener("prometheus:motion-chamber", handleMotionChamber);
+  }, []);
   if (pathname === "/editor" || isStandaloneMobileEditorRoute(pathname)) {
     return <>{children}</>;
   }
@@ -134,7 +142,7 @@ export function EditorRouteShell({ children }: { children: ReactNode }) {
       <main className="relative flex min-w-0 flex-1 flex-col">
         {!focusMode ? (
           <>
-            <EditorTopBar
+            {!motionChamberActive ? <EditorTopBar
               mobileNavControl={
                 <button
                   type="button"
@@ -149,7 +157,7 @@ export function EditorRouteShell({ children }: { children: ReactNode }) {
               }
               onToggleSidebar={toggleSidebar}
               sidebarOpen={sidebarOpen}
-            />
+            /> : null}
             <div className="relative min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
               {children}
               {activeMobileTool ? (

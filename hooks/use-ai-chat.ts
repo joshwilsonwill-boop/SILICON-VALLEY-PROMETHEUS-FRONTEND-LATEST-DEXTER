@@ -7,6 +7,8 @@ import { parseEditorActionDrafts, type EditorActionDraft } from "@/lib/editor-ac
 import { classifyPrometheusChatIntent } from "@/lib/prometheus-assistant/chat-intent";
 import { consumePrometheusChatStream } from "@/lib/prometheus-assistant/chat-stream-client";
 import type { PrometheusChatStreamEvent } from "@/lib/prometheus-assistant/chat-stream";
+import { buildPrometheusChatMemory } from "@/lib/prometheus-assistant/chat-memory";
+import { normalizeChatJobs, normalizeChatMedia, type ChatMediaItem, type ChatMediaJob } from "@/lib/prometheus-assistant/chat-media";
 import type { ChatEditorContext, ChatFrameThumb } from "@/lib/prometheus-assistant/editor-context";
 import { deleteChatMessages, getChatMessages, insertChatMessage, insertChatMessages, isMissingClientMessageIdError, type ChatMessageInsert } from "@/lib/supabase/chat-messages";
 import {
@@ -70,6 +72,8 @@ export type AIChatMessage = {
   actionDrafts?: EditorActionDraft[];
   carousel?: CarouselItem[];
   suggestions?: string[];
+  media?: ChatMediaItem[];
+  jobs?: ChatMediaJob[];
 };
 
 export type AIChatActivity =
@@ -113,12 +117,14 @@ export function useAIChat({
   const messagesRef = useRef<AIChatMessage[]>([]);
   const abortControllerRef = useRef<AbortController | null>(null);
   const currentSessionIdRef = useRef<string | null>(null);
+  const memorySessionIdRef = useRef<string | null>(null);
   const creatingSessionRef = useRef<Promise<ChatSession> | null>(null);
   const pendingAssistantMessagesRef = useRef(new Map<string, { message: AIChatMessage; sessionId: string | null }>());
   const streamedContentRef = useRef(new Map<string, string>());
   const contextProviderRef = useRef<AIChatContextProvider | undefined>(contextProvider);
   const failedPersistRef = useRef<{ sessionId: string; payload: ChatMessageInsert } | null>(null);
   const lastLoadAttemptRef = useRef<string | null>(null);
+  const loadGenerationRef = useRef(0);
 
   useEffect(() => {
     messagesRef.current = messages;
@@ -188,15 +194,15 @@ export function useAIChat({
   }, [enabled, ensureSession, refreshSessions, setActiveSessionId]);
 
   const loadSessionMessages = useCallback(async (sessionId: string, isDisposed?: () => boolean) => {
+    const generation = ++loadGenerationRef.current;
     lastLoadAttemptRef.current = sessionId;
     setIsHistoryLoading(true);
     try {
       const records = await getChatMessages(sessionId);
-      if (isDisposed?.()) return;
+      if (isDisposed?.() || generation !== loadGenerationRef.current || currentSessionIdRef.current !== sessionId) return;
       // Only swap the thread once the fetch succeeds, so a failed load never
       // leaves the user staring at a silent empty thread.
-      setMessages(
-        records
+      const restoredMessages = records
           .filter((record) => record.role === "user" || record.role === "assistant")
           .map((record) => ({
             id: record.id,
@@ -207,20 +213,25 @@ export function useAIChat({
             platform: record.platform as AIChatPlatform | undefined,
             postType: record.post_type as AIChatPostType | undefined,
             ...normalizePersistedMessageMetadata(record.metadata),
-          })),
-      );
+          } satisfies AIChatMessage));
+      // Keep the model-facing memory in lockstep with the restored UI. Waiting
+      // for the React effect leaves a brief refresh race where the visible
+      // thread is populated but the next request is sent with stale history.
+      messagesRef.current = restoredMessages;
+      memorySessionIdRef.current = sessionId;
+      setMessages(restoredMessages);
       setHistoryLoadError(null);
     } catch (err) {
       // A failed history load must not discard the existing send-message flow.
       console.warn("[use-ai-chat] history load failed", err);
-      if (isDisposed?.()) return;
+      if (isDisposed?.() || generation !== loadGenerationRef.current) return;
       const message = isMissingClientMessageIdError(err)
         ? "This conversation can't be shown yet: the database is missing a pending chat update (client_message_id)."
         : "This conversation couldn't be loaded. Check your connection and try again.";
       setHistoryLoadError(message);
       toast.error("Couldn't load this conversation");
     } finally {
-      if (!isDisposed?.()) setIsHistoryLoading(false);
+      if (!isDisposed?.() && generation === loadGenerationRef.current) setIsHistoryLoading(false);
     }
   }, []);
 
@@ -246,7 +257,9 @@ export function useAIChat({
   const sendMessage = useCallback(
     async (message?: string, options?: { history?: AIChatMessage[]; persistUser?: boolean; reuseMessage?: AIChatMessage }) => {
       const text = (message ?? draft).trim();
-      if (!text || isSending) return;
+      const activeSessionId = currentSessionIdRef.current;
+      const isSessionMemoryReady = !activeSessionId || memorySessionIdRef.current === activeSessionId;
+      if (!text || isSending || isHistoryLoading || !isSessionMemoryReady) return;
 
       const userMessage = options?.reuseMessage ?? {
         id: `user-${crypto.randomUUID()}`,
@@ -255,7 +268,7 @@ export function useAIChat({
         createdAt: new Date().toISOString(),
         isComplete: true,
       } satisfies AIChatMessage;
-      const history = (options?.history ?? messagesRef.current).map(({ role, content }) => ({ role, content }));
+      const history = buildPrometheusChatMemory(options?.history ?? messagesRef.current);
 
       if (!options?.reuseMessage) setMessages((current) => [...current, userMessage]);
       setDraft("");
@@ -523,7 +536,7 @@ export function useAIChat({
         }
       }
     },
-    [draft, ensureSession, isSending, projectId, refreshSessions],
+    [draft, ensureSession, isHistoryLoading, isSending, projectId, refreshSessions],
   );
 
   const completeAssistantMessage = useCallback((messageId: string) => {
@@ -605,6 +618,7 @@ export function useAIChat({
   const selectSession = useCallback((sessionId: string) => {
     abortControllerRef.current?.abort();
     pendingAssistantMessagesRef.current.clear();
+    memorySessionIdRef.current = null;
     setIsSending(false);
     setIsAwaitingResponse(false);
     // Do not clear the thread here: loadSessionMessages only swaps messages after
@@ -633,6 +647,8 @@ export function useAIChat({
       const session = await createChatSession(projectId);
       setActiveSessionId(session.id);
       setSessions((current) => [session, ...current.filter((entry) => entry.id !== session.id)]);
+      messagesRef.current = [];
+      memorySessionIdRef.current = session.id;
       setMessages([]);
       return session;
     } catch {
@@ -853,7 +869,7 @@ function normalizeSuggestionList(input: unknown, max = 4): string[] {
 
 function normalizePersistedMessageMetadata(
   input: unknown,
-): Pick<AIChatMessage, "frames" | "toolCalls" | "actionDrafts" | "carousel" | "suggestions"> {
+): Pick<AIChatMessage, "frames" | "toolCalls" | "actionDrafts" | "carousel" | "suggestions" | "media" | "jobs"> {
   if (!input || typeof input !== "object" || Array.isArray(input)) return {};
   const metadata = input as Record<string, unknown>;
   const frames = normalizeFrameReferenceList(metadata.frames);
@@ -861,6 +877,8 @@ function normalizePersistedMessageMetadata(
   const actionDrafts = parseEditorActionDrafts(metadata.actionDrafts);
   const carousel = normalizeCarouselItems(metadata.carousel);
   const suggestions = normalizeSuggestionList(metadata.suggestions);
+  const media = normalizeChatMedia(metadata.media);
+  const jobs = normalizeChatJobs(metadata.jobs ?? metadata.mediaJobs);
 
   return {
     ...(frames.length ? { frames } : {}),
@@ -868,6 +886,8 @@ function normalizePersistedMessageMetadata(
     ...(actionDrafts.length ? { actionDrafts } : {}),
     ...(carousel.length ? { carousel } : {}),
     ...(suggestions.length ? { suggestions } : {}),
+    ...(media.length ? { media } : {}),
+    ...(jobs.length ? { jobs } : {}),
   };
 }
 

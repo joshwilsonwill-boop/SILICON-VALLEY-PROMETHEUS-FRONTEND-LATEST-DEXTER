@@ -32,7 +32,6 @@ import {
     Film,
     Music2,
     FileText,
-    MessageSquare,
     ImageIcon, // Added import for ImageIcon
     Check,
     Link as LinkIcon,
@@ -520,12 +519,6 @@ function studioActionButtonClassName(active = false) {
     );
 }
 
-const COMPOSER_MODES = [
-    { label: "Prompt", icon: MessageSquare },
-    { label: "Motion", icon: Film },
-    { label: "Music", icon: Music2 },
-    { label: "Output", icon: Sparkles },
-] as const;
 
 const STUDIO_DISPLAY_FONT_STYLE: React.CSSProperties = {
     fontFamily: 'var(--font-migra)',
@@ -712,8 +705,6 @@ const PromptComposer = React.memo(function PromptComposer({
     const [activeMentionIndex, setActiveMentionIndex] = useState(0);
     const [creatorMentions, setCreatorMentions] = useState<CreatorMention[]>([]);
     const [activeSlashCommand, setActiveSlashCommand] = useState<ActiveSlashCommand | null>(null);
-    const [activeComposerMode, setActiveComposerMode] = useState<(typeof COMPOSER_MODES)[number]["label"]>("Prompt");
-    const [hoveredComposerMode, setHoveredComposerMode] = useState<(typeof COMPOSER_MODES)[number]["label"] | null>(null);
     const [showMentionPalette, setShowMentionPalette] = useState(false);
     const [mentionStartIndex, setMentionStartIndex] = useState<number | null>(null);
     const [mentionQuery, setMentionQuery] = useState("");
@@ -735,8 +726,6 @@ const PromptComposer = React.memo(function PromptComposer({
             return haystack.includes(query);
         }).slice(0, 6);
     }, [mentionQuery]);
-    const visibleComposerMode = hoveredComposerMode ?? activeComposerMode;
-    const shouldShowComposerModes = value.length > 0 || activeSlashCommand !== null || editActions.length > 0;
 
     useEffect(() => {
         if (focusRequestKey === 0) return;
@@ -832,8 +821,6 @@ const PromptComposer = React.memo(function PromptComposer({
         setMentionQuery("");
         setActiveSuggestion(-1);
         setActiveMentionIndex(0);
-        setActiveComposerMode("Prompt");
-        setHoveredComposerMode(null);
         adjustHeight(true);
     }, [adjustHeight]);
 
@@ -1110,54 +1097,6 @@ const PromptComposer = React.memo(function PromptComposer({
                 </AnimatePresence>
 
                 <div className="space-y-3 p-4">
-                    <AnimatePresence initial={false}>
-                        {shouldShowComposerModes ? (
-                            <motion.div
-                                initial={{ opacity: 0, y: -8, scale: 0.96 }}
-                                animate={{ opacity: 1, y: 0, scale: 1 }}
-                                exit={{ opacity: 0, y: -6, scale: 0.98 }}
-                                transition={{ duration: 0.22, ease: "easeOut" }}
-                                className="inline-flex max-w-full flex-wrap items-center gap-1 rounded-full border border-white/10 bg-black/30 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_24px_40px_-32px_rgba(0,0,0,0.92)] backdrop-blur-md"
-                            >
-                                {COMPOSER_MODES.map(({ label, icon: Icon }) => {
-                                    const isActive = visibleComposerMode === label;
-                                    const isSelected = activeComposerMode === label;
-
-                                    return (
-                                        <motion.button
-                                            key={label}
-                                            type="button"
-                                            onClick={() => setActiveComposerMode(label)}
-                                            onMouseEnter={() => setHoveredComposerMode(label)}
-                                            onMouseLeave={() => setHoveredComposerMode(null)}
-                                            onFocus={() => setHoveredComposerMode(label)}
-                                            onBlur={() => setHoveredComposerMode(null)}
-                                            whileTap={{ scale: 0.98 }}
-                                            className={cn(
-                                                "relative inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium tracking-[0.01em] transition-colors focus-visible:outline-none",
-                                                isActive ? "text-white" : "text-white/52 hover:text-white/80",
-                                            )}
-                                        >
-                                            {isActive ? (
-                                                <motion.span
-                                                    layoutId="composer-mode-pill"
-                                                    className="absolute inset-0 rounded-full border border-white/12 bg-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
-                                                    transition={{ type: "spring", stiffness: 360, damping: 30, mass: 0.82 }}
-                                                />
-                                            ) : null}
-                                            <Icon
-                                                className={cn(
-                                                    "relative z-10 h-3.5 w-3.5 transition-colors",
-                                                    isActive ? "text-white/90" : isSelected ? "text-white/58" : "text-white/38",
-                                                )}
-                                            />
-                                            <span className="relative z-10">{label}</span>
-                                        </motion.button>
-                                    );
-                                })}
-                            </motion.div>
-                        ) : null}
-                    </AnimatePresence>
 
                     <AnimatePresence>
                         {activeSlashCommand && (
@@ -1642,7 +1581,6 @@ export function VideoUploadInterface() {
     const uploadStudioUtilities = [
         { label: "Clip Dock", icon: Paperclip },
         { label: "Frames", icon: Film },
-        { label: "Prompt", icon: ArrowUpIcon },
     ];
     const useGlassUploadPopup = true;
 
@@ -2334,7 +2272,7 @@ export function VideoUploadInterface() {
                         >
                             <span>Ready to Create Something</span>
                             <GooeyText
-                                texts={["New", "Next", "Live"]}
+                                texts={["New", "Novel", "Epic", "Grand", "Iconic"]}
                                 morphTime={0.95}
                                 cooldownTime={0.65}
                                 className="h-[0.95em] w-[3.35ch] shrink-0"
