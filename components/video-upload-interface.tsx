@@ -2272,10 +2272,10 @@ export function VideoUploadInterface() {
                         >
                             <span>Ready to Create Something</span>
                             <GooeyText
-                                texts={["New", "Novel", "Epic", "Grand", "Iconic"]}
+                                texts={["Novel", "Fresh", "Grand", "Vivid", "Magic"]}
                                 morphTime={0.95}
                                 cooldownTime={0.65}
-                                className="h-[0.95em] w-[3.35ch] shrink-0"
+                                className="h-[0.95em] w-[5.5ch] shrink-0"
                                 textClassName="left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-[1em] font-extrabold leading-none text-white"
                             />
                             <span>?</span>

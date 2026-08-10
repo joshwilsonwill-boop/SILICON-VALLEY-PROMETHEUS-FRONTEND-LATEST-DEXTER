@@ -7945,7 +7945,7 @@ function OriginalEditorPage() {
 
   return (
     <>
-      <div className="relative h-[100dvh] overflow-hidden bg-black text-white">
+      <div className="relative h-full min-h-0 overflow-hidden bg-black text-white">
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_48%_-12%,rgba(255,255,255,0.055)_0%,rgba(255,255,255,0)_34%),linear-gradient(180deg,#000_0%,#030304_44%,#000_100%)]"
@@ -8013,7 +8013,7 @@ function OriginalEditorPage() {
                 initial="hidden"
                 whileInView="visible"
                 viewport={{ once: false, amount: 0.45 }}
-                className="shrink-0 bg-black px-4 py-3"
+                className={cn('shrink-0 bg-black px-4 py-3', activeWorkspaceTab === 'Motion' && 'hidden')}
               >
                 <div className="flex justify-end">
                   <div className="inline-flex items-center gap-2 text-white/48">

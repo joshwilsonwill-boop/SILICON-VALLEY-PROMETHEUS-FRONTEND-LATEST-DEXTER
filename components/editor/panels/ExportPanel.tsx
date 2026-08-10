@@ -1,7 +1,9 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
+  AlertTriangle,
+  CheckCircle2,
   Cloud,
   Facebook,
   Film,
@@ -18,6 +20,7 @@ import {
 import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { cn } from '@/lib/utils'
 import { downloadMedia } from '@/lib/editor/browser-download'
+import { normalizeUxError } from '@/lib/ux/errors'
 import { dispatchCompletionEvent } from '../completion-event'
 
 const resolutions = [
@@ -46,46 +49,70 @@ const socialPlatforms: Array<{
 export function ExportPanel({ mediaUrl }: { mediaUrl?: string | null }) {
   const [selectedResolution, setSelectedResolution] = useState('1080p')
   const [exportMode, setExportMode] = useState<'cinematic' | 'fast'>('cinematic')
-  const [exportStatus, setExportStatus] = useState<'idle' | 'loading' | 'success'>('idle')
-  const exportTimers = useRef<number[]>([])
+  const [exportStatus, setExportStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
+  const [exportMessage, setExportMessage] = useState('')
   const [selectedPlatformId, setSelectedPlatformId] = useState('')
   const selectedPlatform = useMemo(
     () => socialPlatforms.find((platform) => platform.id === selectedPlatformId) ?? null,
     [selectedPlatformId],
   )
-  useEffect(() => () => {
-    exportTimers.current.forEach((timer) => window.clearTimeout(timer))
-  }, [])
+  const selectedResolutionLabel = resolutions.find((resolution) => resolution.id === selectedResolution)?.label ?? '1080p'
 
-  const startExportFeedback = (mode: 'cinematic' | 'fast') => {
-    exportTimers.current.forEach((timer) => window.clearTimeout(timer))
-    setExportMode(mode)
+  const handleDownload = async () => {
+    if (!mediaUrl || exportStatus === 'loading') {
+      if (!mediaUrl) {
+        setExportStatus('error')
+        setExportMessage('Your source is still loading. Keep this panel open and try again when it is ready.')
+      }
+      return
+    }
+
     setExportStatus('loading')
-    const completionTimer = window.setTimeout(() => {
+    setExportMessage('Preparing a secure download…')
+
+    try {
+      await downloadMedia(mediaUrl, 'prometheus-export.mp4')
       setExportStatus('success')
+      setExportMessage('Download started. Your final cut is on its way.')
       dispatchCompletionEvent({
         process: 'export',
-        title: `${mode === 'cinematic' ? 'Cinematic' : 'Fast'} export complete`,
+        title: `${exportMode === 'cinematic' ? 'Cinematic' : 'Fast'} export ready`,
         message: 'Your finished cut is ready to share.',
       })
-    }, mode === 'cinematic' ? 2600 : 1800)
-    const resetTimer = window.setTimeout(() => setExportStatus('idle'), mode === 'cinematic' ? 5200 : 4400)
-    exportTimers.current = [completionTimer, resetTimer]
+    } catch (error) {
+      setExportStatus('error')
+      setExportMessage(normalizeUxError(error, 'export'))
+    }
   }
 
   return (
     <section className="space-y-6" aria-label="Export options">
-      <div>
-        <p className="text-sm text-prometheus-text-secondary">Export your edit to device or platform-ready destinations.</p>
+      <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-[linear-gradient(145deg,rgba(255,255,255,0.07),rgba(255,255,255,0.015))] p-4 shadow-[0_18px_50px_rgba(0,0,0,0.22)]">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_88%_0%,rgba(34,211,238,0.15),transparent_38%)]" />
+        <div className="relative flex items-start justify-between gap-4">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-prometheus-accent-cyan/80">Output desk</p>
+            <h2 className="mt-2 text-xl font-medium tracking-[-0.03em] text-white">Deliver the final cut.</h2>
+            <p className="mt-2 max-w-[26rem] text-sm leading-6 text-prometheus-text-secondary">Choose the finish, confirm the destination, then export with a single clear action.</p>
+          </div>
+          <span className={cn('mt-1 inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em]', mediaUrl ? 'border-emerald-400/20 bg-emerald-400/8 text-emerald-300' : 'border-amber-300/20 bg-amber-300/8 text-amber-200')}>
+            <span className={cn('size-1.5 rounded-full', mediaUrl ? 'bg-emerald-300' : 'animate-pulse bg-amber-200')} />
+            {mediaUrl ? 'Source ready' : 'Source loading'}
+          </span>
+        </div>
       </div>
 
       <div className="space-y-3">
-        <h3 className="text-sm font-semibold text-white/82">Resolution</h3>
+        <div className="flex items-center gap-3">
+          <span className="font-mono text-[10px] text-white/28">01</span>
+          <h3 className="text-xs font-semibold uppercase tracking-[0.16em] text-white/72">Resolution</h3>
+        </div>
         <div className="space-y-2">
           {resolutions.map((resolution) => (
             <button
               key={resolution.id}
               type="button"
+              aria-pressed={selectedResolution === resolution.id}
               onClick={() => setSelectedResolution(resolution.id)}
               className={cn(
                 'flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-all',
@@ -113,21 +140,21 @@ export function ExportPanel({ mediaUrl }: { mediaUrl?: string | null }) {
       </div>
 
       <div className="space-y-3">
-        <h3 className="text-sm font-semibold text-white/82">Quick Export</h3>
-        <div className="grid grid-cols-2 gap-3">
-          <ExportModeButton active={exportMode === 'cinematic'} icon={Film} label="Cinematic" onClick={() => startExportFeedback('cinematic')} />
-          <ExportModeButton active={exportMode === 'fast'} icon={Zap} label="Fast Export" onClick={() => startExportFeedback('fast')} />
+        <div className="flex items-center gap-3">
+          <span className="font-mono text-[10px] text-white/28">02</span>
+          <h3 className="text-xs font-semibold uppercase tracking-[0.16em] text-white/72">Render pace</h3>
         </div>
-        {exportStatus !== 'idle' ? (
-          <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-black/24 px-3 py-2 text-xs text-white/68">
-            {exportStatus === 'loading' ? <InlineLoadingAnimation size={12} label="Preparing export" /> : null}
-            {exportStatus === 'loading' ? 'Preparing export...' : `${exportMode === 'cinematic' ? 'Cinematic' : 'Fast'} export is queued.`}
-          </div>
-        ) : null}
+        <div className="grid grid-cols-2 gap-3">
+          <ExportModeButton active={exportMode === 'cinematic'} icon={Film} label="Cinematic" detail="Best finish" onClick={() => setExportMode('cinematic')} />
+          <ExportModeButton active={exportMode === 'fast'} icon={Zap} label="Fast Export" detail="Quick handoff" onClick={() => setExportMode('fast')} />
+        </div>
       </div>
 
       <div className="space-y-3">
-        <h3 className="text-sm font-semibold text-white/82">Social Platforms</h3>
+        <div className="flex items-center gap-3">
+          <span className="font-mono text-[10px] text-white/28">03</span>
+          <h3 className="text-xs font-semibold uppercase tracking-[0.16em] text-white/72">Destination</h3>
+        </div>
         <div className="grid grid-cols-4 gap-2">
           {socialPlatforms.map((platform) => {
             const Icon = platform.icon
@@ -137,6 +164,7 @@ export function ExportPanel({ mediaUrl }: { mediaUrl?: string | null }) {
               <button
                 key={platform.id}
                 type="button"
+                aria-pressed={active}
                 onClick={() => setSelectedPlatformId(platform.id)}
                 className={cn(
                   'relative flex min-h-[4.9rem] flex-col items-center justify-center gap-1 rounded-xl border p-2 text-center transition-colors',
@@ -172,13 +200,37 @@ export function ExportPanel({ mediaUrl }: { mediaUrl?: string | null }) {
         ) : null}
       </div>
 
+      <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+        <div className="flex items-center justify-between gap-3 text-xs">
+          <span className="text-white/40">Export profile</span>
+          <span className="text-right font-medium text-white/80">{selectedResolutionLabel} · {exportMode === 'cinematic' ? 'Cinematic' : 'Fast'}</span>
+        </div>
+        <div className="mt-3 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+        <div className="mt-3 flex items-center justify-between gap-3 text-xs">
+          <span className="text-white/40">Format</span>
+          <span className="font-medium text-white/80">MP4 · Device</span>
+        </div>
+      </div>
+
+      <div aria-live="polite" aria-atomic="true" className="min-h-5">
+        {exportMessage ? (
+          <p className={cn('flex items-start gap-2 text-xs leading-5', exportStatus === 'error' ? 'text-amber-200' : exportStatus === 'success' ? 'text-emerald-300' : 'text-white/58')}>
+            {exportStatus === 'error' ? <AlertTriangle className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" /> : null}
+            {exportStatus === 'success' ? <CheckCircle2 className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" /> : null}
+            <span>{exportMessage}</span>
+          </p>
+        ) : null}
+      </div>
+
       <button
         type="button"
-        onClick={() => { if (mediaUrl) void downloadMedia(mediaUrl, 'prometheus-export.mp4') }}
-        className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-prometheus-accent-cyan/25 bg-prometheus-accent-cyan/18 text-sm font-medium text-prometheus-accent-cyan transition-colors hover:bg-prometheus-accent-cyan/28"
+        onClick={() => void handleDownload()}
+        disabled={!mediaUrl || exportStatus === 'loading'}
+        className="group relative flex min-h-14 w-full items-center justify-center gap-2 overflow-hidden rounded-xl border border-prometheus-accent-cyan/30 bg-prometheus-accent-cyan/18 text-sm font-semibold text-prometheus-accent-cyan shadow-[0_12px_32px_rgba(34,211,238,0.08)] transition-all hover:-translate-y-0.5 hover:bg-prometheus-accent-cyan/28 hover:shadow-[0_16px_38px_rgba(34,211,238,0.14)] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0"
       >
+        <span className="pointer-events-none absolute inset-y-0 -left-1/3 w-1/3 -skew-x-12 bg-gradient-to-r from-transparent via-white/15 to-transparent transition-transform duration-700 group-hover:translate-x-[420%] motion-reduce:hidden" aria-hidden="true" />
         {exportStatus === 'loading' ? <InlineLoadingAnimation size={16} label="Preparing export download" /> : <Upload className="size-4" aria-hidden="true" />}
-        {exportStatus === 'loading' ? 'Preparing export...' : 'Download to Device'}
+        {exportStatus === 'loading' ? 'Preparing export…' : mediaUrl ? 'Download to device' : 'Waiting for source'}
       </button>
     </section>
   )
@@ -188,16 +240,19 @@ function ExportModeButton({
   active,
   icon: Icon,
   label,
+  detail,
   onClick,
 }: {
   active: boolean
   icon: LucideIcon
   label: string
+  detail: string
   onClick: () => void
 }) {
   return (
     <button
       type="button"
+      aria-pressed={active}
       onClick={onClick}
       className={cn(
         'rounded-xl border p-4 text-center transition-all',
@@ -206,6 +261,7 @@ function ExportModeButton({
     >
       <Icon className="mx-auto mb-2 size-5" aria-hidden="true" />
       <span className="text-sm font-medium">{label}</span>
+      <span className="mt-1 block text-[10px] uppercase tracking-[0.12em] text-white/36">{detail}</span>
     </button>
   )
 }

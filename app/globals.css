@@ -129,6 +129,23 @@ body {
   margin: 0;
 }
 
+/* Keep the Motion workspace subordinate to the editor viewport. Its timeline is
+   intentionally compact so the source frame remains completely visible. */
+[data-motion-chamber] > section[aria-label='Video timeline'] {
+  height: 9rem;
+}
+
+[data-motion-chamber] > section[aria-label='Video timeline'] > div:first-child {
+  height: 2.5rem;
+  padding-inline: 1rem;
+}
+
+@media (min-width: 640px) {
+  [data-motion-chamber] > section[aria-label='Video timeline'] {
+    height: 10rem;
+  }
+}
+
 /* Shared luxury motion language. Components opt in through the existing glass
    primitives, while this controller gives their highlights a common direction. */
 @layer components {
