@@ -159,6 +159,13 @@ export interface ViralClipAssetDescriptor {
   [key: string]: unknown
 }
 
+export interface ViralClipTranscriptWord {
+  text: string
+  start_ms: number
+  end_ms: number
+  confidence?: number
+}
+
 export interface ViralClipJobRequest {
   projectId: Id
   videoId: Id
@@ -170,7 +177,7 @@ export interface ViralClipJobRequest {
   creatorNiche?: string
   assets?: ViralClipAssetDescriptor[]
   metadataOverrides?: Record<string, unknown>
-  providedTranscript?: string
+  providedTranscript?: ViralClipTranscriptWord[]
 }
 
 export interface ViralClipJobCreationResponse {

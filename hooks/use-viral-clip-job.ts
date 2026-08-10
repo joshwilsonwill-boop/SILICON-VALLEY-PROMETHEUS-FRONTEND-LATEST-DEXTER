@@ -8,6 +8,11 @@ import {
   getViralClipJobResult,
   getViralClipJobStatus,
 } from '@/lib/api/media-jobs'
+import {modalCore} from '@/lib/api/modal-core'
+import {
+  normalizeViralClipSelectedClip,
+  planModalTypographyForViralClips,
+} from '@/lib/editor/modal-viral-clip-workflow'
 import { readLocalStorageJSON, writeLocalStorageJSON } from '@/lib/storage'
 import type {
   BackendHealthSnapshot,
@@ -215,72 +220,9 @@ function pickFirstString(record: Record<string, unknown>, keys: string[]) {
   return null
 }
 
-function pickFirstNumber(record: Record<string, unknown>, keys: string[]) {
-  for (const key of keys) {
-    const value = record[key]
-    if (typeof value === 'number' && Number.isFinite(value)) return value
-  }
-  return null
-}
-
-function normalizeSelectedClip(raw: unknown, index: number): ViralClipSelectedClip {
-  if (typeof raw === 'string') {
-    return {
-      id: `selected-clip-${index}`,
-      title: raw,
-      label: raw,
-    }
-  }
-
-  if (!isRecord(raw)) {
-    return {
-      id: `selected-clip-${index}`,
-      title: `Selected clip ${index + 1}`,
-      label: `Selected clip ${index + 1}`,
-    }
-  }
-
-  const title =
-    pickFirstString(raw, ['title', 'label', 'name', 'headline', 'clipTitle']) ??
-    `Selected clip ${index + 1}`
-  const reason =
-    pickFirstString(raw, ['reason', 'description', 'summary', 'why', 'explanation']) ?? null
-  const startMs =
-    pickFirstNumber(raw, ['startMs', 'start_ms', 'startTimeMs', 'clipStartMs', 'clip_start_ms'])
-  const endMs =
-    pickFirstNumber(raw, ['endMs', 'end_ms', 'endTimeMs', 'clipEndMs', 'clip_end_ms'])
-  const durationSec = pickFirstNumber(raw, ['durationSec', 'duration_sec'])
-  const durationMs = pickFirstNumber(raw, ['durationMs', 'duration_ms'])
-  const score = pickFirstNumber(raw, ['score', 'matchScore', 'fitScore', 'rankingScore'])
-  const confidence = pickFirstNumber(raw, ['confidence', 'fitConfidence', 'profileConfidence'])
-  const previewUrl = pickFirstString(raw, ['previewUrl', 'preview_url', 'url', 'sourceUrl'])
-  const thumbnailUrl = pickFirstString(raw, ['thumbnailUrl', 'thumbnail_url', 'posterUrl', 'coverArtUrl'])
-
-  const tags = Array.isArray(raw.tags)
-    ? raw.tags.filter((tag): tag is string => typeof tag === 'string' && tag.trim().length > 0).map((tag) => tag.trim())
-    : []
-
-  return {
-    ...raw,
-    id: pickFirstString(raw, ['id', 'clipId', 'jobClipId']) ?? `selected-clip-${index}`,
-    title,
-    label: title,
-    reason: reason ?? undefined,
-    startMs: startMs ?? undefined,
-    endMs: endMs ?? undefined,
-    durationSec: durationSec ?? undefined,
-    durationMs: durationMs ?? undefined,
-    score: score ?? undefined,
-    confidence: confidence ?? undefined,
-    previewUrl: previewUrl ?? undefined,
-    thumbnailUrl: thumbnailUrl ?? undefined,
-    tags,
-  }
-}
-
 function normalizeSelectedClips(value: unknown) {
   if (!Array.isArray(value)) return []
-  return value.map((item, index) => normalizeSelectedClip(item, index))
+  return value.map((item, index) => normalizeViralClipSelectedClip(item, index))
 }
 
 function normalizeJobStatus(payload: ViralClipJobStatusResponse) {
@@ -420,7 +362,15 @@ export function useViralClipJob({ projectId, videoId }: UseViralClipJobArgs) {
 
   const fetchAndApplyResult = React.useCallback(
     async (jobId: string) => {
-      const response = await getViralClipJobResult(jobId)
+      const rawResponse = await getViralClipJobResult(jobId)
+      const activeRequest = sessionRef.current.request
+      const response = activeRequest
+        ? await planModalTypographyForViralClips({
+            result: rawResponse,
+            request: activeRequest,
+            previewTextChunks: (payload) => modalCore.previewTextChunks(payload),
+          })
+        : rawResponse
       const selectedClips = normalizeSelectedClips(response.selected_clips)
       const updatedAt = nowIso()
 

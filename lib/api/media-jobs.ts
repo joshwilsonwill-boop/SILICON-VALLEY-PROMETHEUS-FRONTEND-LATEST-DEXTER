@@ -5,6 +5,7 @@ import type {
   ViralClipJobResultResponse,
   ViralClipJobStatusResponse,
 } from '@/lib/types'
+import {normalizeViralClipTargetPlatform} from '@/lib/editor/modal-viral-clip-workflow'
 
 const DEFAULT_BACKEND_API_BASE_URL = 'http://localhost:8000'
 
@@ -104,7 +105,7 @@ async function backendFetch(path: string, init: RequestInit = {}) {
 }
 
 function createMultipartViralClipBody(
-  request: ViralClipJobRequest,
+  request: object,
   options: ViralClipSubmissionOptions,
 ) {
   const formData = new FormData()
@@ -158,19 +159,23 @@ export async function createViralClipJob(
   request: ViralClipJobRequest,
   options: ViralClipSubmissionOptions = {},
 ): Promise<ViralClipJobCreationResponse> {
+  const backendRequest = {
+    ...request,
+    targetPlatform: normalizeViralClipTargetPlatform(request.targetPlatform),
+  }
   const hasFiles = Boolean(options.sourceVideoFile || (options.assetFiles?.length ?? 0) > 0)
   const init: RequestInit = {
     method: 'POST',
   }
 
   if (hasFiles) {
-    init.body = createMultipartViralClipBody(request, options)
+    init.body = createMultipartViralClipBody(backendRequest, options)
   } else {
     init.headers = {
       'Content-Type': 'application/json',
       Accept: 'application/json',
     }
-    init.body = JSON.stringify(request)
+    init.body = JSON.stringify(backendRequest)
   }
 
   const response = await backendFetch('/api/generate-viral-clips', init)

@@ -81,6 +81,7 @@ import { ViralClipTrigger } from '@/components/editor/viral-clip-trigger'
 import { dispatchCompletionEvent } from '@/components/editor/completion-event'
 import { useSourceStage } from '@/hooks/use-source-stage'
 import { useViralClipJob } from '@/hooks/use-viral-clip-job'
+import { buildTimedTranscriptWords } from '@/lib/editor/modal-viral-clip-workflow'
 import { clearPendingEditorNavigation, getRememberedEditorReturnPath } from '@/lib/editor-navigation'
 import { useFrameTargeting } from '@/hooks/use-frame-targeting'
 import { parseFrameReference } from '@/lib/editorial-frame/parse-frame-reference'
@@ -1636,12 +1637,8 @@ function buildViralClipQuickActionPrompt({
 }
 
 function buildProvidedTranscript(job: ProcessingJob | null) {
-  const transcript = job?.artifacts.transcript
-    ?.map((segment) => segment.text.trim())
-    .filter((segment) => segment.length > 0)
-    .join(' ')
-
-  return transcript && transcript.length > 0 ? transcript : null
+  const transcript = buildTimedTranscriptWords(job?.artifacts.transcript ?? [])
+  return transcript.length > 0 ? transcript : null
 }
 
 function buildVideoMusicContext({
@@ -7098,7 +7095,16 @@ function OriginalEditorPage() {
       setViralClipSplitPreviewActive(true)
       setViralClipSplitAnimationKey((current) => current + 1)
 
-      const sourceVideoFile = await getStoredSourceAssetFile(project.sourceAssetId).catch(() => null)
+      const [sourceVideoFile, sourceMediaUrl] = await Promise.all([
+        getStoredSourceAssetFile(project.sourceAssetId).catch(() => null),
+        fetch(`/api/projects/${projectId}/assets`, {cache: 'no-store'})
+          .then(async (response) => {
+            const payload = (await response.json().catch(() => null)) as {source?: {url?: string}; error?: string} | null
+            if (!response.ok) throw new Error(payload?.error || 'Unable to resolve the canonical source URL.')
+            return payload?.source?.url?.trim() || null
+          })
+          .catch(() => null),
+      ])
       const splitPreviewPromise = ensureViralClipSplitPreviewAssets(project.sourceAssetId, sourceVideoFile)
 
       const [viralClipJobResult, splitPreviewResult] = await Promise.allSettled([
@@ -7110,7 +7116,7 @@ function OriginalEditorPage() {
             clipCountMin: viralClipClipPreset.min,
             clipCountMax: viralClipClipPreset.max,
             prompt: viralClipPrompt,
-            sourceMediaRef: project.sourceAssetId,
+            sourceMediaRef: sourceMediaUrl ?? project.sourceAssetId,
             creatorNiche: videoContext.summary || undefined,
             metadataOverrides: {
               projectTitle: project?.title ?? 'Untitled Project',
@@ -7126,7 +7132,7 @@ function OriginalEditorPage() {
             providedTranscript: viralClipProvidedTranscript ?? undefined,
           },
           {
-            sourceVideoFile,
+            sourceVideoFile: sourceMediaUrl ? null : sourceVideoFile,
           },
         ),
         splitPreviewPromise,
@@ -7210,6 +7216,7 @@ function OriginalEditorPage() {
                 ? 24
                 : clipRelayState.clip.progressPercent)
     const nextStatus: ChatClipBlock['status'] = failed ? 'error' : ready ? 'ready' : 'loading'
+    const modalPlannedClipCount = viralClipSelectedClips.filter((clip) => Boolean(clip.modal_text_chunk_plan)).length
     const variants = buildChatClipVariants({
       selectedClips: viralClipSelectedClips,
       clipCount: clipRelayState.clip.clipCount,
@@ -7229,7 +7236,9 @@ function OriginalEditorPage() {
         failed
           ? viralClipErrorMessage || viralClipResultError || 'The clipping backend could not finish this pass.'
           : ready
-            ? 'The strongest clips are staged below with timing, fit score, and rationale.'
+            ? modalPlannedClipCount > 0
+              ? `The strongest clips are staged below; Modal typography is attached to ${modalPlannedClipCount} selected clip${modalPlannedClipCount === 1 ? '' : 's'}.`
+              : 'The strongest clips are staged below with timing, fit score, and rationale.'
             : viralClipStageDetail || viralClipStatusMessage || current.clip.detail
       const nextProgress = Math.max(current.clip.progressPercent, Math.min(100, progressFromLifecycle))
       const sameVariants =
