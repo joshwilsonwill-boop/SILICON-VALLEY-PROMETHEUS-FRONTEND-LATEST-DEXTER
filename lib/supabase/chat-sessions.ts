@@ -1,15 +1,13 @@
 "use client";
 
 import { createClient } from "@/lib/supabase/client";
+import {
+  type ChatSessionRecord,
+  isLocalChatSessionId,
+} from "@/lib/prometheus-assistant/local-chat-history";
+import { getScopedLocalChatHistoryStore } from "@/lib/supabase/chat-local-history";
 
-export type ChatSession = {
-  id: string;
-  user_id: string;
-  project_id: string | null;
-  title: string;
-  created_at: string;
-  updated_at: string;
-};
+export type ChatSession = ChatSessionRecord;
 
 async function getCurrentUserId() {
   const supabase = createClient();
@@ -23,7 +21,7 @@ async function getCurrentUserId() {
   return { supabase, userId: user.id };
 }
 
-export async function getUserChatSessions(limit = 20) {
+async function getRemoteUserChatSessions(limit = 20) {
   const { supabase } = await getCurrentUserId();
   const { data, error } = await supabase
     .from("chat_sessions")
@@ -35,7 +33,7 @@ export async function getUserChatSessions(limit = 20) {
   return (data ?? []) as ChatSession[];
 }
 
-export async function getProjectChatSessions(projectId: string, limit = 20) {
+async function getRemoteProjectChatSessions(projectId: string, limit = 20) {
   const { supabase } = await getCurrentUserId();
   const { data, error } = await supabase
     .from("chat_sessions")
@@ -48,7 +46,7 @@ export async function getProjectChatSessions(projectId: string, limit = 20) {
   return (data ?? []) as ChatSession[];
 }
 
-export async function getChatSession(sessionId: string) {
+async function getRemoteChatSession(sessionId: string) {
   const { supabase } = await getCurrentUserId();
   const { data, error } = await supabase
     .from("chat_sessions")
@@ -60,7 +58,7 @@ export async function getChatSession(sessionId: string) {
   return data as ChatSession | null;
 }
 
-export async function createChatSession(projectId?: string | null, title = "New Chat") {
+async function createRemoteChatSession(projectId?: string | null, title = "New Chat") {
   const { supabase, userId } = await getCurrentUserId();
   const { data, error } = await supabase
     .from("chat_sessions")
@@ -72,7 +70,7 @@ export async function createChatSession(projectId?: string | null, title = "New 
   return data as ChatSession;
 }
 
-export async function updateChatSessionTitle(sessionId: string, title: string) {
+async function updateRemoteChatSessionTitle(sessionId: string, title: string) {
   const { supabase } = await getCurrentUserId();
   const { data, error } = await supabase
     .from("chat_sessions")
@@ -85,8 +83,98 @@ export async function updateChatSessionTitle(sessionId: string, title: string) {
   return data as ChatSession;
 }
 
-export async function deleteChatSession(sessionId: string) {
+async function deleteRemoteChatSession(sessionId: string) {
   const { supabase } = await getCurrentUserId();
   const { error } = await supabase.from("chat_sessions").delete().eq("id", sessionId);
   if (error) throw error;
+}
+
+function mergeSessions(remote: ChatSession[], local: ChatSession[], limit: number) {
+  const sessions = new Map<string, ChatSession>();
+  for (const session of [...remote, ...local]) sessions.set(session.id, session);
+  return [...sessions.values()]
+    .sort((left, right) => right.updated_at.localeCompare(left.updated_at))
+    .slice(0, limit);
+}
+
+function mirrorRemoteSessions(
+  localHistory: Awaited<ReturnType<typeof getScopedLocalChatHistoryStore>>,
+  sessions: ChatSession[],
+) {
+  try {
+    localHistory.upsertSessions(sessions);
+  } catch (error) {
+    console.warn("[chat-sessions] local history mirror unavailable", error);
+  }
+}
+
+export async function getUserChatSessions(limit = 20) {
+  const localHistory = await getScopedLocalChatHistoryStore();
+  const local = localHistory.getSessions();
+  try {
+    const remote = await getRemoteUserChatSessions(limit);
+    mirrorRemoteSessions(localHistory, remote);
+    return mergeSessions(remote, local, limit);
+  } catch (error) {
+    console.warn("[chat-sessions] remote history unavailable; using local history", error);
+    return local.slice(0, limit);
+  }
+}
+
+export async function getProjectChatSessions(projectId: string, limit = 20) {
+  const localHistory = await getScopedLocalChatHistoryStore();
+  const local = localHistory.getProjectSessions(projectId);
+  try {
+    const remote = await getRemoteProjectChatSessions(projectId, limit);
+    mirrorRemoteSessions(localHistory, remote);
+    return mergeSessions(remote, local, limit);
+  } catch (error) {
+    console.warn("[chat-sessions] remote project history unavailable; using local history", error);
+    return local.slice(0, limit);
+  }
+}
+
+export async function getChatSession(sessionId: string) {
+  const localHistory = await getScopedLocalChatHistoryStore();
+  if (isLocalChatSessionId(sessionId)) return localHistory.getSession(sessionId) as ChatSession | null;
+  try {
+    return await getRemoteChatSession(sessionId);
+  } catch (error) {
+    console.warn("[chat-sessions] remote session unavailable; checking local history", error);
+    return localHistory.getSession(sessionId) as ChatSession | null;
+  }
+}
+
+export async function createChatSession(projectId?: string | null, title = "New Chat") {
+  const localHistory = await getScopedLocalChatHistoryStore();
+  try {
+    const session = await createRemoteChatSession(projectId, title);
+    mirrorRemoteSessions(localHistory, [session]);
+    return session;
+  } catch (error) {
+    console.warn("[chat-sessions] remote session creation unavailable; saving locally", error);
+    return localHistory.createSession(projectId, title);
+  }
+}
+
+export async function updateChatSessionTitle(sessionId: string, title: string) {
+  const localHistory = await getScopedLocalChatHistoryStore();
+  if (isLocalChatSessionId(sessionId)) {
+    const session = localHistory.updateSessionTitle(sessionId, title);
+    if (!session) throw new Error("Chat session not found.");
+    return session as ChatSession;
+  }
+  const session = await updateRemoteChatSessionTitle(sessionId, title);
+  mirrorRemoteSessions(localHistory, [session]);
+  return session;
+}
+
+export async function deleteChatSession(sessionId: string) {
+  const localHistory = await getScopedLocalChatHistoryStore();
+  if (isLocalChatSessionId(sessionId)) {
+    localHistory.deleteSession(sessionId);
+    return;
+  }
+  await deleteRemoteChatSession(sessionId);
+  localHistory.deleteSession(sessionId);
 }

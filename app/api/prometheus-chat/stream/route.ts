@@ -26,6 +26,7 @@ import {
   formatKnowledgeContext,
   retrievePrometheusKnowledge,
 } from "@/lib/prometheus-assistant/retrieval";
+import { createLocalPrometheusFallback } from "@/lib/prometheus-assistant/local-chat-fallback";
 import {
   collectActionDrafts,
   executePrometheusTool,
@@ -111,7 +112,20 @@ export async function POST(request: Request) {
         } else {
           const apiKey = cleanText(process.env.GROQ_API_KEY);
           if (!apiKey) {
-            reply = createLocalFallback(message, knowledge);
+            const recommendation = projectContext?.editorialAnalysis?.recommendations[0] ?? null;
+            reply = createLocalPrometheusFallback({
+              intentKind: intent.kind,
+              knowledgeAnswer: knowledge.length
+                ? createExtractivePrometheusAnswer(message, knowledge, 900)
+                : null,
+              projectTitle: projectContext?.title,
+              filename: projectContext?.video?.filename,
+              durationSec: projectContext?.video?.durationMs
+                ? projectContext.video.durationMs / 1000
+                : editorContext?.durationSec,
+              playheadSec: editorContext?.playheadSec,
+              recommendation,
+            });
             send({ type: "delta", content: reply });
           } else {
             const groq = new Groq({ apiKey });
@@ -411,17 +425,6 @@ function buildStreamSystemPrompt({
   ]
     .filter(Boolean)
     .join("\n\n");
-}
-
-function createLocalFallback(
-  message: string,
-  knowledge: ReturnType<typeof retrievePrometheusKnowledge>,
-) {
-  if (knowledge.length) {
-    return createExtractivePrometheusAnswer(message, knowledge, 900);
-  }
-
-  return "Tell me the outcome you want, what feels wrong in the current cut, and where the video will be published. I’ll turn that into a concrete next move.";
 }
 
 function normalizeMaxTokens(value: unknown) {

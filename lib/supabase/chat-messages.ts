@@ -1,29 +1,17 @@
 "use client";
 
 import { createClient } from "@/lib/supabase/client";
+import {
+  type ChatMessageInsert as ChatMessageInsertRecord,
+  type ChatMessageRecord as StoredChatMessageRecord,
+  type ChatMessageRole as StoredChatMessageRole,
+  isLocalChatSessionId,
+} from "@/lib/prometheus-assistant/local-chat-history";
+import { getScopedLocalChatHistoryStore } from "@/lib/supabase/chat-local-history";
 
-export type ChatMessageRole = "user" | "assistant" | "system";
-
-export type ChatMessageRecord = {
-  id: string;
-  client_message_id: string | null;
-  session_id: string;
-  role: ChatMessageRole;
-  content: string;
-  platform: string | null;
-  post_type: string | null;
-  metadata: Record<string, unknown>;
-  created_at: string;
-};
-
-export type ChatMessageInsert = {
-  client_message_id?: string | null;
-  role: ChatMessageRole;
-  content: string;
-  platform?: string | null;
-  post_type?: string | null;
-  metadata?: Record<string, unknown>;
-};
+export type ChatMessageRole = StoredChatMessageRole;
+export type ChatMessageRecord = StoredChatMessageRecord;
+export type ChatMessageInsert = ChatMessageInsertRecord;
 
 const CHAT_MESSAGE_SELECT =
   "id, session_id, role, content, platform, post_type, metadata, client_message_id, created_at";
@@ -78,7 +66,7 @@ export async function fetchChatMessageRows(
   return (fallback.data ?? []).map(mapChatMessageRecord);
 }
 
-export async function getChatMessages(sessionId: string) {
+async function getRemoteChatMessages(sessionId: string) {
   const supabase = createClient();
   return fetchChatMessageRows(async (columns) => {
     const { data, error } = await supabase
@@ -90,7 +78,7 @@ export async function getChatMessages(sessionId: string) {
   });
 }
 
-export async function insertChatMessage(sessionId: string, payload: ChatMessageInsert) {
+async function insertRemoteChatMessage(sessionId: string, payload: ChatMessageInsert) {
   const supabase = createClient();
   const { data, error } = await supabase
     .from("chat_messages")
@@ -106,11 +94,27 @@ export async function insertChatMessage(sessionId: string, payload: ChatMessageI
     .select("id, session_id, role, content, platform, post_type, metadata, client_message_id, created_at")
     .single();
 
+  if (error && isMissingClientMessageIdError(error)) {
+    const { data: legacyData, error: legacyError } = await supabase
+      .from("chat_messages")
+      .insert({
+        session_id: sessionId,
+        role: payload.role,
+        content: payload.content,
+        platform: payload.platform ?? null,
+        post_type: payload.post_type ?? null,
+        metadata: payload.metadata ?? {},
+      })
+      .select(CHAT_MESSAGE_SELECT_WITHOUT_CLIENT_ID)
+      .single();
+    if (legacyError) throw legacyError;
+    return mapChatMessageRecord(legacyData as Record<string, unknown>);
+  }
   if (error) throw error;
   return data as ChatMessageRecord;
 }
 
-export async function insertChatMessages(sessionId: string, payloads: ChatMessageInsert[]) {
+async function insertRemoteChatMessages(sessionId: string, payloads: ChatMessageInsert[]) {
   if (!payloads.length) return [];
 
   const supabase = createClient();
@@ -133,8 +137,84 @@ export async function insertChatMessages(sessionId: string, payloads: ChatMessag
   return (data ?? []) as ChatMessageRecord[];
 }
 
-export async function deleteChatMessages(sessionId: string) {
+async function deleteRemoteChatMessages(sessionId: string) {
   const supabase = createClient();
   const { error } = await supabase.from("chat_messages").delete().eq("session_id", sessionId);
   if (error) throw error;
+}
+
+function mergeMessages(remote: ChatMessageRecord[], local: ChatMessageRecord[]) {
+  const messages = new Map<string, ChatMessageRecord>();
+  for (const message of [...remote, ...local]) {
+    const key = message.client_message_id
+      ? `${message.session_id}:${message.client_message_id}`
+      : message.id;
+    messages.set(key, message);
+  }
+  return [...messages.values()].sort((left, right) => left.created_at.localeCompare(right.created_at));
+}
+
+function mirrorRemoteMessages(
+  localHistory: Awaited<ReturnType<typeof getScopedLocalChatHistoryStore>>,
+  messages: ChatMessageRecord[],
+) {
+  try {
+    localHistory.upsertMessages(messages);
+  } catch (error) {
+    console.warn("[chat-messages] local history mirror unavailable", error);
+  }
+}
+
+export async function getChatMessages(sessionId: string) {
+  const localHistory = await getScopedLocalChatHistoryStore();
+  const local = localHistory.getMessages(sessionId);
+  if (isLocalChatSessionId(sessionId)) return local;
+  try {
+    const remote = await getRemoteChatMessages(sessionId);
+    mirrorRemoteMessages(localHistory, remote);
+    return mergeMessages(remote, local);
+  } catch (error) {
+    console.warn("[chat-messages] remote history unavailable; using local messages", error);
+    return local;
+  }
+}
+
+export async function insertChatMessage(sessionId: string, payload: ChatMessageInsert) {
+  const localHistory = await getScopedLocalChatHistoryStore();
+  if (isLocalChatSessionId(sessionId)) {
+    return localHistory.insertMessage(sessionId, payload) as ChatMessageRecord;
+  }
+  try {
+    const message = await insertRemoteChatMessage(sessionId, payload);
+    mirrorRemoteMessages(localHistory, [message]);
+    return message;
+  } catch (error) {
+    console.warn("[chat-messages] remote save unavailable; saving message locally", error);
+    return localHistory.insertMessage(sessionId, payload) as ChatMessageRecord;
+  }
+}
+
+export async function insertChatMessages(sessionId: string, payloads: ChatMessageInsert[]) {
+  const localHistory = await getScopedLocalChatHistoryStore();
+  if (isLocalChatSessionId(sessionId)) {
+    return localHistory.insertMessages(sessionId, payloads) as ChatMessageRecord[];
+  }
+  try {
+    const messages = await insertRemoteChatMessages(sessionId, payloads);
+    mirrorRemoteMessages(localHistory, messages);
+    return messages;
+  } catch (error) {
+    console.warn("[chat-messages] remote batch save unavailable; saving messages locally", error);
+    return localHistory.insertMessages(sessionId, payloads) as ChatMessageRecord[];
+  }
+}
+
+export async function deleteChatMessages(sessionId: string) {
+  const localHistory = await getScopedLocalChatHistoryStore();
+  if (isLocalChatSessionId(sessionId)) {
+    localHistory.deleteMessages(sessionId);
+    return;
+  }
+  await deleteRemoteChatMessages(sessionId);
+  localHistory.deleteMessages(sessionId);
 }

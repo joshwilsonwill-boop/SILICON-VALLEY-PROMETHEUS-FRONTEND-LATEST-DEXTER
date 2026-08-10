@@ -19,7 +19,7 @@ const SOCIAL_PATTERN =
 const EDITING_PATTERN =
   /\b(?:edit|editing|cut|cuts|timeline|montage|scene|shot|frame|transition|pace|pacing|b-?roll|caption|subtitle|color\s+grade|audio|soundtrack|opening|hook|export|render)\b/i;
 const ACTION_PATTERN =
-  /^(?:please\s+)?(?:add|apply|change|cut|delete|draft|insert|make|move|remove|replace|shorten|split|tighten|trim)\b/i;
+  /^(?:(?:please\s+)?(?:add|apply|change|cut|delete|draft|edit|insert|make|move|remove|replace|shorten|split|tighten|trim)|i\s+(?:want|need|would\s+like)\s+(?:you\s+to\s+|to\s+)?(?:add|apply|change|cut|delete|draft|edit|insert|make|move|remove|replace|shorten|split|tighten|trim))\b/i;
 const CONVERSATIONAL_FOLLOW_UP_PATTERN =
   /^(?:can|could|would)\s+you\s+(?:explain|expand|clarify|rephrase|say)\b/i;
 
@@ -100,7 +100,7 @@ export function getPrometheusIntentInstruction(intent: PrometheusChatIntent) {
   }
 
   if (intent.kind === "editor-action") {
-    return "Interpret the request as a proposed editor change. Draft only non-destructive actions and ask for approval before claiming anything was applied.";
+    return "Interpret the request as an editor change. Use the supplied project and live editor context to propose a concrete first pass; do not ask a broad follow-up when the requested outcome is already clear. Draft only non-destructive actions and ask for approval before claiming anything was applied.";
   }
 
   if (intent.kind === "editing") {

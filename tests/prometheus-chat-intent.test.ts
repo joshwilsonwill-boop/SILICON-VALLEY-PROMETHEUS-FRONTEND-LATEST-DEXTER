@@ -23,6 +23,12 @@ const editorAction = classifyPrometheusChatIntent(
 assert.equal(editorAction.kind, "editor-action");
 assert.equal(editorAction.allowTools, true);
 
+const naturalLanguageEditorAction = classifyPrometheusChatIntent(
+  "I want to edit the video that is there.",
+);
+assert.equal(naturalLanguageEditorAction.kind, "editor-action");
+assert.equal(naturalLanguageEditorAction.allowTools, true);
+
 const socialRequest = classifyPrometheusChatIntent(
   "Write an Instagram caption and hashtags for this video.",
 );
