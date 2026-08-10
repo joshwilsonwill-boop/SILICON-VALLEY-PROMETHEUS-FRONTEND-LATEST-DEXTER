@@ -8,6 +8,10 @@ import { Shield, X } from "lucide-react";
 import { InlineLoadingAnimation } from "@/components/loading-animation";
 import { Button } from "@/components/ui/button";
 import { LiquidChromeButton } from "@/components/ui/liquid-chrome-button";
+import {
+  isExportProviderConnected,
+  normalizeExportConnections,
+} from "@/lib/editor/export-connections";
 import { useEditor } from "./EditorContext";
 import { toast } from "sonner";
 
@@ -36,12 +40,13 @@ export function ExportDrawer() {
     queryFn: async () => {
       const res = await fetch("/api/user/connections");
       if (!res.ok) throw new Error("Failed to fetch connections");
-      return res.json();
+      return normalizeExportConnections(await res.json());
     },
     enabled: showExport,
   });
 
-  const isConnected = (provider: string) => connections?.some((c: any) => c.provider === provider && c.connected);
+  const isConnected = (provider: string) =>
+    isExportProviderConnected(connections ?? [], provider);
 
   const handleExport = async (target: any) => {
     if (!isConnected(target.provider)) { 
