@@ -2,7 +2,6 @@
 
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
 import type { Session } from '@supabase/supabase-js'
 
 export const AuthContext = React.createContext<{
@@ -17,15 +16,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = React.useState<Session | null>(null)
   const [isLoading, setIsLoading] = React.useState(true)
   const router = useRouter()
-  // Keep one browser client for the provider lifetime. Recreating it on every
-  // session update re-subscribed and re-ran session initialization work.
-  const supabase = React.useMemo(() => createClient(), [])
 
   React.useEffect(() => {
     let mounted = true
+    let unsubscribe: (() => void) | undefined
 
     async function initSession() {
       try {
+        const { createClient } = await import('@/lib/supabase/client')
+        if (!mounted) return
+
+        const supabase = createClient()
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, currentSession) => {
+          console.log('[AUTH_AUDIT]', event, currentSession?.user?.id)
+
+          if (mounted) {
+            setSession(currentSession)
+
+            if (event === 'SIGNED_IN') {
+              router.refresh()
+            }
+            if (event === 'SIGNED_OUT') {
+              router.push('/login')
+              router.refresh()
+            }
+          }
+        })
+        unsubscribe = () => subscription.unsubscribe()
+
         const { data: { session: initialSession }, error } = await supabase.auth.getSession()
         
         if (error) {
@@ -49,29 +67,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    initSession()
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, currentSession) => {
-      console.log('[AUTH_AUDIT]', event, currentSession?.user?.id)
-
-      if (mounted) {
-        setSession(currentSession)
-        
-        if (event === 'SIGNED_IN') {
-          router.refresh()
-        }
-        if (event === 'SIGNED_OUT') {
-          router.push('/login')
-          router.refresh()
-        }
-      }
-    })
+    void initSession()
 
     return () => {
       mounted = false
-      subscription.unsubscribe()
+      unsubscribe?.()
     }
-  }, [supabase, router])
+  }, [router])
 
   return (
     <AuthContext.Provider value={{ session, isLoading }}>

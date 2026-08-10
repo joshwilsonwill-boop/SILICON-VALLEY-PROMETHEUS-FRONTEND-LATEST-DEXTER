@@ -1,12 +1,9 @@
 import type { Metadata } from 'next'
 import { Inter, Geist, JetBrains_Mono, Playfair_Display, Space_Grotesk } from 'next/font/google'
 import localFont from 'next/font/local'
-import { CustomCursor } from '@/components/ui/custom-cursor'
 import { RootClientEffects } from '@/components/root-client-effects'
 import { AuthProvider } from '@/components/auth/auth-provider'
-import { ReactQueryProvider } from '@/components/ReactQueryProvider'
 import { RootLayoutFrame } from '@/components/root-layout-frame'
-import { LuxuryMotionController } from '@/components/luxury-motion-controller'
 import { LoadingProvider } from '@/contexts/LoadingContext'
 import { CookieConsentBanner } from '@/components/cookie-consent/banner'
 import { ConsentGatedAnalytics } from '@/components/cookie-consent/consent-gated-analytics'
@@ -138,20 +135,16 @@ export default function RootLayout({
     <html lang="en" className="dark" suppressHydrationWarning>
       <body className={`${inter.variable} ${geist.variable} ${jetbrainsMono.variable} ${playfairDisplay.variable} ${spaceGrotesk.variable} ${vogueDisplay.variable} ${blackDelights.variable} ${migraDisplay.variable} ${elegistDisplay.variable} ${ztOtezItalic.variable} bg-background font-sans text-foreground antialiased`}>
         <CookieConsentProvider>
-          <ReactQueryProvider>
-            <LoadingProvider>
-              <AuthProvider>
-                <LuxuryMotionController />
-                <CustomCursor />
-                <div className="relative z-10">
-                  <RootLayoutFrame>{children}</RootLayoutFrame>
-                </div>
-                <RootClientEffects />
-                <ConsentGatedAnalytics />
-                <CookieConsentBanner />
-              </AuthProvider>
-            </LoadingProvider>
-          </ReactQueryProvider>
+          <LoadingProvider>
+            <AuthProvider>
+              <div className="relative z-10">
+                <RootLayoutFrame>{children}</RootLayoutFrame>
+              </div>
+              <RootClientEffects />
+              <ConsentGatedAnalytics />
+              <CookieConsentBanner />
+            </AuthProvider>
+          </LoadingProvider>
         </CookieConsentProvider>
       </body>
     </html>

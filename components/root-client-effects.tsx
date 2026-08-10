@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { useActivityDetector } from '@/hooks/useActivityDetector'
 import { usePasteDetector } from '@/hooks/usePasteDetector'
 import { useUserPreferencesHydrator } from '@/hooks/use-user-preferences'
+import { useDeferredEnhancementsReady } from '@/hooks/use-deferred-enhancements-ready'
 import { ThemeInjector } from '@/components/theme/theme-injector'
 
 const AppToaster = dynamic(() => import('@/components/ui/app-toaster').then((mod) => mod.AppToaster), {
@@ -16,6 +17,16 @@ const CinematicClickRipple = dynamic(
   {
     ssr: false,
   },
+)
+
+const CustomCursor = dynamic(
+  () => import('@/components/ui/custom-cursor').then((mod) => mod.CustomCursor),
+  { ssr: false },
+)
+
+const LuxuryMotionController = dynamic(
+  () => import('@/components/luxury-motion-controller').then((mod) => mod.LuxuryMotionController),
+  { ssr: false },
 )
 
 // Keep rarely used overlays out of the initial route bundle. Their code is
@@ -37,21 +48,33 @@ const EditorialOnboardingReplay = dynamic(
 
 const AUTH_ROUTE_REGEX = /^\/(?:login|signup|verify|forgot-password|reset-password|terms|privacy|refund|cookie-policy)(?:\/|$)/
 
+function UserPreferencesHydrator() {
+  useUserPreferencesHydrator()
+  return null
+}
+
 export function RootClientEffects() {
   const pathname = usePathname()
   const isAuthRoute = AUTH_ROUTE_REGEX.test(pathname)
   const supportsOnboarding = pathname.startsWith('/studio') || pathname.startsWith('/editor/')
+  const enhancementsReady = useDeferredEnhancementsReady()
   useActivityDetector()
   usePasteDetector()
-  useUserPreferencesHydrator()
 
   return (
     <>
       <ThemeInjector />
-      {isAuthRoute ? null : <CinematicClickRipple />}
-      {isAuthRoute ? null : <GlobalHelpLauncher />}
-      {supportsOnboarding ? <CinematicOnboarding pathname={pathname} /> : null}
-      {pathname.startsWith('/editor/') ? <EditorialOnboardingReplay pathname={pathname} /> : null}
+      {enhancementsReady && (
+        <>
+          <LuxuryMotionController />
+          <CustomCursor />
+          <UserPreferencesHydrator />
+          {isAuthRoute ? null : <CinematicClickRipple />}
+          {isAuthRoute ? null : <GlobalHelpLauncher />}
+          {supportsOnboarding ? <CinematicOnboarding pathname={pathname} /> : null}
+          {pathname.startsWith('/editor/') ? <EditorialOnboardingReplay pathname={pathname} /> : null}
+        </>
+      )}
       <AppToaster />
     </>
   )

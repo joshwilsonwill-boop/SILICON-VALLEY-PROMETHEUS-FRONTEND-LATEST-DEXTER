@@ -1,7 +1,6 @@
 'use client'
 
 import * as React from 'react'
-import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/components/auth/auth-provider'
 
 export type ProfileV2 = {
@@ -54,6 +53,7 @@ export function useProfile() {
       setError(null)
 
       try {
+        const { createClient } = await import('@/lib/supabase/client')
         const supabase = createClient()
 
         const { data, error: queryError } = await supabase
@@ -92,6 +92,7 @@ export function useProfile() {
     setError(null)
 
     try {
+      const { createClient } = await import('@/lib/supabase/client')
       const supabase = createClient()
       const user = session?.user
       if (!user) {

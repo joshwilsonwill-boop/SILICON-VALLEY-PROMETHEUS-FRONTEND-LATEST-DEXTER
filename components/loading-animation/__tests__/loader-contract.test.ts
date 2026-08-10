@@ -55,5 +55,6 @@ test('keeps loading state calls compatible without mounting visual UI', () => {
   assert.match(fetchSource, /finally\s*{/)
   assert.match(fetchSource, /hideLoading\(\)/)
   assert.match(layoutSource, /import \{ LoadingProvider \}/)
-  assert.match(layoutSource, /<ReactQueryProvider>[\s\S]*<LoadingProvider>[\s\S]*<AuthProvider>/)
+  assert.match(layoutSource, /<LoadingProvider>[\s\S]*<AuthProvider>/)
+  assert.doesNotMatch(layoutSource, /ReactQueryProvider/)
 })

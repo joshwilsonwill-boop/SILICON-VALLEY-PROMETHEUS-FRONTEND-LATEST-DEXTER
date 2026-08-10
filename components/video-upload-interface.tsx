@@ -70,7 +70,6 @@ import { setSessionSourcePreview } from "@/lib/source-preview-session";
 import { persistSourceAsset } from "@/lib/source-asset-store";
 import type { SourceProfile } from "@/lib/types";
 import { toast } from "sonner";
-import { createClient } from "@/lib/supabase/client";
 import { normalizeUxError } from "@/lib/ux/errors";
 import {
     R2_MULTIPART_CLIENT_MAX_BYTES,
@@ -1808,6 +1807,7 @@ export function VideoUploadInterface() {
             }
 
             currentStage = 'AUTH_CHECK';
+            const { createClient } = await import("@/lib/supabase/client");
             const supabase = createClient();
             const { data: { session }, error: sessionError } = await supabase.auth.getSession();
             if (sessionError) {

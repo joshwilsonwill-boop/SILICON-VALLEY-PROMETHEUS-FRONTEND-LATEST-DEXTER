@@ -267,7 +267,7 @@ export function MusicPlayer({
 
       <audio ref={audioRef} src={audioSrc} loop={isRepeat} preload="metadata" />
 
-      <div className="music-player-visual relative mb-4 flex min-h-0 flex-1 items-center justify-center">
+      <div className="music-player-visual relative mb-4 flex min-h-0 w-full flex-1 items-center justify-center [container-type:size]">
         <motion.div
           key={albumArt}
           initial={reduceMotion ? false : { opacity: 0, scale: 0.96, filter: 'blur(8px)' }}
@@ -276,7 +276,7 @@ export function MusicPlayer({
           transition={{ duration: reduceMotion ? 0 : 0.28, ease: chamberEase }}
           style={reduceMotion ? undefined : { rotate: rotation }}
           data-testid="rotating-album-art"
-          className="music-player-art relative z-10 aspect-square h-auto w-[clamp(11rem,38vh,18rem)] max-h-full max-w-full shrink-0 overflow-hidden rounded-full border border-white/18 bg-[#171212] shadow-[0_24px_54px_-24px_rgba(0,0,0,0.98),0_0_0_1px_rgba(255,255,255,0.05)]"
+          className="music-player-art relative z-10 aspect-square size-[min(100cqw,100cqh,18rem)] shrink-0 overflow-hidden rounded-full border border-white/18 bg-[#171212] shadow-[0_24px_54px_-24px_rgba(0,0,0,0.98),0_0_0_1px_rgba(255,255,255,0.05)]"
         >
           {albumArtFailed ? (
             <div className="grid h-full w-full place-items-center bg-[radial-gradient(circle_at_35%_28%,#8f2834_0%,#35141a_42%,#090909_100%)] text-white/72">

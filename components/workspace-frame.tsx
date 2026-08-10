@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic'
 import { usePathname } from 'next/navigation'
 
 import { DashboardSidebar } from '@/components/dashboard-sidebar'
+import { useDeferredEnhancementsReady } from '@/hooks/use-deferred-enhancements-ready'
 
 const IsoLevelWarp = dynamic(() => import('@/components/ui/isometric-wave-grid-background'), {
   ssr: false,
@@ -24,6 +25,7 @@ function isWorkspaceRoute(pathname: string) {
 
 export function WorkspaceFrame({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
+  const enhancementsReady = useDeferredEnhancementsReady()
   const shouldRenderWorkspaceShell = isWorkspaceRoute(pathname)
   const shouldRenderSidebar = shouldRenderWorkspaceShell && !EDITOR_DETAIL_ROUTE_REGEX.test(pathname)
 
@@ -34,7 +36,7 @@ export function WorkspaceFrame({ children }: { children: React.ReactNode }) {
   return (
     <div className="prometheus-workspace-shell relative h-[100dvh] w-full overflow-hidden font-sans">
       <div className="absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_50%_-20%,rgba(255,255,255,0.065)_0%,rgba(255,255,255,0.018)_34%,rgba(0,0,0,0)_64%),linear-gradient(180deg,#0b0b0c_0%,#050506_46%,#000_100%)]" />
-      <IsoLevelWarp color="148, 148, 156" density={34} speed={0.08} />
+      {enhancementsReady && <IsoLevelWarp color="148, 148, 156" density={34} speed={0.08} />}
 
       <div className="pointer-events-none absolute inset-0 z-[1] bg-[radial-gradient(ellipse_at_50%_-20%,rgba(255,255,255,0.055)_0%,rgba(255,255,255,0.012)_42%,rgba(0,0,0,0)_70%),linear-gradient(180deg,rgba(7,7,8,0.42)_0%,rgba(0,0,0,0.72)_100%)]" />
 
