@@ -17,8 +17,13 @@ function run() {
   assert.match(musicPlayer, /src=\{resolvedAlbumArt\}/)
   assert.match(musicPlayer, /setResolvedAlbumArt\(FALLBACK_ALBUM_ART\)/)
   assert.match(musicPlayer, /style=\{reduceMotion \? undefined : \{ rotate: rotation \}\}/)
+  assert.match(musicPlayer, /aspect-square/)
+  assert.match(musicPlayer, /repeating-radial-gradient/)
+  assert.match(musicPlayer, /FALLBACK_ALBUM_ART/)
 
   const musicPanel = read('components/editor/music-tab-panel.tsx')
+  assert.match(musicPanel, /const FALLBACK_COVER_ART = FALLBACK_ALBUM_ART/)
+  assert.match(read('lib/music-art.ts'), /red-statue-1\.jpg/)
   assert.match(musicPanel, /const handleTrackActivate = React\.useCallback/)
   assert.match(musicPanel, /setPlayingTrackId\(track\.id\)/)
   assert.match(musicPanel, /onFocus=\{\(\) => handleTrackActivate\(track\)\}/)

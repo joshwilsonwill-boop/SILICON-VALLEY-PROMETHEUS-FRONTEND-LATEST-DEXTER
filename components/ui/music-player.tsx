@@ -4,10 +4,9 @@ import * as React from 'react'
 import { AnimatePresence, motion, useAnimationFrame, useMotionValue } from 'framer-motion'
 import { Music, Pause, Play, Repeat, Shuffle, SkipBack, SkipForward } from 'lucide-react'
 import { chamberEase } from '@/lib/chamber-motion'
+import { FALLBACK_ALBUM_ART } from '@/lib/music-art'
 import { cn } from '@/lib/utils'
 import { useStableReducedMotion } from '@/hooks/use-stable-reduced-motion'
-
-const FALLBACK_ALBUM_ART = '/style-previews/dark-cinematic-1.jpg'
 
 const formatTime = (timeInSeconds: number): string => {
   if (Number.isNaN(timeInSeconds)) return '00:00'
@@ -277,17 +276,19 @@ export function MusicPlayer({
           transition={{ duration: reduceMotion ? 0 : 0.28, ease: chamberEase }}
           style={reduceMotion ? undefined : { rotate: rotation }}
           data-testid="rotating-album-art"
-          className="music-player-art relative z-10 h-[min(100%,clamp(11rem,38vh,18rem))] w-[min(100%,clamp(11rem,38vh,18rem))] overflow-hidden rounded-full border border-white/8 shadow-[0_20px_42px_-30px_rgba(0,0,0,0.98)]"
+          className="music-player-art relative z-10 aspect-square h-auto w-[clamp(11rem,38vh,18rem)] max-h-full max-w-full shrink-0 overflow-hidden rounded-full border border-white/18 bg-[#171212] shadow-[0_24px_54px_-24px_rgba(0,0,0,0.98),0_0_0_1px_rgba(255,255,255,0.05)]"
         >
           {albumArtFailed ? (
-            <div className="grid h-full w-full place-items-center bg-white/[0.04] text-white/24">
-              <Music className="size-12" strokeWidth={1.5} />
+            <div className="grid h-full w-full place-items-center bg-[radial-gradient(circle_at_35%_28%,#8f2834_0%,#35141a_42%,#090909_100%)] text-white/72">
+              <div className="grid size-20 place-items-center rounded-full border border-white/15 bg-black/35 shadow-[0_0_0_10px_rgba(0,0,0,0.18)]">
+                <Music className="size-10" strokeWidth={1.35} />
+              </div>
             </div>
           ) : (
             <img
               src={resolvedAlbumArt}
               alt={`${songTitle} album art`}
-              className="absolute inset-0 z-0 h-full w-full object-cover"
+              className="absolute inset-0 z-0 h-full w-full object-cover opacity-100"
               loading="eager"
               onError={() => {
                 if (resolvedAlbumArt !== FALLBACK_ALBUM_ART) {
@@ -299,9 +300,11 @@ export function MusicPlayer({
               style={{ objectPosition: albumArtPosition }}
             />
           )}
-          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.04)_0%,rgba(255,255,255,0)_20%,rgba(0,0,0,0.4)_100%)]" />
-          <div className="absolute inset-[1px] rounded-full border border-white/10" />
-          <div className="absolute left-1/2 top-1/2 h-8 w-8 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/10 bg-black shadow-[0_0_0_8px_rgba(0,0,0,0.92)]" />
+          <div className="pointer-events-none absolute inset-0 rounded-full bg-[repeating-radial-gradient(circle_at_center,rgba(255,255,255,0.035)_0,rgba(255,255,255,0.035)_1px,transparent_2px,transparent_5px),linear-gradient(135deg,rgba(255,255,255,0.16)_0%,transparent_24%,transparent_66%,rgba(255,255,255,0.08)_100%)] mix-blend-screen" />
+          <div className="pointer-events-none absolute inset-[1px] rounded-full border border-white/16" />
+          <div className="pointer-events-none absolute left-1/2 top-1/2 size-9 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/18 bg-black/90 shadow-[0_0_0_7px_rgba(0,0,0,0.64),0_0_0_8px_rgba(255,255,255,0.12)]">
+            <div className="absolute left-1/2 top-1/2 size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/25 bg-[#080808]" />
+          </div>
         </motion.div>
       </div>
 

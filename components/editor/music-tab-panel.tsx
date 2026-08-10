@@ -13,6 +13,7 @@ import { CinematicLogoLoader } from '@/components/loading-animation/cinematic-lo
 import { MusicPlayer } from '@/components/ui/music-player'
 import { Button } from '@/components/ui/button'
 import { chamberEase, chamberSpring } from '@/lib/chamber-motion'
+import { FALLBACK_ALBUM_ART } from '@/lib/music-art'
 import type { MusicRecommendation } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { useStableReducedMotion } from '@/hooks/use-stable-reduced-motion'
@@ -454,7 +455,7 @@ type MusicMatchResponse = {
   source?: 'groq' | 'heuristic'
 }
 
-const FALLBACK_COVER_ART = '/style-previews/dark-cinematic-1.jpg'
+const FALLBACK_COVER_ART = FALLBACK_ALBUM_ART
 const CATALOG_PAGE_SIZE = 200
 const INITIAL_VISIBLE_TRACKS = 50
 const VISIBLE_TRACK_INCREMENT = 50
