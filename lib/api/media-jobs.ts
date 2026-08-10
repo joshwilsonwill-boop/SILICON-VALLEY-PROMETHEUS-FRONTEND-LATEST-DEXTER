@@ -38,6 +38,15 @@ export function getBackendApiBaseUrl() {
 
 function buildBackendUrl(path: string) {
   const baseUrl = getBackendApiBaseUrl()
+  if (typeof window !== 'undefined') {
+    const backendHostname = new URL(baseUrl).hostname
+    const pageHostname = window.location.hostname
+    const backendIsLoopback = backendHostname === 'localhost' || backendHostname === '127.0.0.1'
+    const pageIsLoopback = pageHostname === 'localhost' || pageHostname === '127.0.0.1'
+    if (backendIsLoopback && !pageIsLoopback) {
+      throw new Error('Primary clip selection is not publicly configured; switching to the Modal resilience path.')
+    }
+  }
   const normalizedPath = path.startsWith('/') ? path : `/${path}`
   return `${baseUrl}${normalizedPath}`
 }

@@ -42,6 +42,12 @@ type PlanModalTypographyArgs = {
   previewTextChunks: (payload: ModalTextChunkRequest) => Promise<unknown>
 }
 
+type LocalHighlight = {
+  id: string
+  atMs: number
+  label: string
+}
+
 const MAX_MODAL_SHORT_DURATION_MS = 180_000
 const MAX_MODAL_TRANSCRIPT_WORDS = 1_000
 const MODAL_PLANNING_CONCURRENCY = 2
@@ -149,6 +155,69 @@ export function normalizeViralClipSelectedClip(raw: unknown, index: number): Vir
     previewUrl: pickString(raw, ['previewUrl', 'preview_url', 'url', 'sourceUrl']) ?? undefined,
     thumbnailUrl: pickString(raw, ['thumbnailUrl', 'thumbnail_url', 'posterUrl', 'coverArtUrl']) ?? undefined,
     tags,
+  }
+}
+
+function readFallbackHighlights(request: ViralClipJobRequest): LocalHighlight[] {
+  const rawHighlights = request.metadataOverrides?.highlights
+  if (!Array.isArray(rawHighlights)) return []
+
+  return rawHighlights.flatMap((value, index) => {
+    if (!isRecord(value)) return []
+    const atMs = pickNumber(value, ['atMs', 'at_ms'])
+    if (atMs === null || atMs < 0) return []
+    return [{
+      id: pickString(value, ['id']) ?? `highlight-${index + 1}`,
+      atMs: Math.round(atMs),
+      label: pickString(value, ['label', 'title']) ?? `Local highlight ${index + 1}`,
+    }]
+  }).sort((left, right) => left.atMs - right.atMs)
+}
+
+export function buildFallbackViralClipResult(request: ViralClipJobRequest): ViralClipJobResultResponse {
+  const transcriptDurationMs = request.providedTranscript?.reduce(
+    (maximum, word) => Math.max(maximum, Math.round(word.end_ms)),
+    0,
+  ) ?? 0
+  const configuredDurationMs = request.metadataOverrides?.sourceDurationMs
+  const sourceDurationMs = Math.max(
+    transcriptDurationMs,
+    typeof configuredDurationMs === 'number' && Number.isFinite(configuredDurationMs)
+      ? Math.round(configuredDurationMs)
+      : 0,
+  )
+  if (sourceDurationMs <= 0) {
+    return {fallback: true, selected_clips: []}
+  }
+
+  const requestedCount = Math.max(1, Math.min(request.clipCountMax, 8))
+  const highlights = readFallbackHighlights(request)
+  const candidates = highlights.length > 0
+    ? highlights.slice(0, requestedCount)
+    : Array.from({length: requestedCount}, (_, index) => ({
+        id: `window-${index + 1}`,
+        atMs: Math.round(((index + 0.5) * sourceDurationMs) / requestedCount),
+        label: `Candidate window ${index + 1}`,
+      }))
+  const windowDurationMs = Math.min(sourceDurationMs, 45_000)
+
+  return {
+    fallback: true,
+    fallback_reason: 'primary_clip_selection_unavailable',
+    selected_clips: candidates.map((candidate, index) => {
+      const startMs = Math.max(0, Math.min(sourceDurationMs - windowDurationMs, candidate.atMs - 2_000))
+      const endMs = Math.min(sourceDurationMs, startMs + windowDurationMs)
+      return {
+        clip_id: `resilience-${candidate.id}`,
+        rank: index + 1,
+        export_start_ms: startMs,
+        export_end_ms: endMs,
+        export_duration_ms: endMs - startMs,
+        suggested_title: candidate.label,
+        reason_selected: 'Resilience candidate from a locally detected highlight; primary clip selection was unavailable.',
+        fallback: true,
+      }
+    }),
   }
 }
 

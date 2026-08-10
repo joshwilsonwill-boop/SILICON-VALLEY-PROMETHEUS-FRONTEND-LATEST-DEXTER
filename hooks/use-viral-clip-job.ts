@@ -10,6 +10,7 @@ import {
 } from '@/lib/api/media-jobs'
 import {modalCore} from '@/lib/api/modal-core'
 import {
+  buildFallbackViralClipResult,
   normalizeViralClipSelectedClip,
   planModalTypographyForViralClips,
 } from '@/lib/editor/modal-viral-clip-workflow'
@@ -581,6 +582,56 @@ export function useViralClipJob({ projectId, videoId }: UseViralClipJobArgs) {
       } catch (error) {
         const message =
           error instanceof Error ? error.message : 'Unable to create the viral clip job right now.'
+
+        if ((nextRequest.providedTranscript?.length ?? 0) > 0) {
+          try {
+            const fallbackResponse = await planModalTypographyForViralClips({
+              result: buildFallbackViralClipResult(nextRequest),
+              request: nextRequest,
+              previewTextChunks: (payload) => modalCore.previewTextChunks(payload),
+            })
+            const selectedClips = normalizeSelectedClips(fallbackResponse.selected_clips)
+            if (!selectedClips.some((clip) => Boolean(clip.modal_text_chunk_plan))) {
+              throw new Error('Modal did not return a usable typography plan for the resilience candidates.')
+            }
+
+            const completedAt = nowIso()
+            const fallbackSession: ViralClipJobSessionState = {
+              ...optimisticSession,
+              lifecycle: 'completed',
+              jobId: `modal-resilience-${Date.now()}`,
+              backendStage: 'completed',
+              backendStatus: 'completed_with_resilience_fallback',
+              progressPercent: 100,
+              warnings: [`Primary viral selection unavailable: ${message}`, 'Used local highlight timing and Modal typography planning.'],
+              statusMessage: 'Modal typography completed on deterministic resilience candidates.',
+              errorMessage: null,
+              resultError: null,
+              result: fallbackResponse,
+              selectedClips,
+              completedAt,
+              lastUpdatedAt: completedAt,
+            }
+            setSession(fallbackSession)
+            sessionRef.current = fallbackSession
+            persistSession(fallbackSession)
+            return fallbackSession.jobId!
+          } catch (fallbackError) {
+            const fallbackMessage = fallbackError instanceof Error ? fallbackError.message : 'Modal resilience planning failed.'
+            const combinedMessage = `${message} ${fallbackMessage}`.trim()
+            const failedSession: ViralClipJobSessionState = {
+              ...optimisticSession,
+              lifecycle: 'failed',
+              errorMessage: combinedMessage,
+              lastUpdatedAt: nowIso(),
+            }
+            setSession(failedSession)
+            sessionRef.current = failedSession
+            persistSession(failedSession)
+            throw new Error(combinedMessage)
+          }
+        }
+
         const failedSession: ViralClipJobSessionState = {
           ...optimisticSession,
           lifecycle: 'failed',

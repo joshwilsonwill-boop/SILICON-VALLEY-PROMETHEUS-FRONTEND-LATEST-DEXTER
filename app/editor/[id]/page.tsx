@@ -7128,6 +7128,8 @@ function OriginalEditorPage() {
               targetPlatform: viralClipTargetPlatform,
               clipCountMin: viralClipClipPreset.min,
               clipCountMax: viralClipClipPreset.max,
+              sourceDurationMs: Math.round(transportDurationSec * 1_000),
+              highlights: job?.artifacts.highlights ?? [],
             },
             providedTranscript: viralClipProvidedTranscript ?? undefined,
           },
@@ -7177,6 +7179,7 @@ function OriginalEditorPage() {
     }
   }, [
     fitMode,
+    job?.artifacts.highlights,
     project,
     projectId,
     previewFramePreset,

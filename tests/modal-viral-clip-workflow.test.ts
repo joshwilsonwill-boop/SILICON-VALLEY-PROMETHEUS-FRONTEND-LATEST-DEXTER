@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 
 import {
+  buildFallbackViralClipResult,
   buildModalTextChunkRequest,
   buildTimedTranscriptWords,
   normalizeViralClipSelectedClip,
@@ -121,6 +122,31 @@ async function main() {
   assert.ok(submittedRequest)
   assert.equal(submittedRequest.url, 'https://pipeline.example.test/api/generate-viral-clips')
   assert.equal(JSON.parse(String(submittedRequest.init?.body)).targetPlatform, 'reels')
+
+  const fallback = buildFallbackViralClipResult({
+    projectId: 'project-1',
+    videoId: 'video-1',
+    targetPlatform: 'tiktok',
+    clipCountMin: 1,
+    clipCountMax: 2,
+    providedTranscript: words,
+    metadataOverrides: {
+      sourceDurationMs: 3_200,
+      highlights: [{id: 'highlight-1', atMs: 2_000, label: 'The payoff'}],
+    },
+  })
+  assert.equal(fallback.fallback, true)
+  assert.equal(fallback.selected_clips?.length, 1)
+  assert.deepEqual(fallback.selected_clips?.[0], {
+    clip_id: 'resilience-highlight-1',
+    rank: 1,
+    export_start_ms: 0,
+    export_end_ms: 3_200,
+    export_duration_ms: 3_200,
+    suggested_title: 'The payoff',
+    reason_selected: 'Resilience candidate from a locally detected highlight; primary clip selection was unavailable.',
+    fallback: true,
+  })
 }
 
 void main()
