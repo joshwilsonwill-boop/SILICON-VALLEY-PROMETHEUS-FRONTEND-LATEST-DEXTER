@@ -46,6 +46,9 @@ export interface ProjectManager {
    */
   getJob(projectId: string): ProcessingJob | null
 
+  /** Persists authoritative backend analysis for editor consumers. */
+  upsertJob(job: ProcessingJob): void
+
   /**
    * Wipes all project data (used for local dev/testing).
    */

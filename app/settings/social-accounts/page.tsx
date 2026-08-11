@@ -5,9 +5,8 @@ import { useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
 
 import { InlineLoadingAnimation } from '@/components/loading-animation'
-import { PageHeader } from '@/components/page-header'
-import { PrometheusShell } from '@/components/prometheus-shell'
-import { ConnectedAccountsPanel } from '@/components/settings/connected-accounts-panel'
+import { ConnectedAccountsExperience } from '@/components/settings/connected-accounts-experience'
+import { SettingsDetailShell } from '@/components/settings/settings-detail-shell'
 import { getProviderMetadata } from '@/lib/oauth/provider-metadata'
 
 function SocialAccountsContent() {
@@ -51,35 +50,26 @@ function SocialAccountsContent() {
     window.location.href = `/api/oauth/${provider}/initiate`
   }, [])
 
-  return <ConnectedAccountsPanel onConnect={handleConnect} />
+  return <ConnectedAccountsExperience onConnect={handleConnect} />
 }
 
 export default function SocialAccountsPage() {
   return (
-    <PrometheusShell
-      header={
-        <PageHeader
-          title="Connected Accounts"
-          description="OAuth connection status for publishing platforms."
-          showBackButton
-          backHref="/settings"
-        />
-      }
+    <SettingsDetailShell
+      eyebrow="Publishing"
+      title="Connected accounts"
+      description="Manage the channels Prometheus can publish to on your behalf."
+      contentClassName="max-w-[1120px]"
     >
-      <div className="min-h-full bg-[#050505] px-6 py-8 text-white md:px-12">
-        <div className="mx-auto max-w-5xl">
-
-        <React.Suspense
-          fallback={
-            <div className="flex justify-center p-10">
-              <InlineLoadingAnimation size={120} label="Loading connected accounts" />
-            </div>
-          }
-        >
-          <SocialAccountsContent />
-        </React.Suspense>
-      </div>
-      </div>
-    </PrometheusShell>
+      <React.Suspense
+        fallback={
+          <div className="flex min-h-80 justify-center p-10">
+            <InlineLoadingAnimation size={120} label="Loading connected accounts" />
+          </div>
+        }
+      >
+        <SocialAccountsContent />
+      </React.Suspense>
+    </SettingsDetailShell>
   )
 }

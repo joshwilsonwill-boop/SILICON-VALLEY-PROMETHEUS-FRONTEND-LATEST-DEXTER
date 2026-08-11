@@ -1,13 +1,12 @@
 'use client'
 
 import * as React from 'react'
-import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Check, KeyRound, Phone, Smartphone } from 'lucide-react'
+import { Check, KeyRound, Phone, Smartphone } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { InlineLoadingAnimation } from '@/components/loading-animation'
-import { PrometheusShell } from '@/components/prometheus-shell'
+import { SettingsDetailShell } from '@/components/settings/settings-detail-shell'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
@@ -99,21 +98,13 @@ export default function MfaSettingsPage() {
   }
 
   return (
-    <PrometheusShell>
-      <div className="min-h-full bg-[linear-gradient(180deg,rgba(19,20,26,0.9)_0%,rgba(9,10,13,0.94)_100%)] px-6 py-10 text-white">
-        <div className="mx-auto max-w-3xl">
-          <header className="mb-8">
-            <Button asChild variant="ghost" size="sm" className="-ml-2 mb-4 text-white/62">
-              <Link href="/settings/profile">
-                <ArrowLeft className="size-4" />
-                Back
-              </Link>
-            </Button>
-            <h1 className="text-3xl font-bold tracking-tight text-white">Multi-Factor Authentication</h1>
-            <p className="mt-2 text-sm text-white/50">Choose one primary method for account verification.</p>
-          </header>
-
-          <div className="space-y-4">
+    <SettingsDetailShell
+      eyebrow="Account · Security"
+      title="Multi-factor authentication"
+      description="Choose one primary verification method for sensitive account actions."
+      contentClassName="mx-auto max-w-3xl"
+    >
+      <div className="space-y-4">
             {MFA_OPTIONS.map((option) => (
               <MfaOptionCard
                 key={option.id}
@@ -137,10 +128,8 @@ export default function MfaSettingsPage() {
                 onRemove={() => void removeMethod(option.id)}
               />
             ))}
-          </div>
-        </div>
       </div>
-    </PrometheusShell>
+    </SettingsDetailShell>
   )
 }
 
@@ -175,18 +164,18 @@ function MfaOptionCard({
     <motion.section
       whileHover={{ y: -4 }}
       transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
-      className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-5 shadow-[0_34px_90px_-58px_rgba(0,0,0,0.95)] backdrop-blur-xl"
+      className="border border-white/[0.09] bg-white/[0.018] p-5 shadow-none"
     >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex min-w-0 items-start gap-4">
-          <div className="flex size-11 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.05] text-white/60">
+          <div className="flex size-11 shrink-0 items-center justify-center border border-white/10 bg-white/[0.05] text-white/60">
             <Icon className="size-5" />
           </div>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="text-base font-semibold text-white">{option.title}</h2>
               {active ? (
-                <span className="inline-flex items-center gap-1 rounded-full border border-[#6366f1]/36 bg-[#6366f1]/14 px-2 py-0.5 text-[10px] font-medium text-[#c7d2fe]">
+                <span className="inline-flex items-center gap-1 border border-[#6366f1]/36 bg-[#6366f1]/14 px-2 py-0.5 text-[10px] font-medium text-[#c7d2fe]">
                   <Check className="size-3" />
                   Primary
                 </span>
@@ -216,9 +205,9 @@ function MfaOptionCard({
       </div>
 
       {setupOpen && option.id === 'authenticator' ? (
-        <div className="mt-5 rounded-[18px] border border-white/10 bg-white/[0.03] p-4">
+        <div className="mt-5 border border-white/10 bg-white/[0.03] p-4">
           <div className="grid gap-4 sm:grid-cols-[11rem_minmax(0,1fr)] sm:items-center">
-            <div className="flex size-40 items-center justify-center rounded-[22px] border border-white/10 bg-black/30">
+            <div className="flex size-40 items-center justify-center border border-white/10 bg-black/30">
               <div className="grid grid-cols-5 gap-1">
                 {Array.from({ length: 25 }).map((_, index) => (
                   <span key={index} className={cn('size-4 rounded-[4px]', index % 3 === 0 ? 'bg-white/80' : 'bg-white/12')} />
@@ -247,7 +236,7 @@ function MfaOptionCard({
       ) : null}
 
       {setupOpen && option.id === 'sms' ? (
-        <div className="mt-5 rounded-[18px] border border-white/10 bg-white/[0.03] p-4">
+        <div className="mt-5 border border-white/10 bg-white/[0.03] p-4">
           <label className="text-sm text-white/50" htmlFor="mfa-phone">
             Phone number
           </label>

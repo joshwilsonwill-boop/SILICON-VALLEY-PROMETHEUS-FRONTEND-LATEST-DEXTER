@@ -740,7 +740,7 @@ export interface ProcessingJob {
   artifacts: ProcessingArtifacts
   transcriptStatus?: TranscriptStatus
   transcriptText?: string
-  transcriptProvider?: 'mock' | 'assemblyai'
+  transcriptProvider?: 'mock' | 'assemblyai' | 'maul'
   transcriptJobId?: string
   editBrief?: CompiledEditBrief
   previewProgressSteps?: string[]

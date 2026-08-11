@@ -1,4 +1,4 @@
-type ModalBackendEnvironment = Partial<
+export type ModalBackendEnvironment = Partial<
   Record<'PROMETHEUS_BACKEND_URL' | 'MODAL_PROXY_KEY' | 'MODAL_PROXY_SECRET', string | undefined>
 >
 
@@ -56,6 +56,13 @@ export function isAllowedModalBackendRequest(method: string, pathSegments: strin
   if (normalizedMethod === 'GET' && path === 'health') return true
   if (normalizedMethod === 'POST' && path === 'api/maul/text-chunks/preview') return true
   if (normalizedMethod === 'POST' && path === 'api/render/jobs') return true
+  if (normalizedMethod === 'POST' && path === 'api/source-analysis/jobs') return true
+  if (
+    normalizedMethod === 'GET' &&
+    /^api\/source-analysis\/jobs\/[A-Za-z0-9._~-]+\/calls\/[A-Za-z0-9._~-]+$/.test(path)
+  ) {
+    return true
+  }
   if (
     normalizedMethod === 'GET' &&
     /^api\/render\/jobs\/[A-Za-z0-9._~-]+\/calls\/[A-Za-z0-9._~-]+$/.test(path)

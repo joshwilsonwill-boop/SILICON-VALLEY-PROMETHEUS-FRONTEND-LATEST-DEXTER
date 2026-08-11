@@ -39,6 +39,18 @@ async function run() {
     true,
   )
   assert.equal(proxy.isAllowedModalBackendRequest!('POST', ['api', 'render', 'jobs']), true)
+  assert.equal(proxy.isAllowedModalBackendRequest!('POST', ['api', 'source-analysis', 'jobs']), true)
+  assert.equal(
+    proxy.isAllowedModalBackendRequest!('GET', [
+      'api',
+      'source-analysis',
+      'jobs',
+      '123e4567-e89b-12d3-a456-426614174100',
+      'calls',
+      'fc-source-123',
+    ]),
+    true,
+  )
   assert.equal(
     proxy.isAllowedModalBackendRequest!('GET', [
       'api',

@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
-  ArrowLeft,
   Check,
   Copy,
   Database,
@@ -30,7 +29,7 @@ import { z } from 'zod'
 import { useAuth } from '@/components/auth/auth-provider'
 import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { AvatarCropModal } from '@/components/settings/avatar-crop-modal'
-import { PrometheusShell } from '@/components/prometheus-shell'
+import { SettingsDetailShell } from '@/components/settings/settings-detail-shell'
 import { Button } from '@/components/ui/button'
 import { GlassCard } from '@/components/ui/glass-card'
 import {
@@ -726,27 +725,14 @@ export default function ProfileSettingsPage() {
   const avatarImage = avatarPreview || watchedValues.avatarUrl || ''
 
   return (
-    <PrometheusShell>
-      <div className="min-h-full bg-[linear-gradient(180deg,rgba(19,20,26,0.9)_0%,rgba(9,10,13,0.94)_100%)] px-6 py-10 text-white">
-        <div className="mx-auto max-w-3xl">
-          <header className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="-ml-2 mb-4 text-white/62"
-                onClick={() => router.push('/settings')}
-              >
-                <ArrowLeft className="size-4" />
-                Back
-              </Button>
-              <h1 className="text-3xl font-bold tracking-tight text-white">Profile Settings</h1>
-              <p className="mt-2 text-sm text-white/50">Manage your account, security, and workspace preferences</p>
-            </div>
-            <StatusPill saving={savingPreference !== null} accent={currentAccent.hex} />
-          </header>
-
-          <div className="space-y-5">
+    <SettingsDetailShell
+      eyebrow="Account"
+      title="Profile & preferences"
+      description="Manage your identity, workspace appearance, notifications, and security."
+      contentClassName="mx-auto max-w-3xl"
+      action={<StatusPill saving={savingPreference !== null} accent={currentAccent.hex} />}
+    >
+      <div className="space-y-5">
             <ProfileCard>
               <SectionTitle title="Account Info" />
               <div className="flex flex-col gap-6 sm:flex-row">
@@ -1130,8 +1116,6 @@ export default function ProfileSettingsPage() {
               onDeactivateClick={() => setDeactivateOpen(true)}
               onReveal={() => setDangerRevealed(true)}
             />
-          </div>
-        </div>
       </div>
 
       <DeactivateModal
@@ -1146,7 +1130,7 @@ export default function ProfileSettingsPage() {
         onClose={clearSelectedAvatarSource}
         onCropComplete={handleAvatarCropComplete}
       />
-    </PrometheusShell>
+    </SettingsDetailShell>
   )
 }
 
@@ -1157,9 +1141,10 @@ function ProfileCard({ children, className }: { children: React.ReactNode; class
       // Keep the cards visible on first paint; motion should enhance, not gate content.
       initial={false}
       className={cn(
-        'p-5',
+        'rounded-none border-white/[0.09] bg-white/[0.018] p-5 shadow-none backdrop-blur-none',
         className,
       )}
+      hoverable={false}
       staggerChildren
     >
       {children}

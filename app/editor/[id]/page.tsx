@@ -119,6 +119,10 @@ import { cn } from '@/lib/utils'
 import { SELECTED_EDITOR_MUSIC_EVENT, type SelectedEditorMusicEventDetail } from '@/lib/editor-music-selection'
 import { upsertProject } from '@/lib/mock'
 import { projects } from '@/lib/projects'
+import {
+  buildProcessingJobFromSourceAnalysis,
+  type SourceAnalysisResponse,
+} from '@/lib/source-analysis'
 import { analyzeMusicIntent } from '@/lib/music-intent'
 import { queuePreviewRevisionRequest } from '@/lib/editorial-frame/mock-preview-api'
 import { getSessionSourcePreview, setSessionSourcePreview } from '@/lib/source-preview-session'
@@ -6522,7 +6526,6 @@ function OriginalEditorPage() {
     const syncState = () => {
       if (!active) return
 
-      // getJob already internally updates the project status if needed
       const nextJob = projects.getJob(projectId)
       const nextProject = projects.get(projectId)
 
@@ -6544,6 +6547,49 @@ function OriginalEditorPage() {
       }
     }
   }, [projectId])
+
+  React.useEffect(() => {
+    if (!project?.sourceAssetId) return
+    let active = true
+    let intervalId: number | null = null
+    let dispatched = false
+
+    const syncSourceAnalysis = async () => {
+      try {
+        const response = await fetch(`/api/projects/${projectId}/source-analysis`, {cache: 'no-store'})
+        if (!response.ok) return
+        const analysis = await response.json() as SourceAnalysisResponse
+        if (!active) return
+
+        const existing = projects.getJob(projectId)
+        const nextJob = buildProcessingJobFromSourceAnalysis({
+          projectId,
+          response: analysis,
+          input: existing?.input ?? {prompt: '', sources: []},
+        })
+        projects.upsertJob(nextJob)
+        setJob(nextJob)
+
+        if (analysis.status === 'queued' && !dispatched) {
+          dispatched = true
+          void fetch(`/api/projects/${projectId}/source-analysis`, {method: 'POST'})
+        }
+        if (['completed', 'failed', 'superseded', 'cancelled'].includes(analysis.status) && intervalId !== null) {
+          window.clearInterval(intervalId)
+          intervalId = null
+        }
+      } catch (error) {
+        console.warn('[editor] source analysis sync failed', error)
+      }
+    }
+
+    void syncSourceAnalysis()
+    intervalId = window.setInterval(() => void syncSourceAnalysis(), 2_500)
+    return () => {
+      active = false
+      if (intervalId !== null) window.clearInterval(intervalId)
+    }
+  }, [project?.sourceAssetId, projectId])
 
   React.useEffect(() => {
     let active = true

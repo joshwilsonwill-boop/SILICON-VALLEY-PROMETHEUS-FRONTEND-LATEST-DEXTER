@@ -19,6 +19,14 @@ export type ModalRenderStatus = {
   error?: string
 }
 
+export type ModalSourceAnalysisSubmission = {
+  jobId: string
+  sourceAssetId: string
+  callId: string
+  status: 'queued'
+  statusUrl: string
+}
+
 async function responseJson<T>(response: Response): Promise<T> {
   const body = (await response.json()) as T & {error?: string}
   if (!response.ok) {
@@ -78,6 +86,16 @@ export function createModalCoreClient(fetchImpl: FetchLike = fetch) {
       return {
         ...status,
         ...(proxiedOutputUrl(status) ? {outputUrl: proxiedOutputUrl(status)} : {}),
+      }
+    },
+    dispatchSourceAnalysis: async (request: {jobId: string; sourceAssetId: string}) => {
+      const submission = await jsonRequest<ModalSourceAnalysisSubmission>('/api/source-analysis/jobs', {
+        method: 'POST',
+        body: JSON.stringify(request),
+      })
+      return {
+        ...submission,
+        statusUrl: `${proxyRoot}/api/source-analysis/jobs/${identifier(submission.jobId, 'job ID')}/calls/${identifier(submission.callId, 'call ID')}`,
       }
     },
     getMediaUrl,

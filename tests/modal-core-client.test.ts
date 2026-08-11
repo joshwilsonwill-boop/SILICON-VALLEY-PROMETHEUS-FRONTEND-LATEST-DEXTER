@@ -13,6 +13,18 @@ async function main() {
         {status: 202},
       )
     }
+    if (url.endsWith('/api/source-analysis/jobs')) {
+      return Response.json(
+        {
+          jobId: '123e4567-e89b-12d3-a456-426614174100',
+          sourceAssetId: '123e4567-e89b-12d3-a456-426614174100',
+          callId: 'fc-source-1',
+          status: 'queued',
+          statusUrl: '/upstream',
+        },
+        {status: 202},
+      )
+    }
     if (url.includes('/calls/')) {
       return Response.json({
         jobId: 'job-1',
@@ -36,6 +48,15 @@ async function main() {
 
   const status = await client.getRenderStatus('job-1', 'call-1')
   assert.equal(status.outputUrl, '/api/modal-backend/media/final.mp4')
+
+  const sourceSubmission = await client.dispatchSourceAnalysis({
+    jobId: '123e4567-e89b-12d3-a456-426614174100',
+    sourceAssetId: '123e4567-e89b-12d3-a456-426614174100',
+  })
+  assert.equal(
+    sourceSubmission.statusUrl,
+    '/api/modal-backend/api/source-analysis/jobs/123e4567-e89b-12d3-a456-426614174100/calls/fc-source-1',
+  )
   assert.equal(client.getMediaUrl('another_final.mp4'), '/api/modal-backend/media/another_final.mp4')
   assert.throws(() => client.getMediaUrl('../secret'), /Invalid media filename/)
 

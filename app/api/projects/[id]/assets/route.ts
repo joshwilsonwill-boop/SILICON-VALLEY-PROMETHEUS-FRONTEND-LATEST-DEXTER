@@ -1,11 +1,11 @@
 import { DeleteObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3'
 import { NextResponse } from 'next/server'
 
-import { startAssemblyAITranscription } from '@/lib/api/assemblyai'
 import { sourceControlPlaneErrorResponse } from '@/lib/api/source-control-plane-errors'
 import { ProjectService } from '@/lib/projects/service'
 import { getPresignedGetUrl } from '@/lib/r2/presigned-url'
 import { r2Client } from '@/lib/r2/client'
+import { dispatchModalSourceAnalysis } from '@/lib/server/modal-source-analysis'
 import { createClient } from '@/lib/supabase/server'
 
 export async function GET(
@@ -90,33 +90,32 @@ export async function POST(
       return sourceControlPlaneErrorResponse(commitError, 'SOURCE_COMMIT_FAILED', 'Failed to commit source revision.')
     }
 
-    const asset = committed?.asset
-    if (asset && (String(asset.mime_type).startsWith('video/') || String(asset.mime_type).startsWith('audio/'))) {
-      const { data: claim, error: claimError } = await supabase.from('source_assets').update({
-        transcript_status: 'transcribing', transcript_error: null, transcript_started_at: new Date().toISOString(),
-      }).eq('id', asset.id).eq('transcript_status', 'idle').is('transcript_job_id', null).select('id').maybeSingle()
-      if (claimError) throw claimError
-      if (claim) {
-        try {
-          if (!process.env.ASSEMBLYAI_API_KEY) {
-            await supabase.from('source_assets').update({ transcript_status: 'skipped' }).eq('id', asset.id)
-          } else {
-            const sourceUrl = await getPresignedGetUrl(asset.storage_bucket, asset.storage_path)
-            const transcript = await startAssemblyAITranscription({ audio_url: sourceUrl })
-            await supabase.from('source_assets').update({
-              transcript_status: 'queued', transcript_job_id: transcript.id, transcript_provider: 'assemblyai',
-            }).eq('id', asset.id).eq('transcript_status', 'transcribing')
-          }
-        } catch (error) {
-          console.error('[api/projects/[id]/assets] transcription start failed:', error)
-          await supabase.from('source_assets').update({
-            transcript_status: 'failed', transcript_error: error instanceof Error ? error.message : 'Unknown error',
-          }).eq('id', asset.id).eq('transcript_status', 'transcribing')
-        }
+    let analysisDispatch: {callId: string; status: string} | null = null
+    if (
+      committed?.job?.id
+      && committed?.asset?.id
+      && String(committed.asset.mime_type).startsWith('video/')
+    ) {
+      try {
+        analysisDispatch = await dispatchModalSourceAnalysis({
+          request: {
+            jobId: committed.job.id,
+            sourceAssetId: committed.asset.id,
+          },
+          env: {
+            PROMETHEUS_BACKEND_URL: process.env.PROMETHEUS_BACKEND_URL,
+            MODAL_PROXY_KEY: process.env.MODAL_PROXY_KEY,
+            MODAL_PROXY_SECRET: process.env.MODAL_PROXY_SECRET,
+          },
+        })
+      } catch (error) {
+        // Commit is already durable. Keep the job pending so a safe retry can
+        // dispatch it without retranscribing or recommitting the source.
+        console.error('[api/projects/[id]/assets] source analysis dispatch failed:', error)
       }
     }
 
-    return NextResponse.json(committed)
+    return NextResponse.json({...committed, analysisDispatch})
   } catch (err) {
     console.error('[api/projects/[id]/assets] POST error:', err)
     return NextResponse.json({

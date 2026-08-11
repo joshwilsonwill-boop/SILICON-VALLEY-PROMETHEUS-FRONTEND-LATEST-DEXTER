@@ -604,8 +604,41 @@ export function BillingDashboard() {
 
 function BillingDashboardLoading() {
   return (
-    <div className="mx-auto flex min-h-[520px] max-w-7xl items-center justify-center px-4 py-8 md:px-8 md:py-12">
-      <InlineLoadingAnimation size={120} label="Loading billing dashboard" />
+    <div className="mx-auto max-w-7xl space-y-5 px-4 py-6 md:px-8 md:py-8" role="status" aria-label="Loading billing dashboard">
+      <div className="flex items-center gap-3 border border-white/[0.09] bg-white/[0.018] px-4 py-4 text-sm text-white/54">
+        <InlineLoadingAnimation size={18} label="Loading billing dashboard" />
+        <div>
+          <p className="font-medium text-white/82">Loading billing workspace</p>
+          <p className="mt-1 text-xs text-white/38">Checking plan access, usage, and payment details.</p>
+        </div>
+      </div>
+
+      <div className="border border-white/[0.09] bg-white/[0.018] p-4 sm:p-5">
+        <div className="h-4 w-36 bg-white/[0.07] motion-safe:animate-pulse" />
+        <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <div key={index} className="min-h-28 border border-white/[0.07] bg-black/15 p-4">
+              <div className="h-2.5 w-16 bg-white/[0.06] motion-safe:animate-pulse" />
+              <div className="mt-4 h-7 w-24 bg-white/[0.08] motion-safe:animate-pulse" />
+              <div className="mt-3 h-2.5 w-20 bg-white/[0.045] motion-safe:animate-pulse" />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="grid gap-5 lg:grid-cols-[1.4fr_1fr]">
+        <div className="min-h-48 border border-white/[0.08] bg-white/[0.012] p-5">
+          <div className="h-4 w-32 bg-white/[0.07] motion-safe:animate-pulse" />
+          <div className="mt-6 h-24 border border-white/[0.06] bg-white/[0.018] motion-safe:animate-pulse" />
+        </div>
+        <div className="min-h-48 border border-white/[0.08] bg-white/[0.012] p-5">
+          <div className="h-4 w-28 bg-white/[0.07] motion-safe:animate-pulse" />
+          <div className="mt-6 grid grid-cols-2 gap-3">
+            <div className="h-11 bg-white/[0.045] motion-safe:animate-pulse" />
+            <div className="h-11 bg-white/[0.045] motion-safe:animate-pulse" />
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
