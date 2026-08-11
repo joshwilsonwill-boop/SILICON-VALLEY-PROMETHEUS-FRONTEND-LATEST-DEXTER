@@ -6,7 +6,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
-import { ChevronsLeft, ChevronsRight } from 'lucide-react'
+import { ChevronsLeft, ChevronsRight, LayoutDashboard } from 'lucide-react'
 
 import { rememberCurrentPathForEditorReturn } from '@/lib/editor-navigation'
 import { getMostRecentProject, PROJECTS_UPDATED_EVENT } from '@/lib/mock'
@@ -47,7 +47,10 @@ interface NavItemProps extends Omit<React.ComponentPropsWithoutRef<typeof Link>,
   collapsed: boolean
 }
 
-const BASE_MENU_ITEMS: MenuItem[] = prometheusNavItems
+const BASE_MENU_ITEMS: MenuItem[] = [
+  { key: 'studio', label: 'Studio', href: '/studio', icon: LayoutDashboard },
+  ...prometheusNavItems,
+]
 
 const ACTIVE_CUTOUT_COLOR = '#0f0b17'
 const SIDEBAR_EXPANDED_WIDTH = 260
