@@ -1,5 +1,6 @@
 export type PrometheusChatStreamEvent =
   | { type: "status"; message: string }
+  | { type: "thought"; content: string }
   | { type: "delta"; content: string }
   | {
       type: "tool";
@@ -56,6 +57,9 @@ function parsePrometheusChatStreamLine(
     const value = JSON.parse(normalized) as Record<string, unknown>;
     if (value.type === "status" && typeof value.message === "string") {
       return [{ type: "status", message: value.message }];
+    }
+    if (value.type === "thought" && typeof value.content === "string") {
+      return [{ type: "thought", content: value.content }];
     }
     if (value.type === "delta" && typeof value.content === "string") {
       return [{ type: "delta", content: value.content }];

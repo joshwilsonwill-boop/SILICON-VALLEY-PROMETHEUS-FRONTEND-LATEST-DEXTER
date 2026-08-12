@@ -65,6 +65,7 @@ export type AIChatMessage = {
   content: string;
   createdAt: string;
   isComplete?: boolean;
+  thoughts?: string[];
   platform?: AIChatPlatform;
   postType?: AIChatPostType;
   frames?: AIChatFrameReference[];
@@ -402,6 +403,17 @@ export function useAIChat({
                 },
               ].slice(-7);
             });
+            return;
+          }
+          if (event.type === "thought") {
+            setStreamStatus(event.content);
+            setMessages((current) =>
+              current.map((entry) => {
+                if (entry.id !== assistantMessage.id) return entry;
+                const thoughts = [...(entry.thoughts || []), event.content];
+                return { ...entry, thoughts };
+              }),
+            );
             return;
           }
           if (event.type === "tool") {

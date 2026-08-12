@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Copy, Pencil } from "lucide-react";
+import { Brain, Check, ChevronDown, Copy, Pencil } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useEffect, useRef, useState } from "react";
@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 export function ChatMessageBubble({
   content,
   isStreaming = false,
+  thoughts = [],
   onCopy,
   onEdit,
   onStreamingProgress,
@@ -18,6 +19,7 @@ export function ChatMessageBubble({
 }: {
   content: string;
   isStreaming?: boolean;
+  thoughts?: string[];
   onCopy: () => void;
   onEdit?: (content: string) => void;
   onStreamingProgress?: (content: string) => void;
@@ -25,6 +27,7 @@ export function ChatMessageBubble({
   role: "user" | "assistant";
 }) {
   const [isEditing, setIsEditing] = useState(false);
+  const [showThoughts, setShowThoughts] = useState(false);
   const [editValue, setEditValue] = useState(content);
   const streamingCompleteRef = useRef(false);
 
@@ -58,21 +61,45 @@ export function ChatMessageBubble({
         {role === "user" && onEdit ? <button type="button" onClick={() => isEditing ? saveEdit() : setIsEditing(true)} className="grid size-6 place-items-center rounded-md text-white/45 hover:bg-white/[0.08] hover:text-white" aria-label={isEditing ? "Save edit" : "Edit message"}>{isEditing ? <Check className="size-3.5" /> : <Pencil className="size-3.5" />}</button> : null}
       </div>
       {role === "assistant" ? (
-        <ReactMarkdown
-          remarkPlugins={[remarkGfm]}
-          components={{
-            h1: ({ children }) => <h1 className="my-3 text-xl font-bold first:mt-0">{children}</h1>,
-            h2: ({ children }) => <h2 className="my-3 text-lg font-semibold first:mt-0">{children}</h2>,
-            h3: ({ children }) => <h3 className="my-2 text-base font-semibold first:mt-0">{children}</h3>,
-            p: ({ children }) => <p className="my-2 first:mt-0 last:mb-0">{children}</p>,
-            ul: ({ children }) => <ul className="my-2 list-disc space-y-1 pl-5">{children}</ul>,
-            ol: ({ children }) => <ol className="my-2 list-decimal space-y-1 pl-5">{children}</ol>,
-            code: ({ children, className }) => className ? <code className="block overflow-x-auto rounded-lg bg-black/30 p-3 text-xs">{children}</code> : <code className="rounded bg-white/10 px-1 py-0.5 text-xs">{children}</code>,
-            blockquote: ({ children }) => <blockquote className="my-2 border-l-2 border-white/30 pl-3 text-white/65">{children}</blockquote>,
-          }}
-        >
-          {renderedContent}
-        </ReactMarkdown>
+        <>
+          {thoughts && thoughts.length > 0 ? (
+            <div className="mb-2">
+              <button
+                type="button"
+                onClick={() => setShowThoughts((prev) => !prev)}
+                className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[11px] font-medium text-white/60 transition-all hover:border-amber-500/30 hover:text-amber-300"
+              >
+                <Brain className="size-3 text-amber-400/80" />
+                <span>{thoughts.length} thinking {thoughts.length === 1 ? "step" : "steps"}</span>
+                <ChevronDown className={cn("size-3 transition-transform duration-200", showThoughts && "rotate-180")} />
+              </button>
+              {showThoughts ? (
+                <div className="mt-2 space-y-1.5 border-l border-amber-500/20 py-1 pl-3 font-mono text-xs text-white/50">
+                  {thoughts.map((thought, idx) => (
+                    <div key={`thought-${idx}-${thought.slice(0, 10)}`} className="leading-snug">
+                      • {thought}
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            components={{
+              h1: ({ children }) => <h1 className="my-3 text-xl font-bold first:mt-0">{children}</h1>,
+              h2: ({ children }) => <h2 className="my-3 text-lg font-semibold first:mt-0">{children}</h2>,
+              h3: ({ children }) => <h3 className="my-2 text-base font-semibold first:mt-0">{children}</h3>,
+              p: ({ children }) => <p className="my-2 first:mt-0 last:mb-0">{children}</p>,
+              ul: ({ children }) => <ul className="my-2 list-disc space-y-1 pl-5">{children}</ul>,
+              ol: ({ children }) => <ol className="my-2 list-decimal space-y-1 pl-5">{children}</ol>,
+              code: ({ children, className }) => className ? <code className="block overflow-x-auto rounded-lg bg-black/30 p-3 text-xs">{children}</code> : <code className="rounded bg-white/10 px-1 py-0.5 text-xs">{children}</code>,
+              blockquote: ({ children }) => <blockquote className="my-2 border-l-2 border-white/30 pl-3 text-white/65">{children}</blockquote>,
+            }}
+          >
+            {renderedContent}
+          </ReactMarkdown>
+        </>
       ) : isEditing ? (
         <textarea value={editValue} onChange={(event) => setEditValue(event.target.value)} onKeyDown={(event) => { if (event.key === "Escape") setIsEditing(false); if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); saveEdit(); } }} autoFocus className="min-h-16 w-full resize-none bg-transparent pr-8 text-sm outline-none" />
       ) : <p className="whitespace-pre-wrap">{content}</p>}

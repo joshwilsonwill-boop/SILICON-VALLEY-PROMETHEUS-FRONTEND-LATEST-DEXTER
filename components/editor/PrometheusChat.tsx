@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import { AnimatePresence } from 'framer-motion'
-import { ArrowDown, ArrowUp, X } from 'lucide-react'
+import { ArrowDown, ArrowUp, Brain, ChevronDown, X } from 'lucide-react'
 
 import { useAuth } from '@/components/auth/auth-provider'
 import { useAIChat, type AIChatContextProvider, type AIChatFrameReference, type CarouselItem } from '@/hooks/use-ai-chat'
@@ -28,6 +28,7 @@ export type PrometheusChatMessage = {
   content: string
   isComplete?: boolean
   status?: 'ready' | 'thinking'
+  thoughts?: string[]
   pills?: Array<{
     id: string
     label: string
@@ -486,9 +487,35 @@ function PrometheusMessageBubble({
   const showDraftPanel = !isUser && messageComplete && drafts.length > 0 && !actionOutcome
   const frames = isUser ? [] : (message.frames ?? []).filter((frame) => frame.thumbnailUrl)
 
+  const thoughts = message.thoughts ?? []
+  const [showThoughts, setShowThoughts] = React.useState(false)
+
   return (
     <article className={cn('flex w-full', isUser ? 'justify-end' : 'justify-start')}>
       <div className={cn('flex max-w-[82%] flex-col gap-3 md:max-w-[74%]', isUser ? 'items-end' : 'items-start')}>
+        {!isUser && thoughts.length > 0 ? (
+          <div className="flex flex-col items-start gap-1.5">
+            <button
+              type="button"
+              onClick={() => setShowThoughts((prev) => !prev)}
+              className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[11px] font-medium text-white/60 transition-all hover:border-amber-500/30 hover:text-amber-300"
+            >
+              <Brain className="size-3 text-amber-400/80" />
+              <span>{thoughts.length} thinking {thoughts.length === 1 ? 'step' : 'steps'}</span>
+              <ChevronDown className={cn('size-3 transition-transform duration-200', showThoughts && 'rotate-180')} />
+            </button>
+            {showThoughts ? (
+              <div className="space-y-1.5 border-l border-amber-500/20 py-1 pl-3 font-mono text-xs text-white/50">
+                {thoughts.map((thought, idx) => (
+                  <div key={`thought-${idx}-${thought.slice(0, 10)}`} className="leading-snug">
+                    • {thought}
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
         <div
           className={cn(
             'whitespace-pre-wrap text-[15px] leading-7',

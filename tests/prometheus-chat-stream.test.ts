@@ -56,8 +56,30 @@ const truncatedResponse = new Response(
   { status: 200 },
 );
 
+const thoughtResponse = new Response(
+  new ReadableStream({
+    start(controller) {
+      controller.enqueue(
+        new TextEncoder().encode('{"type":"thought","content":"Analyzing color balance..."}\n{"type":"done","persisted":true}\n'),
+      );
+      controller.close();
+    },
+  }),
+  { status: 200 },
+);
+
+const receivedEvents: unknown[] = [];
+consumePrometheusChatStream(thoughtResponse, (event) => receivedEvents.push(event)).then(() => {
+  assert.deepEqual(receivedEvents, [
+    { type: "thought", content: "Analyzing color balance..." },
+    { type: "done", persisted: true },
+  ]);
+  console.log("Passed: consumePrometheusChatStream thought events test");
+});
+
 consumePrometheusChatStream(truncatedResponse, () => undefined).then(
   () => assert.fail("A truncated stream must not complete successfully."),
   (error: unknown) =>
     assert.match(error instanceof Error ? error.message : String(error), /interrupted/i),
 );
+
