@@ -5,7 +5,7 @@ import {
 
 export async function consumePrometheusChatStream(
   response: Response,
-  onEvent: (event: PrometheusChatStreamEvent) => void,
+  onEvent: (event: PrometheusChatStreamEvent) => void | Promise<void>,
 ) {
   if (!response.ok) {
     const payload = (await response.json().catch(() => null)) as {
@@ -26,11 +26,11 @@ export async function consumePrometheusChatStream(
   const eventDecoder = new PrometheusChatStreamDecoder();
   let terminalEventReceived = false;
 
-  const dispatch = (event: PrometheusChatStreamEvent) => {
+  const dispatch = async (event: PrometheusChatStreamEvent) => {
     if (event.type === "done" || event.type === "error") {
       terminalEventReceived = true;
     }
-    onEvent(event);
+    await onEvent(event);
   };
 
   while (true) {
@@ -39,15 +39,15 @@ export async function consumePrometheusChatStream(
     for (const event of eventDecoder.push(
       textDecoder.decode(value, { stream: true }),
     )) {
-      dispatch(event);
+      await dispatch(event);
     }
   }
 
   for (const event of eventDecoder.push(textDecoder.decode())) {
-    dispatch(event);
+    await dispatch(event);
   }
   for (const event of eventDecoder.flush()) {
-    dispatch(event);
+    await dispatch(event);
   }
 
   if (!terminalEventReceived) {
