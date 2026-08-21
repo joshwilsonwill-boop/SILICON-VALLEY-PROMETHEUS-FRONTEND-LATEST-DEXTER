@@ -49,7 +49,6 @@ import { GooeyText } from "@/components/ui/gooey-text-morphing";
 import { InlineLoadingAnimation } from "@/components/loading-animation";
 import { InteractiveOrb } from "@/components/ui/interactive-orb";
 import { PersonalStylizationShowcase, type PersonalStylizationItem } from "@/components/ui/personal-stylization-showcase";
-import { ChatStyleSelector } from "@/components/editor/chat-style-selector";
 import { STYLE_TEMPLATES } from "@/lib/styles/style-templates";
 import {
     detectSourceFileKind,
@@ -531,7 +530,6 @@ interface PromptComposerSubmitPayload {
 }
 
 interface PromptComposerProps {
-    activeStyleId: string | null;
     activeStyleName: string | null;
     attachments: string[];
     editActions: EditAction[];
@@ -543,7 +541,6 @@ interface PromptComposerProps {
     onOpenTemplates: () => void;
     onOpenUpload: () => void;
     onRemoveAttachment: (index: number) => void;
-    onSelectStyle: (styleId: string) => void;
     onSubmit: (payload: PromptComposerSubmitPayload) => boolean | Promise<boolean>;
     uploadStatus: UploadStatus;
     uploadProgress: number;
@@ -681,7 +678,6 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
 Textarea.displayName = "Textarea"
 
 const PromptComposer = React.memo(function PromptComposer({
-    activeStyleId,
     activeStyleName,
     attachments,
     editActions,
@@ -693,7 +689,6 @@ const PromptComposer = React.memo(function PromptComposer({
     onOpenTemplates,
     onOpenUpload,
     onRemoveAttachment,
-    onSelectStyle,
     onSubmit,
     uploadStatus,
     uploadProgress,
@@ -1292,12 +1287,6 @@ const PromptComposer = React.memo(function PromptComposer({
                                 layoutId="button-highlight"
                             />
                         </motion.button>
-                        <ChatStyleSelector
-                            activeStyleId={activeStyleId}
-                            compact
-                            onSelectStyle={(template) => onSelectStyle(template.id)}
-                            className="shrink-0"
-                        />
                         <motion.button
                             type="button"
                             data-command-button
@@ -2272,7 +2261,7 @@ export function VideoUploadInterface() {
                         >
                             <span>Ready to Create Something</span>
                             <GooeyText
-                                texts={["Novel", "Fresh", "Grand", "Vivid", "Magic"]}
+                                texts={["Novel", "Fresh", "Grand", "Vivid", "Crisp"]}
                                 morphTime={0.95}
                                 cooldownTime={0.65}
                                 className="h-[0.95em] w-[5.5ch] shrink-0"
@@ -2292,7 +2281,6 @@ export function VideoUploadInterface() {
                     </motion.div>
 
                     <PromptComposer
-                        activeStyleId={activeStyleId}
                         activeStyleName={activeStyle?.name ?? null}
                         attachments={attachments}
                         editActions={selectedEditActions}
@@ -2303,10 +2291,6 @@ export function VideoUploadInterface() {
                         onOpenTemplates={() => setTemplatesOpen(true)}
                         onOpenUpload={openUploadComposer}
                         onRemoveAttachment={removeAttachment}
-                        onSelectStyle={(styleId) => {
-                            setActiveStyleId(styleId);
-                            persistActiveStyleId(styleId);
-                        }}
                         onSubmit={handleComposerSubmit}
                         uploadStatus={uploadStatus}
                         uploadProgress={uploadProgress}

@@ -4,7 +4,7 @@ export type PrometheusNavItem = { key: string; label: string; href: string; icon
 
 export const prometheusNavItems: PrometheusNavItem[] = [
   { key: 'projects', label: 'Projects', href: '/projects', icon: FolderKanban },
-  { key: 'library', label: 'Library', href: '/assets', icon: LibraryBig },
+  { key: 'library', label: 'Brand', href: '/assets', icon: LibraryBig },
   { key: 'editor', label: 'Editor', href: '/editor', icon: Wand2 },
   { key: 'analytics', label: 'Analytics', href: '/analytics', icon: BarChart3 },
   { key: 'settings', label: 'Settings', href: '/settings', icon: Settings },

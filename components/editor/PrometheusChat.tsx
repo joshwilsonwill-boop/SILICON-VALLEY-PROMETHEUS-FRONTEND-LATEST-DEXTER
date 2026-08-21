@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import { AnimatePresence } from 'framer-motion'
-import { ArrowDown, ArrowUp, Brain, ChevronDown, X } from 'lucide-react'
+import { ArrowDown, ArrowUp, Brain, ChevronDown, LoaderCircle, Mic, Square, X } from 'lucide-react'
 
 import { useAuth } from '@/components/auth/auth-provider'
 import { useAIChat, type AIChatContextProvider, type AIChatFrameReference, type CarouselItem } from '@/hooks/use-ai-chat'
@@ -11,6 +11,7 @@ import { useProfile } from '@/hooks/use-profile'
 import { PROPOSE_NOT_APPLIED_MESSAGE, type EditorActionDraft } from '@/lib/editor-actions'
 import { getChatGreeting } from '@/lib/user/display-name'
 import { cn } from '@/lib/utils'
+import { useVoiceInput } from '@/hooks/use-voice-input'
 
 import { AIChatHistoryButton } from './ai-chat-history-button'
 import { ChatCarousel } from './chat-carousel'
@@ -170,6 +171,14 @@ export function PrometheusChat({
     },
     [onDraftChange, persistentChat, usesPersistentChat],
   )
+
+  const voice = useVoiceInput({
+    onTranscript: (text) => {
+      const prefix = composedDraft.trim() ? `${composedDraft.trim()} ` : ''
+      setDraft(`${prefix}${text}`)
+      inputRef.current?.focus()
+    },
+  })
 
   // Stream-provided suggestions from the latest assistant turn override the
   // deterministic workspace-tab chips; older turns never leak forward.
@@ -442,10 +451,35 @@ export function PrometheusChat({
               ref={inputRef}
               value={composedDraft}
               onChange={(event) => setDraft(event.target.value)}
-              placeholder="Ask Prometheus..."
+              placeholder={voice.state === 'recording' ? 'Listening…' : 'Ask Prometheus…'}
               aria-label="Message Prometheus"
               className="min-w-0 flex-1 border-none bg-transparent text-[15px] leading-6 text-white/88 outline-none placeholder:text-white/30"
             />
+            <button
+              type="button"
+              onClick={() => {
+                if (voice.state === 'recording' || voice.state === 'transcribing') {
+                  voice.stop()
+                } else {
+                  void voice.start()
+                }
+              }}
+              disabled={persistentChat.isSending || persistentChat.isAwaitingResponse}
+              aria-label={voice.state === 'recording' ? 'Stop recording' : 'Record voice input'}
+              aria-pressed={voice.state === 'recording'}
+              className={cn(
+                'grid size-8 shrink-0 place-items-center rounded-full text-white/70 transition-colors hover:bg-white/[0.06] hover:text-white disabled:pointer-events-none disabled:opacity-20',
+                voice.state === 'recording' && 'text-red-300',
+              )}
+            >
+              {voice.state === 'recording' ? (
+                <Square className="size-3.5 fill-current" strokeWidth={1.5} />
+              ) : voice.state === 'transcribing' ? (
+                <LoaderCircle className="size-4 animate-spin" strokeWidth={1.5} />
+              ) : (
+                <Mic className="size-4" strokeWidth={1.5} />
+              )}
+            </button>
             <button
               type="submit"
               disabled={!hasDraft}
@@ -455,6 +489,11 @@ export function PrometheusChat({
               <ArrowUp className="size-5" strokeWidth={1.5} />
             </button>
           </form>
+          {voice.error ? (
+            <p className="mx-auto mt-2 w-full max-w-3xl text-xs text-red-300/80" role="alert">
+              {voice.error}
+            </p>
+          ) : null}
         </div>
       </div>
       <AnimatePresence>
