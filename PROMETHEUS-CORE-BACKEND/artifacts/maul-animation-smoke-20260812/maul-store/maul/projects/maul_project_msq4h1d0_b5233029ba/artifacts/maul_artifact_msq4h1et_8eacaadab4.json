@@ -1,0 +1,148 @@
+{
+  "schemaVersion": "maul-artifact/v1",
+  "artifactId": "maul_artifact_msq4h1et_8eacaadab4",
+  "artifactType": "art_direction_plan",
+  "lineage": {
+    "projectId": "maul_project_msq4h1d0_b5233029ba",
+    "canonicalJobId": "maul_job_msq4h1d0_fe67598935",
+    "runId": "maul_run_msq4h1d0_351aeb6898",
+    "rootSourceAssetId": "maul_artifact_msq4h1d0_933257be9e",
+    "parentArtifactIds": [
+      "maul_artifact_msq4h1d0_933257be9e",
+      "maul_artifact_msq4h1d7_ec75f2d4db",
+      "maul_artifact_msq4h1db_429b71a46e",
+      "maul_artifact_msq4h1dy_cd6e98035f",
+      "maul_artifact_msq4h1do_ea3b4f8abc"
+    ],
+    "sequence": 9,
+    "producedBy": {
+      "module": "maul-joseph-editorial-director",
+      "version": "maul-joseph-editorial-director/v1"
+    },
+    "createdAt": "2026-08-12T13:25:49.541Z"
+  },
+  "payload": {
+    "sourceAssetId": "maul_artifact_msq4h1d0_933257be9e",
+    "analysisArtifactId": "maul_artifact_msq4h1d7_ec75f2d4db",
+    "timelineArtifactId": "maul_artifact_msq4h1db_429b71a46e",
+    "candidateArtifactId": "maul_artifact_msq4h1dy_cd6e98035f",
+    "treatmentGenomeArtifactId": "maul_artifact_msq4h1do_ea3b4f8abc",
+    "planVersion": "maul-art-direction-plan/v1",
+    "replayKey": "b0b1e6ce85579d8b068590c98cf185bcf5c1498f102a89f2bde1d48a164f91d2",
+    "authority": {
+      "authorityClass": "deterministic",
+      "stageId": "maul-art-direction-plan_v1",
+      "confidence": 0.72,
+      "inferenceReceiptId": null
+    },
+    "warnings": [],
+    "fallbacks": [
+      {
+        "condition": "A richer mandatory dependency is unavailable or unverified.",
+        "action": "Use the named restrained fallback and keep the release quality gate closed.",
+        "status": "available"
+      }
+    ],
+    "schemaVersion": "maul-art-direction-plan/v1",
+    "authorityReceipt": {
+      "directorId": "joseph",
+      "version": "maul-joseph-editorial-director/v1",
+      "doctrineId": "restrained-cinematic",
+      "inputHash": "9f692864067caedc0d3e32effa4159167d59f098fa8c4d4d658a10d908a60dde"
+    },
+    "creativeTreatment": {
+      "schemaVersion": "maul-creative-treatment-proposal/v1",
+      "profileId": "aspire_visual_hook",
+      "compositionDirection": "subject_integrated",
+      "primaryTypeRole": "neutral_grotesk",
+      "accentTypeRole": "editorial_italic",
+      "palette": {
+        "primary": "#F7F3EA",
+        "accent": "#F06424",
+        "sourceTreatment": "dark_warm_cool_contrast"
+      },
+      "sourceTreatmentProfileId": null,
+      "textDensity": "medium",
+      "emphasisMode": "selective_accent_phrase",
+      "motionMode": "restrained_phrase_lockup",
+      "rationale": [
+        "Use the governed Aspire visual-hook fallback until model authority is available."
+      ]
+    },
+    "creativeTreatmentInference": {
+      "status": "skipped_missing_credentials",
+      "provider": "openai_compatible",
+      "model": "gpt-5.6-terra",
+      "reasoningEffort": "high",
+      "requestHash": null,
+      "responseHash": null,
+      "inferenceReceiptId": null,
+      "fallbackReason": "MAUL creative-planner credentials are not configured."
+    },
+    "referenceEditorialRhythm": {
+      "schemaVersion": "maul-reference-editorial-rhythm/v1",
+      "fontSystemId": "grotesk_editorial_hinge",
+      "traitReceipt": []
+    },
+    "visualBeats": [
+      {
+        "beatId": "joseph_restrained-cinematic_hook",
+        "startMs": 0,
+        "endMs": 5022,
+        "purpose": "HOOK"
+      },
+      {
+        "beatId": "joseph_restrained-cinematic_payoff",
+        "startMs": 5022,
+        "endMs": 10043,
+        "purpose": "PAYOFF"
+      }
+    ],
+    "sceneEvidence": {
+      "status": "available",
+      "providerId": "mediapipe_opencv_scene_evidence",
+      "holdCount": 2,
+      "reason": null
+    },
+    "audienceIntent": "hook-driven joseph_aggressive edit",
+    "emotionalTemperature": "urgent_confident",
+    "sourceRespectStance": "Use the governed source as the visual anchor; do not manufacture claims, source events, or evidence.",
+    "theme": "open with months,",
+    "paletteIntent": [
+      "Primary typography #F7F3EA",
+      "Accent typography #F06424",
+      "Source treatment dark_warm_cool_contrast"
+    ],
+    "typeRoles": [
+      {
+        "role": "PRIMARY",
+        "intent": "neutral_grotesk"
+      },
+      {
+        "role": "ACCENT",
+        "intent": "editorial_italic"
+      }
+    ],
+    "layoutAndNegativeSpaceLogic": "subject_integrated; Select a stable composition hold from measured scene opportunity, then animate words inside that hold.",
+    "imageryAndBackgroundLanguage": "text:soft-reveal; motion:restrained-entry; camera:slow-push-in; background:depth-vignette",
+    "cameraBehavior": "push_in:235-265",
+    "motionPhysics": "restrained_phrase_lockup; text-entry.letter-riser; text-entry.soft-letter-tracking; text-entry.clipped-mask-reveal; text-emphasis.underline-reveal; text-emphasis.semantic-glow; accent-motion.caption-rail; spatial-motion.anchored-drift",
+    "annotationGrammar": "Withhold annotations unless source-supported evidence is available.",
+    "soundWorld": "whoosh_slow:1080; whoosh_slow:2360",
+    "motifArc": {
+      "introduction": "months,",
+      "development": "high",
+      "recall": "open with months,"
+    },
+    "treatmentVariation": "Restrained Cinematic",
+    "explicitProhibitions": [
+      "No reference-image pixels in the render.",
+      "No unlicensed evidence, B-roll, music, or SFX.",
+      "No kinetic typography spam or word-by-word novelty motion.",
+      "No unsupported factual, emotional, or causal claim.",
+      "No fallback caption band may be labeled art directed.",
+      "No source-pixel placement without temporal visual evidence.",
+      "No imperceptibly short composition or animation state."
+    ]
+  }
+}

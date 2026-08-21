@@ -1,0 +1,188 @@
+{
+  "schemaVersion": "maul-artifact/v1",
+  "artifactId": "maul_artifact_msq4h1dr_2d9d88dd41",
+  "artifactType": "treatment_genome",
+  "lineage": {
+    "projectId": "maul_project_msq4h1d0_b5233029ba",
+    "canonicalJobId": "maul_job_msq4h1d0_fe67598935",
+    "runId": "maul_run_msq4h1d0_351aeb6898",
+    "rootSourceAssetId": "maul_artifact_msq4h1d0_933257be9e",
+    "parentArtifactIds": [
+      "maul_artifact_msq4h1db_429b71a46e"
+    ],
+    "sequence": 6,
+    "producedBy": {
+      "module": "maul-treatment-catalog",
+      "version": "1"
+    },
+    "createdAt": "2026-08-12T13:25:49.503Z"
+  },
+  "payload": {
+    "treatmentId": "minimal_expert",
+    "timelineArtifactId": "maul_artifact_msq4h1db_429b71a46e",
+    "catalogEntryName": "Minimal Expert",
+    "version": "maul-treatment/minimal-expert/v1",
+    "replayKey": "4b0ce2caa91222c5b9f16d6ea589f8c861bc6f99dc44467bdda263726b489df1",
+    "purpose": "Make a nuanced explanation feel obvious through restraint, precision, and protected thinking time.",
+    "targetViewerState": "Calm, oriented, and confident that the idea is understood rather than merely advertised.",
+    "grammar": {
+      "hook": "Open with the cleanest surprising distinction or useful question.",
+      "escalation": "Add one conceptual layer at a time without artificial stakes.",
+      "proof": "Use a single precise label, diagram, or source-grounded example.",
+      "reveal": "Allow the insight to land in speech before a minimal visual lockup.",
+      "payoff": "Restate the governing principle with maximum visual quiet.",
+      "cta": "Prefer a low-pressure next step; omit it when the source contains none."
+    },
+    "pacing": {
+      "minCutsPerMinute": 4,
+      "maxCutsPerMinute": 10,
+      "protectedPausePolicy": "Preserve rhetorical, comprehension, and emotional pauses unless they exceed the quality gate."
+    },
+    "visualPolicy": {
+      "framing": "clarity_first",
+      "accents": "one_concept_at_a_time",
+      "hierarchy": "idea_then_speaker_then_detail",
+      "safeZone": "platform_ui_balanced"
+    },
+    "audioPolicy": {
+      "voicePriority": "absolute",
+      "musicEnergy": "near_silent_texture",
+      "sfx": "none_by_default"
+    },
+    "rendererInputs": {
+      "framing": {
+        "mode": "clarity_first",
+        "safeZone": "platform_ui_balanced",
+        "maxPunchInScale": 1.08,
+        "speakerPriority": true
+      },
+      "caption": {
+        "profile": "precision_minimal",
+        "maxWordsPerCard": 9,
+        "minFontScale": 0.78,
+        "hierarchy": [
+          "distinction",
+          "explanation",
+          "principle"
+        ],
+        "typographyGrammar": "Quiet sentence-case captions with selective term emphasis and generous margins."
+      },
+      "motion": {
+        "intensity": "sparse",
+        "permittedPrimitives": [
+          "soft_fade",
+          "term_underline",
+          "single_axis_diagram"
+        ],
+        "permittedTransitions": [
+          "hard_cut",
+          "crossfade"
+        ]
+      },
+      "bRoll": {
+        "policy": "Only use an insert when the idea cannot be understood as clearly from speaker and type.",
+        "maxInsertsPerMinute": 2
+      },
+      "audio": {
+        "musicBehavior": "Optional licensed tonal texture with no rhythmic pressure.",
+        "sfxBehavior": "Silent by default; one soft reveal accent is the maximum.",
+        "duckingDb": -14
+      }
+    },
+    "repetitionBudget": {
+      "maxRepeatedPrimitivePerClip": 2,
+      "maxRecentFeedReuse": 3,
+      "lookbackPosts": 12
+    },
+    "brandConstraints": [
+      "Favor approved neutral surfaces and one brand accent.",
+      "Preserve whitespace even when more brand elements are available."
+    ],
+    "accessibilityConstraints": [
+      "Captions must never overlap the face or platform controls.",
+      "Motion must remain understandable with reduced-motion enabled."
+    ],
+    "prohibitedMotifs": [
+      "kinetic word barrage",
+      "decorative b-roll",
+      "impact zoom",
+      "gratuitous gradient mesh"
+    ],
+    "referenceCorpusArtifactIds": [],
+    "judgmentLayer": {
+      "minimumWeightedScore": 82,
+      "rubric": [
+        {
+          "id": "editorial_clarity",
+          "label": "Editorial clarity",
+          "weight": 25,
+          "minimumScore": 75
+        },
+        {
+          "id": "source_fidelity",
+          "label": "Source fidelity",
+          "weight": 25,
+          "minimumScore": 90
+        },
+        {
+          "id": "pacing_fit",
+          "label": "Pacing fit",
+          "weight": 20,
+          "minimumScore": 70
+        },
+        {
+          "id": "visual_hierarchy",
+          "label": "Visual hierarchy",
+          "weight": 15,
+          "minimumScore": 75
+        },
+        {
+          "id": "accessibility",
+          "label": "Accessibility",
+          "weight": 15,
+          "minimumScore": 85
+        }
+      ],
+      "failureClasses": [
+        {
+          "id": "clarity_obscured",
+          "label": "Clarity obscured",
+          "description": "Design adds concepts or hierarchy not warranted by the explanation.",
+          "severity": "blocking"
+        },
+        {
+          "id": "pause_overridden",
+          "label": "Pause overridden",
+          "description": "Motion, music, or cutting fills necessary comprehension space.",
+          "severity": "major"
+        },
+        {
+          "id": "minimalism_as_emptiness",
+          "label": "Minimalism as emptiness",
+          "description": "Restraint removes the one visual aid required for understanding.",
+          "severity": "major"
+        },
+        {
+          "id": "typographic_imprecision",
+          "label": "Typographic imprecision",
+          "description": "Line breaks or emphasis change the meaning of the explanation.",
+          "severity": "blocking"
+        },
+        {
+          "id": "unearned_motion",
+          "label": "Unearned motion",
+          "description": "An accent appears without a semantic reveal or transition.",
+          "severity": "major"
+        }
+      ]
+    },
+    "renderFallbacks": [
+      "Fall back to a stable centered crop and precision captions.",
+      "Remove the optional music bed when voice separation is uncertain."
+    ],
+    "provenanceRules": [
+      "Diagrams and labels must derive only from source meaning.",
+      "Reference traits may guide policy but reference media and identity markers are excluded."
+    ]
+  }
+}

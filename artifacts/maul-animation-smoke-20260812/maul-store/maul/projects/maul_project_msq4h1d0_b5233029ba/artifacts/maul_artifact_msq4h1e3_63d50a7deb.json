@@ -1,0 +1,205 @@
+{
+  "schemaVersion": "maul-artifact/v1",
+  "artifactId": "maul_artifact_msq4h1e3_63d50a7deb",
+  "artifactType": "planner_audit",
+  "lineage": {
+    "projectId": "maul_project_msq4h1d0_b5233029ba",
+    "canonicalJobId": "maul_job_msq4h1d0_fe67598935",
+    "runId": "maul_run_msq4h1d0_351aeb6898",
+    "rootSourceAssetId": "maul_artifact_msq4h1d0_933257be9e",
+    "parentArtifactIds": [
+      "maul_artifact_msq4h1d0_933257be9e",
+      "maul_artifact_msq4h1d7_ec75f2d4db",
+      "maul_artifact_msq4h1db_429b71a46e",
+      "maul_artifact_msq4h1dy_cd6e98035f"
+    ],
+    "sequence": 8,
+    "producedBy": {
+      "module": "maul-planner-accountability",
+      "version": "1"
+    },
+    "createdAt": "2026-08-12T13:25:49.515Z"
+  },
+  "payload": {
+    "schemaVersion": "maul-planner-audit/v1",
+    "sourceAssetId": "maul_artifact_msq4h1d0_933257be9e",
+    "analysisArtifactId": "maul_artifact_msq4h1d7_ec75f2d4db",
+    "timelineArtifactId": "maul_artifact_msq4h1db_429b71a46e",
+    "candidateArtifactIds": [
+      "maul_artifact_msq4h1dy_cd6e98035f"
+    ],
+    "generatedAt": "2026-08-12T13:25:49.513Z",
+    "entries": [
+      {
+        "stageId": "maul_media_analysis",
+        "module": "maul-editorial-timeline",
+        "moduleVersion": "1",
+        "authorityClass": "deterministic",
+        "configured": true,
+        "executed": true,
+        "provider": "local-deterministic",
+        "model": "maul-media-analysis/v1",
+        "reason": "Transcript, verified silence evidence, shots, and supplied speaker detections are compiled deterministically.",
+        "decisionFields": [
+          "analysis.transcript",
+          "analysis.voiceSpans",
+          "analysis.silenceSpans",
+          "analysis.shots",
+          "analysis.speakerTracks"
+        ],
+        "limitations": [
+          "No multimodal model interpreted composition, gesture, lighting, or source quality."
+        ],
+        "inferenceReceipt": null
+      },
+      {
+        "stageId": "maul_editorial_timeline",
+        "module": "maul-editorial-timeline",
+        "moduleVersion": "1",
+        "authorityClass": "deterministic",
+        "configured": true,
+        "executed": true,
+        "provider": "local-deterministic",
+        "model": "maul-editorial-timeline/v1",
+        "reason": "Cut candidates, protected pauses, timestamp mapping, and crop tracks are deterministic transforms of supplied evidence.",
+        "decisionFields": [
+          "editorialTimeline.selectedClipWindows",
+          "editorialTimeline.cutCandidates",
+          "editorialTimeline.protectedRanges",
+          "editorialTimeline.timestampMap",
+          "editorialTimeline.speakerCropTracks"
+        ],
+        "limitations": [
+          "Current cadence logic is rules-based and does not constitute cinematic semantic judgment."
+        ],
+        "inferenceReceipt": null
+      },
+      {
+        "stageId": "maul_candidate_scoring",
+        "module": "maul-candidate-scorer",
+        "moduleVersion": "1",
+        "authorityClass": "deterministic",
+        "configured": true,
+        "executed": true,
+        "provider": "local-deterministic",
+        "model": "maul-shallow-arithmetic-scorer/v1",
+        "reason": "Hook clarity, semantic completion, pacing, and overall score are fixed arithmetic rules.",
+        "decisionFields": [
+          "candidate.title",
+          "candidate.transcriptText",
+          "candidate.scores",
+          "candidate.qualityThresholdPassed",
+          "candidate.insufficiencyReason"
+        ],
+        "limitations": [
+          "A passing arithmetic threshold is candidate eligibility only; it is not cinematic, S4, or human approval."
+        ],
+        "inferenceReceipt": null
+      },
+      {
+        "stageId": "joseph_seeded_planning",
+        "module": "joseph-director",
+        "moduleVersion": "current",
+        "authorityClass": "configured_not_invoked",
+        "configured": true,
+        "executed": false,
+        "provider": "local-deterministic",
+        "model": "joseph-seeded-governed-search",
+        "reason": "This candidate-scoring audit is emitted before Joseph planning. Joseph invocation, when a planning bundle is created, is recorded on the subsequent Art Direction artifact rather than fabricated here.",
+        "decisionFields": [],
+        "limitations": [
+          "Candidate eligibility is not Joseph execution. Inspect the planning bundle Art Direction receipt for doctrine-to-render lineage."
+        ],
+        "inferenceReceipt": null
+      },
+      {
+        "stageId": "configured_primary_generation",
+        "module": "backend-model-routing",
+        "moduleVersion": "1",
+        "authorityClass": "unavailable",
+        "configured": false,
+        "executed": false,
+        "provider": "groq",
+        "model": "llama-3.3-70b-versatile",
+        "reason": "The primary generation route is configured metadata only; MAUL did not dispatch a request.",
+        "decisionFields": [],
+        "limitations": [
+          "No provider receipt, request hash, response hash, or causally changed plan field exists."
+        ],
+        "inferenceReceipt": null
+      },
+      {
+        "stageId": "configured_cinematic_critic",
+        "module": "backend-model-routing",
+        "moduleVersion": "1",
+        "authorityClass": "unavailable",
+        "configured": false,
+        "executed": false,
+        "provider": "openai",
+        "model": "gpt-5.5",
+        "reason": "The critic route is configured metadata only; it did not evaluate rendered MAUL output.",
+        "decisionFields": [],
+        "limitations": [
+          "A configured critic string is not independent perceptual evidence."
+        ],
+        "inferenceReceipt": null
+      },
+      {
+        "stageId": "configured_temporal_route",
+        "module": "backend-model-routing",
+        "moduleVersion": "1",
+        "authorityClass": "configured_not_invoked",
+        "configured": true,
+        "executed": false,
+        "provider": "local-deterministic",
+        "model": "prometheus-deterministic",
+        "reason": "The generic temporal route was not dispatched by this MAUL run.",
+        "decisionFields": [],
+        "limitations": [
+          "Continuity and pacing authority remains the deterministic MAUL timeline module."
+        ],
+        "inferenceReceipt": null
+      },
+      {
+        "stageId": "configured_embedding_route",
+        "module": "backend-model-routing",
+        "moduleVersion": "1",
+        "authorityClass": "configured_not_invoked",
+        "configured": true,
+        "executed": false,
+        "provider": "local-deterministic",
+        "model": "prometheus-deterministic",
+        "reason": "The generic embedding route was not dispatched by this MAUL candidate run.",
+        "decisionFields": [],
+        "limitations": [
+          "No retrieval result from this route affected candidate selection."
+        ],
+        "inferenceReceipt": null
+      },
+      {
+        "stageId": "ocular_visual_planning",
+        "module": "backend-model-routing",
+        "moduleVersion": "1",
+        "authorityClass": "unavailable",
+        "configured": false,
+        "executed": false,
+        "provider": "future-ocular",
+        "model": "future-ocular-adapter",
+        "reason": "The current ocular route is a future placeholder and cannot own visual planning.",
+        "decisionFields": [],
+        "limitations": [
+          "No frame-aware composition, gesture, crop, matte, motion, or lighting judgment was performed."
+        ],
+        "inferenceReceipt": null
+      }
+    ],
+    "summary": {
+      "liveEditorialAuthority": "deterministic",
+      "visualPlanningAuthority": "unavailable",
+      "modelInvocationCount": 0,
+      "configuredNotInvokedCount": 3,
+      "unavailableAuthorityCount": 3,
+      "fakeInferenceLabelsBlocked": true
+    }
+  }
+}

@@ -1,0 +1,188 @@
+{
+  "schemaVersion": "maul-artifact/v1",
+  "artifactId": "maul_artifact_msq3pyoi_c1595b582e",
+  "artifactType": "treatment_genome",
+  "lineage": {
+    "projectId": "maul_project_msq3pyo5_f6f3c085da",
+    "canonicalJobId": "maul_job_msq3pyo5_f032480175",
+    "runId": "maul_run_msq3pyo5_c7c601fbe5",
+    "rootSourceAssetId": "maul_artifact_msq3pyo5_f4812dd7e7",
+    "parentArtifactIds": [
+      "maul_artifact_msq3pyof_d6b034d2a8"
+    ],
+    "sequence": 4,
+    "producedBy": {
+      "module": "maul-treatment-catalog",
+      "version": "1"
+    },
+    "createdAt": "2026-08-12T13:04:46.290Z"
+  },
+  "payload": {
+    "treatmentId": "founder_podcast",
+    "timelineArtifactId": "maul_artifact_msq3pyof_d6b034d2a8",
+    "catalogEntryName": "Founder Podcast",
+    "version": "maul-treatment/founder-podcast/v1",
+    "replayKey": "8e532ff8f684cadcc22804f9e08438b4a876dfa5579a5f30c705fc79ab7682e4",
+    "purpose": "Turn an authoritative spoken claim into a credible, speaker-led argument.",
+    "targetViewerState": "Attentive, trusting, and ready to accept the founder's earned conclusion.",
+    "grammar": {
+      "hook": "Open on the speaker's clearest consequential claim; never manufacture urgency.",
+      "escalation": "Tighten framing only as the speaker increases specificity or stakes.",
+      "proof": "Use transcript-led proof callouts and at most one source-grounded supporting insert.",
+      "reveal": "Let the speaker deliver the insight before graphics restate it.",
+      "payoff": "Return to a clean hero frame and preserve the decisive breath before the conclusion.",
+      "cta": "Use a restrained verbal or end-card CTA only when the source supports it."
+    },
+    "pacing": {
+      "minCutsPerMinute": 8,
+      "maxCutsPerMinute": 18,
+      "protectedPausePolicy": "Preserve rhetorical pauses around claims, proof, and payoff; never cut for density alone."
+    },
+    "visualPolicy": {
+      "framing": "speaker_first",
+      "accents": "proof_only",
+      "hierarchy": "face_then_claim_then_evidence",
+      "safeZone": "platform_ui_balanced"
+    },
+    "audioPolicy": {
+      "voicePriority": "absolute",
+      "musicEnergy": "low_warm_bed",
+      "sfx": "rare_editorial_confirmation"
+    },
+    "rendererInputs": {
+      "framing": {
+        "mode": "speaker_first",
+        "safeZone": "platform_ui_balanced",
+        "maxPunchInScale": 1.16,
+        "speakerPriority": true
+      },
+      "caption": {
+        "profile": "authority_callout",
+        "maxWordsPerCard": 7,
+        "minFontScale": 0.84,
+        "hierarchy": [
+          "claim",
+          "proof",
+          "qualifier"
+        ],
+        "typographyGrammar": "Sentence case with one evidence-bearing phrase emphasized; never karaoke every word."
+      },
+      "motion": {
+        "intensity": "restrained",
+        "permittedPrimitives": [
+          "modest_punch_in",
+          "proof_callout",
+          "gentle_parallax"
+        ],
+        "permittedTransitions": [
+          "hard_cut",
+          "short_dissolve"
+        ]
+      },
+      "bRoll": {
+        "policy": "Only source-grounded evidence that clarifies the spoken proof.",
+        "maxInsertsPerMinute": 3
+      },
+      "audio": {
+        "musicBehavior": "Warm licensed bed with no melodic competition under claims.",
+        "sfxBehavior": "One restrained confirmation accent on a proof or payoff beat.",
+        "duckingDb": -10
+      }
+    },
+    "repetitionBudget": {
+      "maxRepeatedPrimitivePerClip": 3,
+      "maxRecentFeedReuse": 2,
+      "lookbackPosts": 10
+    },
+    "brandConstraints": [
+      "Honor supplied type, color, and logo safe-area rules.",
+      "Keep the speaker visually primary."
+    ],
+    "accessibilityConstraints": [
+      "Captions remain readable for at least 900ms.",
+      "No meaning is conveyed by color alone."
+    ],
+    "prohibitedMotifs": [
+      "fake podcast waveform",
+      "constant zoom pumping",
+      "unsourced authority badge",
+      "reaction meme insert"
+    ],
+    "referenceCorpusArtifactIds": [],
+    "judgmentLayer": {
+      "minimumWeightedScore": 80,
+      "rubric": [
+        {
+          "id": "editorial_clarity",
+          "label": "Editorial clarity",
+          "weight": 25,
+          "minimumScore": 75
+        },
+        {
+          "id": "source_fidelity",
+          "label": "Source fidelity",
+          "weight": 25,
+          "minimumScore": 90
+        },
+        {
+          "id": "pacing_fit",
+          "label": "Pacing fit",
+          "weight": 20,
+          "minimumScore": 70
+        },
+        {
+          "id": "visual_hierarchy",
+          "label": "Visual hierarchy",
+          "weight": 15,
+          "minimumScore": 75
+        },
+        {
+          "id": "accessibility",
+          "label": "Accessibility",
+          "weight": 15,
+          "minimumScore": 85
+        }
+      ],
+      "failureClasses": [
+        {
+          "id": "speaker_authority_diluted",
+          "label": "Speaker authority diluted",
+          "description": "Graphics or inserts compete with the principal speaker.",
+          "severity": "blocking"
+        },
+        {
+          "id": "proof_not_source_grounded",
+          "label": "Proof not source-grounded",
+          "description": "A callout asserts evidence absent from the transcript or source.",
+          "severity": "blocking"
+        },
+        {
+          "id": "rhetorical_pause_destroyed",
+          "label": "Rhetorical pause destroyed",
+          "description": "A meaningful pause is shortened or covered by an unnecessary event.",
+          "severity": "major"
+        },
+        {
+          "id": "punch_in_fatigue",
+          "label": "Punch-in fatigue",
+          "description": "Reframing repeats without an editorial reason.",
+          "severity": "major"
+        },
+        {
+          "id": "performative_podcast_styling",
+          "label": "Performative podcast styling",
+          "description": "Canned podcast motifs substitute for actual authority.",
+          "severity": "major"
+        }
+      ]
+    },
+    "renderFallbacks": [
+      "Use a centered speaker crop when tracking confidence is low.",
+      "Drop supporting visuals before compromising caption legibility."
+    ],
+    "provenanceRules": [
+      "Every proof callout must map to transcript timestamps.",
+      "Reference Corpus media is never a render source."
+    ]
+  }
+}

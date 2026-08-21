@@ -1,0 +1,733 @@
+{
+  "schemaVersion": "maul-artifact/v1",
+  "artifactId": "maul_artifact_msq4dkrp_df4dd937e7",
+  "artifactType": "text_placement_plan",
+  "lineage": {
+    "projectId": "maul_project_msq4dkhk_30b103afb0",
+    "canonicalJobId": "maul_job_msq4dkhl_71d86c9794",
+    "runId": "maul_run_msq4dkhl_7045fdb32f",
+    "rootSourceAssetId": "maul_artifact_msq4dkhl_2e86e4621f",
+    "parentArtifactIds": [
+      "maul_artifact_msq4dkhl_2e86e4621f",
+      "maul_artifact_msq4dkhr_f0040b1bb1",
+      "maul_artifact_msq4dkhv_8243d4d644",
+      "maul_artifact_msq4dkij_2caf701270",
+      "maul_artifact_msq4dki3_f1147cf96c",
+      "maul_artifact_msq4dkjd_3deddcfe56",
+      "maul_artifact_msq4dkqr_3133bbfbf9"
+    ],
+    "sequence": 11,
+    "producedBy": {
+      "module": "maul-text-placement-planner",
+      "version": "1"
+    },
+    "createdAt": "2026-08-12T13:23:08.005Z"
+  },
+  "payload": {
+    "sourceAssetId": "maul_artifact_msq4dkhl_2e86e4621f",
+    "analysisArtifactId": "maul_artifact_msq4dkhr_f0040b1bb1",
+    "timelineArtifactId": "maul_artifact_msq4dkhv_8243d4d644",
+    "candidateArtifactId": "maul_artifact_msq4dkij_2caf701270",
+    "treatmentGenomeArtifactId": "maul_artifact_msq4dki3_f1147cf96c",
+    "planVersion": "maul-text-placement-plan/v1",
+    "replayKey": "795d9719865e629f1f8dad8cf9d40e1e4088d9446b5720207b7ebd20d14098e1",
+    "authority": {
+      "authorityClass": "deterministic",
+      "stageId": "maul-text-placement-plan_v1",
+      "confidence": 0.72,
+      "inferenceReceiptId": null
+    },
+    "warnings": [],
+    "fallbacks": [
+      {
+        "condition": "A richer mandatory dependency is unavailable or unverified.",
+        "action": "Use the named restrained fallback and keep the release quality gate closed.",
+        "status": "available"
+      }
+    ],
+    "schemaVersion": "maul-text-placement-plan/v1",
+    "textChunkPlanArtifactId": "maul_artifact_msq4dkqr_3133bbfbf9",
+    "textChunkPlanHash": "d1c6d6fa903a67b3f45e472bf556cd33be4fa05942db504f86062bdca0ab9a3c",
+    "catalog": {
+      "catalogId": "maul-placement-catalog-three-family-v1",
+      "version": "1",
+      "hash": "cc4cc53cc1bf41b4a7ba4639432b30b369ce8d4811b723eda24a4b6575faba54"
+    },
+    "scorePolicy": {
+      "policyId": "maul-placement-score-policy-v1",
+      "version": "1",
+      "hash": "18710088694f109350501659cd82df780825b50e1369e394b8296aba835bdee6",
+      "dimensionWeights": {
+        "readability": 0.24,
+        "subjectRelationship": 0.2,
+        "opticalBalance": 0.13,
+        "semanticCompatibility": 0.14,
+        "creativeDirectionFit": 0.1,
+        "continuity": 0.11,
+        "fallbackCost": 0.08
+      },
+      "beamWidth": 4,
+      "planningHorizonSegments": 3
+    },
+    "platformProfile": {
+      "profileId": "maul-platform-instagram-reels-v1",
+      "platform": "instagram_reels",
+      "version": "1",
+      "output": {
+        "width": 1080,
+        "height": 1920,
+        "fps": 30
+      },
+      "safeRegion": {
+        "x": 0.04,
+        "y": 0.04,
+        "width": 0.92,
+        "height": 0.88
+      }
+    },
+    "compatibilityProfiles": [
+      {
+        "profileId": "maul-measured-font_google_playfair_display_italic_700-v1",
+        "family": "Playfair Display",
+        "approvedFontAssets": [
+          {
+            "assetId": "font_google_playfair_display_italic_700",
+            "family": "Playfair Display",
+            "weights": [
+              700
+            ]
+          }
+        ],
+        "loadedFallback": {
+          "assetId": "font_google_playfair_display_italic_700",
+          "family": "Playfair Display",
+          "weight": 700
+        },
+        "metrics": {
+          "fingerprint": "2b6157ce3dd2ee3ee6850d42211636dbfadb922680b3661f9d9b42ccfcf1c5df",
+          "maxGlyphWidthEm": 1.198,
+          "maxLineHeightEm": 1.333,
+          "minimumFontSizePx": 48,
+          "maximumFontSizePx": 88,
+          "minimumLineHeight": 1,
+          "maximumLineHeight": 1.333
+        }
+      },
+      {
+        "profileId": "maul-measured-font_google_playfair_display_700-v1",
+        "family": "Playfair Display",
+        "approvedFontAssets": [
+          {
+            "assetId": "font_google_playfair_display_700",
+            "family": "Playfair Display",
+            "weights": [
+              700
+            ]
+          }
+        ],
+        "loadedFallback": {
+          "assetId": "font_google_playfair_display_700",
+          "family": "Playfair Display",
+          "weight": 700
+        },
+        "metrics": {
+          "fingerprint": "1669b73e88673a647c60482bc703f9e2894161724abd4c7b6cbeda332217e4e9",
+          "maxGlyphWidthEm": 1.281,
+          "maxLineHeightEm": 1.333,
+          "minimumFontSizePx": 48,
+          "maximumFontSizePx": 88,
+          "minimumLineHeight": 1,
+          "maximumLineHeight": 1.333
+        }
+      },
+      {
+        "profileId": "maul-measured-font_google_bebas_neue_400-v1",
+        "family": "Bebas Neue",
+        "approvedFontAssets": [
+          {
+            "assetId": "font_google_bebas_neue_400",
+            "family": "Bebas Neue",
+            "weights": [
+              400
+            ]
+          }
+        ],
+        "loadedFallback": {
+          "assetId": "font_google_bebas_neue_400",
+          "family": "Bebas Neue",
+          "weight": 400
+        },
+        "metrics": {
+          "fingerprint": "d2b074f04e7fb949487bf9825887a1b0905b7e674f954d0e9c8444abeaecee32",
+          "maxGlyphWidthEm": 0.845,
+          "maxLineHeightEm": 1.2,
+          "minimumFontSizePx": 48,
+          "maximumFontSizePx": 88,
+          "minimumLineHeight": 1,
+          "maximumLineHeight": 1.2
+        }
+      }
+    ],
+    "compositionIntervals": [
+      {
+        "intervalId": "joseph_restrained-cinematic_hook.editorial_asymmetry.media_observed_full_frame",
+        "sceneId": "mediapipe_scene_1",
+        "discontinuityId": "mediapipe_geometry_1",
+        "variantId": "scene_evidence.editorial_asymmetry.media_observed_full_frame",
+        "outputStartMs": 0,
+        "outputEndMs": 5022,
+        "transformHash": "364ebed67918e9dcf1d69fd2ad8127839a4ab57e419b041dee99e8e4974ebf4f",
+        "sourceViewport": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 1
+        },
+        "sourceOccupancy": [
+          {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 1
+          }
+        ],
+        "paddedNonSourceRegions": [],
+        "compositionDirection": "editorial_asymmetry",
+        "textAnchor": {
+          "box": {
+            "x": 0.06,
+            "y": 0.08,
+            "width": 0.88,
+            "height": 0.3
+          },
+          "maximumEnvelope": {
+            "x": 0.04,
+            "y": 0.06,
+            "width": 0.88,
+            "height": 0.33999999999999997
+          },
+          "alignment": "right",
+          "subjectInteraction": {
+            "policy": "controlled_overlap",
+            "faceInterference": 0.12557931315825946,
+            "evidenceIds": [
+              "mediapipe@0",
+              "mediapipe@400",
+              "mediapipe@801",
+              "mediapipe@1201",
+              "mediapipe@1602",
+              "mediapipe@2002",
+              "mediapipe@2402",
+              "mediapipe@2803",
+              "mediapipe@3203",
+              "mediapipe@3604",
+              "mediapipe@4004",
+              "mediapipe@4404",
+              "mediapipe@4805"
+            ]
+          }
+        },
+        "crop": {
+          "x": 0.3418,
+          "y": 0,
+          "width": 0.3164,
+          "height": 1
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        }
+      },
+      {
+        "intervalId": "joseph_restrained-cinematic_hook.poster_hero.media_observed_full_frame",
+        "sceneId": "mediapipe_scene_1",
+        "discontinuityId": "mediapipe_geometry_1",
+        "variantId": "scene_evidence.poster_hero.media_observed_full_frame",
+        "outputStartMs": 0,
+        "outputEndMs": 5022,
+        "transformHash": "2625db4e48047b5b386664eac2eb501ae167ab130dbb621f990fc12bcab553cd",
+        "sourceViewport": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 1
+        },
+        "sourceOccupancy": [
+          {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 1
+          }
+        ],
+        "paddedNonSourceRegions": [],
+        "compositionDirection": "poster_hero",
+        "textAnchor": {
+          "box": {
+            "x": 0.04,
+            "y": 0.08,
+            "width": 0.84,
+            "height": 0.4
+          },
+          "maximumEnvelope": {
+            "x": 0.04,
+            "y": 0.06,
+            "width": 0.88,
+            "height": 0.44
+          },
+          "alignment": "right",
+          "subjectInteraction": {
+            "policy": "controlled_overlap",
+            "faceInterference": 0.12557931315825946,
+            "evidenceIds": [
+              "mediapipe@0",
+              "mediapipe@400",
+              "mediapipe@801",
+              "mediapipe@1201",
+              "mediapipe@1602",
+              "mediapipe@2002",
+              "mediapipe@2402",
+              "mediapipe@2803",
+              "mediapipe@3203",
+              "mediapipe@3604",
+              "mediapipe@4004",
+              "mediapipe@4404",
+              "mediapipe@4805"
+            ]
+          }
+        },
+        "crop": {
+          "x": 0.3418,
+          "y": 0,
+          "width": 0.3164,
+          "height": 1
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        }
+      },
+      {
+        "intervalId": "joseph_restrained-cinematic_hook.restrained_minimal.media_observed_full_frame",
+        "sceneId": "mediapipe_scene_1",
+        "discontinuityId": "mediapipe_geometry_1",
+        "variantId": "scene_evidence.restrained_minimal.media_observed_full_frame",
+        "outputStartMs": 0,
+        "outputEndMs": 5022,
+        "transformHash": "116e32101208fe117580d49e4388d5bd8abe2240f0ac8e421041a72e123c2f51",
+        "sourceViewport": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 1
+        },
+        "sourceOccupancy": [
+          {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 1
+          }
+        ],
+        "paddedNonSourceRegions": [],
+        "compositionDirection": "restrained_minimal",
+        "textAnchor": {
+          "box": {
+            "x": 0.2536,
+            "y": 0.22759999999999997,
+            "width": 0.4752,
+            "height": 0.164
+          },
+          "maximumEnvelope": {
+            "x": 0.2336,
+            "y": 0.20759999999999998,
+            "width": 0.5152,
+            "height": 0.20400000000000001
+          },
+          "alignment": "right",
+          "subjectInteraction": {
+            "policy": "controlled_overlap",
+            "faceInterference": 0.12557931315825946,
+            "evidenceIds": [
+              "mediapipe@0",
+              "mediapipe@400",
+              "mediapipe@801",
+              "mediapipe@1201",
+              "mediapipe@1602",
+              "mediapipe@2002",
+              "mediapipe@2402",
+              "mediapipe@2803",
+              "mediapipe@3203",
+              "mediapipe@3604",
+              "mediapipe@4004",
+              "mediapipe@4404",
+              "mediapipe@4805"
+            ]
+          }
+        },
+        "crop": {
+          "x": 0.3418,
+          "y": 0,
+          "width": 0.3164,
+          "height": 1
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        }
+      },
+      {
+        "intervalId": "joseph_restrained-cinematic_hook.subject_integrated.media_observed_full_frame",
+        "sceneId": "mediapipe_scene_1",
+        "discontinuityId": "mediapipe_geometry_1",
+        "variantId": "scene_evidence.subject_integrated.media_observed_full_frame.creative_preferred",
+        "outputStartMs": 0,
+        "outputEndMs": 5022,
+        "transformHash": "d4ee07ae3957b792d268e3c7ce0624348c356d8790886ef0fceea22b9d5d49ba",
+        "sourceViewport": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 1
+        },
+        "sourceOccupancy": [
+          {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 1
+          }
+        ],
+        "paddedNonSourceRegions": [],
+        "compositionDirection": "subject_integrated",
+        "textAnchor": {
+          "box": {
+            "x": 0.0952,
+            "y": 0.4572,
+            "width": 0.8096,
+            "height": 0.3116
+          },
+          "maximumEnvelope": {
+            "x": 0.0752,
+            "y": 0.4372,
+            "width": 0.8448,
+            "height": 0.35159999999999997
+          },
+          "alignment": "right",
+          "subjectInteraction": {
+            "policy": "controlled_overlap",
+            "faceInterference": 0.12557931315825946,
+            "evidenceIds": [
+              "mediapipe@0",
+              "mediapipe@400",
+              "mediapipe@801",
+              "mediapipe@1201",
+              "mediapipe@1602",
+              "mediapipe@2002",
+              "mediapipe@2402",
+              "mediapipe@2803",
+              "mediapipe@3203",
+              "mediapipe@3604",
+              "mediapipe@4004",
+              "mediapipe@4404",
+              "mediapipe@4805"
+            ]
+          }
+        },
+        "crop": {
+          "x": 0.3418,
+          "y": 0,
+          "width": 0.3164,
+          "height": 1
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        }
+      },
+      {
+        "intervalId": "joseph_restrained-cinematic_payoff.editorial_asymmetry.media_observed_full_frame",
+        "sceneId": "mediapipe_scene_2",
+        "discontinuityId": "mediapipe_geometry_2",
+        "variantId": "scene_evidence.editorial_asymmetry.media_observed_full_frame",
+        "outputStartMs": 5022,
+        "outputEndMs": 10043,
+        "transformHash": "c7239242670861c809859b74f4580029c842e74955f29e16d0120e4ca4264726",
+        "sourceViewport": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 1
+        },
+        "sourceOccupancy": [
+          {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 1
+          }
+        ],
+        "paddedNonSourceRegions": [],
+        "compositionDirection": "editorial_asymmetry",
+        "textAnchor": {
+          "box": {
+            "x": 0.06,
+            "y": 0.08,
+            "width": 0.88,
+            "height": 0.3
+          },
+          "maximumEnvelope": {
+            "x": 0.04,
+            "y": 0.06,
+            "width": 0.88,
+            "height": 0.33999999999999997
+          },
+          "alignment": "right",
+          "subjectInteraction": {
+            "policy": "controlled_overlap",
+            "faceInterference": 0.11809453825110866,
+            "evidenceIds": [
+              "mediapipe@5205",
+              "mediapipe@5606",
+              "mediapipe@6006",
+              "mediapipe@6406",
+              "mediapipe@6807",
+              "mediapipe@7207",
+              "mediapipe@7608",
+              "mediapipe@8008",
+              "mediapipe@8408",
+              "mediapipe@8809",
+              "mediapipe@9209",
+              "mediapipe@9610"
+            ]
+          }
+        },
+        "crop": {
+          "x": 0.3418,
+          "y": 0,
+          "width": 0.3164,
+          "height": 1
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        }
+      },
+      {
+        "intervalId": "joseph_restrained-cinematic_payoff.poster_hero.media_observed_full_frame",
+        "sceneId": "mediapipe_scene_2",
+        "discontinuityId": "mediapipe_geometry_2",
+        "variantId": "scene_evidence.poster_hero.media_observed_full_frame",
+        "outputStartMs": 5022,
+        "outputEndMs": 10043,
+        "transformHash": "fe850dede6d9006938997eb8a5dabaad1afe36eb9d90a3c7a24f85813bc56330",
+        "sourceViewport": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 1
+        },
+        "sourceOccupancy": [
+          {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 1
+          }
+        ],
+        "paddedNonSourceRegions": [],
+        "compositionDirection": "poster_hero",
+        "textAnchor": {
+          "box": {
+            "x": 0.04,
+            "y": 0.08,
+            "width": 0.84,
+            "height": 0.4
+          },
+          "maximumEnvelope": {
+            "x": 0.04,
+            "y": 0.06,
+            "width": 0.88,
+            "height": 0.44
+          },
+          "alignment": "right",
+          "subjectInteraction": {
+            "policy": "controlled_overlap",
+            "faceInterference": 0.11809453825110866,
+            "evidenceIds": [
+              "mediapipe@5205",
+              "mediapipe@5606",
+              "mediapipe@6006",
+              "mediapipe@6406",
+              "mediapipe@6807",
+              "mediapipe@7207",
+              "mediapipe@7608",
+              "mediapipe@8008",
+              "mediapipe@8408",
+              "mediapipe@8809",
+              "mediapipe@9209",
+              "mediapipe@9610"
+            ]
+          }
+        },
+        "crop": {
+          "x": 0.3418,
+          "y": 0,
+          "width": 0.3164,
+          "height": 1
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        }
+      },
+      {
+        "intervalId": "joseph_restrained-cinematic_payoff.restrained_minimal.media_observed_full_frame",
+        "sceneId": "mediapipe_scene_2",
+        "discontinuityId": "mediapipe_geometry_2",
+        "variantId": "scene_evidence.restrained_minimal.media_observed_full_frame",
+        "outputStartMs": 5022,
+        "outputEndMs": 10043,
+        "transformHash": "e96063b9e8fde279d7d91b6ee83534109483cb600a73f6588b4fa8208092798b",
+        "sourceViewport": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 1
+        },
+        "sourceOccupancy": [
+          {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 1
+          }
+        ],
+        "paddedNonSourceRegions": [],
+        "compositionDirection": "restrained_minimal",
+        "textAnchor": {
+          "box": {
+            "x": 0.2536,
+            "y": 0.22759999999999997,
+            "width": 0.4752,
+            "height": 0.164
+          },
+          "maximumEnvelope": {
+            "x": 0.2336,
+            "y": 0.20759999999999998,
+            "width": 0.5152,
+            "height": 0.20400000000000001
+          },
+          "alignment": "right",
+          "subjectInteraction": {
+            "policy": "controlled_overlap",
+            "faceInterference": 0.11809453825110866,
+            "evidenceIds": [
+              "mediapipe@5205",
+              "mediapipe@5606",
+              "mediapipe@6006",
+              "mediapipe@6406",
+              "mediapipe@6807",
+              "mediapipe@7207",
+              "mediapipe@7608",
+              "mediapipe@8008",
+              "mediapipe@8408",
+              "mediapipe@8809",
+              "mediapipe@9209",
+              "mediapipe@9610"
+            ]
+          }
+        },
+        "crop": {
+          "x": 0.3418,
+          "y": 0,
+          "width": 0.3164,
+          "height": 1
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        }
+      },
+      {
+        "intervalId": "joseph_restrained-cinematic_payoff.subject_integrated.media_observed_full_frame",
+        "sceneId": "mediapipe_scene_2",
+        "discontinuityId": "mediapipe_geometry_2",
+        "variantId": "scene_evidence.subject_integrated.media_observed_full_frame.creative_preferred",
+        "outputStartMs": 5022,
+        "outputEndMs": 10043,
+        "transformHash": "ed000b11876cd183bac3066bfdfadd6e37afe31b15cc57b280ea238924d79c92",
+        "sourceViewport": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 1
+        },
+        "sourceOccupancy": [
+          {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 1
+          }
+        ],
+        "paddedNonSourceRegions": [],
+        "compositionDirection": "subject_integrated",
+        "textAnchor": {
+          "box": {
+            "x": 0.0952,
+            "y": 0.4572,
+            "width": 0.8096,
+            "height": 0.3116
+          },
+          "maximumEnvelope": {
+            "x": 0.0752,
+            "y": 0.4372,
+            "width": 0.8448,
+            "height": 0.35159999999999997
+          },
+          "alignment": "right",
+          "subjectInteraction": {
+            "policy": "controlled_overlap",
+            "faceInterference": 0.11809453825110866,
+            "evidenceIds": [
+              "mediapipe@5205",
+              "mediapipe@5606",
+              "mediapipe@6006",
+              "mediapipe@6406",
+              "mediapipe@6807",
+              "mediapipe@7207",
+              "mediapipe@7608",
+              "mediapipe@8008",
+              "mediapipe@8408",
+              "mediapipe@8809",
+              "mediapipe@9209",
+              "mediapipe@9610"
+            ]
+          }
+        },
+        "crop": {
+          "x": 0.3418,
+          "y": 0,
+          "width": 0.3164,
+          "height": 1
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        }
+      }
+    ],
+    "status": "blocked",
+    "blockingReason": "blocked_no_readable_dialogue_candidate",
+    "segments": [],
+    "inputHashes": {
+      "textChunkPlan": "d1c6d6fa903a67b3f45e472bf556cd33be4fa05942db504f86062bdca0ab9a3c",
+      "outputCompositionTrack": "befda4cf5db731fb7dc5c9fbabb522688ee3c0401e352ed708ddfa120f46c393",
+      "platformProfile": "e469c0d3a8dadda3da36d6a0a5f6b27756d63835aae5e21ecd3278b6ef581413",
+      "compatibilityProfile": "655d00d50a61603a7803c0353494b1194310c310dfc9cc0000e92025df4e3762",
+      "catalog": "cc4cc53cc1bf41b4a7ba4639432b30b369ce8d4811b723eda24a4b6575faba54",
+      "scorePolicy": "18710088694f109350501659cd82df780825b50e1369e394b8296aba835bdee6"
+    }
+  }
+}

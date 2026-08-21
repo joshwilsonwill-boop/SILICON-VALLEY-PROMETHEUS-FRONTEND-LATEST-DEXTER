@@ -1,0 +1,1926 @@
+{
+  "schemaVersion": "maul-artifact/v1",
+  "artifactId": "maul_artifact_msq4h1pb_d2be8add60",
+  "artifactType": "text_placement_plan",
+  "lineage": {
+    "projectId": "maul_project_msq4h1d0_b5233029ba",
+    "canonicalJobId": "maul_job_msq4h1d0_fe67598935",
+    "runId": "maul_run_msq4h1d0_351aeb6898",
+    "rootSourceAssetId": "maul_artifact_msq4h1d0_933257be9e",
+    "parentArtifactIds": [
+      "maul_artifact_msq4h1d0_933257be9e",
+      "maul_artifact_msq4h1d7_ec75f2d4db",
+      "maul_artifact_msq4h1db_429b71a46e",
+      "maul_artifact_msq4h1dy_cd6e98035f",
+      "maul_artifact_msq4h1do_ea3b4f8abc",
+      "maul_artifact_msq4h1et_8eacaadab4",
+      "maul_artifact_msq4h1ns_fd1924fba8"
+    ],
+    "sequence": 11,
+    "producedBy": {
+      "module": "maul-text-placement-planner",
+      "version": "1"
+    },
+    "createdAt": "2026-08-12T13:25:49.919Z"
+  },
+  "payload": {
+    "sourceAssetId": "maul_artifact_msq4h1d0_933257be9e",
+    "analysisArtifactId": "maul_artifact_msq4h1d7_ec75f2d4db",
+    "timelineArtifactId": "maul_artifact_msq4h1db_429b71a46e",
+    "candidateArtifactId": "maul_artifact_msq4h1dy_cd6e98035f",
+    "treatmentGenomeArtifactId": "maul_artifact_msq4h1do_ea3b4f8abc",
+    "planVersion": "maul-text-placement-plan/v1",
+    "replayKey": "514facea72d823b16e47c5ccedd129c3fc61103e4725dc2f9f8581b9821a65ff",
+    "authority": {
+      "authorityClass": "deterministic",
+      "stageId": "maul-text-placement-plan_v1",
+      "confidence": 0.72,
+      "inferenceReceiptId": null
+    },
+    "warnings": [],
+    "fallbacks": [
+      {
+        "condition": "A richer mandatory dependency is unavailable or unverified.",
+        "action": "Use the named restrained fallback and keep the release quality gate closed.",
+        "status": "available"
+      }
+    ],
+    "schemaVersion": "maul-text-placement-plan/v1",
+    "textChunkPlanArtifactId": "maul_artifact_msq4h1ns_fd1924fba8",
+    "textChunkPlanHash": "0985b495596ba78c712d36ec23b07b25ae07243198aad55939194e52194fdb32",
+    "catalog": {
+      "catalogId": "maul-placement-catalog-three-family-v1",
+      "version": "1",
+      "hash": "cc4cc53cc1bf41b4a7ba4639432b30b369ce8d4811b723eda24a4b6575faba54"
+    },
+    "scorePolicy": {
+      "policyId": "maul-placement-score-policy-v1",
+      "version": "1",
+      "hash": "18710088694f109350501659cd82df780825b50e1369e394b8296aba835bdee6",
+      "dimensionWeights": {
+        "readability": 0.24,
+        "subjectRelationship": 0.2,
+        "opticalBalance": 0.13,
+        "semanticCompatibility": 0.14,
+        "creativeDirectionFit": 0.1,
+        "continuity": 0.11,
+        "fallbackCost": 0.08
+      },
+      "beamWidth": 4,
+      "planningHorizonSegments": 3
+    },
+    "platformProfile": {
+      "profileId": "maul-platform-instagram-reels-v1",
+      "platform": "instagram_reels",
+      "version": "1",
+      "output": {
+        "width": 1080,
+        "height": 1920,
+        "fps": 30
+      },
+      "safeRegion": {
+        "x": 0.04,
+        "y": 0.04,
+        "width": 0.92,
+        "height": 0.88
+      }
+    },
+    "compatibilityProfiles": [
+      {
+        "profileId": "maul-measured-font_google_playfair_display_italic_700-v1",
+        "family": "Playfair Display",
+        "approvedFontAssets": [
+          {
+            "assetId": "font_google_playfair_display_italic_700",
+            "family": "Playfair Display",
+            "weights": [
+              700
+            ]
+          }
+        ],
+        "loadedFallback": {
+          "assetId": "font_google_playfair_display_italic_700",
+          "family": "Playfair Display",
+          "weight": 700
+        },
+        "metrics": {
+          "fingerprint": "2b6157ce3dd2ee3ee6850d42211636dbfadb922680b3661f9d9b42ccfcf1c5df",
+          "maxGlyphWidthEm": 1.198,
+          "maxLineHeightEm": 1.333,
+          "minimumFontSizePx": 48,
+          "maximumFontSizePx": 88,
+          "minimumLineHeight": 1,
+          "maximumLineHeight": 1.333
+        }
+      },
+      {
+        "profileId": "maul-measured-font_google_playfair_display_700-v1",
+        "family": "Playfair Display",
+        "approvedFontAssets": [
+          {
+            "assetId": "font_google_playfair_display_700",
+            "family": "Playfair Display",
+            "weights": [
+              700
+            ]
+          }
+        ],
+        "loadedFallback": {
+          "assetId": "font_google_playfair_display_700",
+          "family": "Playfair Display",
+          "weight": 700
+        },
+        "metrics": {
+          "fingerprint": "1669b73e88673a647c60482bc703f9e2894161724abd4c7b6cbeda332217e4e9",
+          "maxGlyphWidthEm": 1.281,
+          "maxLineHeightEm": 1.333,
+          "minimumFontSizePx": 48,
+          "maximumFontSizePx": 88,
+          "minimumLineHeight": 1,
+          "maximumLineHeight": 1.333
+        }
+      },
+      {
+        "profileId": "maul-measured-font_google_bebas_neue_400-v1",
+        "family": "Bebas Neue",
+        "approvedFontAssets": [
+          {
+            "assetId": "font_google_bebas_neue_400",
+            "family": "Bebas Neue",
+            "weights": [
+              400
+            ]
+          }
+        ],
+        "loadedFallback": {
+          "assetId": "font_google_bebas_neue_400",
+          "family": "Bebas Neue",
+          "weight": 400
+        },
+        "metrics": {
+          "fingerprint": "d2b074f04e7fb949487bf9825887a1b0905b7e674f954d0e9c8444abeaecee32",
+          "maxGlyphWidthEm": 0.845,
+          "maxLineHeightEm": 1.2,
+          "minimumFontSizePx": 48,
+          "maximumFontSizePx": 88,
+          "minimumLineHeight": 1,
+          "maximumLineHeight": 1.2
+        }
+      }
+    ],
+    "compositionIntervals": [
+      {
+        "intervalId": "joseph_restrained-cinematic_hook.editorial_asymmetry.media_observed_full_frame",
+        "sceneId": "mediapipe_scene_1",
+        "discontinuityId": "mediapipe_geometry_1",
+        "variantId": "scene_evidence.editorial_asymmetry.media_observed_full_frame",
+        "outputStartMs": 0,
+        "outputEndMs": 5022,
+        "transformHash": "364ebed67918e9dcf1d69fd2ad8127839a4ab57e419b041dee99e8e4974ebf4f",
+        "sourceViewport": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 1
+        },
+        "sourceOccupancy": [
+          {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 1
+          }
+        ],
+        "paddedNonSourceRegions": [],
+        "compositionDirection": "editorial_asymmetry",
+        "textAnchor": {
+          "box": {
+            "x": 0.06,
+            "y": 0.08,
+            "width": 0.88,
+            "height": 0.3
+          },
+          "maximumEnvelope": {
+            "x": 0.04,
+            "y": 0.06,
+            "width": 0.88,
+            "height": 0.33999999999999997
+          },
+          "alignment": "right",
+          "subjectInteraction": {
+            "policy": "controlled_overlap",
+            "faceInterference": 0.12557931315825946,
+            "evidenceIds": [
+              "mediapipe@0",
+              "mediapipe@400",
+              "mediapipe@801",
+              "mediapipe@1201",
+              "mediapipe@1602",
+              "mediapipe@2002",
+              "mediapipe@2402",
+              "mediapipe@2803",
+              "mediapipe@3203",
+              "mediapipe@3604",
+              "mediapipe@4004",
+              "mediapipe@4404",
+              "mediapipe@4805"
+            ]
+          }
+        },
+        "crop": {
+          "x": 0.3418,
+          "y": 0,
+          "width": 0.3164,
+          "height": 1
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        }
+      },
+      {
+        "intervalId": "joseph_restrained-cinematic_hook.poster_hero.media_observed_full_frame",
+        "sceneId": "mediapipe_scene_1",
+        "discontinuityId": "mediapipe_geometry_1",
+        "variantId": "scene_evidence.poster_hero.media_observed_full_frame",
+        "outputStartMs": 0,
+        "outputEndMs": 5022,
+        "transformHash": "2625db4e48047b5b386664eac2eb501ae167ab130dbb621f990fc12bcab553cd",
+        "sourceViewport": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 1
+        },
+        "sourceOccupancy": [
+          {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 1
+          }
+        ],
+        "paddedNonSourceRegions": [],
+        "compositionDirection": "poster_hero",
+        "textAnchor": {
+          "box": {
+            "x": 0.04,
+            "y": 0.08,
+            "width": 0.84,
+            "height": 0.4
+          },
+          "maximumEnvelope": {
+            "x": 0.04,
+            "y": 0.06,
+            "width": 0.88,
+            "height": 0.44
+          },
+          "alignment": "right",
+          "subjectInteraction": {
+            "policy": "controlled_overlap",
+            "faceInterference": 0.12557931315825946,
+            "evidenceIds": [
+              "mediapipe@0",
+              "mediapipe@400",
+              "mediapipe@801",
+              "mediapipe@1201",
+              "mediapipe@1602",
+              "mediapipe@2002",
+              "mediapipe@2402",
+              "mediapipe@2803",
+              "mediapipe@3203",
+              "mediapipe@3604",
+              "mediapipe@4004",
+              "mediapipe@4404",
+              "mediapipe@4805"
+            ]
+          }
+        },
+        "crop": {
+          "x": 0.3418,
+          "y": 0,
+          "width": 0.3164,
+          "height": 1
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        }
+      },
+      {
+        "intervalId": "joseph_restrained-cinematic_hook.restrained_minimal.media_observed_full_frame",
+        "sceneId": "mediapipe_scene_1",
+        "discontinuityId": "mediapipe_geometry_1",
+        "variantId": "scene_evidence.restrained_minimal.media_observed_full_frame",
+        "outputStartMs": 0,
+        "outputEndMs": 5022,
+        "transformHash": "116e32101208fe117580d49e4388d5bd8abe2240f0ac8e421041a72e123c2f51",
+        "sourceViewport": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 1
+        },
+        "sourceOccupancy": [
+          {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 1
+          }
+        ],
+        "paddedNonSourceRegions": [],
+        "compositionDirection": "restrained_minimal",
+        "textAnchor": {
+          "box": {
+            "x": 0.2536,
+            "y": 0.22759999999999997,
+            "width": 0.4752,
+            "height": 0.164
+          },
+          "maximumEnvelope": {
+            "x": 0.2336,
+            "y": 0.20759999999999998,
+            "width": 0.5152,
+            "height": 0.20400000000000001
+          },
+          "alignment": "right",
+          "subjectInteraction": {
+            "policy": "controlled_overlap",
+            "faceInterference": 0.12557931315825946,
+            "evidenceIds": [
+              "mediapipe@0",
+              "mediapipe@400",
+              "mediapipe@801",
+              "mediapipe@1201",
+              "mediapipe@1602",
+              "mediapipe@2002",
+              "mediapipe@2402",
+              "mediapipe@2803",
+              "mediapipe@3203",
+              "mediapipe@3604",
+              "mediapipe@4004",
+              "mediapipe@4404",
+              "mediapipe@4805"
+            ]
+          }
+        },
+        "crop": {
+          "x": 0.3418,
+          "y": 0,
+          "width": 0.3164,
+          "height": 1
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        }
+      },
+      {
+        "intervalId": "joseph_restrained-cinematic_hook.subject_integrated.media_observed_full_frame",
+        "sceneId": "mediapipe_scene_1",
+        "discontinuityId": "mediapipe_geometry_1",
+        "variantId": "scene_evidence.subject_integrated.media_observed_full_frame.creative_preferred",
+        "outputStartMs": 0,
+        "outputEndMs": 5022,
+        "transformHash": "d4ee07ae3957b792d268e3c7ce0624348c356d8790886ef0fceea22b9d5d49ba",
+        "sourceViewport": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 1
+        },
+        "sourceOccupancy": [
+          {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 1
+          }
+        ],
+        "paddedNonSourceRegions": [],
+        "compositionDirection": "subject_integrated",
+        "textAnchor": {
+          "box": {
+            "x": 0.0952,
+            "y": 0.4572,
+            "width": 0.8096,
+            "height": 0.3116
+          },
+          "maximumEnvelope": {
+            "x": 0.0752,
+            "y": 0.4372,
+            "width": 0.8448,
+            "height": 0.35159999999999997
+          },
+          "alignment": "right",
+          "subjectInteraction": {
+            "policy": "controlled_overlap",
+            "faceInterference": 0.12557931315825946,
+            "evidenceIds": [
+              "mediapipe@0",
+              "mediapipe@400",
+              "mediapipe@801",
+              "mediapipe@1201",
+              "mediapipe@1602",
+              "mediapipe@2002",
+              "mediapipe@2402",
+              "mediapipe@2803",
+              "mediapipe@3203",
+              "mediapipe@3604",
+              "mediapipe@4004",
+              "mediapipe@4404",
+              "mediapipe@4805"
+            ]
+          }
+        },
+        "crop": {
+          "x": 0.3418,
+          "y": 0,
+          "width": 0.3164,
+          "height": 1
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        }
+      },
+      {
+        "intervalId": "joseph_restrained-cinematic_payoff.editorial_asymmetry.media_observed_full_frame",
+        "sceneId": "mediapipe_scene_2",
+        "discontinuityId": "mediapipe_geometry_2",
+        "variantId": "scene_evidence.editorial_asymmetry.media_observed_full_frame",
+        "outputStartMs": 5022,
+        "outputEndMs": 10043,
+        "transformHash": "c7239242670861c809859b74f4580029c842e74955f29e16d0120e4ca4264726",
+        "sourceViewport": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 1
+        },
+        "sourceOccupancy": [
+          {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 1
+          }
+        ],
+        "paddedNonSourceRegions": [],
+        "compositionDirection": "editorial_asymmetry",
+        "textAnchor": {
+          "box": {
+            "x": 0.06,
+            "y": 0.08,
+            "width": 0.88,
+            "height": 0.3
+          },
+          "maximumEnvelope": {
+            "x": 0.04,
+            "y": 0.06,
+            "width": 0.88,
+            "height": 0.33999999999999997
+          },
+          "alignment": "right",
+          "subjectInteraction": {
+            "policy": "controlled_overlap",
+            "faceInterference": 0.11809453825110866,
+            "evidenceIds": [
+              "mediapipe@5205",
+              "mediapipe@5606",
+              "mediapipe@6006",
+              "mediapipe@6406",
+              "mediapipe@6807",
+              "mediapipe@7207",
+              "mediapipe@7608",
+              "mediapipe@8008",
+              "mediapipe@8408",
+              "mediapipe@8809",
+              "mediapipe@9209",
+              "mediapipe@9610"
+            ]
+          }
+        },
+        "crop": {
+          "x": 0.3418,
+          "y": 0,
+          "width": 0.3164,
+          "height": 1
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        }
+      },
+      {
+        "intervalId": "joseph_restrained-cinematic_payoff.poster_hero.media_observed_full_frame",
+        "sceneId": "mediapipe_scene_2",
+        "discontinuityId": "mediapipe_geometry_2",
+        "variantId": "scene_evidence.poster_hero.media_observed_full_frame",
+        "outputStartMs": 5022,
+        "outputEndMs": 10043,
+        "transformHash": "fe850dede6d9006938997eb8a5dabaad1afe36eb9d90a3c7a24f85813bc56330",
+        "sourceViewport": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 1
+        },
+        "sourceOccupancy": [
+          {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 1
+          }
+        ],
+        "paddedNonSourceRegions": [],
+        "compositionDirection": "poster_hero",
+        "textAnchor": {
+          "box": {
+            "x": 0.04,
+            "y": 0.08,
+            "width": 0.84,
+            "height": 0.4
+          },
+          "maximumEnvelope": {
+            "x": 0.04,
+            "y": 0.06,
+            "width": 0.88,
+            "height": 0.44
+          },
+          "alignment": "right",
+          "subjectInteraction": {
+            "policy": "controlled_overlap",
+            "faceInterference": 0.11809453825110866,
+            "evidenceIds": [
+              "mediapipe@5205",
+              "mediapipe@5606",
+              "mediapipe@6006",
+              "mediapipe@6406",
+              "mediapipe@6807",
+              "mediapipe@7207",
+              "mediapipe@7608",
+              "mediapipe@8008",
+              "mediapipe@8408",
+              "mediapipe@8809",
+              "mediapipe@9209",
+              "mediapipe@9610"
+            ]
+          }
+        },
+        "crop": {
+          "x": 0.3418,
+          "y": 0,
+          "width": 0.3164,
+          "height": 1
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        }
+      },
+      {
+        "intervalId": "joseph_restrained-cinematic_payoff.restrained_minimal.media_observed_full_frame",
+        "sceneId": "mediapipe_scene_2",
+        "discontinuityId": "mediapipe_geometry_2",
+        "variantId": "scene_evidence.restrained_minimal.media_observed_full_frame",
+        "outputStartMs": 5022,
+        "outputEndMs": 10043,
+        "transformHash": "e96063b9e8fde279d7d91b6ee83534109483cb600a73f6588b4fa8208092798b",
+        "sourceViewport": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 1
+        },
+        "sourceOccupancy": [
+          {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 1
+          }
+        ],
+        "paddedNonSourceRegions": [],
+        "compositionDirection": "restrained_minimal",
+        "textAnchor": {
+          "box": {
+            "x": 0.2536,
+            "y": 0.22759999999999997,
+            "width": 0.4752,
+            "height": 0.164
+          },
+          "maximumEnvelope": {
+            "x": 0.2336,
+            "y": 0.20759999999999998,
+            "width": 0.5152,
+            "height": 0.20400000000000001
+          },
+          "alignment": "right",
+          "subjectInteraction": {
+            "policy": "controlled_overlap",
+            "faceInterference": 0.11809453825110866,
+            "evidenceIds": [
+              "mediapipe@5205",
+              "mediapipe@5606",
+              "mediapipe@6006",
+              "mediapipe@6406",
+              "mediapipe@6807",
+              "mediapipe@7207",
+              "mediapipe@7608",
+              "mediapipe@8008",
+              "mediapipe@8408",
+              "mediapipe@8809",
+              "mediapipe@9209",
+              "mediapipe@9610"
+            ]
+          }
+        },
+        "crop": {
+          "x": 0.3418,
+          "y": 0,
+          "width": 0.3164,
+          "height": 1
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        }
+      },
+      {
+        "intervalId": "joseph_restrained-cinematic_payoff.subject_integrated.media_observed_full_frame",
+        "sceneId": "mediapipe_scene_2",
+        "discontinuityId": "mediapipe_geometry_2",
+        "variantId": "scene_evidence.subject_integrated.media_observed_full_frame.creative_preferred",
+        "outputStartMs": 5022,
+        "outputEndMs": 10043,
+        "transformHash": "ed000b11876cd183bac3066bfdfadd6e37afe31b15cc57b280ea238924d79c92",
+        "sourceViewport": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 1
+        },
+        "sourceOccupancy": [
+          {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 1
+          }
+        ],
+        "paddedNonSourceRegions": [],
+        "compositionDirection": "subject_integrated",
+        "textAnchor": {
+          "box": {
+            "x": 0.0952,
+            "y": 0.4572,
+            "width": 0.8096,
+            "height": 0.3116
+          },
+          "maximumEnvelope": {
+            "x": 0.0752,
+            "y": 0.4372,
+            "width": 0.8448,
+            "height": 0.35159999999999997
+          },
+          "alignment": "right",
+          "subjectInteraction": {
+            "policy": "controlled_overlap",
+            "faceInterference": 0.11809453825110866,
+            "evidenceIds": [
+              "mediapipe@5205",
+              "mediapipe@5606",
+              "mediapipe@6006",
+              "mediapipe@6406",
+              "mediapipe@6807",
+              "mediapipe@7207",
+              "mediapipe@7608",
+              "mediapipe@8008",
+              "mediapipe@8408",
+              "mediapipe@8809",
+              "mediapipe@9209",
+              "mediapipe@9610"
+            ]
+          }
+        },
+        "crop": {
+          "x": 0.3418,
+          "y": 0,
+          "width": 0.3164,
+          "height": 1
+        },
+        "scale": {
+          "x": 1,
+          "y": 1
+        }
+      }
+    ],
+    "status": "planned",
+    "blockingReason": null,
+    "segments": [
+      {
+        "segmentId": "placement_segment_7502ba98e04afeafaecfb3da",
+        "chunkId": "chunk_0_4_055745e783d4",
+        "sceneId": "mediapipe_scene_1",
+        "discontinuityId": "mediapipe_geometry_1",
+        "outputStartMs": 800,
+        "outputEndMs": 2000,
+        "selectedCompositionVariantId": "scene_evidence.subject_integrated.media_observed_full_frame.creative_preferred",
+        "selectedTransformHash": "d4ee07ae3957b792d268e3c7ce0624348c356d8790886ef0fceea22b9d5d49ba",
+        "tokenIds": [
+          "token_07977fb5f95479685806385f",
+          "token_4618442531f8c56244b72551",
+          "token_d508c9f0f4bb17fdb6a112fc",
+          "token_9f08dfd22d8e2b58878cc854",
+          "token_ea114f9f14fc597f3f36147b"
+        ],
+        "lines": [
+          {
+            "lineId": "placement_segment_7502ba98e04afeafaecfb3da_profile_line_1",
+            "tokenIds": [
+              "token_07977fb5f95479685806385f",
+              "token_4618442531f8c56244b72551",
+              "token_d508c9f0f4bb17fdb6a112fc",
+              "token_9f08dfd22d8e2b58878cc854",
+              "token_ea114f9f14fc597f3f36147b"
+            ],
+            "text": "Over the last 12 months,"
+          }
+        ],
+        "family": "editorial",
+        "variantId": "profile.typography_group_v1",
+        "box": {
+          "x": 0.12440000000000001,
+          "y": 0.68,
+          "width": 0.7512,
+          "height": 0.059985
+        },
+        "maximumEnvelope": {
+          "x": 0.12440000000000001,
+          "y": 0.68,
+          "width": 0.7512,
+          "height": 0.059985
+        },
+        "alignment": "center",
+        "profileTransform": {
+          "uniformScale": 1.7142857142857142,
+          "intrinsicWidthPx": 473.256,
+          "intrinsicHeightPx": 67.1832,
+          "finalWidthPx": 811.2959999999999,
+          "finalHeightPx": 115.1712
+        },
+        "profileColorResolution": {
+          "mode": "light_text",
+          "backgroundLuminance": 0.0061,
+          "layers": [
+            {
+              "layerName": "main_quote",
+              "requestedColor": "#111111",
+              "resolvedColor": "#FFFFFF",
+              "contrastRatio": 17.949
+            }
+          ]
+        },
+        "compatibility": {
+          "profileId": "maul-measured-font_google_playfair_display_italic_700-v1",
+          "metricsFingerprint": "2b6157ce3dd2ee3ee6850d42211636dbfadb922680b3661f9d9b42ccfcf1c5df",
+          "nominalFontSizePx": 42,
+          "lineHeight": 1.1,
+          "hierarchyScale": 1.7142857142857142
+        },
+        "depth": {
+          "desired": "front",
+          "resolved": "front",
+          "treatmentState": "not_requested"
+        },
+        "minimumLegibilityPrimitive": {
+          "kind": "outline",
+          "widthPx": 2,
+          "color": "#000000"
+        },
+        "hardGates": [
+          {
+            "gateId": "exact_token_sequence",
+            "status": "pass",
+            "evidenceId": null,
+            "rationale": "Rendered lines retain the governed token sequence exactly."
+          },
+          {
+            "gateId": "platform_safe_envelope",
+            "status": "pass",
+            "evidenceId": "maul-platform-instagram-reels-v1",
+            "rationale": "Maximum text envelope stays inside the versioned platform safe region."
+          },
+          {
+            "gateId": "profile_realization_geometry",
+            "status": "pass",
+            "evidenceId": "profile_measurement_9b666d1261c530c86537239a0b76691480fe60b42ae2b14b50ca4e3f515193d7",
+            "rationale": "Authoritative profile layers reserve one measured group envelope before placement."
+          },
+          {
+            "gateId": "measured_font_geometry",
+            "status": "pass",
+            "evidenceId": "font_measurement_67ce15428eb04d64bd315a567c083ef00311a8c174d37dc9afc56565ae90b13c",
+            "rationale": "Final placement uses measured Playfair Display line geometry."
+          },
+          {
+            "gateId": "minimum_readable_fit",
+            "status": "pass",
+            "evidenceId": "font_measurement_67ce15428eb04d64bd315a567c083ef00311a8c174d37dc9afc56565ae90b13c",
+            "rationale": "Measured or governed glyph and line metrics fit the selected box."
+          },
+          {
+            "gateId": "cut_evidence",
+            "status": "pass",
+            "evidenceId": "mediapipe_opencv_scene_evidence.joseph_restrained-cinematic_hook",
+            "rationale": "Declared cut evidence covers the full layout interval."
+          },
+          {
+            "gateId": "subject_clearance",
+            "status": "pass",
+            "evidenceId": "mediapipe@0",
+            "rationale": "Profile placement overlaps measured body occupancy while its final envelope clears the detected face."
+          },
+          {
+            "gateId": "existing_text_clearance",
+            "status": "pass",
+            "evidenceId": "mediapipe_opencv_scene_evidence.joseph_restrained-cinematic_hook",
+            "rationale": "Maximum envelope avoids known existing-text occupancy."
+          },
+          {
+            "gateId": "temporal_contrast",
+            "status": "pass",
+            "evidenceId": "mediapipe_opencv_scene_evidence.joseph_restrained-cinematic_hook",
+            "rationale": "One static chunk color remains readable across every sampled observed frame."
+          },
+          {
+            "gateId": "discontinuity_containment",
+            "status": "pass",
+            "evidenceId": "joseph_restrained-cinematic_hook.subject_integrated.media_observed_full_frame",
+            "rationale": "Layout segment is contained by one compiled transform interval."
+          }
+        ],
+        "scores": {
+          "readability": 0.9,
+          "subjectRelationship": 0.98,
+          "opticalBalance": 0.9,
+          "semanticCompatibility": 0.9,
+          "creativeDirectionFit": 1,
+          "continuity": 0.8,
+          "fallbackCost": 1
+        },
+        "rationale": "Deterministic editorial candidate passed every hard gate and sequence policy.",
+        "confidence": 0.88,
+        "fallbackCode": null,
+        "fallbackReason": null
+      },
+      {
+        "segmentId": "placement_segment_911fe3d8fe760b5b2f7c47d2",
+        "chunkId": "chunk_5_9_1ebc2d33d599",
+        "sceneId": "mediapipe_scene_1",
+        "discontinuityId": "mediapipe_geometry_1",
+        "outputStartMs": 2000,
+        "outputEndMs": 3920,
+        "selectedCompositionVariantId": "scene_evidence.subject_integrated.media_observed_full_frame.creative_preferred",
+        "selectedTransformHash": "d4ee07ae3957b792d268e3c7ce0624348c356d8790886ef0fceea22b9d5d49ba",
+        "tokenIds": [
+          "token_a09e50662e319ed8d5aa2b12",
+          "token_9c4c2c65b5d77e3f68007329",
+          "token_c9ce9ca2bfa13b88eb9f03b9",
+          "token_4a30bd04fc050fb24badd9cb",
+          "token_55cabd0da54fc2e24438643e"
+        ],
+        "lines": [
+          {
+            "lineId": "placement_segment_911fe3d8fe760b5b2f7c47d2_profile_line_1",
+            "tokenIds": [
+              "token_a09e50662e319ed8d5aa2b12",
+              "token_9c4c2c65b5d77e3f68007329",
+              "token_c9ce9ca2bfa13b88eb9f03b9"
+            ],
+            "text": "I'VE PURCHASED MORE"
+          },
+          {
+            "lineId": "placement_segment_911fe3d8fe760b5b2f7c47d2_profile_line_2",
+            "tokenIds": [
+              "token_4a30bd04fc050fb24badd9cb"
+            ],
+            "text": "than"
+          },
+          {
+            "lineId": "placement_segment_911fe3d8fe760b5b2f7c47d2_profile_line_3",
+            "tokenIds": [
+              "token_55cabd0da54fc2e24438643e"
+            ],
+            "text": "12,000"
+          }
+        ],
+        "family": "editorial",
+        "variantId": "profile.typography_group_v1",
+        "box": {
+          "x": 0.15000000000000002,
+          "y": 0.46,
+          "width": 0.7,
+          "height": 0.28247894451605343
+        },
+        "maximumEnvelope": {
+          "x": 0.15000000000000002,
+          "y": 0.46,
+          "width": 0.7,
+          "height": 0.28247894451605343
+        },
+        "alignment": "center",
+        "profileTransform": {
+          "uniformScale": 3.6911178814155146,
+          "intrinsicWidthPx": 204.816,
+          "intrinsicHeightPx": 146.9364,
+          "finalWidthPx": 756,
+          "finalHeightPx": 542.3595734708226
+        },
+        "profileColorResolution": {
+          "mode": "light_text",
+          "backgroundLuminance": 0.0126,
+          "layers": [
+            {
+              "layerName": "category_label",
+              "requestedColor": "#222222",
+              "resolvedColor": "#FFFFFF",
+              "contrastRatio": 16.304
+            },
+            {
+              "layerName": "script_top",
+              "requestedColor": "#111111",
+              "resolvedColor": "#FFFFFF",
+              "contrastRatio": 16.304
+            },
+            {
+              "layerName": "serif_main",
+              "requestedColor": "#111111",
+              "resolvedColor": "#FFFFFF",
+              "contrastRatio": 16.304
+            }
+          ]
+        },
+        "compatibility": {
+          "profileId": "maul-measured-font_google_playfair_display_700-v1",
+          "metricsFingerprint": "1669b73e88673a647c60482bc703f9e2894161724abd4c7b6cbeda332217e4e9",
+          "nominalFontSizePx": 68,
+          "lineHeight": 1.1,
+          "hierarchyScale": 3.6911178814155146
+        },
+        "depth": {
+          "desired": "front",
+          "resolved": "front",
+          "treatmentState": "not_requested"
+        },
+        "minimumLegibilityPrimitive": {
+          "kind": "outline",
+          "widthPx": 2,
+          "color": "#000000"
+        },
+        "hardGates": [
+          {
+            "gateId": "exact_token_sequence",
+            "status": "pass",
+            "evidenceId": null,
+            "rationale": "Rendered lines retain the governed token sequence exactly."
+          },
+          {
+            "gateId": "platform_safe_envelope",
+            "status": "pass",
+            "evidenceId": "maul-platform-instagram-reels-v1",
+            "rationale": "Maximum text envelope stays inside the versioned platform safe region."
+          },
+          {
+            "gateId": "profile_realization_geometry",
+            "status": "pass",
+            "evidenceId": "profile_measurement_a345a5af30c9e16447796817f08bc1808b2cd4feb7ca8b882d847d465030d2cb",
+            "rationale": "Authoritative profile layers reserve one measured group envelope before placement."
+          },
+          {
+            "gateId": "measured_font_geometry",
+            "status": "pass",
+            "evidenceId": "font_measurement_94e389478a2f00760823e55030a2354d7a7ae787360651934be7bdd983d5d5f9",
+            "rationale": "Final placement uses measured Playfair Display line geometry."
+          },
+          {
+            "gateId": "minimum_readable_fit",
+            "status": "pass",
+            "evidenceId": "font_measurement_94e389478a2f00760823e55030a2354d7a7ae787360651934be7bdd983d5d5f9",
+            "rationale": "Measured or governed glyph and line metrics fit the selected box."
+          },
+          {
+            "gateId": "cut_evidence",
+            "status": "pass",
+            "evidenceId": "mediapipe_opencv_scene_evidence.joseph_restrained-cinematic_hook",
+            "rationale": "Declared cut evidence covers the full layout interval."
+          },
+          {
+            "gateId": "subject_clearance",
+            "status": "pass",
+            "evidenceId": "mediapipe@0",
+            "rationale": "Profile placement overlaps measured body occupancy while its final envelope clears the detected face."
+          },
+          {
+            "gateId": "existing_text_clearance",
+            "status": "pass",
+            "evidenceId": "mediapipe_opencv_scene_evidence.joseph_restrained-cinematic_hook",
+            "rationale": "Maximum envelope avoids known existing-text occupancy."
+          },
+          {
+            "gateId": "temporal_contrast",
+            "status": "pass",
+            "evidenceId": "mediapipe_opencv_scene_evidence.joseph_restrained-cinematic_hook",
+            "rationale": "One static chunk color remains readable across every sampled observed frame."
+          },
+          {
+            "gateId": "discontinuity_containment",
+            "status": "pass",
+            "evidenceId": "joseph_restrained-cinematic_hook.subject_integrated.media_observed_full_frame",
+            "rationale": "Layout segment is contained by one compiled transform interval."
+          }
+        ],
+        "scores": {
+          "readability": 0.9,
+          "subjectRelationship": 0.98,
+          "opticalBalance": 0.9,
+          "semanticCompatibility": 0.9,
+          "creativeDirectionFit": 1,
+          "continuity": 0.8,
+          "fallbackCost": 1
+        },
+        "rationale": "Deterministic editorial candidate passed every hard gate and sequence policy.",
+        "confidence": 0.88,
+        "fallbackCode": null,
+        "fallbackReason": null
+      },
+      {
+        "segmentId": "placement_segment_d59e292e8fb830be1b339046",
+        "chunkId": "chunk_10_13_fdea92e944e2",
+        "sceneId": "mediapipe_scene_1",
+        "discontinuityId": "mediapipe_geometry_1",
+        "outputStartMs": 4000,
+        "outputEndMs": 5022,
+        "selectedCompositionVariantId": "scene_evidence.subject_integrated.media_observed_full_frame.creative_preferred",
+        "selectedTransformHash": "d4ee07ae3957b792d268e3c7ce0624348c356d8790886ef0fceea22b9d5d49ba",
+        "tokenIds": [
+          "token_b1a4b8210d480bcf024bd189",
+          "token_09a98761b43a6878c0af4eaf",
+          "token_188a987143ea03436d84cb2f",
+          "token_320670743d7b94818541394a"
+        ],
+        "lines": [
+          {
+            "lineId": "placement_segment_d59e292e8fb830be1b339046_profile_line_1",
+            "tokenIds": [
+              "token_b1a4b8210d480bcf024bd189"
+            ],
+            "text": "physical"
+          },
+          {
+            "lineId": "placement_segment_d59e292e8fb830be1b339046_profile_line_2",
+            "tokenIds": [
+              "token_09a98761b43a6878c0af4eaf"
+            ],
+            "text": "products"
+          },
+          {
+            "lineId": "placement_segment_d59e292e8fb830be1b339046_profile_line_3",
+            "tokenIds": [
+              "token_188a987143ea03436d84cb2f",
+              "token_320670743d7b94818541394a"
+            ],
+            "text": "from eBay.com"
+          }
+        ],
+        "family": "editorial",
+        "variantId": "profile.typography_group_v1",
+        "box": {
+          "x": 0.08,
+          "y": 0.46,
+          "width": 0.7,
+          "height": 0.2307033633965493
+        },
+        "maximumEnvelope": {
+          "x": 0.08,
+          "y": 0.46,
+          "width": 0.7,
+          "height": 0.2307033633965493
+        },
+        "alignment": "left",
+        "profileTransform": {
+          "uniformScale": 2.6949950092685016,
+          "intrinsicWidthPx": 280.52,
+          "intrinsicHeightPx": 164.3604,
+          "finalWidthPx": 756,
+          "finalHeightPx": 442.9504577213746
+        },
+        "profileColorResolution": {
+          "mode": "light_text",
+          "backgroundLuminance": 0.0132,
+          "layers": [
+            {
+              "layerName": "line_1",
+              "requestedColor": "#111111",
+              "resolvedColor": "#FFFFFF",
+              "contrastRatio": 16.154
+            },
+            {
+              "layerName": "double_underlined",
+              "requestedColor": "#111111",
+              "resolvedColor": "#FFFFFF",
+              "contrastRatio": 16.154
+            },
+            {
+              "layerName": "circled_theories",
+              "requestedColor": "#111111",
+              "resolvedColor": "#FFFFFF",
+              "contrastRatio": 16.154
+            }
+          ]
+        },
+        "compatibility": {
+          "profileId": "maul-measured-font_google_playfair_display_700-v1",
+          "metricsFingerprint": "1669b73e88673a647c60482bc703f9e2894161724abd4c7b6cbeda332217e4e9",
+          "nominalFontSizePx": 40,
+          "lineHeight": 1.1,
+          "hierarchyScale": 2.6949950092685016
+        },
+        "depth": {
+          "desired": "front",
+          "resolved": "front",
+          "treatmentState": "not_requested"
+        },
+        "minimumLegibilityPrimitive": {
+          "kind": "outline",
+          "widthPx": 2,
+          "color": "#000000"
+        },
+        "hardGates": [
+          {
+            "gateId": "exact_token_sequence",
+            "status": "pass",
+            "evidenceId": null,
+            "rationale": "Rendered lines retain the governed token sequence exactly."
+          },
+          {
+            "gateId": "platform_safe_envelope",
+            "status": "pass",
+            "evidenceId": "maul-platform-instagram-reels-v1",
+            "rationale": "Maximum text envelope stays inside the versioned platform safe region."
+          },
+          {
+            "gateId": "profile_realization_geometry",
+            "status": "pass",
+            "evidenceId": "profile_measurement_31b134912b78947b42fca39379cfb62b78f00d16e547312bfb714641c4f822db",
+            "rationale": "Authoritative profile layers reserve one measured group envelope before placement."
+          },
+          {
+            "gateId": "measured_font_geometry",
+            "status": "pass",
+            "evidenceId": "font_measurement_368b82dbe3104568e568f9932e234e8399d6378a125794e48762324b45a74209",
+            "rationale": "Final placement uses measured Playfair Display line geometry."
+          },
+          {
+            "gateId": "minimum_readable_fit",
+            "status": "pass",
+            "evidenceId": "font_measurement_368b82dbe3104568e568f9932e234e8399d6378a125794e48762324b45a74209",
+            "rationale": "Measured or governed glyph and line metrics fit the selected box."
+          },
+          {
+            "gateId": "cut_evidence",
+            "status": "pass",
+            "evidenceId": "mediapipe_opencv_scene_evidence.joseph_restrained-cinematic_hook",
+            "rationale": "Declared cut evidence covers the full layout interval."
+          },
+          {
+            "gateId": "subject_clearance",
+            "status": "pass",
+            "evidenceId": "mediapipe@0",
+            "rationale": "Profile placement overlaps measured body occupancy while its final envelope clears the detected face."
+          },
+          {
+            "gateId": "existing_text_clearance",
+            "status": "pass",
+            "evidenceId": "mediapipe_opencv_scene_evidence.joseph_restrained-cinematic_hook",
+            "rationale": "Maximum envelope avoids known existing-text occupancy."
+          },
+          {
+            "gateId": "temporal_contrast",
+            "status": "pass",
+            "evidenceId": "mediapipe_opencv_scene_evidence.joseph_restrained-cinematic_hook",
+            "rationale": "One static chunk color remains readable across every sampled observed frame."
+          },
+          {
+            "gateId": "discontinuity_containment",
+            "status": "pass",
+            "evidenceId": "joseph_restrained-cinematic_hook.subject_integrated.media_observed_full_frame",
+            "rationale": "Layout segment is contained by one compiled transform interval."
+          }
+        ],
+        "scores": {
+          "readability": 0.9,
+          "subjectRelationship": 0.98,
+          "opticalBalance": 0.9,
+          "semanticCompatibility": 0.9,
+          "creativeDirectionFit": 1,
+          "continuity": 0.8,
+          "fallbackCost": 1
+        },
+        "rationale": "Deterministic editorial candidate passed every hard gate and sequence policy.",
+        "confidence": 0.88,
+        "fallbackCode": null,
+        "fallbackReason": null
+      },
+      {
+        "segmentId": "placement_segment_31e52a1c6fb07b6a5132487d",
+        "chunkId": "chunk_10_13_fdea92e944e2",
+        "sceneId": "mediapipe_scene_2",
+        "discontinuityId": "mediapipe_geometry_2",
+        "outputStartMs": 5022,
+        "outputEndMs": 6080,
+        "selectedCompositionVariantId": "scene_evidence.subject_integrated.media_observed_full_frame.creative_preferred",
+        "selectedTransformHash": "ed000b11876cd183bac3066bfdfadd6e37afe31b15cc57b280ea238924d79c92",
+        "tokenIds": [
+          "token_b1a4b8210d480bcf024bd189",
+          "token_09a98761b43a6878c0af4eaf",
+          "token_188a987143ea03436d84cb2f",
+          "token_320670743d7b94818541394a"
+        ],
+        "lines": [
+          {
+            "lineId": "placement_segment_31e52a1c6fb07b6a5132487d_profile_line_1",
+            "tokenIds": [
+              "token_b1a4b8210d480bcf024bd189"
+            ],
+            "text": "physical"
+          },
+          {
+            "lineId": "placement_segment_31e52a1c6fb07b6a5132487d_profile_line_2",
+            "tokenIds": [
+              "token_09a98761b43a6878c0af4eaf"
+            ],
+            "text": "products"
+          },
+          {
+            "lineId": "placement_segment_31e52a1c6fb07b6a5132487d_profile_line_3",
+            "tokenIds": [
+              "token_188a987143ea03436d84cb2f",
+              "token_320670743d7b94818541394a"
+            ],
+            "text": "from eBay.com"
+          }
+        ],
+        "family": "editorial",
+        "variantId": "profile.typography_group_v1",
+        "box": {
+          "x": 0.08,
+          "y": 0.46,
+          "width": 0.7,
+          "height": 0.2307033633965493
+        },
+        "maximumEnvelope": {
+          "x": 0.08,
+          "y": 0.46,
+          "width": 0.7,
+          "height": 0.2307033633965493
+        },
+        "alignment": "left",
+        "profileTransform": {
+          "uniformScale": 2.6949950092685016,
+          "intrinsicWidthPx": 280.52,
+          "intrinsicHeightPx": 164.3604,
+          "finalWidthPx": 756,
+          "finalHeightPx": 442.9504577213746
+        },
+        "profileColorResolution": {
+          "mode": "light_text",
+          "backgroundLuminance": 0.0104,
+          "layers": [
+            {
+              "layerName": "line_1",
+              "requestedColor": "#111111",
+              "resolvedColor": "#FFFFFF",
+              "contrastRatio": 17.101
+            },
+            {
+              "layerName": "double_underlined",
+              "requestedColor": "#111111",
+              "resolvedColor": "#FFFFFF",
+              "contrastRatio": 17.101
+            },
+            {
+              "layerName": "circled_theories",
+              "requestedColor": "#111111",
+              "resolvedColor": "#FFFFFF",
+              "contrastRatio": 17.101
+            }
+          ]
+        },
+        "compatibility": {
+          "profileId": "maul-measured-font_google_playfair_display_700-v1",
+          "metricsFingerprint": "1669b73e88673a647c60482bc703f9e2894161724abd4c7b6cbeda332217e4e9",
+          "nominalFontSizePx": 40,
+          "lineHeight": 1.1,
+          "hierarchyScale": 2.6949950092685016
+        },
+        "depth": {
+          "desired": "front",
+          "resolved": "front",
+          "treatmentState": "not_requested"
+        },
+        "minimumLegibilityPrimitive": {
+          "kind": "outline",
+          "widthPx": 2,
+          "color": "#000000"
+        },
+        "hardGates": [
+          {
+            "gateId": "exact_token_sequence",
+            "status": "pass",
+            "evidenceId": null,
+            "rationale": "Rendered lines retain the governed token sequence exactly."
+          },
+          {
+            "gateId": "platform_safe_envelope",
+            "status": "pass",
+            "evidenceId": "maul-platform-instagram-reels-v1",
+            "rationale": "Maximum text envelope stays inside the versioned platform safe region."
+          },
+          {
+            "gateId": "profile_realization_geometry",
+            "status": "pass",
+            "evidenceId": "profile_measurement_31b134912b78947b42fca39379cfb62b78f00d16e547312bfb714641c4f822db",
+            "rationale": "Authoritative profile layers reserve one measured group envelope before placement."
+          },
+          {
+            "gateId": "measured_font_geometry",
+            "status": "pass",
+            "evidenceId": "font_measurement_368b82dbe3104568e568f9932e234e8399d6378a125794e48762324b45a74209",
+            "rationale": "Final placement uses measured Playfair Display line geometry."
+          },
+          {
+            "gateId": "minimum_readable_fit",
+            "status": "pass",
+            "evidenceId": "font_measurement_368b82dbe3104568e568f9932e234e8399d6378a125794e48762324b45a74209",
+            "rationale": "Measured or governed glyph and line metrics fit the selected box."
+          },
+          {
+            "gateId": "cut_evidence",
+            "status": "pass",
+            "evidenceId": "mediapipe_opencv_scene_evidence.joseph_restrained-cinematic_payoff",
+            "rationale": "Declared cut evidence covers the full layout interval."
+          },
+          {
+            "gateId": "subject_clearance",
+            "status": "pass",
+            "evidenceId": "mediapipe@5205",
+            "rationale": "Profile placement overlaps measured body occupancy while its final envelope clears the detected face."
+          },
+          {
+            "gateId": "existing_text_clearance",
+            "status": "pass",
+            "evidenceId": "mediapipe_opencv_scene_evidence.joseph_restrained-cinematic_payoff",
+            "rationale": "Maximum envelope avoids known existing-text occupancy."
+          },
+          {
+            "gateId": "temporal_contrast",
+            "status": "pass",
+            "evidenceId": "mediapipe_opencv_scene_evidence.joseph_restrained-cinematic_payoff",
+            "rationale": "One static chunk color remains readable across every sampled observed frame."
+          },
+          {
+            "gateId": "discontinuity_containment",
+            "status": "pass",
+            "evidenceId": "joseph_restrained-cinematic_payoff.subject_integrated.media_observed_full_frame",
+            "rationale": "Layout segment is contained by one compiled transform interval."
+          }
+        ],
+        "scores": {
+          "readability": 0.9,
+          "subjectRelationship": 0.98,
+          "opticalBalance": 0.9,
+          "semanticCompatibility": 0.9,
+          "creativeDirectionFit": 1,
+          "continuity": 0.8,
+          "fallbackCost": 1
+        },
+        "rationale": "Deterministic editorial candidate passed every hard gate and sequence policy.",
+        "confidence": 0.88,
+        "fallbackCode": null,
+        "fallbackReason": null
+      },
+      {
+        "segmentId": "placement_segment_58dce0b409be4aff38367bfc",
+        "chunkId": "chunk_14_17_b0d6fda96b22",
+        "sceneId": "mediapipe_scene_2",
+        "discontinuityId": "mediapipe_geometry_2",
+        "outputStartMs": 6240,
+        "outputEndMs": 7440,
+        "selectedCompositionVariantId": "scene_evidence.subject_integrated.media_observed_full_frame.creative_preferred",
+        "selectedTransformHash": "ed000b11876cd183bac3066bfdfadd6e37afe31b15cc57b280ea238924d79c92",
+        "tokenIds": [
+          "token_0cf5d2b3fc4096b1597881ec",
+          "token_fa052135c353b6d7fb43c021",
+          "token_97a801171634b0070541c253",
+          "token_324d50c68c4b5622d759f126"
+        ],
+        "lines": [
+          {
+            "lineId": "placement_segment_58dce0b409be4aff38367bfc_profile_line_1",
+            "tokenIds": [
+              "token_0cf5d2b3fc4096b1597881ec",
+              "token_fa052135c353b6d7fb43c021"
+            ],
+            "text": "that I've"
+          },
+          {
+            "lineId": "placement_segment_58dce0b409be4aff38367bfc_profile_line_2",
+            "tokenIds": [
+              "token_97a801171634b0070541c253"
+            ],
+            "text": "THEN"
+          },
+          {
+            "lineId": "placement_segment_58dce0b409be4aff38367bfc_profile_line_3",
+            "tokenIds": [
+              "token_324d50c68c4b5622d759f126"
+            ],
+            "text": "resold"
+          }
+        ],
+        "family": "editorial",
+        "variantId": "profile.typography_group_v1",
+        "box": {
+          "x": 0.21789196027219287,
+          "y": 0.4390650000854288,
+          "width": 0.5642160794556143,
+          "height": 0.4809349999145712
+        },
+        "maximumEnvelope": {
+          "x": 0.21789196027219287,
+          "y": 0.4390650000854288,
+          "width": 0.5642160794556143,
+          "height": 0.4809349999145712
+        },
+        "alignment": "center",
+        "profileTransform": {
+          "uniformScale": 6.7971774697936755,
+          "intrinsicWidthPx": 89.648,
+          "intrinsicHeightPx": 135.8498,
+          "finalWidthPx": 609.3533658120634,
+          "finalHeightPx": 923.3951998359768
+        },
+        "profileColorResolution": {
+          "mode": "profile",
+          "backgroundLuminance": 0.0087,
+          "layers": [
+            {
+              "layerName": "header_prefix",
+              "requestedColor": "#FFFFFF",
+              "resolvedColor": "#FFFFFF",
+              "contrastRatio": 17.677
+            },
+            {
+              "layerName": "hero_3d_text",
+              "requestedColor": "#007AFF",
+              "resolvedColor": "#007AFF",
+              "contrastRatio": 4.401
+            },
+            {
+              "layerName": "suffix_text",
+              "requestedColor": "#FFFFFF",
+              "resolvedColor": "#FFFFFF",
+              "contrastRatio": 17.677
+            }
+          ]
+        },
+        "compatibility": {
+          "profileId": "maul-measured-font_google_bebas_neue_400-v1",
+          "metricsFingerprint": "d2b074f04e7fb949487bf9825887a1b0905b7e674f954d0e9c8444abeaecee32",
+          "nominalFontSizePx": 52,
+          "lineHeight": 1.1,
+          "hierarchyScale": 6.7971774697936755
+        },
+        "depth": {
+          "desired": "front",
+          "resolved": "front",
+          "treatmentState": "not_requested"
+        },
+        "minimumLegibilityPrimitive": {
+          "kind": "outline",
+          "widthPx": 2,
+          "color": "#000000"
+        },
+        "hardGates": [
+          {
+            "gateId": "exact_token_sequence",
+            "status": "pass",
+            "evidenceId": null,
+            "rationale": "Rendered lines retain the governed token sequence exactly."
+          },
+          {
+            "gateId": "platform_safe_envelope",
+            "status": "pass",
+            "evidenceId": "maul-platform-instagram-reels-v1",
+            "rationale": "Maximum text envelope stays inside the versioned platform safe region."
+          },
+          {
+            "gateId": "profile_realization_geometry",
+            "status": "pass",
+            "evidenceId": "profile_measurement_699a2fe71e6d210602469e6ab5c68be45ef221cc34ee961d0921427567b3359f",
+            "rationale": "Authoritative profile layers reserve one measured group envelope before placement."
+          },
+          {
+            "gateId": "measured_font_geometry",
+            "status": "pass",
+            "evidenceId": "font_measurement_16e232ac9c8a3b1d45698577a81edb293d1852982a43d978c4ed8bba7d34fc1b",
+            "rationale": "Final placement uses measured Bebas Neue line geometry."
+          },
+          {
+            "gateId": "minimum_readable_fit",
+            "status": "pass",
+            "evidenceId": "font_measurement_16e232ac9c8a3b1d45698577a81edb293d1852982a43d978c4ed8bba7d34fc1b",
+            "rationale": "Measured or governed glyph and line metrics fit the selected box."
+          },
+          {
+            "gateId": "cut_evidence",
+            "status": "pass",
+            "evidenceId": "mediapipe_opencv_scene_evidence.joseph_restrained-cinematic_payoff",
+            "rationale": "Declared cut evidence covers the full layout interval."
+          },
+          {
+            "gateId": "subject_clearance",
+            "status": "pass",
+            "evidenceId": "mediapipe@5205",
+            "rationale": "Profile placement overlaps measured body occupancy while its final envelope clears the detected face."
+          },
+          {
+            "gateId": "existing_text_clearance",
+            "status": "pass",
+            "evidenceId": "mediapipe_opencv_scene_evidence.joseph_restrained-cinematic_payoff",
+            "rationale": "Maximum envelope avoids known existing-text occupancy."
+          },
+          {
+            "gateId": "temporal_contrast",
+            "status": "pass",
+            "evidenceId": "mediapipe_opencv_scene_evidence.joseph_restrained-cinematic_payoff",
+            "rationale": "One static chunk color remains readable across every sampled observed frame."
+          },
+          {
+            "gateId": "discontinuity_containment",
+            "status": "pass",
+            "evidenceId": "joseph_restrained-cinematic_payoff.subject_integrated.media_observed_full_frame",
+            "rationale": "Layout segment is contained by one compiled transform interval."
+          }
+        ],
+        "scores": {
+          "readability": 0.9,
+          "subjectRelationship": 0.98,
+          "opticalBalance": 0.9,
+          "semanticCompatibility": 0.9,
+          "creativeDirectionFit": 1,
+          "continuity": 0.8,
+          "fallbackCost": 1
+        },
+        "rationale": "Deterministic editorial candidate passed every hard gate and sequence policy.",
+        "confidence": 0.88,
+        "fallbackCode": null,
+        "fallbackReason": null
+      },
+      {
+        "segmentId": "placement_segment_999cd0422b7ecafb353ab40f",
+        "chunkId": "chunk_18_22_b207591b3847",
+        "sceneId": "mediapipe_scene_2",
+        "discontinuityId": "mediapipe_geometry_2",
+        "outputStartMs": 7440,
+        "outputEndMs": 8680,
+        "selectedCompositionVariantId": "scene_evidence.subject_integrated.media_observed_full_frame.creative_preferred",
+        "selectedTransformHash": "ed000b11876cd183bac3066bfdfadd6e37afe31b15cc57b280ea238924d79c92",
+        "tokenIds": [
+          "token_a319556febb86457dd1367c2",
+          "token_b715f889d95009206bf271ab",
+          "token_4a6ab6bd7805346a5e712623",
+          "token_06ad87a4084e4a546e97c36c",
+          "token_95cab6407360366e699bf424"
+        ],
+        "lines": [
+          {
+            "lineId": "placement_segment_999cd0422b7ecafb353ab40f_profile_line_1",
+            "tokenIds": [
+              "token_a319556febb86457dd1367c2",
+              "token_b715f889d95009206bf271ab",
+              "token_4a6ab6bd7805346a5e712623",
+              "token_06ad87a4084e4a546e97c36c",
+              "token_95cab6407360366e699bf424"
+            ],
+            "text": "on Amazon for more than"
+          }
+        ],
+        "family": "editorial",
+        "variantId": "profile.typography_group_v1",
+        "box": {
+          "x": 0.10036666666666666,
+          "y": 0.68,
+          "width": 0.7992666666666667,
+          "height": 0.059985
+        },
+        "maximumEnvelope": {
+          "x": 0.10036666666666666,
+          "y": 0.68,
+          "width": 0.7992666666666667,
+          "height": 0.059985
+        },
+        "alignment": "center",
+        "profileTransform": {
+          "uniformScale": 1.7142857142857142,
+          "intrinsicWidthPx": 503.538,
+          "intrinsicHeightPx": 67.1832,
+          "finalWidthPx": 863.208,
+          "finalHeightPx": 115.1712
+        },
+        "profileColorResolution": {
+          "mode": "light_text",
+          "backgroundLuminance": 0.0066,
+          "layers": [
+            {
+              "layerName": "main_quote",
+              "requestedColor": "#111111",
+              "resolvedColor": "#FFFFFF",
+              "contrastRatio": 18.166
+            }
+          ]
+        },
+        "compatibility": {
+          "profileId": "maul-measured-font_google_playfair_display_italic_700-v1",
+          "metricsFingerprint": "2b6157ce3dd2ee3ee6850d42211636dbfadb922680b3661f9d9b42ccfcf1c5df",
+          "nominalFontSizePx": 42,
+          "lineHeight": 1.1,
+          "hierarchyScale": 1.7142857142857142
+        },
+        "depth": {
+          "desired": "front",
+          "resolved": "front",
+          "treatmentState": "not_requested"
+        },
+        "minimumLegibilityPrimitive": {
+          "kind": "outline",
+          "widthPx": 2,
+          "color": "#000000"
+        },
+        "hardGates": [
+          {
+            "gateId": "exact_token_sequence",
+            "status": "pass",
+            "evidenceId": null,
+            "rationale": "Rendered lines retain the governed token sequence exactly."
+          },
+          {
+            "gateId": "platform_safe_envelope",
+            "status": "pass",
+            "evidenceId": "maul-platform-instagram-reels-v1",
+            "rationale": "Maximum text envelope stays inside the versioned platform safe region."
+          },
+          {
+            "gateId": "profile_realization_geometry",
+            "status": "pass",
+            "evidenceId": "profile_measurement_5170e7bfe96fe0f939a836713459046a04cccbe52f832abf8b2b6593eaf7bbfb",
+            "rationale": "Authoritative profile layers reserve one measured group envelope before placement."
+          },
+          {
+            "gateId": "measured_font_geometry",
+            "status": "pass",
+            "evidenceId": "font_measurement_826441b97925eab536c69d82bfaa86bf628f4c34196c8ef5b485e34c91bee9f8",
+            "rationale": "Final placement uses measured Playfair Display line geometry."
+          },
+          {
+            "gateId": "minimum_readable_fit",
+            "status": "pass",
+            "evidenceId": "font_measurement_826441b97925eab536c69d82bfaa86bf628f4c34196c8ef5b485e34c91bee9f8",
+            "rationale": "Measured or governed glyph and line metrics fit the selected box."
+          },
+          {
+            "gateId": "cut_evidence",
+            "status": "pass",
+            "evidenceId": "mediapipe_opencv_scene_evidence.joseph_restrained-cinematic_payoff",
+            "rationale": "Declared cut evidence covers the full layout interval."
+          },
+          {
+            "gateId": "subject_clearance",
+            "status": "pass",
+            "evidenceId": "mediapipe@5205",
+            "rationale": "Profile placement overlaps measured body occupancy while its final envelope clears the detected face."
+          },
+          {
+            "gateId": "existing_text_clearance",
+            "status": "pass",
+            "evidenceId": "mediapipe_opencv_scene_evidence.joseph_restrained-cinematic_payoff",
+            "rationale": "Maximum envelope avoids known existing-text occupancy."
+          },
+          {
+            "gateId": "temporal_contrast",
+            "status": "pass",
+            "evidenceId": "mediapipe_opencv_scene_evidence.joseph_restrained-cinematic_payoff",
+            "rationale": "One static chunk color remains readable across every sampled observed frame."
+          },
+          {
+            "gateId": "discontinuity_containment",
+            "status": "pass",
+            "evidenceId": "joseph_restrained-cinematic_payoff.subject_integrated.media_observed_full_frame",
+            "rationale": "Layout segment is contained by one compiled transform interval."
+          }
+        ],
+        "scores": {
+          "readability": 0.9,
+          "subjectRelationship": 0.98,
+          "opticalBalance": 0.9,
+          "semanticCompatibility": 0.9,
+          "creativeDirectionFit": 1,
+          "continuity": 0.8,
+          "fallbackCost": 1
+        },
+        "rationale": "Deterministic editorial candidate passed every hard gate and sequence policy.",
+        "confidence": 0.88,
+        "fallbackCode": null,
+        "fallbackReason": null
+      },
+      {
+        "segmentId": "placement_segment_02300c8fe04e34096235416c",
+        "chunkId": "chunk_23_26_d23914a98d4b",
+        "sceneId": "mediapipe_scene_2",
+        "discontinuityId": "mediapipe_geometry_2",
+        "outputStartMs": 8680,
+        "outputEndMs": 9920,
+        "selectedCompositionVariantId": "scene_evidence.subject_integrated.media_observed_full_frame.creative_preferred",
+        "selectedTransformHash": "ed000b11876cd183bac3066bfdfadd6e37afe31b15cc57b280ea238924d79c92",
+        "tokenIds": [
+          "token_29cc682301db4d92ddae15fe",
+          "token_b62928a664eb4e706cca111a",
+          "token_cc69acaa6e89d9a93c37a8b1",
+          "token_7dce936013b91f54f9f44d23"
+        ],
+        "lines": [
+          {
+            "lineId": "placement_segment_02300c8fe04e34096235416c_profile_line_1",
+            "tokenIds": [
+              "token_29cc682301db4d92ddae15fe",
+              "token_b62928a664eb4e706cca111a",
+              "token_cc69acaa6e89d9a93c37a8b1"
+            ],
+            "text": "SIX FIGURES IN"
+          },
+          {
+            "lineId": "placement_segment_02300c8fe04e34096235416c_profile_line_2",
+            "tokenIds": [
+              "token_7dce936013b91f54f9f44d23"
+            ],
+            "text": "pure."
+          }
+        ],
+        "family": "editorial",
+        "variantId": "profile.typography_group_v1",
+        "box": {
+          "x": 0.08,
+          "y": 0.46,
+          "width": 0.7,
+          "height": 0.23330784169374494
+        },
+        "maximumEnvelope": {
+          "x": 0.08,
+          "y": 0.46,
+          "width": 0.7,
+          "height": 0.23330784169374494
+        },
+        "alignment": "left",
+        "profileTransform": {
+          "uniformScale": 3.6555645816409426,
+          "intrinsicWidthPx": 206.808,
+          "intrinsicHeightPx": 122.5395,
+          "finalWidthPx": 756,
+          "finalHeightPx": 447.9510560519903
+        },
+        "profileColorResolution": {
+          "mode": "light_text",
+          "backgroundLuminance": 0.0104,
+          "layers": [
+            {
+              "layerName": "light_header",
+              "requestedColor": "#111111",
+              "resolvedColor": "#FFFFFF",
+              "contrastRatio": 17.101
+            },
+            {
+              "layerName": "bold_target",
+              "requestedColor": "#111111",
+              "resolvedColor": "#FFFFFF",
+              "contrastRatio": 17.101
+            }
+          ]
+        },
+        "compatibility": {
+          "profileId": "maul-measured-font_google_playfair_display_700-v1",
+          "metricsFingerprint": "1669b73e88673a647c60482bc703f9e2894161724abd4c7b6cbeda332217e4e9",
+          "nominalFontSizePx": 65,
+          "lineHeight": 1.1,
+          "hierarchyScale": 3.6555645816409426
+        },
+        "depth": {
+          "desired": "front",
+          "resolved": "front",
+          "treatmentState": "not_requested"
+        },
+        "minimumLegibilityPrimitive": {
+          "kind": "outline",
+          "widthPx": 2,
+          "color": "#000000"
+        },
+        "hardGates": [
+          {
+            "gateId": "exact_token_sequence",
+            "status": "pass",
+            "evidenceId": null,
+            "rationale": "Rendered lines retain the governed token sequence exactly."
+          },
+          {
+            "gateId": "platform_safe_envelope",
+            "status": "pass",
+            "evidenceId": "maul-platform-instagram-reels-v1",
+            "rationale": "Maximum text envelope stays inside the versioned platform safe region."
+          },
+          {
+            "gateId": "profile_realization_geometry",
+            "status": "pass",
+            "evidenceId": "profile_measurement_41535036da5d764357ef96060c973897a08fd1508f558ed3320c6349c002f1a9",
+            "rationale": "Authoritative profile layers reserve one measured group envelope before placement."
+          },
+          {
+            "gateId": "measured_font_geometry",
+            "status": "pass",
+            "evidenceId": "font_measurement_27e89dc85d17286292b04d1c9d121ce7bfabbf90ae7d8b18c6abfce4686ce1ad",
+            "rationale": "Final placement uses measured Playfair Display line geometry."
+          },
+          {
+            "gateId": "minimum_readable_fit",
+            "status": "pass",
+            "evidenceId": "font_measurement_27e89dc85d17286292b04d1c9d121ce7bfabbf90ae7d8b18c6abfce4686ce1ad",
+            "rationale": "Measured or governed glyph and line metrics fit the selected box."
+          },
+          {
+            "gateId": "cut_evidence",
+            "status": "pass",
+            "evidenceId": "mediapipe_opencv_scene_evidence.joseph_restrained-cinematic_payoff",
+            "rationale": "Declared cut evidence covers the full layout interval."
+          },
+          {
+            "gateId": "subject_clearance",
+            "status": "pass",
+            "evidenceId": "mediapipe@5205",
+            "rationale": "Profile placement overlaps measured body occupancy while its final envelope clears the detected face."
+          },
+          {
+            "gateId": "existing_text_clearance",
+            "status": "pass",
+            "evidenceId": "mediapipe_opencv_scene_evidence.joseph_restrained-cinematic_payoff",
+            "rationale": "Maximum envelope avoids known existing-text occupancy."
+          },
+          {
+            "gateId": "temporal_contrast",
+            "status": "pass",
+            "evidenceId": "mediapipe_opencv_scene_evidence.joseph_restrained-cinematic_payoff",
+            "rationale": "One static chunk color remains readable across every sampled observed frame."
+          },
+          {
+            "gateId": "discontinuity_containment",
+            "status": "pass",
+            "evidenceId": "joseph_restrained-cinematic_payoff.subject_integrated.media_observed_full_frame",
+            "rationale": "Layout segment is contained by one compiled transform interval."
+          }
+        ],
+        "scores": {
+          "readability": 0.9,
+          "subjectRelationship": 0.98,
+          "opticalBalance": 0.9,
+          "semanticCompatibility": 0.9,
+          "creativeDirectionFit": 1,
+          "continuity": 0.8,
+          "fallbackCost": 1
+        },
+        "rationale": "Deterministic editorial candidate passed every hard gate and sequence policy.",
+        "confidence": 0.88,
+        "fallbackCode": null,
+        "fallbackReason": null
+      }
+    ],
+    "inputHashes": {
+      "textChunkPlan": "0985b495596ba78c712d36ec23b07b25ae07243198aad55939194e52194fdb32",
+      "outputCompositionTrack": "befda4cf5db731fb7dc5c9fbabb522688ee3c0401e352ed708ddfa120f46c393",
+      "platformProfile": "e469c0d3a8dadda3da36d6a0a5f6b27756d63835aae5e21ecd3278b6ef581413",
+      "compatibilityProfile": "655d00d50a61603a7803c0353494b1194310c310dfc9cc0000e92025df4e3762",
+      "catalog": "cc4cc53cc1bf41b4a7ba4639432b30b369ce8d4811b723eda24a4b6575faba54",
+      "scorePolicy": "18710088694f109350501659cd82df780825b50e1369e394b8296aba835bdee6"
+    }
+  }
+}

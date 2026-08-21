@@ -1,0 +1,88 @@
+{
+  "schemaVersion": "maul-artifact/v1",
+  "artifactId": "maul_artifact_msq4h1ta_0320b1d10d",
+  "artifactType": "planning_bundle",
+  "lineage": {
+    "projectId": "maul_project_msq4h1d0_b5233029ba",
+    "canonicalJobId": "maul_job_msq4h1d0_fe67598935",
+    "runId": "maul_run_msq4h1d0_351aeb6898",
+    "rootSourceAssetId": "maul_artifact_msq4h1d0_933257be9e",
+    "parentArtifactIds": [
+      "maul_artifact_msq4h1d0_933257be9e",
+      "maul_artifact_msq4h1d7_ec75f2d4db",
+      "maul_artifact_msq4h1db_429b71a46e",
+      "maul_artifact_msq4h1dy_cd6e98035f",
+      "maul_artifact_msq4h1do_ea3b4f8abc",
+      "maul_artifact_msq4h1ns_fd1924fba8",
+      "maul_artifact_msq4h1pb_d2be8add60",
+      "maul_artifact_msq4h1q3_d785d43ff5",
+      "maul_artifact_msq4h1ql_7217395ff7",
+      "maul_artifact_msq4h1qq_39bfc1dfeb",
+      "maul_artifact_msq4h1qv_cd0d69c934",
+      "maul_artifact_msq4h1r6_3860625ad3",
+      "maul_artifact_msq4h1rf_dcbe55ae27",
+      "maul_artifact_msq4h1rl_a253c83750",
+      "maul_artifact_msq4h1rs_9c177cf9b7",
+      "maul_artifact_msq4h1s5_8b8be4b5a0",
+      "maul_artifact_msq4h1sb_132761c70f",
+      "maul_artifact_msq4h1et_8eacaadab4",
+      "maul_artifact_msq4h1sf_1169139b61",
+      "maul_artifact_msq4h1sk_9899f8518f",
+      "maul_artifact_msq4h1sq_f9a3ac6480",
+      "maul_artifact_msq4h1sy_2ac7a0d4c2"
+    ],
+    "sequence": 26,
+    "producedBy": {
+      "module": "maul-stage-one-planner",
+      "version": "1"
+    },
+    "createdAt": "2026-08-12T13:25:50.062Z"
+  },
+  "payload": {
+    "sourceAssetId": "maul_artifact_msq4h1d0_933257be9e",
+    "analysisArtifactId": "maul_artifact_msq4h1d7_ec75f2d4db",
+    "timelineArtifactId": "maul_artifact_msq4h1db_429b71a46e",
+    "candidateArtifactId": "maul_artifact_msq4h1dy_cd6e98035f",
+    "treatmentGenomeArtifactId": "maul_artifact_msq4h1do_ea3b4f8abc",
+    "planVersion": "maul-planning-bundle/v3",
+    "replayKey": "664bfc90df1e2ff4e3e17ba5ff65894596d32a3c9ddb37bfea5905a24412f128",
+    "authority": {
+      "authorityClass": "deterministic",
+      "stageId": "maul-planning-bundle_v3",
+      "confidence": 0.72,
+      "inferenceReceiptId": null
+    },
+    "warnings": [
+      "V3 executes governed text animation; audio treatment remains a standalone unregistered contract until its later manifest version."
+    ],
+    "fallbacks": [
+      {
+        "condition": "A richer mandatory dependency is unavailable or unverified.",
+        "action": "Use the named restrained fallback and keep the release quality gate closed.",
+        "status": "available"
+      }
+    ],
+    "schemaVersion": "maul-planning-bundle/v3",
+    "planArtifactIds": {
+      "observationSnapshot": "maul_artifact_msq4h1ql_7217395ff7",
+      "candidateNarrative": "maul_artifact_msq4h1qq_39bfc1dfeb",
+      "beatMap": "maul_artifact_msq4h1qv_cd0d69c934",
+      "typographyMotion": "maul_artifact_msq4h1r6_3860625ad3",
+      "camera": "maul_artifact_msq4h1rf_dcbe55ae27",
+      "visual": "maul_artifact_msq4h1rl_a253c83750",
+      "audio": "maul_artifact_msq4h1rs_9c177cf9b7",
+      "capabilitySelection": "maul_artifact_msq4h1s5_8b8be4b5a0",
+      "adapterDecision": "maul_artifact_msq4h1sb_132761c70f",
+      "artDirection": "maul_artifact_msq4h1et_8eacaadab4",
+      "contextAssembly": "maul_artifact_msq4h1sf_1169139b61",
+      "shotIntentMatrix": "maul_artifact_msq4h1sk_9899f8518f",
+      "textOpportunity": "maul_artifact_msq4h1sq_f9a3ac6480",
+      "revision": "maul_artifact_msq4h1sy_2ac7a0d4c2",
+      "textChunk": "maul_artifact_msq4h1ns_fd1924fba8",
+      "textPlacement": "maul_artifact_msq4h1pb_d2be8add60",
+      "textAnimation": "maul_artifact_msq4h1q3_d785d43ff5"
+    },
+    "rendererReadiness": "governed_with_explicit_fallbacks",
+    "blockingReasons": []
+  }
+}

@@ -1,0 +1,622 @@
+{
+  "schemaVersion": "maul-artifact/v1",
+  "artifactId": "maul_artifact_msq42rsc_0f88fa37dd",
+  "artifactType": "text_chunk_plan",
+  "lineage": {
+    "projectId": "maul_project_msq42rj2_19628ac47a",
+    "canonicalJobId": "maul_job_msq42rj2_e996632b27",
+    "runId": "maul_run_msq42rj2_7d896748f3",
+    "rootSourceAssetId": "maul_artifact_msq42rj2_d3dc619fe0",
+    "parentArtifactIds": [
+      "maul_artifact_msq42rj2_d3dc619fe0",
+      "maul_artifact_msq42rja_b9307205bb",
+      "maul_artifact_msq42rjd_6aae7e9720",
+      "maul_artifact_msq42rk1_7558ca1059",
+      "maul_artifact_msq42rjo_1c95407418",
+      "maul_artifact_msq42rkv_76259c305d"
+    ],
+    "sequence": 10,
+    "producedBy": {
+      "module": "maul-text-chunk-materializer",
+      "version": "2"
+    },
+    "createdAt": "2026-08-12T13:14:43.884Z"
+  },
+  "payload": {
+    "sourceAssetId": "maul_artifact_msq42rj2_d3dc619fe0",
+    "analysisArtifactId": "maul_artifact_msq42rja_b9307205bb",
+    "timelineArtifactId": "maul_artifact_msq42rjd_6aae7e9720",
+    "candidateArtifactId": "maul_artifact_msq42rk1_7558ca1059",
+    "treatmentGenomeArtifactId": "maul_artifact_msq42rjo_1c95407418",
+    "planVersion": "maul-shorts-text-chunk-plan/v2",
+    "replayKey": "762ac2ceac47eada4a568ae7848398f5cc68a63cecb0506d09e06860acae1ede",
+    "authority": {
+      "authorityClass": "deterministic",
+      "stageId": "maul-shorts-text-chunk-plan_v2",
+      "confidence": 0.72,
+      "inferenceReceiptId": null
+    },
+    "warnings": [],
+    "fallbacks": [
+      {
+        "condition": "A richer mandatory dependency is unavailable or unverified.",
+        "action": "Use the named restrained fallback and keep the release quality gate closed.",
+        "status": "available"
+      }
+    ],
+    "schemaVersion": "maul-shorts-text-chunk-plan/v2",
+    "transcriptHash": "1a7a55045e0e88d682136320ce63d12e92ba40ece0c804e83b297211f0769ded",
+    "timelineHash": "7ddf47f62563660502440e86ad5909bc6ed7aebc91882962189bba5542fa931f",
+    "chunkProposalHash": "10e0ceda4adcafd22a6e18dd218eb6fd6ecd4f678531f4de7e664414576e9b02",
+    "outputDurationMs": 10043,
+    "pacing": "fast",
+    "style": "direct_response",
+    "strategy": "deterministic_fallback",
+    "tokens": [
+      {
+        "tokenId": "token_07977fb5f95479685806385f",
+        "transcriptWordIndex": 0,
+        "text": "Over",
+        "sourceStartMs": 800,
+        "sourceEndMs": 920,
+        "outputSpans": [
+          {
+            "outputStartMs": 800,
+            "outputEndMs": 920
+          }
+        ],
+        "outputStartMs": 800,
+        "outputEndMs": 920
+      },
+      {
+        "tokenId": "token_4618442531f8c56244b72551",
+        "transcriptWordIndex": 1,
+        "text": "the",
+        "sourceStartMs": 920,
+        "sourceEndMs": 1080,
+        "outputSpans": [
+          {
+            "outputStartMs": 920,
+            "outputEndMs": 1080
+          }
+        ],
+        "outputStartMs": 920,
+        "outputEndMs": 1080
+      },
+      {
+        "tokenId": "token_d508c9f0f4bb17fdb6a112fc",
+        "transcriptWordIndex": 2,
+        "text": "last",
+        "sourceStartMs": 1080,
+        "sourceEndMs": 1320,
+        "outputSpans": [
+          {
+            "outputStartMs": 1080,
+            "outputEndMs": 1320
+          }
+        ],
+        "outputStartMs": 1080,
+        "outputEndMs": 1320
+      },
+      {
+        "tokenId": "token_9f08dfd22d8e2b58878cc854",
+        "transcriptWordIndex": 3,
+        "text": "12",
+        "sourceStartMs": 1320,
+        "sourceEndMs": 1640,
+        "outputSpans": [
+          {
+            "outputStartMs": 1320,
+            "outputEndMs": 1640
+          }
+        ],
+        "outputStartMs": 1320,
+        "outputEndMs": 1640
+      },
+      {
+        "tokenId": "token_ea114f9f14fc597f3f36147b",
+        "transcriptWordIndex": 4,
+        "text": "months,",
+        "sourceStartMs": 1640,
+        "sourceEndMs": 2000,
+        "outputSpans": [
+          {
+            "outputStartMs": 1640,
+            "outputEndMs": 2000
+          }
+        ],
+        "outputStartMs": 1640,
+        "outputEndMs": 2000
+      },
+      {
+        "tokenId": "token_a09e50662e319ed8d5aa2b12",
+        "transcriptWordIndex": 5,
+        "text": "I've",
+        "sourceStartMs": 2000,
+        "sourceEndMs": 2360,
+        "outputSpans": [
+          {
+            "outputStartMs": 2000,
+            "outputEndMs": 2360
+          }
+        ],
+        "outputStartMs": 2000,
+        "outputEndMs": 2360
+      },
+      {
+        "tokenId": "token_9c4c2c65b5d77e3f68007329",
+        "transcriptWordIndex": 6,
+        "text": "purchased",
+        "sourceStartMs": 2360,
+        "sourceEndMs": 2800,
+        "outputSpans": [
+          {
+            "outputStartMs": 2360,
+            "outputEndMs": 2800
+          }
+        ],
+        "outputStartMs": 2360,
+        "outputEndMs": 2800
+      },
+      {
+        "tokenId": "token_c9ce9ca2bfa13b88eb9f03b9",
+        "transcriptWordIndex": 7,
+        "text": "more",
+        "sourceStartMs": 2800,
+        "sourceEndMs": 3000,
+        "outputSpans": [
+          {
+            "outputStartMs": 2800,
+            "outputEndMs": 3000
+          }
+        ],
+        "outputStartMs": 2800,
+        "outputEndMs": 3000
+      },
+      {
+        "tokenId": "token_4a30bd04fc050fb24badd9cb",
+        "transcriptWordIndex": 8,
+        "text": "than",
+        "sourceStartMs": 3000,
+        "sourceEndMs": 3240,
+        "outputSpans": [
+          {
+            "outputStartMs": 3000,
+            "outputEndMs": 3240
+          }
+        ],
+        "outputStartMs": 3000,
+        "outputEndMs": 3240
+      },
+      {
+        "tokenId": "token_55cabd0da54fc2e24438643e",
+        "transcriptWordIndex": 9,
+        "text": "12,000",
+        "sourceStartMs": 3240,
+        "sourceEndMs": 3920,
+        "outputSpans": [
+          {
+            "outputStartMs": 3240,
+            "outputEndMs": 3920
+          }
+        ],
+        "outputStartMs": 3240,
+        "outputEndMs": 3920
+      },
+      {
+        "tokenId": "token_b1a4b8210d480bcf024bd189",
+        "transcriptWordIndex": 10,
+        "text": "physical",
+        "sourceStartMs": 4000,
+        "sourceEndMs": 4560,
+        "outputSpans": [
+          {
+            "outputStartMs": 4000,
+            "outputEndMs": 4560
+          }
+        ],
+        "outputStartMs": 4000,
+        "outputEndMs": 4560
+      },
+      {
+        "tokenId": "token_09a98761b43a6878c0af4eaf",
+        "transcriptWordIndex": 11,
+        "text": "products",
+        "sourceStartMs": 4560,
+        "sourceEndMs": 4920,
+        "outputSpans": [
+          {
+            "outputStartMs": 4560,
+            "outputEndMs": 4920
+          }
+        ],
+        "outputStartMs": 4560,
+        "outputEndMs": 4920
+      },
+      {
+        "tokenId": "token_188a987143ea03436d84cb2f",
+        "transcriptWordIndex": 12,
+        "text": "from",
+        "sourceStartMs": 4920,
+        "sourceEndMs": 5200,
+        "outputSpans": [
+          {
+            "outputStartMs": 4920,
+            "outputEndMs": 5200
+          }
+        ],
+        "outputStartMs": 4920,
+        "outputEndMs": 5200
+      },
+      {
+        "tokenId": "token_320670743d7b94818541394a",
+        "transcriptWordIndex": 13,
+        "text": "eBay.com",
+        "sourceStartMs": 5200,
+        "sourceEndMs": 6080,
+        "outputSpans": [
+          {
+            "outputStartMs": 5200,
+            "outputEndMs": 6080
+          }
+        ],
+        "outputStartMs": 5200,
+        "outputEndMs": 6080
+      },
+      {
+        "tokenId": "token_0cf5d2b3fc4096b1597881ec",
+        "transcriptWordIndex": 14,
+        "text": "that",
+        "sourceStartMs": 6240,
+        "sourceEndMs": 6520,
+        "outputSpans": [
+          {
+            "outputStartMs": 6240,
+            "outputEndMs": 6520
+          }
+        ],
+        "outputStartMs": 6240,
+        "outputEndMs": 6520
+      },
+      {
+        "tokenId": "token_fa052135c353b6d7fb43c021",
+        "transcriptWordIndex": 15,
+        "text": "I've",
+        "sourceStartMs": 6520,
+        "sourceEndMs": 6760,
+        "outputSpans": [
+          {
+            "outputStartMs": 6520,
+            "outputEndMs": 6760
+          }
+        ],
+        "outputStartMs": 6520,
+        "outputEndMs": 6760
+      },
+      {
+        "tokenId": "token_97a801171634b0070541c253",
+        "transcriptWordIndex": 16,
+        "text": "then",
+        "sourceStartMs": 6760,
+        "sourceEndMs": 6960,
+        "outputSpans": [
+          {
+            "outputStartMs": 6760,
+            "outputEndMs": 6960
+          }
+        ],
+        "outputStartMs": 6760,
+        "outputEndMs": 6960
+      },
+      {
+        "tokenId": "token_324d50c68c4b5622d759f126",
+        "transcriptWordIndex": 17,
+        "text": "resold",
+        "sourceStartMs": 6960,
+        "sourceEndMs": 7440,
+        "outputSpans": [
+          {
+            "outputStartMs": 6960,
+            "outputEndMs": 7440
+          }
+        ],
+        "outputStartMs": 6960,
+        "outputEndMs": 7440
+      },
+      {
+        "tokenId": "token_a319556febb86457dd1367c2",
+        "transcriptWordIndex": 18,
+        "text": "on",
+        "sourceStartMs": 7440,
+        "sourceEndMs": 7640,
+        "outputSpans": [
+          {
+            "outputStartMs": 7440,
+            "outputEndMs": 7640
+          }
+        ],
+        "outputStartMs": 7440,
+        "outputEndMs": 7640
+      },
+      {
+        "tokenId": "token_b715f889d95009206bf271ab",
+        "transcriptWordIndex": 19,
+        "text": "Amazon",
+        "sourceStartMs": 7640,
+        "sourceEndMs": 8120,
+        "outputSpans": [
+          {
+            "outputStartMs": 7640,
+            "outputEndMs": 8120
+          }
+        ],
+        "outputStartMs": 7640,
+        "outputEndMs": 8120
+      },
+      {
+        "tokenId": "token_4a6ab6bd7805346a5e712623",
+        "transcriptWordIndex": 20,
+        "text": "for",
+        "sourceStartMs": 8120,
+        "sourceEndMs": 8320,
+        "outputSpans": [
+          {
+            "outputStartMs": 8120,
+            "outputEndMs": 8320
+          }
+        ],
+        "outputStartMs": 8120,
+        "outputEndMs": 8320
+      },
+      {
+        "tokenId": "token_06ad87a4084e4a546e97c36c",
+        "transcriptWordIndex": 21,
+        "text": "more",
+        "sourceStartMs": 8320,
+        "sourceEndMs": 8440,
+        "outputSpans": [
+          {
+            "outputStartMs": 8320,
+            "outputEndMs": 8440
+          }
+        ],
+        "outputStartMs": 8320,
+        "outputEndMs": 8440
+      },
+      {
+        "tokenId": "token_95cab6407360366e699bf424",
+        "transcriptWordIndex": 22,
+        "text": "than",
+        "sourceStartMs": 8440,
+        "sourceEndMs": 8680,
+        "outputSpans": [
+          {
+            "outputStartMs": 8440,
+            "outputEndMs": 8680
+          }
+        ],
+        "outputStartMs": 8440,
+        "outputEndMs": 8680
+      },
+      {
+        "tokenId": "token_29cc682301db4d92ddae15fe",
+        "transcriptWordIndex": 23,
+        "text": "six",
+        "sourceStartMs": 8680,
+        "sourceEndMs": 9000,
+        "outputSpans": [
+          {
+            "outputStartMs": 8680,
+            "outputEndMs": 9000
+          }
+        ],
+        "outputStartMs": 8680,
+        "outputEndMs": 9000
+      },
+      {
+        "tokenId": "token_b62928a664eb4e706cca111a",
+        "transcriptWordIndex": 24,
+        "text": "figures",
+        "sourceStartMs": 9000,
+        "sourceEndMs": 9360,
+        "outputSpans": [
+          {
+            "outputStartMs": 9000,
+            "outputEndMs": 9360
+          }
+        ],
+        "outputStartMs": 9000,
+        "outputEndMs": 9360
+      },
+      {
+        "tokenId": "token_cc69acaa6e89d9a93c37a8b1",
+        "transcriptWordIndex": 25,
+        "text": "in",
+        "sourceStartMs": 9360,
+        "sourceEndMs": 9560,
+        "outputSpans": [
+          {
+            "outputStartMs": 9360,
+            "outputEndMs": 9560
+          }
+        ],
+        "outputStartMs": 9360,
+        "outputEndMs": 9560
+      },
+      {
+        "tokenId": "token_7dce936013b91f54f9f44d23",
+        "transcriptWordIndex": 26,
+        "text": "Pure.",
+        "sourceStartMs": 9560,
+        "sourceEndMs": 9920,
+        "outputSpans": [
+          {
+            "outputStartMs": 9560,
+            "outputEndMs": 9920
+          }
+        ],
+        "outputStartMs": 9560,
+        "outputEndMs": 9920
+      }
+    ],
+    "chunks": [
+      {
+        "chunkId": "chunk_0_4_055745e783d4",
+        "tokenIds": [
+          "token_07977fb5f95479685806385f",
+          "token_4618442531f8c56244b72551",
+          "token_d508c9f0f4bb17fdb6a112fc",
+          "token_9f08dfd22d8e2b58878cc854",
+          "token_ea114f9f14fc597f3f36147b"
+        ],
+        "text": "Over the last 12 months,",
+        "outputStartMs": 800,
+        "outputEndMs": 2000,
+        "semanticRole": "hook",
+        "emphasis": {
+          "tokenIds": [
+            "token_9f08dfd22d8e2b58878cc854"
+          ],
+          "text": "12",
+          "level": "hero"
+        },
+        "holdAcrossProtectedPause": false,
+        "rationale": "Deterministic fallback preserved transcript order and selected the strongest content word.",
+        "confidence": 0.62
+      },
+      {
+        "chunkId": "chunk_5_9_1ebc2d33d599",
+        "tokenIds": [
+          "token_a09e50662e319ed8d5aa2b12",
+          "token_9c4c2c65b5d77e3f68007329",
+          "token_c9ce9ca2bfa13b88eb9f03b9",
+          "token_4a30bd04fc050fb24badd9cb",
+          "token_55cabd0da54fc2e24438643e"
+        ],
+        "text": "I've purchased more than 12,000",
+        "outputStartMs": 2000,
+        "outputEndMs": 3920,
+        "semanticRole": "proof",
+        "emphasis": {
+          "tokenIds": [
+            "token_55cabd0da54fc2e24438643e"
+          ],
+          "text": "12,000",
+          "level": "key"
+        },
+        "holdAcrossProtectedPause": false,
+        "rationale": "Deterministic fallback preserved transcript order and selected the strongest content word.",
+        "confidence": 0.62
+      },
+      {
+        "chunkId": "chunk_10_13_fdea92e944e2",
+        "tokenIds": [
+          "token_b1a4b8210d480bcf024bd189",
+          "token_09a98761b43a6878c0af4eaf",
+          "token_188a987143ea03436d84cb2f",
+          "token_320670743d7b94818541394a"
+        ],
+        "text": "physical products from eBay.com",
+        "outputStartMs": 4000,
+        "outputEndMs": 6080,
+        "semanticRole": "context",
+        "emphasis": {
+          "tokenIds": [
+            "token_b1a4b8210d480bcf024bd189"
+          ],
+          "text": "physical",
+          "level": "key"
+        },
+        "holdAcrossProtectedPause": false,
+        "rationale": "Deterministic fallback preserved transcript order and selected the strongest content word.",
+        "confidence": 0.62
+      },
+      {
+        "chunkId": "chunk_14_17_b0d6fda96b22",
+        "tokenIds": [
+          "token_0cf5d2b3fc4096b1597881ec",
+          "token_fa052135c353b6d7fb43c021",
+          "token_97a801171634b0070541c253",
+          "token_324d50c68c4b5622d759f126"
+        ],
+        "text": "that I've then resold",
+        "outputStartMs": 6240,
+        "outputEndMs": 7440,
+        "semanticRole": "context",
+        "emphasis": {
+          "tokenIds": [
+            "token_324d50c68c4b5622d759f126"
+          ],
+          "text": "resold",
+          "level": "key"
+        },
+        "holdAcrossProtectedPause": false,
+        "rationale": "Deterministic fallback preserved transcript order and selected the strongest content word.",
+        "confidence": 0.62
+      },
+      {
+        "chunkId": "chunk_18_22_b207591b3847",
+        "tokenIds": [
+          "token_a319556febb86457dd1367c2",
+          "token_b715f889d95009206bf271ab",
+          "token_4a6ab6bd7805346a5e712623",
+          "token_06ad87a4084e4a546e97c36c",
+          "token_95cab6407360366e699bf424"
+        ],
+        "text": "on Amazon for more than",
+        "outputStartMs": 7440,
+        "outputEndMs": 8680,
+        "semanticRole": "context",
+        "emphasis": {
+          "tokenIds": [
+            "token_b715f889d95009206bf271ab"
+          ],
+          "text": "Amazon",
+          "level": "key"
+        },
+        "holdAcrossProtectedPause": false,
+        "rationale": "Deterministic fallback preserved transcript order and selected the strongest content word.",
+        "confidence": 0.62
+      },
+      {
+        "chunkId": "chunk_23_26_d23914a98d4b",
+        "tokenIds": [
+          "token_29cc682301db4d92ddae15fe",
+          "token_b62928a664eb4e706cca111a",
+          "token_cc69acaa6e89d9a93c37a8b1",
+          "token_7dce936013b91f54f9f44d23"
+        ],
+        "text": "six figures in Pure.",
+        "outputStartMs": 8680,
+        "outputEndMs": 9920,
+        "semanticRole": "payoff",
+        "emphasis": {
+          "tokenIds": [
+            "token_b62928a664eb4e706cca111a"
+          ],
+          "text": "figures",
+          "level": "hero"
+        },
+        "holdAcrossProtectedPause": false,
+        "rationale": "Deterministic fallback preserved transcript order and selected the strongest content word.",
+        "confidence": 0.62
+      }
+    ],
+    "protectedEntities": [],
+    "protectedPauses": [],
+    "inference": {
+      "status": "skipped_missing_credentials",
+      "provider": "openai_compatible",
+      "baseUrl": "https://codex-everywhere.com",
+      "model": "gpt-5.6-terra",
+      "requestHash": null,
+      "responseHash": null,
+      "fallbackReason": "MAUL chunking API key is not configured."
+    },
+    "inputHashes": {
+      "transcript": "1a7a55045e0e88d682136320ce63d12e92ba40ece0c804e83b297211f0769ded",
+      "editorialTimeline": "7ddf47f62563660502440e86ad5909bc6ed7aebc91882962189bba5542fa931f",
+      "chunkProposal": "10e0ceda4adcafd22a6e18dd218eb6fd6ecd4f678531f4de7e664414576e9b02"
+    }
+  }
+}

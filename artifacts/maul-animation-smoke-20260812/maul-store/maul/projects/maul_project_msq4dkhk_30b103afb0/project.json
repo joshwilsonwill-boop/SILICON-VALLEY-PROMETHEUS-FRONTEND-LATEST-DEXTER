@@ -1,0 +1,44 @@
+{
+  "schemaVersion": "maul-project/v1",
+  "id": "maul_project_msq4dkhk_30b103afb0",
+  "canonicalJobId": "maul_job_msq4dkhl_71d86c9794",
+  "tenantId": "maul_frame_animation_proof",
+  "creatorId": "maul_frame_animation_proof",
+  "status": "intake_ready",
+  "intake": {
+    "goal": "brand_consistency",
+    "platform": "instagram_reels",
+    "sourceProfile": {
+      "mode": "single_speaker_talking_head",
+      "principalSpeakerCount": 1,
+      "primaryLanguage": "en",
+      "suitabilityStatus": "declared_in_scope_pending_analysis"
+    },
+    "brandKitId": null,
+    "treatmentPreference": "premium_direct_response",
+    "requestedShortCount": 1,
+    "requestedThumbnailCount": 1,
+    "targetDurationMs": {
+      "min": 10043,
+      "max": 10043
+    }
+  },
+  "rootSourceAssetId": "maul_artifact_msq4dkhl_2e86e4621f",
+  "artifactIds": [
+    "maul_artifact_msq4dkhl_2e86e4621f",
+    "maul_artifact_msq4dkhr_f0040b1bb1",
+    "maul_artifact_msq4dkhv_8243d4d644",
+    "maul_artifact_msq4dkhz_00c6b08125",
+    "maul_artifact_msq4dki3_f1147cf96c",
+    "maul_artifact_msq4dki9_113408ee05",
+    "maul_artifact_msq4dkij_2caf701270",
+    "maul_artifact_msq4dkim_342d092908",
+    "maul_artifact_msq4dkjd_3deddcfe56",
+    "maul_artifact_msq4dkqr_3133bbfbf9",
+    "maul_artifact_msq4dkrp_df4dd937e7"
+  ],
+  "activeRunId": "maul_run_msq4dkhl_7045fdb32f",
+  "revision": 1,
+  "createdAt": "2026-08-12T13:23:07.641Z",
+  "updatedAt": "2026-08-12T13:23:08.005Z"
+}

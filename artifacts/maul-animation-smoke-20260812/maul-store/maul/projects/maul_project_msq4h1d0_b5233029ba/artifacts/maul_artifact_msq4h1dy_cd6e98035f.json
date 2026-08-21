@@ -1,0 +1,38 @@
+{
+  "schemaVersion": "maul-artifact/v1",
+  "artifactId": "maul_artifact_msq4h1dy_cd6e98035f",
+  "artifactType": "candidate",
+  "lineage": {
+    "projectId": "maul_project_msq4h1d0_b5233029ba",
+    "canonicalJobId": "maul_job_msq4h1d0_fe67598935",
+    "runId": "maul_run_msq4h1d0_351aeb6898",
+    "rootSourceAssetId": "maul_artifact_msq4h1d0_933257be9e",
+    "parentArtifactIds": [
+      "maul_artifact_msq4h1d0_933257be9e",
+      "maul_artifact_msq4h1db_429b71a46e"
+    ],
+    "sequence": 7,
+    "producedBy": {
+      "module": "maul-candidate-scorer",
+      "version": "1"
+    },
+    "createdAt": "2026-08-12T13:25:49.510Z"
+  },
+  "payload": {
+    "sourceAssetId": "maul_artifact_msq4h1d0_933257be9e",
+    "timelineArtifactId": "maul_artifact_msq4h1db_429b71a46e",
+    "rank": 1,
+    "sourceStartMs": 0,
+    "sourceEndMs": 10043,
+    "title": "Over the last 12 months, I've purchased",
+    "transcriptText": "Over the last 12 months, I've purchased more than 12,000 physical products from eBay.com that I've then resold on Amazon for more than six figures in Pure.",
+    "scores": {
+      "hookClarity": 0.9,
+      "semanticCompletion": 0.95,
+      "pacing": 0.95,
+      "overall": 0.933
+    },
+    "qualityThresholdPassed": true,
+    "insufficiencyReason": null
+  }
+}

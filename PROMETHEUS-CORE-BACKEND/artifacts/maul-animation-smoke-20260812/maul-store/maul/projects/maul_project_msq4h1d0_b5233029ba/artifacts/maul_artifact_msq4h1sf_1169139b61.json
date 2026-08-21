@@ -1,0 +1,87 @@
+{
+  "schemaVersion": "maul-artifact/v1",
+  "artifactId": "maul_artifact_msq4h1sf_1169139b61",
+  "artifactType": "context_assembly_plan",
+  "lineage": {
+    "projectId": "maul_project_msq4h1d0_b5233029ba",
+    "canonicalJobId": "maul_job_msq4h1d0_fe67598935",
+    "runId": "maul_run_msq4h1d0_351aeb6898",
+    "rootSourceAssetId": "maul_artifact_msq4h1d0_933257be9e",
+    "parentArtifactIds": [
+      "maul_artifact_msq4h1d0_933257be9e",
+      "maul_artifact_msq4h1d7_ec75f2d4db",
+      "maul_artifact_msq4h1db_429b71a46e",
+      "maul_artifact_msq4h1dy_cd6e98035f",
+      "maul_artifact_msq4h1do_ea3b4f8abc",
+      "maul_artifact_msq4h1et_8eacaadab4",
+      "maul_artifact_msq4h1ns_fd1924fba8",
+      "maul_artifact_msq4h1pb_d2be8add60"
+    ],
+    "sequence": 22,
+    "producedBy": {
+      "module": "maul-stage-one-planner",
+      "version": "1"
+    },
+    "createdAt": "2026-08-12T13:25:50.031Z"
+  },
+  "payload": {
+    "sourceAssetId": "maul_artifact_msq4h1d0_933257be9e",
+    "analysisArtifactId": "maul_artifact_msq4h1d7_ec75f2d4db",
+    "timelineArtifactId": "maul_artifact_msq4h1db_429b71a46e",
+    "candidateArtifactId": "maul_artifact_msq4h1dy_cd6e98035f",
+    "treatmentGenomeArtifactId": "maul_artifact_msq4h1do_ea3b4f8abc",
+    "planVersion": "maul-context-assembly-plan/v1",
+    "replayKey": "ce79e4ac26bd84e8d072e97fbb913354c5ae2e8f42ded4d7d584b9063a8cd368",
+    "authority": {
+      "authorityClass": "deterministic",
+      "stageId": "maul-context-assembly-plan_v1",
+      "confidence": 0.72,
+      "inferenceReceiptId": null
+    },
+    "warnings": [],
+    "fallbacks": [
+      {
+        "condition": "A richer mandatory dependency is unavailable or unverified.",
+        "action": "Use the named restrained fallback and keep the release quality gate closed.",
+        "status": "available"
+      }
+    ],
+    "schemaVersion": "maul-context-assembly-plan/v1",
+    "wholeSourceSynopsis": "Over the last 12 months, I've purchased more than 12,000 physical products from eBay.com that I've then resold on Amazon for more than six figures in Pure.",
+    "narrativePhases": [
+      {
+        "phase": "available_transcript",
+        "sourceStartMs": 0,
+        "sourceEndMs": 10043,
+        "summary": "Over the last 12 months, I've purchased more than 12,000 physical products from eBay.com that I've then resold on Amazon for more than six figures in Pure."
+      }
+    ],
+    "candidateNeighborhood": {
+      "sourceStartMs": 0,
+      "sourceEndMs": 10043,
+      "precedingContext": "",
+      "followingContext": ""
+    },
+    "localTranscript": "Over the last 12 months, I've purchased more than 12,000 physical products from eBay.com that I've then resold on Amazon for more than six figures in Pure.",
+    "namedFacts": [],
+    "callbacks": [],
+    "setupPayoffDependencies": [
+      "The selected hook and payoff must remain in their source chronology."
+    ],
+    "chronologyConstraints": [
+      "Do not reorder words inside a kept source segment.",
+      "Preserve the Authoritative Editorial Timeline timestamp map."
+    ],
+    "sourceQualityChanges": [],
+    "unresolvedUncertainty": [
+      "Prosody, gesture, gaze, and temporal visual quality are not present in the current analysis contract."
+    ],
+    "omissionReports": [
+      {
+        "contextClass": "multimodal_whole_source_context",
+        "reason": "The current analysis supplies transcript and structural spans but no governed temporal visual/prosody interpretation.",
+        "effect": "degraded_authority"
+      }
+    ]
+  }
+}

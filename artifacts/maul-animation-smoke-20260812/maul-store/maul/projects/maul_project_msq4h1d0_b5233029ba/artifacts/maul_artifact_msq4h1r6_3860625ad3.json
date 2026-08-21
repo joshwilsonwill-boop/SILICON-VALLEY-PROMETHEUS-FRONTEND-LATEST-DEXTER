@@ -1,0 +1,1652 @@
+{
+  "schemaVersion": "maul-artifact/v1",
+  "artifactId": "maul_artifact_msq4h1r6_3860625ad3",
+  "artifactType": "typography_motion_plan",
+  "lineage": {
+    "projectId": "maul_project_msq4h1d0_b5233029ba",
+    "canonicalJobId": "maul_job_msq4h1d0_fe67598935",
+    "runId": "maul_run_msq4h1d0_351aeb6898",
+    "rootSourceAssetId": "maul_artifact_msq4h1d0_933257be9e",
+    "parentArtifactIds": [
+      "maul_artifact_msq4h1d0_933257be9e",
+      "maul_artifact_msq4h1d7_ec75f2d4db",
+      "maul_artifact_msq4h1db_429b71a46e",
+      "maul_artifact_msq4h1dy_cd6e98035f",
+      "maul_artifact_msq4h1do_ea3b4f8abc",
+      "maul_artifact_msq4h1et_8eacaadab4",
+      "maul_artifact_msq4h1ns_fd1924fba8",
+      "maul_artifact_msq4h1pb_d2be8add60",
+      "maul_artifact_msq4h1q3_d785d43ff5"
+    ],
+    "sequence": 16,
+    "producedBy": {
+      "module": "maul-stage-one-planner",
+      "version": "1"
+    },
+    "createdAt": "2026-08-12T13:25:49.986Z"
+  },
+  "payload": {
+    "sourceAssetId": "maul_artifact_msq4h1d0_933257be9e",
+    "analysisArtifactId": "maul_artifact_msq4h1d7_ec75f2d4db",
+    "timelineArtifactId": "maul_artifact_msq4h1db_429b71a46e",
+    "candidateArtifactId": "maul_artifact_msq4h1dy_cd6e98035f",
+    "treatmentGenomeArtifactId": "maul_artifact_msq4h1do_ea3b4f8abc",
+    "planVersion": "maul-typography-motion-plan/v3",
+    "replayKey": "b7a08605daafc0d20d8e160c36117282fc65ac0cd3bb5cc3818940a76a85a1bc",
+    "authority": {
+      "authorityClass": "deterministic",
+      "stageId": "maul-typography-motion-plan_v3",
+      "confidence": 0.72,
+      "inferenceReceiptId": null
+    },
+    "warnings": [
+      "Measured typography is unavailable; this plan cannot claim art-directed output."
+    ],
+    "fallbacks": [
+      {
+        "condition": "A richer mandatory dependency is unavailable or unverified.",
+        "action": "Use the named restrained fallback and keep the release quality gate closed.",
+        "status": "available"
+      }
+    ],
+    "schemaVersion": "maul-typography-motion-plan/v3",
+    "textChunkPlanArtifactId": "maul_artifact_msq4h1ns_fd1924fba8",
+    "textChunkPlanHash": "0985b495596ba78c712d36ec23b07b25ae07243198aad55939194e52194fdb32",
+    "textPlacementPlanArtifactId": "maul_artifact_msq4h1pb_d2be8add60",
+    "textPlacementPlanHash": "605013dcae183821e4f9ee5b9d7ffccdc05ad2ca74a89bc5902cd3ce270ae411",
+    "textAnimationPlanArtifactId": "maul_artifact_msq4h1q3_d785d43ff5",
+    "textAnimationPlanHash": "d23d5fd92a67b4b1167e1d97928bb20727be1d5ef8fc462891ac5555ed41221e",
+    "captionGroups": [
+      {
+        "text": "Over the last 12 months,",
+        "outputStartMs": 800,
+        "outputEndMs": 2000,
+        "sourceGrounded": true,
+        "role": "dialogue_caption"
+      },
+      {
+        "text": "I've purchased more than 12,000",
+        "outputStartMs": 2000,
+        "outputEndMs": 3920,
+        "sourceGrounded": true,
+        "role": "dialogue_caption"
+      },
+      {
+        "text": "physical products from eBay.com",
+        "outputStartMs": 4000,
+        "outputEndMs": 6080,
+        "sourceGrounded": true,
+        "role": "dialogue_caption"
+      },
+      {
+        "text": "that I've then resold",
+        "outputStartMs": 6240,
+        "outputEndMs": 7440,
+        "sourceGrounded": true,
+        "role": "dialogue_caption"
+      },
+      {
+        "text": "on Amazon for more than",
+        "outputStartMs": 7440,
+        "outputEndMs": 8680,
+        "sourceGrounded": true,
+        "role": "dialogue_caption"
+      },
+      {
+        "text": "six figures in Pure.",
+        "outputStartMs": 8680,
+        "outputEndMs": 9920,
+        "sourceGrounded": true,
+        "role": "dialogue_caption"
+      }
+    ],
+    "editorialStatements": [],
+    "editorialTextWithheldReason": "The current deterministic planner has no governed editorial-writing authority; it will not relabel dialogue as authored hero copy.",
+    "fontResolution": {
+      "requestedRole": "editorial",
+      "selectedFamily": "Mixed chunk typography",
+      "selectedAssetId": null,
+      "selectedAsset": null,
+      "accentAsset": null,
+      "status": "eligible_loaded",
+      "reason": "6 chunks selected distinct measured font pairs; exact render assets are authoritative in chunkTypographyBindings."
+    },
+    "chunkTypographyBindings": [
+      {
+        "schemaVersion": "maul-chunk-typography-binding/v1",
+        "chunkId": "chunk_0_4_055745e783d4",
+        "bindingHash": "77dc04d613777331eb5b118cd81b1da381746a192849a54d93f4968cce4aedc8",
+        "profile": {
+          "name": "Peace_Is_The_New_Luxury_Ultra_Fine_Script",
+          "version": "1.0.0",
+          "sourceFilename": "image (17).json",
+          "sourceSha256": "f1f6bcadace1b14e7c67180c713b15c8d53507e9b4e9712ecdce069ad44fa838",
+          "observedAspectRatio": "16:9",
+          "targetAspectRatio": "9:16",
+          "adaptation": "normalized_to_9_16"
+        },
+        "counts": {
+          "actualWordCount": 5,
+          "actualCharacterCount": 20,
+          "observedWordCount": 5,
+          "observedCharacterCount": 20,
+          "wordDistance": 0,
+          "characterDistance": 0
+        },
+        "primaryLayerName": "main_quote",
+        "accentLayerName": null,
+        "layers": [
+          {
+            "layerName": "main_quote",
+            "role": "header",
+            "requestedFamilies": [
+              "Cormorant Garamond",
+              "Playfair Display"
+            ],
+            "requestedWeight": 300,
+            "requestedStyle": "italic",
+            "requestedColor": "#111111",
+            "requestedRelativeScale": 1,
+            "requestedLineHeight": 1.2,
+            "resolution": "exact",
+            "selectedCatalogFontId": "font_google_playfair_display_italic_700",
+            "selectedAsset": {
+              "assetId": "font_google_playfair_display_italic_700",
+              "family": "Playfair Display",
+              "cssFamily": "Playfair Display",
+              "weight": 700,
+              "style": "italic",
+              "browserUrl": "/fonts/maul/playfair-display-italic-700.woff2",
+              "localFilePath": "/home/ec2-user/PROMETHEUS-CORE-BACKEND/remotion-app/public/fonts/maul/playfair-display-italic-700.woff2",
+              "localFileSha256": "57770ea7e8366b2bb71a66b6a8b6181aa79c8d2412e56e516897ba8efd68d2ea",
+              "format": "woff2",
+              "source": "bundled",
+              "license": {
+                "status": "bundled",
+                "evidence": [
+                  "Bundled MAUL renderer font catalog."
+                ]
+              }
+            },
+            "similarityScore": 1140,
+            "reason": "Exact deployed family match selected for main_quote."
+          }
+        ],
+        "compatibilityProfile": {
+          "profileId": "maul-measured-font_google_playfair_display_italic_700-v1",
+          "family": "Playfair Display",
+          "approvedFontAssets": [
+            {
+              "assetId": "font_google_playfair_display_italic_700",
+              "family": "Playfair Display",
+              "weights": [
+                700
+              ]
+            }
+          ],
+          "loadedFallback": {
+            "assetId": "font_google_playfair_display_italic_700",
+            "family": "Playfair Display",
+            "weight": 700
+          },
+          "metrics": {
+            "fingerprint": "2b6157ce3dd2ee3ee6850d42211636dbfadb922680b3661f9d9b42ccfcf1c5df",
+            "maxGlyphWidthEm": 1.198,
+            "maxLineHeightEm": 1.333,
+            "minimumFontSizePx": 48,
+            "maximumFontSizePx": 88,
+            "minimumLineHeight": 1,
+            "maximumLineHeight": 1.333
+          }
+        },
+        "layout": {
+          "chunkId": "chunk_0_4_055745e783d4",
+          "fontSizePx": 48,
+          "lines": [
+            {
+              "text": "Over the last 12 months,",
+              "widthPx": 518.784,
+              "measurementId": "font_measurement_67ce15428eb04d64bd315a567c083ef00311a8c174d37dc9afc56565ae90b13c"
+            }
+          ],
+          "measurementIds": [
+            "font_measurement_67ce15428eb04d64bd315a567c083ef00311a8c174d37dc9afc56565ae90b13c"
+          ]
+        },
+        "realization": {
+          "adaptation": "uniform_fit_9_16",
+          "horizontalAlignment": "center",
+          "maxWidthPercent": 85,
+          "intrinsicSizePx": {
+            "width": 473.256,
+            "height": 67.1832
+          },
+          "layers": [
+            {
+              "layerName": "main_quote",
+              "tokenIds": [
+                "token_07977fb5f95479685806385f",
+                "token_4618442531f8c56244b72551",
+                "token_d508c9f0f4bb17fdb6a112fc",
+                "token_9f08dfd22d8e2b58878cc854",
+                "token_ea114f9f14fc597f3f36147b"
+              ],
+              "text": "Over the last 12 months,",
+              "selectedAsset": {
+                "assetId": "font_google_playfair_display_italic_700",
+                "family": "Playfair Display",
+                "cssFamily": "Playfair Display",
+                "weight": 700,
+                "style": "italic",
+                "browserUrl": "/fonts/maul/playfair-display-italic-700.woff2",
+                "localFilePath": "/home/ec2-user/PROMETHEUS-CORE-BACKEND/remotion-app/public/fonts/maul/playfair-display-italic-700.woff2",
+                "localFileSha256": "57770ea7e8366b2bb71a66b6a8b6181aa79c8d2412e56e516897ba8efd68d2ea",
+                "format": "woff2",
+                "source": "bundled",
+                "license": {
+                  "status": "bundled",
+                  "evidence": [
+                    "Bundled MAUL renderer font catalog."
+                  ]
+                }
+              },
+              "fontSizePx": 42,
+              "measuredWidthPx": 473.256,
+              "measuredHeightPx": 55.986,
+              "lineHeight": 1.2,
+              "letterSpacingEm": 0.02,
+              "casing": "normal",
+              "color": "#111111",
+              "marginTopPx": 0,
+              "shadow": {
+                "xOffset": 0,
+                "yOffset": 1,
+                "blurRadius": 2,
+                "color": "rgba(0, 0, 0, 0.05)"
+              },
+              "measurementId": "profile_measurement_9b666d1261c530c86537239a0b76691480fe60b42ae2b14b50ca4e3f515193d7"
+            }
+          ]
+        },
+        "selectionStatus": "selected",
+        "reason": "Selected Peace_Is_The_New_Luxury_Ultra_Fine_Script by word distance 0 and character distance 0; exact or closest deployed font receipts were measured before placement.",
+        "timingMs": {
+          "selection": 0.655,
+          "fontResolution": 2.347,
+          "measurement": 57.977
+        }
+      },
+      {
+        "schemaVersion": "maul-chunk-typography-binding/v1",
+        "chunkId": "chunk_5_9_1ebc2d33d599",
+        "bindingHash": "b81e3ff27971a8f041426fa4c961b6f939ecfc1f29cc08573999992a49e7d438",
+        "profile": {
+          "name": "Old_Money_Script_Serif_Overlapping",
+          "version": "1.0.0",
+          "sourceFilename": "image (7).json",
+          "sourceSha256": "47eee8f926412d0057f086868fd4569ae4f4fc1d7b3db3c370801baaa249b5d4",
+          "observedAspectRatio": "16:9",
+          "targetAspectRatio": "9:16",
+          "adaptation": "normalized_to_9_16"
+        },
+        "counts": {
+          "actualWordCount": 5,
+          "actualCharacterCount": 27,
+          "observedWordCount": 5,
+          "observedCharacterCount": 24,
+          "wordDistance": 0,
+          "characterDistance": 3
+        },
+        "primaryLayerName": "serif_main",
+        "accentLayerName": "script_top",
+        "layers": [
+          {
+            "layerName": "category_label",
+            "role": "context_prefix",
+            "requestedFamilies": [
+              "Inter",
+              "Montserrat"
+            ],
+            "requestedWeight": 600,
+            "requestedStyle": "normal",
+            "requestedColor": "#222222",
+            "requestedRelativeScale": 0.18,
+            "requestedLineHeight": 1.2,
+            "resolution": "closest_catalog",
+            "selectedCatalogFontId": "font_google_dm_sans_700",
+            "selectedAsset": {
+              "assetId": "font_google_dm_sans_700",
+              "family": "DM Sans",
+              "cssFamily": "DM Sans",
+              "weight": 700,
+              "style": "normal",
+              "browserUrl": "/fonts/maul/dm-sans-700.woff2",
+              "localFilePath": "/home/ec2-user/PROMETHEUS-CORE-BACKEND/remotion-app/public/fonts/maul/dm-sans-700.woff2",
+              "localFileSha256": "7eae09db653e248353ffeb37dd9c12f272d0a7ae601437fac6fa4bc5e0f215bc",
+              "format": "woff2",
+              "source": "bundled",
+              "license": {
+                "status": "bundled",
+                "evidence": [
+                  "Bundled MAUL renderer font catalog."
+                ]
+              }
+            },
+            "similarityScore": 110,
+            "reason": "Closest deployed 577-catalog font selected for category_label; requested Inter, Montserrat, selected DM Sans."
+          },
+          {
+            "layerName": "script_top",
+            "role": "primary_focus_word",
+            "requestedFamilies": [
+              "Great Vibes",
+              "Alex Brush",
+              "Pinyon Script"
+            ],
+            "requestedWeight": 400,
+            "requestedStyle": "italic",
+            "requestedColor": "#111111",
+            "requestedRelativeScale": 0.8,
+            "requestedLineHeight": 1,
+            "resolution": "closest_catalog",
+            "selectedCatalogFontId": "font_google_great_vibes_400",
+            "selectedAsset": {
+              "assetId": "font_google_great_vibes_400",
+              "family": "Great Vibes",
+              "cssFamily": "Great Vibes",
+              "weight": 400,
+              "style": "normal",
+              "browserUrl": "/fonts/maul/great-vibes-400.ttf",
+              "localFilePath": "/home/ec2-user/PROMETHEUS-CORE-BACKEND/remotion-app/public/fonts/maul/great-vibes-400.ttf",
+              "localFileSha256": "8d509802186f1b51572531ecf313e8098f9a5bfdfaca93f0c9b34467f9982d15",
+              "format": "ttf",
+              "source": "bundled",
+              "license": {
+                "status": "bundled",
+                "evidence": [
+                  "Bundled MAUL renderer font catalog."
+                ]
+              }
+            },
+            "similarityScore": 990,
+            "reason": "Closest deployed 577-catalog font selected for script_top; requested Great Vibes, Alex Brush, Pinyon Script, selected Great Vibes."
+          },
+          {
+            "layerName": "serif_main",
+            "role": "header",
+            "requestedFamilies": [
+              "Bodoni Moda",
+              "Playfair Display"
+            ],
+            "requestedWeight": 800,
+            "requestedStyle": "normal",
+            "requestedColor": "#111111",
+            "requestedRelativeScale": 1,
+            "requestedLineHeight": 0.9,
+            "resolution": "exact",
+            "selectedCatalogFontId": "font_google_playfair_display_700",
+            "selectedAsset": {
+              "assetId": "font_google_playfair_display_700",
+              "family": "Playfair Display",
+              "cssFamily": "Playfair Display",
+              "weight": 700,
+              "style": "normal",
+              "browserUrl": "/fonts/maul/playfair-display-700.woff2",
+              "localFilePath": "/home/ec2-user/PROMETHEUS-CORE-BACKEND/remotion-app/public/fonts/maul/playfair-display-700.woff2",
+              "localFileSha256": "66e102f55ef931144a3dcd69ce658ccf3a8576c73f336de5db1e4447b4ddfc70",
+              "format": "woff2",
+              "source": "bundled",
+              "license": {
+                "status": "bundled",
+                "evidence": [
+                  "Bundled MAUL renderer font catalog."
+                ]
+              }
+            },
+            "similarityScore": 1141,
+            "reason": "Exact deployed family match selected for serif_main."
+          }
+        ],
+        "compatibilityProfile": {
+          "profileId": "maul-measured-font_google_playfair_display_700-v1",
+          "family": "Playfair Display",
+          "approvedFontAssets": [
+            {
+              "assetId": "font_google_playfair_display_700",
+              "family": "Playfair Display",
+              "weights": [
+                700
+              ]
+            }
+          ],
+          "loadedFallback": {
+            "assetId": "font_google_playfair_display_700",
+            "family": "Playfair Display",
+            "weight": 700
+          },
+          "metrics": {
+            "fingerprint": "1669b73e88673a647c60482bc703f9e2894161724abd4c7b6cbeda332217e4e9",
+            "maxGlyphWidthEm": 1.281,
+            "maxLineHeightEm": 1.333,
+            "minimumFontSizePx": 48,
+            "maximumFontSizePx": 88,
+            "minimumLineHeight": 1,
+            "maximumLineHeight": 1.333
+          }
+        },
+        "layout": {
+          "chunkId": "chunk_5_9_1ebc2d33d599",
+          "fontSizePx": 68,
+          "lines": [
+            {
+              "text": "I've purchased more than 12,000",
+              "widthPx": 1018.504,
+              "measurementId": "font_measurement_94e389478a2f00760823e55030a2354d7a7ae787360651934be7bdd983d5d5f9"
+            }
+          ],
+          "measurementIds": [
+            "font_measurement_94e389478a2f00760823e55030a2354d7a7ae787360651934be7bdd983d5d5f9"
+          ]
+        },
+        "realization": {
+          "adaptation": "uniform_fit_9_16",
+          "horizontalAlignment": "left",
+          "maxWidthPercent": 85,
+          "intrinsicSizePx": {
+            "width": 204.816,
+            "height": 146.9364
+          },
+          "layers": [
+            {
+              "layerName": "category_label",
+              "tokenIds": [
+                "token_a09e50662e319ed8d5aa2b12",
+                "token_9c4c2c65b5d77e3f68007329",
+                "token_c9ce9ca2bfa13b88eb9f03b9"
+              ],
+              "text": "I'VE PURCHASED MORE",
+              "selectedAsset": {
+                "assetId": "font_google_dm_sans_700",
+                "family": "DM Sans",
+                "cssFamily": "DM Sans",
+                "weight": 700,
+                "style": "normal",
+                "browserUrl": "/fonts/maul/dm-sans-700.woff2",
+                "localFilePath": "/home/ec2-user/PROMETHEUS-CORE-BACKEND/remotion-app/public/fonts/maul/dm-sans-700.woff2",
+                "localFileSha256": "7eae09db653e248353ffeb37dd9c12f272d0a7ae601437fac6fa4bc5e0f215bc",
+                "format": "woff2",
+                "source": "bundled",
+                "license": {
+                  "status": "bundled",
+                  "evidence": [
+                    "Bundled MAUL renderer font catalog."
+                  ]
+                }
+              },
+              "fontSizePx": 12,
+              "measuredWidthPx": 150.48,
+              "measuredHeightPx": 15.624,
+              "lineHeight": 1.2,
+              "letterSpacingEm": 0.08,
+              "casing": "uppercase",
+              "color": "#222222",
+              "marginTopPx": 0,
+              "shadow": {
+                "xOffset": 0,
+                "yOffset": 1,
+                "blurRadius": 1,
+                "color": "rgba(0, 0, 0, 0.05)"
+              },
+              "measurementId": "profile_measurement_a345a5af30c9e16447796817f08bc1808b2cd4feb7ca8b882d847d465030d2cb"
+            },
+            {
+              "layerName": "script_top",
+              "tokenIds": [
+                "token_4a30bd04fc050fb24badd9cb"
+              ],
+              "text": "than",
+              "selectedAsset": {
+                "assetId": "font_google_great_vibes_400",
+                "family": "Great Vibes",
+                "cssFamily": "Great Vibes",
+                "weight": 400,
+                "style": "normal",
+                "browserUrl": "/fonts/maul/great-vibes-400.ttf",
+                "localFilePath": "/home/ec2-user/PROMETHEUS-CORE-BACKEND/remotion-app/public/fonts/maul/great-vibes-400.ttf",
+                "localFileSha256": "8d509802186f1b51572531ecf313e8098f9a5bfdfaca93f0c9b34467f9982d15",
+                "format": "ttf",
+                "source": "bundled",
+                "license": {
+                  "status": "bundled",
+                  "evidence": [
+                    "Bundled MAUL renderer font catalog."
+                  ]
+                }
+              },
+              "fontSizePx": 54,
+              "measuredWidthPx": 69.822,
+              "measuredHeightPx": 67.608,
+              "lineHeight": 1,
+              "letterSpacingEm": 0.02,
+              "casing": "normal",
+              "color": "#111111",
+              "marginTopPx": 4,
+              "shadow": {
+                "xOffset": 0,
+                "yOffset": 2,
+                "blurRadius": 4,
+                "color": "rgba(0, 0, 0, 0.1)"
+              },
+              "measurementId": "profile_measurement_a32a99a7ef1269bd5d9dfe4e36a64d0d52d606e4154d87b217ab3b811cdd6677"
+            },
+            {
+              "layerName": "serif_main",
+              "tokenIds": [
+                "token_55cabd0da54fc2e24438643e"
+              ],
+              "text": "12,000",
+              "selectedAsset": {
+                "assetId": "font_google_playfair_display_700",
+                "family": "Playfair Display",
+                "cssFamily": "Playfair Display",
+                "weight": 700,
+                "style": "normal",
+                "browserUrl": "/fonts/maul/playfair-display-700.woff2",
+                "localFilePath": "/home/ec2-user/PROMETHEUS-CORE-BACKEND/remotion-app/public/fonts/maul/playfair-display-700.woff2",
+                "localFileSha256": "66e102f55ef931144a3dcd69ce658ccf3a8576c73f336de5db1e4447b4ddfc70",
+                "format": "woff2",
+                "source": "bundled",
+                "license": {
+                  "status": "bundled",
+                  "evidence": [
+                    "Bundled MAUL renderer font catalog."
+                  ]
+                }
+              },
+              "fontSizePx": 68,
+              "measuredWidthPx": 204.816,
+              "measuredHeightPx": 90.644,
+              "lineHeight": 0.9,
+              "letterSpacingEm": -0.02,
+              "casing": "normal",
+              "color": "#111111",
+              "marginTopPx": -25,
+              "shadow": {
+                "xOffset": 0,
+                "yOffset": 3,
+                "blurRadius": 6,
+                "color": "rgba(0, 0, 0, 0.12)"
+              },
+              "measurementId": "profile_measurement_6a1097fabd50987b2f737b503e5f8a451fc3e20b24bba74874a3d5fb00bfaadc"
+            }
+          ]
+        },
+        "selectionStatus": "selected",
+        "reason": "Selected Old_Money_Script_Serif_Overlapping by word distance 0 and character distance 3; exact or closest deployed font receipts were measured before placement.",
+        "timingMs": {
+          "selection": 0.244,
+          "fontResolution": 4.619,
+          "measurement": 22.871
+        }
+      },
+      {
+        "schemaVersion": "maul-chunk-typography-binding/v1",
+        "chunkId": "chunk_10_13_fdea92e944e2",
+        "bindingHash": "c96f504f98b33b4bacda6dec3a4e760416229cfe56df2f72b916294a1972b8d5",
+        "profile": {
+          "name": "Fan_Theories_Opinion_Editorial",
+          "version": "1.0.0",
+          "sourceFilename": "image (19).json",
+          "sourceSha256": "3114deb4c8ac1a4c23f728ce01ada184327079f7e11233e871f51c663ebdf43d",
+          "observedAspectRatio": "16:9",
+          "targetAspectRatio": "9:16",
+          "adaptation": "normalized_to_9_16"
+        },
+        "counts": {
+          "actualWordCount": 4,
+          "actualCharacterCount": 28,
+          "observedWordCount": 4,
+          "observedCharacterCount": 26,
+          "wordDistance": 0,
+          "characterDistance": 2
+        },
+        "primaryLayerName": "circled_theories",
+        "accentLayerName": "double_underlined",
+        "layers": [
+          {
+            "layerName": "line_1",
+            "role": "header",
+            "requestedFamilies": [
+              "Playfair Display",
+              "Lora"
+            ],
+            "requestedWeight": 400,
+            "requestedStyle": "normal",
+            "requestedColor": "#111111",
+            "requestedRelativeScale": 0.8,
+            "requestedLineHeight": 1.1,
+            "resolution": "exact",
+            "selectedCatalogFontId": "font_google_playfair_display_700",
+            "selectedAsset": {
+              "assetId": "font_google_playfair_display_700",
+              "family": "Playfair Display",
+              "cssFamily": "Playfair Display",
+              "weight": 700,
+              "style": "normal",
+              "browserUrl": "/fonts/maul/playfair-display-700.woff2",
+              "localFilePath": "/home/ec2-user/PROMETHEUS-CORE-BACKEND/remotion-app/public/fonts/maul/playfair-display-700.woff2",
+              "localFileSha256": "66e102f55ef931144a3dcd69ce658ccf3a8576c73f336de5db1e4447b4ddfc70",
+              "format": "woff2",
+              "source": "bundled",
+              "license": {
+                "status": "bundled",
+                "evidence": [
+                  "Bundled MAUL renderer font catalog."
+                ]
+              }
+            },
+            "similarityScore": 1149.117647,
+            "reason": "Exact deployed family match selected for line_1."
+          },
+          {
+            "layerName": "double_underlined",
+            "role": "primary_focus_word",
+            "requestedFamilies": [
+              "Playfair Display Italic"
+            ],
+            "requestedWeight": 600,
+            "requestedStyle": "italic",
+            "requestedColor": "#111111",
+            "requestedRelativeScale": 0.9,
+            "requestedLineHeight": 1.1,
+            "resolution": "exact",
+            "selectedCatalogFontId": "font_google_playfair_display_italic_700",
+            "selectedAsset": {
+              "assetId": "font_google_playfair_display_italic_700",
+              "family": "Playfair Display",
+              "cssFamily": "Playfair Display",
+              "weight": 700,
+              "style": "italic",
+              "browserUrl": "/fonts/maul/playfair-display-italic-700.woff2",
+              "localFilePath": "/home/ec2-user/PROMETHEUS-CORE-BACKEND/remotion-app/public/fonts/maul/playfair-display-italic-700.woff2",
+              "localFileSha256": "57770ea7e8366b2bb71a66b6a8b6181aa79c8d2412e56e516897ba8efd68d2ea",
+              "format": "woff2",
+              "source": "bundled",
+              "license": {
+                "status": "bundled",
+                "evidence": [
+                  "Bundled MAUL renderer font catalog."
+                ]
+              }
+            },
+            "similarityScore": 1193,
+            "reason": "Exact deployed family match selected for double_underlined."
+          },
+          {
+            "layerName": "circled_theories",
+            "role": "secondary_clause",
+            "requestedFamilies": [
+              "Playfair Display"
+            ],
+            "requestedWeight": 400,
+            "requestedStyle": "normal",
+            "requestedColor": "#111111",
+            "requestedRelativeScale": 1,
+            "requestedLineHeight": 1.1,
+            "resolution": "exact",
+            "selectedCatalogFontId": "font_google_playfair_display_700",
+            "selectedAsset": {
+              "assetId": "font_google_playfair_display_700",
+              "family": "Playfair Display",
+              "cssFamily": "Playfair Display",
+              "weight": 700,
+              "style": "normal",
+              "browserUrl": "/fonts/maul/playfair-display-700.woff2",
+              "localFilePath": "/home/ec2-user/PROMETHEUS-CORE-BACKEND/remotion-app/public/fonts/maul/playfair-display-700.woff2",
+              "localFileSha256": "66e102f55ef931144a3dcd69ce658ccf3a8576c73f336de5db1e4447b4ddfc70",
+              "format": "woff2",
+              "source": "bundled",
+              "license": {
+                "status": "bundled",
+                "evidence": [
+                  "Bundled MAUL renderer font catalog."
+                ]
+              }
+            },
+            "similarityScore": 1200.263158,
+            "reason": "Exact deployed family match selected for circled_theories."
+          }
+        ],
+        "compatibilityProfile": {
+          "profileId": "maul-measured-font_google_playfair_display_700-v1",
+          "family": "Playfair Display",
+          "approvedFontAssets": [
+            {
+              "assetId": "font_google_playfair_display_700",
+              "family": "Playfair Display",
+              "weights": [
+                700
+              ]
+            }
+          ],
+          "loadedFallback": {
+            "assetId": "font_google_playfair_display_700",
+            "family": "Playfair Display",
+            "weight": 700
+          },
+          "metrics": {
+            "fingerprint": "1669b73e88673a647c60482bc703f9e2894161724abd4c7b6cbeda332217e4e9",
+            "maxGlyphWidthEm": 1.281,
+            "maxLineHeightEm": 1.333,
+            "minimumFontSizePx": 48,
+            "maximumFontSizePx": 88,
+            "minimumLineHeight": 1,
+            "maximumLineHeight": 1.333
+          }
+        },
+        "layout": {
+          "chunkId": "chunk_10_13_fdea92e944e2",
+          "fontSizePx": 48,
+          "lines": [
+            {
+              "text": "physical products from eBay.com",
+              "widthPx": 734.256,
+              "measurementId": "font_measurement_368b82dbe3104568e568f9932e234e8399d6378a125794e48762324b45a74209"
+            }
+          ],
+          "measurementIds": [
+            "font_measurement_368b82dbe3104568e568f9932e234e8399d6378a125794e48762324b45a74209"
+          ]
+        },
+        "realization": {
+          "adaptation": "uniform_fit_9_16",
+          "horizontalAlignment": "left",
+          "maxWidthPercent": 85,
+          "intrinsicSizePx": {
+            "width": 280.52,
+            "height": 164.3604
+          },
+          "layers": [
+            {
+              "layerName": "line_1",
+              "tokenIds": [
+                "token_b1a4b8210d480bcf024bd189"
+              ],
+              "text": "physical",
+              "selectedAsset": {
+                "assetId": "font_google_playfair_display_700",
+                "family": "Playfair Display",
+                "cssFamily": "Playfair Display",
+                "weight": 700,
+                "style": "normal",
+                "browserUrl": "/fonts/maul/playfair-display-700.woff2",
+                "localFilePath": "/home/ec2-user/PROMETHEUS-CORE-BACKEND/remotion-app/public/fonts/maul/playfair-display-700.woff2",
+                "localFileSha256": "66e102f55ef931144a3dcd69ce658ccf3a8576c73f336de5db1e4447b4ddfc70",
+                "format": "woff2",
+                "source": "bundled",
+                "license": {
+                  "status": "bundled",
+                  "evidence": [
+                    "Bundled MAUL renderer font catalog."
+                  ]
+                }
+              },
+              "fontSizePx": 32,
+              "measuredWidthPx": 124.032,
+              "measuredHeightPx": 42.656,
+              "lineHeight": 1.1,
+              "letterSpacingEm": 0.01,
+              "casing": "normal",
+              "color": "#111111",
+              "marginTopPx": 0,
+              "shadow": {
+                "xOffset": 0,
+                "yOffset": 1,
+                "blurRadius": 2,
+                "color": "rgba(0, 0, 0, 0.08)"
+              },
+              "measurementId": "profile_measurement_31b134912b78947b42fca39379cfb62b78f00d16e547312bfb714641c4f822db"
+            },
+            {
+              "layerName": "double_underlined",
+              "tokenIds": [
+                "token_09a98761b43a6878c0af4eaf"
+              ],
+              "text": "products",
+              "selectedAsset": {
+                "assetId": "font_google_playfair_display_italic_700",
+                "family": "Playfair Display",
+                "cssFamily": "Playfair Display",
+                "weight": 700,
+                "style": "italic",
+                "browserUrl": "/fonts/maul/playfair-display-italic-700.woff2",
+                "localFilePath": "/home/ec2-user/PROMETHEUS-CORE-BACKEND/remotion-app/public/fonts/maul/playfair-display-italic-700.woff2",
+                "localFileSha256": "57770ea7e8366b2bb71a66b6a8b6181aa79c8d2412e56e516897ba8efd68d2ea",
+                "format": "woff2",
+                "source": "bundled",
+                "license": {
+                  "status": "bundled",
+                  "evidence": [
+                    "Bundled MAUL renderer font catalog."
+                  ]
+                }
+              },
+              "fontSizePx": 36,
+              "measuredWidthPx": 145.8,
+              "measuredHeightPx": 47.988,
+              "lineHeight": 1.1,
+              "letterSpacingEm": 0.01,
+              "casing": "normal",
+              "color": "#111111",
+              "marginTopPx": 2,
+              "shadow": {
+                "xOffset": 0,
+                "yOffset": 1,
+                "blurRadius": 2,
+                "color": "rgba(0, 0, 0, 0.08)"
+              },
+              "measurementId": "profile_measurement_d1c207dc1a40e71f017e67545ab2fc8227de2f64c62bd26ff4c24a15f0636e99"
+            },
+            {
+              "layerName": "circled_theories",
+              "tokenIds": [
+                "token_188a987143ea03436d84cb2f",
+                "token_320670743d7b94818541394a"
+              ],
+              "text": "from eBay.com",
+              "selectedAsset": {
+                "assetId": "font_google_playfair_display_700",
+                "family": "Playfair Display",
+                "cssFamily": "Playfair Display",
+                "weight": 700,
+                "style": "normal",
+                "browserUrl": "/fonts/maul/playfair-display-700.woff2",
+                "localFilePath": "/home/ec2-user/PROMETHEUS-CORE-BACKEND/remotion-app/public/fonts/maul/playfair-display-700.woff2",
+                "localFileSha256": "66e102f55ef931144a3dcd69ce658ccf3a8576c73f336de5db1e4447b4ddfc70",
+                "format": "woff2",
+                "source": "bundled",
+                "license": {
+                  "status": "bundled",
+                  "evidence": [
+                    "Bundled MAUL renderer font catalog."
+                  ]
+                }
+              },
+              "fontSizePx": 40,
+              "measuredWidthPx": 280.52,
+              "measuredHeightPx": 53.32,
+              "lineHeight": 1.1,
+              "letterSpacingEm": 0.01,
+              "casing": "normal",
+              "color": "#111111",
+              "marginTopPx": 4,
+              "shadow": {
+                "xOffset": 0,
+                "yOffset": 2,
+                "blurRadius": 4,
+                "color": "rgba(0, 0, 0, 0.1)"
+              },
+              "measurementId": "profile_measurement_483478b9c4aff2cf69cbf278b63978243693af8b3a875efe31986de5da0bf82a"
+            }
+          ]
+        },
+        "selectionStatus": "selected",
+        "reason": "Selected Fan_Theories_Opinion_Editorial by word distance 0 and character distance 2; exact or closest deployed font receipts were measured before placement.",
+        "timingMs": {
+          "selection": 0.337,
+          "fontResolution": 13.319,
+          "measurement": 13.52
+        }
+      },
+      {
+        "schemaVersion": "maul-chunk-typography-binding/v1",
+        "chunkId": "chunk_14_17_b0d6fda96b22",
+        "bindingHash": "424af2bc6843bf98c6e4d733d70d8d1d4221674f4fdc03d8398b1021af10e8a3",
+        "profile": {
+          "name": "Want_This_Premium_Fonts_3D_Blue",
+          "version": "1.0.0",
+          "sourceFilename": "image (2).json",
+          "sourceSha256": "eb90b14f360339c787834e09c1e69780dc165272f35b4503e1803c21cbcabd1e",
+          "observedAspectRatio": "16:9",
+          "targetAspectRatio": "9:16",
+          "adaptation": "normalized_to_9_16"
+        },
+        "counts": {
+          "actualWordCount": 4,
+          "actualCharacterCount": 18,
+          "observedWordCount": 4,
+          "observedCharacterCount": 20,
+          "wordDistance": 0,
+          "characterDistance": 2
+        },
+        "primaryLayerName": "hero_3d_text",
+        "accentLayerName": "suffix_text",
+        "layers": [
+          {
+            "layerName": "header_prefix",
+            "role": "context_prefix",
+            "requestedFamilies": [
+              "Montserrat",
+              "Inter",
+              "Outfit"
+            ],
+            "requestedWeight": 700,
+            "requestedStyle": "italic",
+            "requestedColor": "#FFFFFF",
+            "requestedRelativeScale": 0.45,
+            "requestedLineHeight": 1.1,
+            "resolution": "closest_catalog",
+            "selectedCatalogFontId": "font_google_playfair_display_italic_700",
+            "selectedAsset": {
+              "assetId": "font_google_playfair_display_italic_700",
+              "family": "Playfair Display",
+              "cssFamily": "Playfair Display",
+              "weight": 700,
+              "style": "italic",
+              "browserUrl": "/fonts/maul/playfair-display-italic-700.woff2",
+              "localFilePath": "/home/ec2-user/PROMETHEUS-CORE-BACKEND/remotion-app/public/fonts/maul/playfair-display-italic-700.woff2",
+              "localFileSha256": "57770ea7e8366b2bb71a66b6a8b6181aa79c8d2412e56e516897ba8efd68d2ea",
+              "format": "woff2",
+              "source": "bundled",
+              "license": {
+                "status": "bundled",
+                "evidence": [
+                  "Bundled MAUL renderer font catalog."
+                ]
+              }
+            },
+            "similarityScore": 82,
+            "reason": "Closest deployed 577-catalog font selected for header_prefix; requested Montserrat, Inter, Outfit, selected Playfair Display."
+          },
+          {
+            "layerName": "hero_3d_text",
+            "role": "primary_focus_word",
+            "requestedFamilies": [
+              "Impact",
+              "Bebas Neue",
+              "Montserrat ExtraBold"
+            ],
+            "requestedWeight": 900,
+            "requestedStyle": "italic",
+            "requestedColor": "#007AFF",
+            "requestedRelativeScale": 1,
+            "requestedLineHeight": 1,
+            "resolution": "closest_catalog",
+            "selectedCatalogFontId": "font_google_bebas_neue_400",
+            "selectedAsset": {
+              "assetId": "font_google_bebas_neue_400",
+              "family": "Bebas Neue",
+              "cssFamily": "Bebas Neue",
+              "weight": 400,
+              "style": "normal",
+              "browserUrl": "/fonts/maul/bebas-neue-400.woff2",
+              "localFilePath": "/home/ec2-user/PROMETHEUS-CORE-BACKEND/remotion-app/public/fonts/maul/bebas-neue-400.woff2",
+              "localFileSha256": "a7c90c89240c134f7fdd33d40c000ec90b79d675ea53e8cc5a6d423c073de412",
+              "format": "woff2",
+              "source": "bundled",
+              "license": {
+                "status": "bundled",
+                "evidence": [
+                  "Bundled MAUL renderer font catalog."
+                ]
+              }
+            },
+            "similarityScore": 973,
+            "reason": "Closest deployed 577-catalog font selected for hero_3d_text; requested Impact, Bebas Neue, Montserrat ExtraBold, selected Bebas Neue."
+          },
+          {
+            "layerName": "suffix_text",
+            "role": "accent_tagline",
+            "requestedFamilies": [
+              "Inter",
+              "Open Sans"
+            ],
+            "requestedWeight": 600,
+            "requestedStyle": "italic",
+            "requestedColor": "#FFFFFF",
+            "requestedRelativeScale": 0.45,
+            "requestedLineHeight": 1.1,
+            "resolution": "closest_catalog",
+            "selectedCatalogFontId": "font_google_playfair_display_italic_700",
+            "selectedAsset": {
+              "assetId": "font_google_playfair_display_italic_700",
+              "family": "Playfair Display",
+              "cssFamily": "Playfair Display",
+              "weight": 700,
+              "style": "italic",
+              "browserUrl": "/fonts/maul/playfair-display-italic-700.woff2",
+              "localFilePath": "/home/ec2-user/PROMETHEUS-CORE-BACKEND/remotion-app/public/fonts/maul/playfair-display-italic-700.woff2",
+              "localFileSha256": "57770ea7e8366b2bb71a66b6a8b6181aa79c8d2412e56e516897ba8efd68d2ea",
+              "format": "woff2",
+              "source": "bundled",
+              "license": {
+                "status": "bundled",
+                "evidence": [
+                  "Bundled MAUL renderer font catalog."
+                ]
+              }
+            },
+            "similarityScore": 93.235294,
+            "reason": "Closest deployed 577-catalog font selected for suffix_text; requested Inter, Open Sans, selected Playfair Display."
+          }
+        ],
+        "compatibilityProfile": {
+          "profileId": "maul-measured-font_google_bebas_neue_400-v1",
+          "family": "Bebas Neue",
+          "approvedFontAssets": [
+            {
+              "assetId": "font_google_bebas_neue_400",
+              "family": "Bebas Neue",
+              "weights": [
+                400
+              ]
+            }
+          ],
+          "loadedFallback": {
+            "assetId": "font_google_bebas_neue_400",
+            "family": "Bebas Neue",
+            "weight": 400
+          },
+          "metrics": {
+            "fingerprint": "d2b074f04e7fb949487bf9825887a1b0905b7e674f954d0e9c8444abeaecee32",
+            "maxGlyphWidthEm": 0.845,
+            "maxLineHeightEm": 1.2,
+            "minimumFontSizePx": 48,
+            "maximumFontSizePx": 88,
+            "minimumLineHeight": 1,
+            "maximumLineHeight": 1.2
+          }
+        },
+        "layout": {
+          "chunkId": "chunk_14_17_b0d6fda96b22",
+          "fontSizePx": 52,
+          "lines": [
+            {
+              "text": "that I've then resold",
+              "widthPx": 363.064,
+              "measurementId": "font_measurement_16e232ac9c8a3b1d45698577a81edb293d1852982a43d978c4ed8bba7d34fc1b"
+            }
+          ],
+          "measurementIds": [
+            "font_measurement_16e232ac9c8a3b1d45698577a81edb293d1852982a43d978c4ed8bba7d34fc1b"
+          ]
+        },
+        "realization": {
+          "adaptation": "uniform_fit_9_16",
+          "horizontalAlignment": "center",
+          "maxWidthPercent": 90,
+          "intrinsicSizePx": {
+            "width": 89.648,
+            "height": 135.8498
+          },
+          "layers": [
+            {
+              "layerName": "header_prefix",
+              "tokenIds": [
+                "token_0cf5d2b3fc4096b1597881ec",
+                "token_fa052135c353b6d7fb43c021"
+              ],
+              "text": "that I've",
+              "selectedAsset": {
+                "assetId": "font_google_playfair_display_italic_700",
+                "family": "Playfair Display",
+                "cssFamily": "Playfair Display",
+                "weight": 700,
+                "style": "italic",
+                "browserUrl": "/fonts/maul/playfair-display-italic-700.woff2",
+                "localFilePath": "/home/ec2-user/PROMETHEUS-CORE-BACKEND/remotion-app/public/fonts/maul/playfair-display-italic-700.woff2",
+                "localFileSha256": "57770ea7e8366b2bb71a66b6a8b6181aa79c8d2412e56e516897ba8efd68d2ea",
+                "format": "woff2",
+                "source": "bundled",
+                "license": {
+                  "status": "bundled",
+                  "evidence": [
+                    "Bundled MAUL renderer font catalog."
+                  ]
+                }
+              },
+              "fontSizePx": 22,
+              "measuredWidthPx": 88.462,
+              "measuredHeightPx": 29.326,
+              "lineHeight": 1.1,
+              "letterSpacingEm": 0.04,
+              "casing": "normal",
+              "color": "#FFFFFF",
+              "marginTopPx": 0,
+              "shadow": {
+                "xOffset": 0,
+                "yOffset": 2,
+                "blurRadius": 6,
+                "color": "rgba(0, 0, 0, 0.5)"
+              },
+              "measurementId": "profile_measurement_699a2fe71e6d210602469e6ab5c68be45ef221cc34ee961d0921427567b3359f"
+            },
+            {
+              "layerName": "hero_3d_text",
+              "tokenIds": [
+                "token_97a801171634b0070541c253"
+              ],
+              "text": "THEN",
+              "selectedAsset": {
+                "assetId": "font_google_bebas_neue_400",
+                "family": "Bebas Neue",
+                "cssFamily": "Bebas Neue",
+                "weight": 400,
+                "style": "normal",
+                "browserUrl": "/fonts/maul/bebas-neue-400.woff2",
+                "localFilePath": "/home/ec2-user/PROMETHEUS-CORE-BACKEND/remotion-app/public/fonts/maul/bebas-neue-400.woff2",
+                "localFileSha256": "a7c90c89240c134f7fdd33d40c000ec90b79d675ea53e8cc5a6d423c073de412",
+                "format": "woff2",
+                "source": "bundled",
+                "license": {
+                  "status": "bundled",
+                  "evidence": [
+                    "Bundled MAUL renderer font catalog."
+                  ]
+                }
+              },
+              "fontSizePx": 52,
+              "measuredWidthPx": 89.648,
+              "measuredHeightPx": 62.4,
+              "lineHeight": 1,
+              "letterSpacingEm": 0.05,
+              "casing": "uppercase",
+              "color": "#007AFF",
+              "marginTopPx": 2,
+              "shadow": {
+                "xOffset": 3,
+                "yOffset": 6,
+                "blurRadius": 12,
+                "color": "rgba(0, 102, 255, 0.8)"
+              },
+              "measurementId": "profile_measurement_a2115e018742cacb04a67a93143070cc93ee90520b91d5625578661d5c4d1fe8"
+            },
+            {
+              "layerName": "suffix_text",
+              "tokenIds": [
+                "token_324d50c68c4b5622d759f126"
+              ],
+              "text": "resold",
+              "selectedAsset": {
+                "assetId": "font_google_playfair_display_italic_700",
+                "family": "Playfair Display",
+                "cssFamily": "Playfair Display",
+                "weight": 700,
+                "style": "italic",
+                "browserUrl": "/fonts/maul/playfair-display-italic-700.woff2",
+                "localFilePath": "/home/ec2-user/PROMETHEUS-CORE-BACKEND/remotion-app/public/fonts/maul/playfair-display-italic-700.woff2",
+                "localFileSha256": "57770ea7e8366b2bb71a66b6a8b6181aa79c8d2412e56e516897ba8efd68d2ea",
+                "format": "woff2",
+                "source": "bundled",
+                "license": {
+                  "status": "bundled",
+                  "evidence": [
+                    "Bundled MAUL renderer font catalog."
+                  ]
+                }
+              },
+              "fontSizePx": 24,
+              "measuredWidthPx": 69.672,
+              "measuredHeightPx": 31.992,
+              "lineHeight": 1.1,
+              "letterSpacingEm": 0.03,
+              "casing": "lowercase",
+              "color": "#FFFFFF",
+              "marginTopPx": 4,
+              "shadow": {
+                "xOffset": 0,
+                "yOffset": 2,
+                "blurRadius": 4,
+                "color": "rgba(0, 0, 0, 0.4)"
+              },
+              "measurementId": "profile_measurement_4ed11c187dec17b6d90e122f1a1f47798287e7e4649accb92283d8989445bbab"
+            }
+          ]
+        },
+        "selectionStatus": "selected",
+        "reason": "Selected Want_This_Premium_Fonts_3D_Blue by word distance 0 and character distance 2; exact or closest deployed font receipts were measured before placement.",
+        "timingMs": {
+          "selection": 0.373,
+          "fontResolution": 6.011,
+          "measurement": 9.448
+        }
+      },
+      {
+        "schemaVersion": "maul-chunk-typography-binding/v1",
+        "chunkId": "chunk_18_22_b207591b3847",
+        "bindingHash": "41934401cf77ba9d74b622ce672efbad6a2d08acedcf51314467d15cdbab0c18",
+        "profile": {
+          "name": "Peace_Is_The_New_Luxury_Ultra_Fine_Script",
+          "version": "1.0.0",
+          "sourceFilename": "image (17).json",
+          "sourceSha256": "f1f6bcadace1b14e7c67180c713b15c8d53507e9b4e9712ecdce069ad44fa838",
+          "observedAspectRatio": "16:9",
+          "targetAspectRatio": "9:16",
+          "adaptation": "normalized_to_9_16"
+        },
+        "counts": {
+          "actualWordCount": 5,
+          "actualCharacterCount": 19,
+          "observedWordCount": 5,
+          "observedCharacterCount": 20,
+          "wordDistance": 0,
+          "characterDistance": 1
+        },
+        "primaryLayerName": "main_quote",
+        "accentLayerName": null,
+        "layers": [
+          {
+            "layerName": "main_quote",
+            "role": "header",
+            "requestedFamilies": [
+              "Cormorant Garamond",
+              "Playfair Display"
+            ],
+            "requestedWeight": 300,
+            "requestedStyle": "italic",
+            "requestedColor": "#111111",
+            "requestedRelativeScale": 1,
+            "requestedLineHeight": 1.2,
+            "resolution": "exact",
+            "selectedCatalogFontId": "font_google_playfair_display_italic_700",
+            "selectedAsset": {
+              "assetId": "font_google_playfair_display_italic_700",
+              "family": "Playfair Display",
+              "cssFamily": "Playfair Display",
+              "weight": 700,
+              "style": "italic",
+              "browserUrl": "/fonts/maul/playfair-display-italic-700.woff2",
+              "localFilePath": "/home/ec2-user/PROMETHEUS-CORE-BACKEND/remotion-app/public/fonts/maul/playfair-display-italic-700.woff2",
+              "localFileSha256": "57770ea7e8366b2bb71a66b6a8b6181aa79c8d2412e56e516897ba8efd68d2ea",
+              "format": "woff2",
+              "source": "bundled",
+              "license": {
+                "status": "bundled",
+                "evidence": [
+                  "Bundled MAUL renderer font catalog."
+                ]
+              }
+            },
+            "similarityScore": 1140,
+            "reason": "Exact deployed family match selected for main_quote."
+          }
+        ],
+        "compatibilityProfile": {
+          "profileId": "maul-measured-font_google_playfair_display_italic_700-v1",
+          "family": "Playfair Display",
+          "approvedFontAssets": [
+            {
+              "assetId": "font_google_playfair_display_italic_700",
+              "family": "Playfair Display",
+              "weights": [
+                700
+              ]
+            }
+          ],
+          "loadedFallback": {
+            "assetId": "font_google_playfair_display_italic_700",
+            "family": "Playfair Display",
+            "weight": 700
+          },
+          "metrics": {
+            "fingerprint": "2b6157ce3dd2ee3ee6850d42211636dbfadb922680b3661f9d9b42ccfcf1c5df",
+            "maxGlyphWidthEm": 1.198,
+            "maxLineHeightEm": 1.333,
+            "minimumFontSizePx": 48,
+            "maximumFontSizePx": 88,
+            "minimumLineHeight": 1,
+            "maximumLineHeight": 1.333
+          }
+        },
+        "layout": {
+          "chunkId": "chunk_18_22_b207591b3847",
+          "fontSizePx": 48,
+          "lines": [
+            {
+              "text": "on Amazon for more than",
+              "widthPx": 554.352,
+              "measurementId": "font_measurement_826441b97925eab536c69d82bfaa86bf628f4c34196c8ef5b485e34c91bee9f8"
+            }
+          ],
+          "measurementIds": [
+            "font_measurement_826441b97925eab536c69d82bfaa86bf628f4c34196c8ef5b485e34c91bee9f8"
+          ]
+        },
+        "realization": {
+          "adaptation": "uniform_fit_9_16",
+          "horizontalAlignment": "center",
+          "maxWidthPercent": 85,
+          "intrinsicSizePx": {
+            "width": 503.538,
+            "height": 67.1832
+          },
+          "layers": [
+            {
+              "layerName": "main_quote",
+              "tokenIds": [
+                "token_a319556febb86457dd1367c2",
+                "token_b715f889d95009206bf271ab",
+                "token_4a6ab6bd7805346a5e712623",
+                "token_06ad87a4084e4a546e97c36c",
+                "token_95cab6407360366e699bf424"
+              ],
+              "text": "on Amazon for more than",
+              "selectedAsset": {
+                "assetId": "font_google_playfair_display_italic_700",
+                "family": "Playfair Display",
+                "cssFamily": "Playfair Display",
+                "weight": 700,
+                "style": "italic",
+                "browserUrl": "/fonts/maul/playfair-display-italic-700.woff2",
+                "localFilePath": "/home/ec2-user/PROMETHEUS-CORE-BACKEND/remotion-app/public/fonts/maul/playfair-display-italic-700.woff2",
+                "localFileSha256": "57770ea7e8366b2bb71a66b6a8b6181aa79c8d2412e56e516897ba8efd68d2ea",
+                "format": "woff2",
+                "source": "bundled",
+                "license": {
+                  "status": "bundled",
+                  "evidence": [
+                    "Bundled MAUL renderer font catalog."
+                  ]
+                }
+              },
+              "fontSizePx": 42,
+              "measuredWidthPx": 503.538,
+              "measuredHeightPx": 55.986,
+              "lineHeight": 1.2,
+              "letterSpacingEm": 0.02,
+              "casing": "normal",
+              "color": "#111111",
+              "marginTopPx": 0,
+              "shadow": {
+                "xOffset": 0,
+                "yOffset": 1,
+                "blurRadius": 2,
+                "color": "rgba(0, 0, 0, 0.05)"
+              },
+              "measurementId": "profile_measurement_5170e7bfe96fe0f939a836713459046a04cccbe52f832abf8b2b6593eaf7bbfb"
+            }
+          ]
+        },
+        "selectionStatus": "selected",
+        "reason": "Selected Peace_Is_The_New_Luxury_Ultra_Fine_Script by word distance 0 and character distance 1; exact or closest deployed font receipts were measured before placement.",
+        "timingMs": {
+          "selection": 3.177,
+          "fontResolution": 1.833,
+          "measurement": 5.318
+        }
+      },
+      {
+        "schemaVersion": "maul-chunk-typography-binding/v1",
+        "chunkId": "chunk_23_26_d23914a98d4b",
+        "bindingHash": "5f822167d21bdc4c3d357506de7a7a9aa86e02f402c569c06c57727efa965a95",
+        "profile": {
+          "name": "The_Evolution_Of_She_Geometric_Didone",
+          "version": "1.0.0",
+          "sourceFilename": "image (12).json",
+          "sourceSha256": "49ee85f4d89c17f2073ffb454d828654f9e84c1ef7894909d17b69e184af865f",
+          "observedAspectRatio": "16:9",
+          "targetAspectRatio": "9:16",
+          "adaptation": "normalized_to_9_16"
+        },
+        "counts": {
+          "actualWordCount": 4,
+          "actualCharacterCount": 17,
+          "observedWordCount": 4,
+          "observedCharacterCount": 18,
+          "wordDistance": 0,
+          "characterDistance": 1
+        },
+        "primaryLayerName": "bold_target",
+        "accentLayerName": "light_header",
+        "layers": [
+          {
+            "layerName": "light_header",
+            "role": "header",
+            "requestedFamilies": [
+              "Inter",
+              "Montserrat Thin"
+            ],
+            "requestedWeight": 200,
+            "requestedStyle": "normal",
+            "requestedColor": "#111111",
+            "requestedRelativeScale": 0.43,
+            "requestedLineHeight": 1.1,
+            "resolution": "closest_catalog",
+            "selectedCatalogFontId": "font_google_dm_serif_display_400",
+            "selectedAsset": {
+              "assetId": "font_google_dm_serif_display_400",
+              "family": "DM Serif Display",
+              "cssFamily": "DM Serif Display",
+              "weight": 400,
+              "style": "normal",
+              "browserUrl": "/fonts/maul/dm-serif-display-400.woff2",
+              "localFilePath": "/home/ec2-user/PROMETHEUS-CORE-BACKEND/remotion-app/public/fonts/maul/dm-serif-display-400.woff2",
+              "localFileSha256": "fdf61e20fd2c0108e0ea28da4daca0035205b4b7fc031a3974b865b704de160a",
+              "format": "woff2",
+              "source": "bundled",
+              "license": {
+                "status": "bundled",
+                "evidence": [
+                  "Bundled MAUL renderer font catalog."
+                ]
+              }
+            },
+            "similarityScore": 88.235294,
+            "reason": "Closest deployed 577-catalog font selected for light_header; requested Inter, Montserrat Thin, selected DM Serif Display."
+          },
+          {
+            "layerName": "bold_target",
+            "role": "primary_focus_word",
+            "requestedFamilies": [
+              "Bodoni Moda",
+              "Playfair Display"
+            ],
+            "requestedWeight": 900,
+            "requestedStyle": "normal",
+            "requestedColor": "#111111",
+            "requestedRelativeScale": 1,
+            "requestedLineHeight": 0.95,
+            "resolution": "exact",
+            "selectedCatalogFontId": "font_google_playfair_display_700",
+            "selectedAsset": {
+              "assetId": "font_google_playfair_display_700",
+              "family": "Playfair Display",
+              "cssFamily": "Playfair Display",
+              "weight": 700,
+              "style": "normal",
+              "browserUrl": "/fonts/maul/playfair-display-700.woff2",
+              "localFilePath": "/home/ec2-user/PROMETHEUS-CORE-BACKEND/remotion-app/public/fonts/maul/playfair-display-700.woff2",
+              "localFileSha256": "66e102f55ef931144a3dcd69ce658ccf3a8576c73f336de5db1e4447b4ddfc70",
+              "format": "woff2",
+              "source": "bundled",
+              "license": {
+                "status": "bundled",
+                "evidence": [
+                  "Bundled MAUL renderer font catalog."
+                ]
+              }
+            },
+            "similarityScore": 1132,
+            "reason": "Exact deployed family match selected for bold_target."
+          }
+        ],
+        "compatibilityProfile": {
+          "profileId": "maul-measured-font_google_playfair_display_700-v1",
+          "family": "Playfair Display",
+          "approvedFontAssets": [
+            {
+              "assetId": "font_google_playfair_display_700",
+              "family": "Playfair Display",
+              "weights": [
+                700
+              ]
+            }
+          ],
+          "loadedFallback": {
+            "assetId": "font_google_playfair_display_700",
+            "family": "Playfair Display",
+            "weight": 700
+          },
+          "metrics": {
+            "fingerprint": "1669b73e88673a647c60482bc703f9e2894161724abd4c7b6cbeda332217e4e9",
+            "maxGlyphWidthEm": 1.281,
+            "maxLineHeightEm": 1.333,
+            "minimumFontSizePx": 48,
+            "maximumFontSizePx": 88,
+            "minimumLineHeight": 1,
+            "maximumLineHeight": 1.333
+          }
+        },
+        "layout": {
+          "chunkId": "chunk_23_26_d23914a98d4b",
+          "fontSizePx": 65,
+          "lines": [
+            {
+              "text": "six figures in Pure.",
+              "widthPx": 561.665,
+              "measurementId": "font_measurement_27e89dc85d17286292b04d1c9d121ce7bfabbf90ae7d8b18c6abfce4686ce1ad"
+            }
+          ],
+          "measurementIds": [
+            "font_measurement_27e89dc85d17286292b04d1c9d121ce7bfabbf90ae7d8b18c6abfce4686ce1ad"
+          ]
+        },
+        "realization": {
+          "adaptation": "uniform_fit_9_16",
+          "horizontalAlignment": "left",
+          "maxWidthPercent": 85,
+          "intrinsicSizePx": {
+            "width": 206.808,
+            "height": 122.5395
+          },
+          "layers": [
+            {
+              "layerName": "light_header",
+              "tokenIds": [
+                "token_29cc682301db4d92ddae15fe",
+                "token_b62928a664eb4e706cca111a",
+                "token_cc69acaa6e89d9a93c37a8b1"
+              ],
+              "text": "SIX FIGURES IN",
+              "selectedAsset": {
+                "assetId": "font_google_dm_serif_display_400",
+                "family": "DM Serif Display",
+                "cssFamily": "DM Serif Display",
+                "weight": 400,
+                "style": "normal",
+                "browserUrl": "/fonts/maul/dm-serif-display-400.woff2",
+                "localFilePath": "/home/ec2-user/PROMETHEUS-CORE-BACKEND/remotion-app/public/fonts/maul/dm-serif-display-400.woff2",
+                "localFileSha256": "fdf61e20fd2c0108e0ea28da4daca0035205b4b7fc031a3974b865b704de160a",
+                "format": "woff2",
+                "source": "bundled",
+                "license": {
+                  "status": "bundled",
+                  "evidence": [
+                    "Bundled MAUL renderer font catalog."
+                  ]
+                }
+              },
+              "fontSizePx": 28,
+              "measuredWidthPx": 206.808,
+              "measuredHeightPx": 38.388,
+              "lineHeight": 1.1,
+              "letterSpacingEm": 0.06,
+              "casing": "uppercase",
+              "color": "#111111",
+              "marginTopPx": 0,
+              "shadow": {
+                "xOffset": 0,
+                "yOffset": 1,
+                "blurRadius": 2,
+                "color": "rgba(0, 0, 0, 0.05)"
+              },
+              "measurementId": "profile_measurement_41535036da5d764357ef96060c973897a08fd1508f558ed3320c6349c002f1a9"
+            },
+            {
+              "layerName": "bold_target",
+              "tokenIds": [
+                "token_7dce936013b91f54f9f44d23"
+              ],
+              "text": "pure.",
+              "selectedAsset": {
+                "assetId": "font_google_playfair_display_700",
+                "family": "Playfair Display",
+                "cssFamily": "Playfair Display",
+                "weight": 700,
+                "style": "normal",
+                "browserUrl": "/fonts/maul/playfair-display-700.woff2",
+                "localFilePath": "/home/ec2-user/PROMETHEUS-CORE-BACKEND/remotion-app/public/fonts/maul/playfair-display-700.woff2",
+                "localFileSha256": "66e102f55ef931144a3dcd69ce658ccf3a8576c73f336de5db1e4447b4ddfc70",
+                "format": "woff2",
+                "source": "bundled",
+                "license": {
+                  "status": "bundled",
+                  "evidence": [
+                    "Bundled MAUL renderer font catalog."
+                  ]
+                }
+              },
+              "fontSizePx": 65,
+              "measuredWidthPx": 152.945,
+              "measuredHeightPx": 86.645,
+              "lineHeight": 0.95,
+              "letterSpacingEm": -0.02,
+              "casing": "lowercase",
+              "color": "#111111",
+              "marginTopPx": -2,
+              "shadow": {
+                "xOffset": 0,
+                "yOffset": 3,
+                "blurRadius": 6,
+                "color": "rgba(0, 0, 0, 0.15)"
+              },
+              "measurementId": "profile_measurement_1e661dfe063b68151cf1bdd06934b92281cf502cc12a0559fd1d9d78784ecb21"
+            }
+          ]
+        },
+        "selectionStatus": "selected",
+        "reason": "Selected The_Evolution_Of_She_Geometric_Didone by word distance 0 and character distance 1; exact or closest deployed font receipts were measured before placement.",
+        "timingMs": {
+          "selection": 0.313,
+          "fontResolution": 3.672,
+          "measurement": 18.249
+        }
+      }
+    ],
+    "measurementEvidenceIds": [
+      "font_measurement_16e232ac9c8a3b1d45698577a81edb293d1852982a43d978c4ed8bba7d34fc1b",
+      "font_measurement_27e89dc85d17286292b04d1c9d121ce7bfabbf90ae7d8b18c6abfce4686ce1ad",
+      "font_measurement_368b82dbe3104568e568f9932e234e8399d6378a125794e48762324b45a74209",
+      "font_measurement_67ce15428eb04d64bd315a567c083ef00311a8c174d37dc9afc56565ae90b13c",
+      "font_measurement_826441b97925eab536c69d82bfaa86bf628f4c34196c8ef5b485e34c91bee9f8",
+      "font_measurement_94e389478a2f00760823e55030a2354d7a7ae787360651934be7bdd983d5d5f9",
+      "profile_measurement_1e661dfe063b68151cf1bdd06934b92281cf502cc12a0559fd1d9d78784ecb21",
+      "profile_measurement_31b134912b78947b42fca39379cfb62b78f00d16e547312bfb714641c4f822db",
+      "profile_measurement_41535036da5d764357ef96060c973897a08fd1508f558ed3320c6349c002f1a9",
+      "profile_measurement_483478b9c4aff2cf69cbf278b63978243693af8b3a875efe31986de5da0bf82a",
+      "profile_measurement_4ed11c187dec17b6d90e122f1a1f47798287e7e4649accb92283d8989445bbab",
+      "profile_measurement_5170e7bfe96fe0f939a836713459046a04cccbe52f832abf8b2b6593eaf7bbfb",
+      "profile_measurement_699a2fe71e6d210602469e6ab5c68be45ef221cc34ee961d0921427567b3359f",
+      "profile_measurement_6a1097fabd50987b2f737b503e5f8a451fc3e20b24bba74874a3d5fb00bfaadc",
+      "profile_measurement_9b666d1261c530c86537239a0b76691480fe60b42ae2b14b50ca4e3f515193d7",
+      "profile_measurement_a2115e018742cacb04a67a93143070cc93ee90520b91d5625578661d5c4d1fe8",
+      "profile_measurement_a32a99a7ef1269bd5d9dfe4e36a64d0d52d606e4154d87b217ab3b811cdd6677",
+      "profile_measurement_a345a5af30c9e16447796817f08bc1808b2cd4feb7ca8b882d847d465030d2cb",
+      "profile_measurement_d1c207dc1a40e71f017e67545ab2fc8227de2f64c62bd26ff4c24a15f0636e99"
+    ],
+    "motionPrograms": [
+      {
+        "capabilityId": "maul_governed_text_animation",
+        "semanticRole": "Execute readable dialogue text without inventing timing, placement, or emphasis.",
+        "outputStartMs": 0,
+        "outputEndMs": 10043,
+        "execution": {
+          "executionStatus": "native",
+          "nativeBranch": "MaulPlannedTextLayer.governedTransforms",
+          "fallback": null,
+          "evidenceRequirement": "Rendered frame probes must match every governed transform phase."
+        }
+      }
+    ]
+  }
+}

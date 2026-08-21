@@ -1,0 +1,210 @@
+{
+  "schemaVersion": "maul-artifact/v1",
+  "artifactId": "maul_artifact_msq4dkhr_f0040b1bb1",
+  "artifactType": "analysis",
+  "lineage": {
+    "projectId": "maul_project_msq4dkhk_30b103afb0",
+    "canonicalJobId": "maul_job_msq4dkhl_71d86c9794",
+    "runId": "maul_run_msq4dkhl_7045fdb32f",
+    "rootSourceAssetId": "maul_artifact_msq4dkhl_2e86e4621f",
+    "parentArtifactIds": [
+      "maul_artifact_msq4dkhl_2e86e4621f"
+    ],
+    "sequence": 2,
+    "producedBy": {
+      "module": "maul-media-analysis",
+      "version": "1"
+    },
+    "createdAt": "2026-08-12T13:23:07.647Z"
+  },
+  "payload": {
+    "sourceAssetId": "maul_artifact_msq4dkhl_2e86e4621f",
+    "transcript": {
+      "language": "en",
+      "text": "Over the last 12 months, I've purchased more than 12,000 physical products from eBay.com that I've then resold on Amazon for more than six figures in Pure.",
+      "words": [
+        {
+          "text": "Over",
+          "startMs": 800,
+          "endMs": 920,
+          "confidence": 0.99853516
+        },
+        {
+          "text": "the",
+          "startMs": 920,
+          "endMs": 1080,
+          "confidence": 0.9995117
+        },
+        {
+          "text": "last",
+          "startMs": 1080,
+          "endMs": 1320,
+          "confidence": 0.9995117
+        },
+        {
+          "text": "12",
+          "startMs": 1320,
+          "endMs": 1640,
+          "confidence": 0.99902
+        },
+        {
+          "text": "months,",
+          "startMs": 1640,
+          "endMs": 2000,
+          "confidence": 1
+        },
+        {
+          "text": "I've",
+          "startMs": 2000,
+          "endMs": 2360,
+          "confidence": 0.9352214
+        },
+        {
+          "text": "purchased",
+          "startMs": 2360,
+          "endMs": 2800,
+          "confidence": 0.9983724
+        },
+        {
+          "text": "more",
+          "startMs": 2800,
+          "endMs": 3000,
+          "confidence": 1
+        },
+        {
+          "text": "than",
+          "startMs": 3000,
+          "endMs": 3240,
+          "confidence": 0.99902344
+        },
+        {
+          "text": "12,000",
+          "startMs": 3240,
+          "endMs": 3920,
+          "confidence": 0.97827
+        },
+        {
+          "text": "physical",
+          "startMs": 4000,
+          "endMs": 4560,
+          "confidence": 0.99934894
+        },
+        {
+          "text": "products",
+          "startMs": 4560,
+          "endMs": 4920,
+          "confidence": 0.9995117
+        },
+        {
+          "text": "from",
+          "startMs": 4920,
+          "endMs": 5200,
+          "confidence": 0.99902344
+        },
+        {
+          "text": "eBay.com",
+          "startMs": 5200,
+          "endMs": 6080,
+          "confidence": 0.91621
+        },
+        {
+          "text": "that",
+          "startMs": 6240,
+          "endMs": 6520,
+          "confidence": 0.99853516
+        },
+        {
+          "text": "I've",
+          "startMs": 6520,
+          "endMs": 6760,
+          "confidence": 0.99348956
+        },
+        {
+          "text": "then",
+          "startMs": 6760,
+          "endMs": 6960,
+          "confidence": 0.8535156
+        },
+        {
+          "text": "resold",
+          "startMs": 6960,
+          "endMs": 7440,
+          "confidence": 0.9941406
+        },
+        {
+          "text": "on",
+          "startMs": 7440,
+          "endMs": 7640,
+          "confidence": 0.9995117
+        },
+        {
+          "text": "Amazon",
+          "startMs": 7640,
+          "endMs": 8120,
+          "confidence": 0.9938151
+        },
+        {
+          "text": "for",
+          "startMs": 8120,
+          "endMs": 8320,
+          "confidence": 0.9980469
+        },
+        {
+          "text": "more",
+          "startMs": 8320,
+          "endMs": 8440,
+          "confidence": 0.99902344
+        },
+        {
+          "text": "than",
+          "startMs": 8440,
+          "endMs": 8680,
+          "confidence": 0.9995117
+        },
+        {
+          "text": "six",
+          "startMs": 8680,
+          "endMs": 9000,
+          "confidence": 0.9995117
+        },
+        {
+          "text": "figures",
+          "startMs": 9000,
+          "endMs": 9360,
+          "confidence": 0.99975586
+        },
+        {
+          "text": "in",
+          "startMs": 9360,
+          "endMs": 9560,
+          "confidence": 0.69970703
+        },
+        {
+          "text": "Pure.",
+          "startMs": 9560,
+          "endMs": 9920,
+          "confidence": 0.79052734
+        }
+      ]
+    },
+    "voiceSpans": [
+      {
+        "sourceStartMs": 800,
+        "sourceEndMs": 9920,
+        "speakerId": null,
+        "confidence": 0.69970703,
+        "detectionSource": "timed_transcript+manual_verified_vad",
+        "verified": true
+      }
+    ],
+    "silenceSpans": [],
+    "shots": [],
+    "speakerTracks": [],
+    "technicalFacts": {
+      "sourceDurationMs": 10043,
+      "vadProvider": "manual_verified_vad",
+      "transcriptWordCount": 27,
+      "principalSpeakerId": null
+    }
+  }
+}

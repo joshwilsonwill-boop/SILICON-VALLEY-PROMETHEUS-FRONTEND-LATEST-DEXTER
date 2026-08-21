@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "maul-artifact/v1",
+  "artifactId": "maul_artifact_msq42rj2_d3dc619fe0",
+  "artifactType": "source_asset",
+  "lineage": {
+    "projectId": "maul_project_msq42rj2_19628ac47a",
+    "canonicalJobId": "maul_job_msq42rj2_e996632b27",
+    "runId": "maul_run_msq42rj2_7d896748f3",
+    "rootSourceAssetId": "maul_artifact_msq42rj2_d3dc619fe0",
+    "parentArtifactIds": [],
+    "sequence": 1,
+    "producedBy": {
+      "module": "maul-project-service",
+      "version": "1"
+    },
+    "createdAt": "2026-08-12T13:14:43.550Z"
+  },
+  "payload": {
+    "originalFilename": "raw-joseph-10s.mp4",
+    "storageKey": "/home/ec2-user/PROMETHEUS-CORE-BACKEND/artifacts/raw-joseph-10s.mp4",
+    "mediaType": "video/mp4",
+    "sha256": "27960330cf0d92373ed4ee4ee3deececd4bb75cd85abf44860a47f2f19e58845",
+    "durationMs": 10043,
+    "width": 1280,
+    "height": 720,
+    "fps": 29.97002997002997,
+    "hasAudio": true,
+    "hasVideo": true
+  }
+}

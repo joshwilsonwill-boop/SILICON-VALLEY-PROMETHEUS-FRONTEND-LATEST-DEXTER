@@ -1,0 +1,6247 @@
+{
+  "schemaVersion": "maul-artifact/v1",
+  "artifactId": "maul_artifact_msq4h1q3_d785d43ff5",
+  "artifactType": "text_animation_plan",
+  "lineage": {
+    "projectId": "maul_project_msq4h1d0_b5233029ba",
+    "canonicalJobId": "maul_job_msq4h1d0_fe67598935",
+    "runId": "maul_run_msq4h1d0_351aeb6898",
+    "rootSourceAssetId": "maul_artifact_msq4h1d0_933257be9e",
+    "parentArtifactIds": [
+      "maul_artifact_msq4h1d0_933257be9e",
+      "maul_artifact_msq4h1d7_ec75f2d4db",
+      "maul_artifact_msq4h1db_429b71a46e",
+      "maul_artifact_msq4h1dy_cd6e98035f",
+      "maul_artifact_msq4h1do_ea3b4f8abc",
+      "maul_artifact_msq4h1et_8eacaadab4",
+      "maul_artifact_msq4h1ns_fd1924fba8",
+      "maul_artifact_msq4h1pb_d2be8add60"
+    ],
+    "sequence": 12,
+    "producedBy": {
+      "module": "maul-text-animation-planner",
+      "version": "1"
+    },
+    "createdAt": "2026-08-12T13:25:49.947Z"
+  },
+  "payload": {
+    "sourceAssetId": "maul_artifact_msq4h1d0_933257be9e",
+    "analysisArtifactId": "maul_artifact_msq4h1d7_ec75f2d4db",
+    "timelineArtifactId": "maul_artifact_msq4h1db_429b71a46e",
+    "candidateArtifactId": "maul_artifact_msq4h1dy_cd6e98035f",
+    "treatmentGenomeArtifactId": "maul_artifact_msq4h1do_ea3b4f8abc",
+    "planVersion": "maul-text-animation-plan/v1",
+    "replayKey": "cf8042e0d36126c799483248f96dd0f2248f8bcc8a7da03bc3986c76af709092",
+    "authority": {
+      "authorityClass": "deterministic",
+      "stageId": "maul-text-animation-plan_v1",
+      "confidence": 0.72,
+      "inferenceReceiptId": null
+    },
+    "warnings": [],
+    "fallbacks": [
+      {
+        "condition": "A richer mandatory dependency is unavailable or unverified.",
+        "action": "Use the named restrained fallback and keep the release quality gate closed.",
+        "status": "available"
+      }
+    ],
+    "schemaVersion": "maul-text-animation-plan/v1",
+    "textChunkPlanArtifactId": "maul_artifact_msq4h1ns_fd1924fba8",
+    "textChunkPlanHash": "0985b495596ba78c712d36ec23b07b25ae07243198aad55939194e52194fdb32",
+    "textPlacementPlanArtifactId": "maul_artifact_msq4h1pb_d2be8add60",
+    "textPlacementPlanHash": "605013dcae183821e4f9ee5b9d7ffccdc05ad2ca74a89bc5902cd3ce270ae411",
+    "treatmentGenomeHash": "558291d8a3feebf5b6b15f61d36c33cc15dc9899b6af299ae28320502abfd343",
+    "outputDurationMs": 10043,
+    "programs": [
+      {
+        "animationId": "maul_text_animation_placement_segment_7502ba98e04afeafaecfb3da_token_07977fb5f95479685806385f_0",
+        "treatment": "two_word_cinematic_pair",
+        "target": {
+          "scope": "tokens",
+          "placementSegmentId": "placement_segment_7502ba98e04afeafaecfb3da",
+          "tokenIds": [
+            "token_07977fb5f95479685806385f"
+          ]
+        },
+        "executorId": "gsap:two_word_cinematic_pair",
+        "frameMotion": {
+          "schemaVersion": "maul-frame-motion/v1",
+          "executorId": "gsap:two_word_cinematic_pair",
+          "sourceTreatment": "two_word_cinematic_pair",
+          "unit": "word",
+          "tokenId": "token_07977fb5f95479685806385f",
+          "placementSegmentId": "placement_segment_7502ba98e04afeafaecfb3da",
+          "fps": 30,
+          "sourceIntervalMs": {
+            "startMs": 800,
+            "endMs": 920
+          },
+          "phases": {
+            "entry": {
+              "startFrame": 24,
+              "endFrame": 29,
+              "easing": {
+                "type": "cubic_bezier",
+                "x1": 0.16,
+                "y1": 1,
+                "x2": 0.3,
+                "y2": 1
+              },
+              "from": {
+                "opacity": 0.02,
+                "translateXPx": -96,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": -3,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            },
+            "hold": {
+              "startFrame": 29,
+              "endFrame": 59,
+              "easing": {
+                "type": "linear"
+              },
+              "from": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            },
+            "exit": {
+              "startFrame": 59,
+              "endFrame": 60,
+              "easing": {
+                "type": "cubic_bezier",
+                "x1": 0.16,
+                "y1": 1,
+                "x2": 0.3,
+                "y2": 1
+              },
+              "from": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 0,
+                "translateXPx": 96,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            }
+          },
+          "envelope": {
+            "maxTranslateXPx": 96,
+            "maxTranslateYPx": 72,
+            "maxScale": 1.06,
+            "maxBlurPx": 10
+          },
+          "visualRecipe": {
+            "family": "split",
+            "variant": 4,
+            "accent": "none",
+            "depthPx": 4,
+            "shadowPx": 0,
+            "skewDeg": 0,
+            "strokeWidthPx": 0,
+            "colorSplitPx": 0,
+            "shadeOpacity": 0
+          }
+        },
+        "phases": {
+          "entry": {
+            "outputStartMs": 800,
+            "outputEndMs": 967,
+            "easing": {
+              "type": "cubic_bezier",
+              "x1": 0.16,
+              "y1": 1,
+              "x2": 0.3,
+              "y2": 1
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          },
+          "hold": {
+            "outputStartMs": 967,
+            "outputEndMs": 1967,
+            "easing": {
+              "type": "linear"
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          },
+          "exit": {
+            "outputStartMs": 1967,
+            "outputEndMs": 2000,
+            "easing": {
+              "type": "cubic_bezier",
+              "x1": 0.16,
+              "y1": 1,
+              "x2": 0.3,
+              "y2": 1
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          }
+        },
+        "rationale": "Execute two_word_cinematic_pair for stable token token_07977fb5f95479685806385f from its authoritative transcript interval as supporting word motion; six_word_quad_duo_depth remains the chunk-level stylistic anchor. Requested treatment documentary-soft-lock is not an executable frame source; selected six_word_quad_duo_depth from the governed capability registry."
+      },
+      {
+        "animationId": "maul_text_animation_placement_segment_7502ba98e04afeafaecfb3da_token_4618442531f8c56244b72551_0",
+        "treatment": "cinematic_text_preset_3",
+        "target": {
+          "scope": "tokens",
+          "placementSegmentId": "placement_segment_7502ba98e04afeafaecfb3da",
+          "tokenIds": [
+            "token_4618442531f8c56244b72551"
+          ]
+        },
+        "executorId": "svg:cinematic_text_preset_3",
+        "frameMotion": {
+          "schemaVersion": "maul-frame-motion/v1",
+          "executorId": "svg:cinematic_text_preset_3",
+          "sourceTreatment": "cinematic_text_preset_3",
+          "unit": "letter",
+          "tokenId": "token_4618442531f8c56244b72551",
+          "placementSegmentId": "placement_segment_7502ba98e04afeafaecfb3da",
+          "fps": 30,
+          "sourceIntervalMs": {
+            "startMs": 920,
+            "endMs": 1080
+          },
+          "phases": {
+            "entry": {
+              "startFrame": 27,
+              "endFrame": 32,
+              "easing": {
+                "type": "cubic_bezier",
+                "x1": 0.2,
+                "y1": 0.9,
+                "x2": 0.3,
+                "y2": 1
+              },
+              "from": {
+                "opacity": 0.02,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 0,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            },
+            "hold": {
+              "startFrame": 32,
+              "endFrame": 59,
+              "easing": {
+                "type": "linear"
+              },
+              "from": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            },
+            "exit": {
+              "startFrame": 59,
+              "endFrame": 60,
+              "easing": {
+                "type": "cubic_bezier",
+                "x1": 0.2,
+                "y1": 0.9,
+                "x2": 0.3,
+                "y2": 1
+              },
+              "from": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 0,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 0,
+                "trackingEm": 0
+              }
+            }
+          },
+          "envelope": {
+            "maxTranslateXPx": 20,
+            "maxTranslateYPx": 28,
+            "maxScale": 1.02,
+            "maxBlurPx": 4
+          },
+          "visualRecipe": {
+            "family": "mask",
+            "variant": 29,
+            "accent": "none",
+            "depthPx": 1,
+            "shadowPx": 1,
+            "skewDeg": 1,
+            "strokeWidthPx": 0,
+            "colorSplitPx": 0,
+            "shadeOpacity": 0
+          }
+        },
+        "phases": {
+          "entry": {
+            "outputStartMs": 900,
+            "outputEndMs": 1067,
+            "easing": {
+              "type": "cubic_bezier",
+              "x1": 0.2,
+              "y1": 0.9,
+              "x2": 0.3,
+              "y2": 1
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          },
+          "hold": {
+            "outputStartMs": 1067,
+            "outputEndMs": 1967,
+            "easing": {
+              "type": "linear"
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          },
+          "exit": {
+            "outputStartMs": 1967,
+            "outputEndMs": 2000,
+            "easing": {
+              "type": "cubic_bezier",
+              "x1": 0.2,
+              "y1": 0.9,
+              "x2": 0.3,
+              "y2": 1
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          }
+        },
+        "rationale": "Execute cinematic_text_preset_3 for stable token token_4618442531f8c56244b72551 from its authoritative transcript interval as supporting word motion; six_word_quad_duo_depth remains the chunk-level stylistic anchor. Requested treatment documentary-soft-lock is not an executable frame source; selected six_word_quad_duo_depth from the governed capability registry."
+      },
+      {
+        "animationId": "maul_text_animation_placement_segment_7502ba98e04afeafaecfb3da_token_d508c9f0f4bb17fdb6a112fc_0",
+        "treatment": "interesting_blur_lift",
+        "target": {
+          "scope": "tokens",
+          "placementSegmentId": "placement_segment_7502ba98e04afeafaecfb3da",
+          "tokenIds": [
+            "token_d508c9f0f4bb17fdb6a112fc"
+          ]
+        },
+        "executorId": "gsap:interesting_blur_lift",
+        "frameMotion": {
+          "schemaVersion": "maul-frame-motion/v1",
+          "executorId": "gsap:interesting_blur_lift",
+          "sourceTreatment": "interesting_blur_lift",
+          "unit": "letter",
+          "tokenId": "token_d508c9f0f4bb17fdb6a112fc",
+          "placementSegmentId": "placement_segment_7502ba98e04afeafaecfb3da",
+          "fps": 30,
+          "sourceIntervalMs": {
+            "startMs": 1080,
+            "endMs": 1320
+          },
+          "phases": {
+            "entry": {
+              "startFrame": 32,
+              "endFrame": 37,
+              "easing": {
+                "type": "cubic_bezier",
+                "x1": 0.16,
+                "y1": 1,
+                "x2": 0.3,
+                "y2": 1
+              },
+              "from": {
+                "opacity": 0.02,
+                "translateXPx": 0,
+                "translateYPx": 48,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 14,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            },
+            "hold": {
+              "startFrame": 37,
+              "endFrame": 59,
+              "easing": {
+                "type": "linear"
+              },
+              "from": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            },
+            "exit": {
+              "startFrame": 59,
+              "endFrame": 60,
+              "easing": {
+                "type": "cubic_bezier",
+                "x1": 0.16,
+                "y1": 1,
+                "x2": 0.3,
+                "y2": 1
+              },
+              "from": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 0,
+                "translateXPx": 0,
+                "translateYPx": -48,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 12,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            }
+          },
+          "envelope": {
+            "maxTranslateXPx": 0,
+            "maxTranslateYPx": 48,
+            "maxScale": 1,
+            "maxBlurPx": 14
+          },
+          "visualRecipe": {
+            "family": "blur_lift",
+            "variant": 1,
+            "accent": "none",
+            "depthPx": 1,
+            "shadowPx": 1,
+            "skewDeg": 0,
+            "strokeWidthPx": 0,
+            "colorSplitPx": 0,
+            "shadeOpacity": 0
+          }
+        },
+        "phases": {
+          "entry": {
+            "outputStartMs": 1067,
+            "outputEndMs": 1233,
+            "easing": {
+              "type": "cubic_bezier",
+              "x1": 0.16,
+              "y1": 1,
+              "x2": 0.3,
+              "y2": 1
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          },
+          "hold": {
+            "outputStartMs": 1233,
+            "outputEndMs": 1967,
+            "easing": {
+              "type": "linear"
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          },
+          "exit": {
+            "outputStartMs": 1967,
+            "outputEndMs": 2000,
+            "easing": {
+              "type": "cubic_bezier",
+              "x1": 0.16,
+              "y1": 1,
+              "x2": 0.3,
+              "y2": 1
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          }
+        },
+        "rationale": "Execute interesting_blur_lift for stable token token_d508c9f0f4bb17fdb6a112fc from its authoritative transcript interval as supporting word motion; six_word_quad_duo_depth remains the chunk-level stylistic anchor. Requested treatment documentary-soft-lock is not an executable frame source; selected six_word_quad_duo_depth from the governed capability registry."
+      },
+      {
+        "animationId": "maul_text_animation_placement_segment_7502ba98e04afeafaecfb3da_token_9f08dfd22d8e2b58878cc854_0",
+        "treatment": "six_word_quad_duo_depth",
+        "target": {
+          "scope": "tokens",
+          "placementSegmentId": "placement_segment_7502ba98e04afeafaecfb3da",
+          "tokenIds": [
+            "token_9f08dfd22d8e2b58878cc854"
+          ]
+        },
+        "executorId": "gsap:six_word_quad_duo_depth",
+        "frameMotion": {
+          "schemaVersion": "maul-frame-motion/v1",
+          "executorId": "gsap:six_word_quad_duo_depth",
+          "sourceTreatment": "six_word_quad_duo_depth",
+          "unit": "word",
+          "tokenId": "token_9f08dfd22d8e2b58878cc854",
+          "placementSegmentId": "placement_segment_7502ba98e04afeafaecfb3da",
+          "fps": 30,
+          "sourceIntervalMs": {
+            "startMs": 1320,
+            "endMs": 1640
+          },
+          "phases": {
+            "entry": {
+              "startFrame": 39,
+              "endFrame": 44,
+              "easing": {
+                "type": "cubic_bezier",
+                "x1": 0.16,
+                "y1": 1,
+                "x2": 0.3,
+                "y2": 1
+              },
+              "from": {
+                "opacity": 0.02,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 0.9039999999999999,
+                "rotationDeg": 0,
+                "blurPx": 12,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            },
+            "hold": {
+              "startFrame": 44,
+              "endFrame": 58,
+              "easing": {
+                "type": "linear"
+              },
+              "from": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            },
+            "exit": {
+              "startFrame": 58,
+              "endFrame": 60,
+              "easing": {
+                "type": "cubic_bezier",
+                "x1": 0.16,
+                "y1": 1,
+                "x2": 0.3,
+                "y2": 1
+              },
+              "from": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 0,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 12,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            }
+          },
+          "envelope": {
+            "maxTranslateXPx": 64,
+            "maxTranslateYPx": 52,
+            "maxScale": 1.12,
+            "maxBlurPx": 12
+          },
+          "visualRecipe": {
+            "family": "depth",
+            "variant": 24,
+            "accent": "shade",
+            "depthPx": 34,
+            "shadowPx": 24,
+            "skewDeg": -1,
+            "strokeWidthPx": 0,
+            "colorSplitPx": 0,
+            "shadeOpacity": 0.33999999999999997
+          }
+        },
+        "phases": {
+          "entry": {
+            "outputStartMs": 1300,
+            "outputEndMs": 1467,
+            "easing": {
+              "type": "cubic_bezier",
+              "x1": 0.16,
+              "y1": 1,
+              "x2": 0.3,
+              "y2": 1
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          },
+          "hold": {
+            "outputStartMs": 1467,
+            "outputEndMs": 1933,
+            "easing": {
+              "type": "linear"
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          },
+          "exit": {
+            "outputStartMs": 1933,
+            "outputEndMs": 2000,
+            "easing": {
+              "type": "cubic_bezier",
+              "x1": 0.16,
+              "y1": 1,
+              "x2": 0.3,
+              "y2": 1
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          }
+        },
+        "rationale": "Execute six_word_quad_duo_depth for stable token token_9f08dfd22d8e2b58878cc854 from its authoritative transcript interval as cinematic semantic emphasis; six_word_quad_duo_depth remains the chunk-level stylistic anchor. Requested treatment documentary-soft-lock is not an executable frame source; selected six_word_quad_duo_depth from the governed capability registry."
+      },
+      {
+        "animationId": "maul_text_animation_placement_segment_7502ba98e04afeafaecfb3da_token_ea114f9f14fc597f3f36147b_0",
+        "treatment": "text-entry.clipped-mask-reveal",
+        "target": {
+          "scope": "tokens",
+          "placementSegmentId": "placement_segment_7502ba98e04afeafaecfb3da",
+          "tokenIds": [
+            "token_ea114f9f14fc597f3f36147b"
+          ]
+        },
+        "executorId": "joseph:text-entry.clipped-mask-reveal",
+        "frameMotion": {
+          "schemaVersion": "maul-frame-motion/v1",
+          "executorId": "joseph:text-entry.clipped-mask-reveal",
+          "sourceTreatment": "text-entry.clipped-mask-reveal",
+          "unit": "word",
+          "tokenId": "token_ea114f9f14fc597f3f36147b",
+          "placementSegmentId": "placement_segment_7502ba98e04afeafaecfb3da",
+          "fps": 30,
+          "sourceIntervalMs": {
+            "startMs": 1640,
+            "endMs": 2000
+          },
+          "phases": {
+            "entry": {
+              "startFrame": 49,
+              "endFrame": 54,
+              "easing": {
+                "type": "cubic_bezier",
+                "x1": 0.2,
+                "y1": 0.9,
+                "x2": 0.3,
+                "y2": 1
+              },
+              "from": {
+                "opacity": 0.02,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 0,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            },
+            "hold": {
+              "startFrame": 54,
+              "endFrame": 58,
+              "easing": {
+                "type": "linear"
+              },
+              "from": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            },
+            "exit": {
+              "startFrame": 58,
+              "endFrame": 60,
+              "easing": {
+                "type": "cubic_bezier",
+                "x1": 0.2,
+                "y1": 0.9,
+                "x2": 0.3,
+                "y2": 1
+              },
+              "from": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 0,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 0,
+                "trackingEm": 0
+              }
+            }
+          },
+          "envelope": {
+            "maxTranslateXPx": 20,
+            "maxTranslateYPx": 28,
+            "maxScale": 1.02,
+            "maxBlurPx": 4
+          },
+          "visualRecipe": {
+            "family": "mask",
+            "variant": 42,
+            "accent": "none",
+            "depthPx": 0,
+            "shadowPx": 2,
+            "skewDeg": -1,
+            "strokeWidthPx": 0,
+            "colorSplitPx": 0,
+            "shadeOpacity": 0
+          }
+        },
+        "phases": {
+          "entry": {
+            "outputStartMs": 1633,
+            "outputEndMs": 1800,
+            "easing": {
+              "type": "cubic_bezier",
+              "x1": 0.2,
+              "y1": 0.9,
+              "x2": 0.3,
+              "y2": 1
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          },
+          "hold": {
+            "outputStartMs": 1800,
+            "outputEndMs": 1933,
+            "easing": {
+              "type": "linear"
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          },
+          "exit": {
+            "outputStartMs": 1933,
+            "outputEndMs": 2000,
+            "easing": {
+              "type": "cubic_bezier",
+              "x1": 0.2,
+              "y1": 0.9,
+              "x2": 0.3,
+              "y2": 1
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          }
+        },
+        "rationale": "Execute text-entry.clipped-mask-reveal for stable token token_ea114f9f14fc597f3f36147b from its authoritative transcript interval as supporting word motion; six_word_quad_duo_depth remains the chunk-level stylistic anchor. Requested treatment documentary-soft-lock is not an executable frame source; selected six_word_quad_duo_depth from the governed capability registry."
+      },
+      {
+        "animationId": "maul_text_animation_placement_segment_911fe3d8fe760b5b2f7c47d2_token_a09e50662e319ed8d5aa2b12_0",
+        "treatment": "two_word_script_caption_lock",
+        "target": {
+          "scope": "tokens",
+          "placementSegmentId": "placement_segment_911fe3d8fe760b5b2f7c47d2",
+          "tokenIds": [
+            "token_a09e50662e319ed8d5aa2b12"
+          ]
+        },
+        "executorId": "gsap:two_word_script_caption_lock",
+        "frameMotion": {
+          "schemaVersion": "maul-frame-motion/v1",
+          "executorId": "gsap:two_word_script_caption_lock",
+          "sourceTreatment": "two_word_script_caption_lock",
+          "unit": "word",
+          "tokenId": "token_a09e50662e319ed8d5aa2b12",
+          "placementSegmentId": "placement_segment_911fe3d8fe760b5b2f7c47d2",
+          "fps": 30,
+          "sourceIntervalMs": {
+            "startMs": 2000,
+            "endMs": 2360
+          },
+          "phases": {
+            "entry": {
+              "startFrame": 60,
+              "endFrame": 65,
+              "easing": {
+                "type": "cubic_bezier",
+                "x1": 0.16,
+                "y1": 1,
+                "x2": 0.3,
+                "y2": 1
+              },
+              "from": {
+                "opacity": 0.02,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            },
+            "hold": {
+              "startFrame": 65,
+              "endFrame": 116,
+              "easing": {
+                "type": "linear"
+              },
+              "from": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            },
+            "exit": {
+              "startFrame": 116,
+              "endFrame": 118,
+              "easing": {
+                "type": "cubic_bezier",
+                "x1": 0.16,
+                "y1": 1,
+                "x2": 0.3,
+                "y2": 1
+              },
+              "from": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 0,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            }
+          },
+          "envelope": {
+            "maxTranslateXPx": 48,
+            "maxTranslateYPx": 44,
+            "maxScale": 1.04,
+            "maxBlurPx": 9
+          },
+          "visualRecipe": {
+            "family": "script_glide",
+            "variant": 25,
+            "accent": "none",
+            "depthPx": 4,
+            "shadowPx": 1,
+            "skewDeg": -8,
+            "strokeWidthPx": 0,
+            "colorSplitPx": 0,
+            "shadeOpacity": 0
+          }
+        },
+        "phases": {
+          "entry": {
+            "outputStartMs": 2000,
+            "outputEndMs": 2167,
+            "easing": {
+              "type": "cubic_bezier",
+              "x1": 0.16,
+              "y1": 1,
+              "x2": 0.3,
+              "y2": 1
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          },
+          "hold": {
+            "outputStartMs": 2167,
+            "outputEndMs": 3867,
+            "easing": {
+              "type": "linear"
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          },
+          "exit": {
+            "outputStartMs": 3867,
+            "outputEndMs": 3933,
+            "easing": {
+              "type": "cubic_bezier",
+              "x1": 0.16,
+              "y1": 1,
+              "x2": 0.3,
+              "y2": 1
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          }
+        },
+        "rationale": "Execute two_word_script_caption_lock for stable token token_a09e50662e319ed8d5aa2b12 from its authoritative transcript interval as supporting word motion; two_word_stagger_punch remains the chunk-level stylistic anchor. Requested treatment documentary-soft-lock is not an executable frame source; selected two_word_stagger_punch from the governed capability registry."
+      },
+      {
+        "animationId": "maul_text_animation_placement_segment_911fe3d8fe760b5b2f7c47d2_token_9c4c2c65b5d77e3f68007329_0",
+        "treatment": "cinematic_text_preset_9",
+        "target": {
+          "scope": "tokens",
+          "placementSegmentId": "placement_segment_911fe3d8fe760b5b2f7c47d2",
+          "tokenIds": [
+            "token_9c4c2c65b5d77e3f68007329"
+          ]
+        },
+        "executorId": "svg:cinematic_text_preset_9",
+        "frameMotion": {
+          "schemaVersion": "maul-frame-motion/v1",
+          "executorId": "svg:cinematic_text_preset_9",
+          "sourceTreatment": "cinematic_text_preset_9",
+          "unit": "word",
+          "tokenId": "token_9c4c2c65b5d77e3f68007329",
+          "placementSegmentId": "placement_segment_911fe3d8fe760b5b2f7c47d2",
+          "fps": 30,
+          "sourceIntervalMs": {
+            "startMs": 2360,
+            "endMs": 2800
+          },
+          "phases": {
+            "entry": {
+              "startFrame": 70,
+              "endFrame": 75,
+              "easing": {
+                "type": "cubic_bezier",
+                "x1": 0.16,
+                "y1": 1,
+                "x2": 0.3,
+                "y2": 1
+              },
+              "from": {
+                "opacity": 0.02,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 13,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            },
+            "hold": {
+              "startFrame": 75,
+              "endFrame": 116,
+              "easing": {
+                "type": "linear"
+              },
+              "from": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            },
+            "exit": {
+              "startFrame": 116,
+              "endFrame": 118,
+              "easing": {
+                "type": "cubic_bezier",
+                "x1": 0.16,
+                "y1": 1,
+                "x2": 0.3,
+                "y2": 1
+              },
+              "from": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 0,
+                "translateXPx": 0,
+                "translateYPx": -24,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 12,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            }
+          },
+          "envelope": {
+            "maxTranslateXPx": 0,
+            "maxTranslateYPx": 24,
+            "maxScale": 1.03,
+            "maxBlurPx": 13
+          },
+          "visualRecipe": {
+            "family": "fog",
+            "variant": 35,
+            "accent": "none",
+            "depthPx": 0,
+            "shadowPx": 3,
+            "skewDeg": 1,
+            "strokeWidthPx": 0,
+            "colorSplitPx": 0,
+            "shadeOpacity": 0
+          }
+        },
+        "phases": {
+          "entry": {
+            "outputStartMs": 2333,
+            "outputEndMs": 2500,
+            "easing": {
+              "type": "cubic_bezier",
+              "x1": 0.16,
+              "y1": 1,
+              "x2": 0.3,
+              "y2": 1
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          },
+          "hold": {
+            "outputStartMs": 2500,
+            "outputEndMs": 3867,
+            "easing": {
+              "type": "linear"
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          },
+          "exit": {
+            "outputStartMs": 3867,
+            "outputEndMs": 3933,
+            "easing": {
+              "type": "cubic_bezier",
+              "x1": 0.16,
+              "y1": 1,
+              "x2": 0.3,
+              "y2": 1
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          }
+        },
+        "rationale": "Execute cinematic_text_preset_9 for stable token token_9c4c2c65b5d77e3f68007329 from its authoritative transcript interval as supporting word motion; two_word_stagger_punch remains the chunk-level stylistic anchor. Requested treatment documentary-soft-lock is not an executable frame source; selected two_word_stagger_punch from the governed capability registry."
+      },
+      {
+        "animationId": "maul_text_animation_placement_segment_911fe3d8fe760b5b2f7c47d2_token_c9ce9ca2bfa13b88eb9f03b9_0",
+        "treatment": "spatial-motion.anchored-drift",
+        "target": {
+          "scope": "tokens",
+          "placementSegmentId": "placement_segment_911fe3d8fe760b5b2f7c47d2",
+          "tokenIds": [
+            "token_c9ce9ca2bfa13b88eb9f03b9"
+          ]
+        },
+        "executorId": "joseph:spatial-motion.anchored-drift",
+        "frameMotion": {
+          "schemaVersion": "maul-frame-motion/v1",
+          "executorId": "joseph:spatial-motion.anchored-drift",
+          "sourceTreatment": "spatial-motion.anchored-drift",
+          "unit": "word",
+          "tokenId": "token_c9ce9ca2bfa13b88eb9f03b9",
+          "placementSegmentId": "placement_segment_911fe3d8fe760b5b2f7c47d2",
+          "fps": 30,
+          "sourceIntervalMs": {
+            "startMs": 2800,
+            "endMs": 3000
+          },
+          "phases": {
+            "entry": {
+              "startFrame": 84,
+              "endFrame": 89,
+              "easing": {
+                "type": "cubic_bezier",
+                "x1": 0.4,
+                "y1": 0,
+                "x2": 0.2,
+                "y2": 1
+              },
+              "from": {
+                "opacity": 0.02,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            },
+            "hold": {
+              "startFrame": 89,
+              "endFrame": 117,
+              "easing": {
+                "type": "linear"
+              },
+              "from": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            },
+            "exit": {
+              "startFrame": 117,
+              "endFrame": 118,
+              "easing": {
+                "type": "cubic_bezier",
+                "x1": 0.4,
+                "y1": 0,
+                "x2": 0.2,
+                "y2": 1
+              },
+              "from": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 0,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            }
+          },
+          "envelope": {
+            "maxTranslateXPx": 14,
+            "maxTranslateYPx": 10,
+            "maxScale": 1.02,
+            "maxBlurPx": 3
+          },
+          "visualRecipe": {
+            "family": "drift",
+            "variant": 52,
+            "accent": "none",
+            "depthPx": 3,
+            "shadowPx": 0,
+            "skewDeg": 0,
+            "strokeWidthPx": 0,
+            "colorSplitPx": 0,
+            "shadeOpacity": 0
+          }
+        },
+        "phases": {
+          "entry": {
+            "outputStartMs": 2800,
+            "outputEndMs": 2967,
+            "easing": {
+              "type": "cubic_bezier",
+              "x1": 0.4,
+              "y1": 0,
+              "x2": 0.2,
+              "y2": 1
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          },
+          "hold": {
+            "outputStartMs": 2967,
+            "outputEndMs": 3900,
+            "easing": {
+              "type": "linear"
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          },
+          "exit": {
+            "outputStartMs": 3900,
+            "outputEndMs": 3933,
+            "easing": {
+              "type": "cubic_bezier",
+              "x1": 0.4,
+              "y1": 0,
+              "x2": 0.2,
+              "y2": 1
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          }
+        },
+        "rationale": "Execute spatial-motion.anchored-drift for stable token token_c9ce9ca2bfa13b88eb9f03b9 from its authoritative transcript interval as supporting word motion; two_word_stagger_punch remains the chunk-level stylistic anchor. Requested treatment documentary-soft-lock is not an executable frame source; selected two_word_stagger_punch from the governed capability registry."
+      },
+      {
+        "animationId": "maul_text_animation_placement_segment_911fe3d8fe760b5b2f7c47d2_token_4a30bd04fc050fb24badd9cb_0",
+        "treatment": "cinematic_text_preset_7",
+        "target": {
+          "scope": "tokens",
+          "placementSegmentId": "placement_segment_911fe3d8fe760b5b2f7c47d2",
+          "tokenIds": [
+            "token_4a30bd04fc050fb24badd9cb"
+          ]
+        },
+        "executorId": "svg:cinematic_text_preset_7",
+        "frameMotion": {
+          "schemaVersion": "maul-frame-motion/v1",
+          "executorId": "svg:cinematic_text_preset_7",
+          "sourceTreatment": "cinematic_text_preset_7",
+          "unit": "word",
+          "tokenId": "token_4a30bd04fc050fb24badd9cb",
+          "placementSegmentId": "placement_segment_911fe3d8fe760b5b2f7c47d2",
+          "fps": 30,
+          "sourceIntervalMs": {
+            "startMs": 3000,
+            "endMs": 3240
+          },
+          "phases": {
+            "entry": {
+              "startFrame": 90,
+              "endFrame": 95,
+              "easing": {
+                "type": "cubic_bezier",
+                "x1": 0.16,
+                "y1": 1,
+                "x2": 0.3,
+                "y2": 1
+              },
+              "from": {
+                "opacity": 0.02,
+                "translateXPx": 0,
+                "translateYPx": 48,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 14,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            },
+            "hold": {
+              "startFrame": 95,
+              "endFrame": 117,
+              "easing": {
+                "type": "linear"
+              },
+              "from": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            },
+            "exit": {
+              "startFrame": 117,
+              "endFrame": 118,
+              "easing": {
+                "type": "cubic_bezier",
+                "x1": 0.16,
+                "y1": 1,
+                "x2": 0.3,
+                "y2": 1
+              },
+              "from": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 0,
+                "translateXPx": 0,
+                "translateYPx": -48,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 12,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            }
+          },
+          "envelope": {
+            "maxTranslateXPx": 0,
+            "maxTranslateYPx": 48,
+            "maxScale": 1,
+            "maxBlurPx": 14
+          },
+          "visualRecipe": {
+            "family": "blur_lift",
+            "variant": 33,
+            "accent": "none",
+            "depthPx": 5,
+            "shadowPx": 1,
+            "skewDeg": -1,
+            "strokeWidthPx": 0,
+            "colorSplitPx": 0,
+            "shadeOpacity": 0
+          }
+        },
+        "phases": {
+          "entry": {
+            "outputStartMs": 3000,
+            "outputEndMs": 3167,
+            "easing": {
+              "type": "cubic_bezier",
+              "x1": 0.16,
+              "y1": 1,
+              "x2": 0.3,
+              "y2": 1
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          },
+          "hold": {
+            "outputStartMs": 3167,
+            "outputEndMs": 3900,
+            "easing": {
+              "type": "linear"
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          },
+          "exit": {
+            "outputStartMs": 3900,
+            "outputEndMs": 3933,
+            "easing": {
+              "type": "cubic_bezier",
+              "x1": 0.16,
+              "y1": 1,
+              "x2": 0.3,
+              "y2": 1
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          }
+        },
+        "rationale": "Execute cinematic_text_preset_7 for stable token token_4a30bd04fc050fb24badd9cb from its authoritative transcript interval as supporting word motion; two_word_stagger_punch remains the chunk-level stylistic anchor. Requested treatment documentary-soft-lock is not an executable frame source; selected two_word_stagger_punch from the governed capability registry."
+      },
+      {
+        "animationId": "maul_text_animation_placement_segment_911fe3d8fe760b5b2f7c47d2_token_55cabd0da54fc2e24438643e_0",
+        "treatment": "three_word_ref_build_legacy_your_v1",
+        "target": {
+          "scope": "tokens",
+          "placementSegmentId": "placement_segment_911fe3d8fe760b5b2f7c47d2",
+          "tokenIds": [
+            "token_55cabd0da54fc2e24438643e"
+          ]
+        },
+        "executorId": "gsap:three_word_ref_build_legacy_your_v1",
+        "frameMotion": {
+          "schemaVersion": "maul-frame-motion/v1",
+          "executorId": "gsap:three_word_ref_build_legacy_your_v1",
+          "sourceTreatment": "three_word_ref_build_legacy_your_v1",
+          "unit": "word",
+          "tokenId": "token_55cabd0da54fc2e24438643e",
+          "placementSegmentId": "placement_segment_911fe3d8fe760b5b2f7c47d2",
+          "fps": 30,
+          "sourceIntervalMs": {
+            "startMs": 3240,
+            "endMs": 3920
+          },
+          "phases": {
+            "entry": {
+              "startFrame": 97,
+              "endFrame": 102,
+              "easing": {
+                "type": "cubic_bezier",
+                "x1": 0.16,
+                "y1": 1,
+                "x2": 0.3,
+                "y2": 1
+              },
+              "from": {
+                "opacity": 0.02,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 0.9039999999999999,
+                "rotationDeg": 0,
+                "blurPx": 12,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            },
+            "hold": {
+              "startFrame": 102,
+              "endFrame": 114,
+              "easing": {
+                "type": "linear"
+              },
+              "from": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            },
+            "exit": {
+              "startFrame": 114,
+              "endFrame": 118,
+              "easing": {
+                "type": "cubic_bezier",
+                "x1": 0.16,
+                "y1": 1,
+                "x2": 0.3,
+                "y2": 1
+              },
+              "from": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 0,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 12,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            }
+          },
+          "envelope": {
+            "maxTranslateXPx": 64,
+            "maxTranslateYPx": 52,
+            "maxScale": 1.12,
+            "maxBlurPx": 12
+          },
+          "visualRecipe": {
+            "family": "depth",
+            "variant": 19,
+            "accent": "shade",
+            "depthPx": 39,
+            "shadowPx": 24,
+            "skewDeg": 0,
+            "strokeWidthPx": 0,
+            "colorSplitPx": 0,
+            "shadeOpacity": 0.33999999999999997
+          }
+        },
+        "phases": {
+          "entry": {
+            "outputStartMs": 3233,
+            "outputEndMs": 3400,
+            "easing": {
+              "type": "cubic_bezier",
+              "x1": 0.16,
+              "y1": 1,
+              "x2": 0.3,
+              "y2": 1
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          },
+          "hold": {
+            "outputStartMs": 3400,
+            "outputEndMs": 3800,
+            "easing": {
+              "type": "linear"
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          },
+          "exit": {
+            "outputStartMs": 3800,
+            "outputEndMs": 3933,
+            "easing": {
+              "type": "cubic_bezier",
+              "x1": 0.16,
+              "y1": 1,
+              "x2": 0.3,
+              "y2": 1
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          }
+        },
+        "rationale": "Execute three_word_ref_build_legacy_your_v1 for stable token token_55cabd0da54fc2e24438643e from its authoritative transcript interval as cinematic semantic emphasis; two_word_stagger_punch remains the chunk-level stylistic anchor. Requested treatment documentary-soft-lock is not an executable frame source; selected two_word_stagger_punch from the governed capability registry."
+      },
+      {
+        "animationId": "maul_text_animation_placement_segment_d59e292e8fb830be1b339046_token_b1a4b8210d480bcf024bd189_0",
+        "treatment": "two_word_focus_pivot",
+        "target": {
+          "scope": "tokens",
+          "placementSegmentId": "placement_segment_d59e292e8fb830be1b339046",
+          "tokenIds": [
+            "token_b1a4b8210d480bcf024bd189"
+          ]
+        },
+        "executorId": "gsap:two_word_focus_pivot",
+        "frameMotion": {
+          "schemaVersion": "maul-frame-motion/v1",
+          "executorId": "gsap:two_word_focus_pivot",
+          "sourceTreatment": "two_word_focus_pivot",
+          "unit": "word",
+          "tokenId": "token_b1a4b8210d480bcf024bd189",
+          "placementSegmentId": "placement_segment_d59e292e8fb830be1b339046",
+          "fps": 30,
+          "sourceIntervalMs": {
+            "startMs": 4000,
+            "endMs": 4560
+          },
+          "phases": {
+            "entry": {
+              "startFrame": 120,
+              "endFrame": 125,
+              "easing": {
+                "type": "cubic_bezier",
+                "x1": 0.16,
+                "y1": 1,
+                "x2": 0.3,
+                "y2": 1
+              },
+              "from": {
+                "opacity": 0.02,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 0.9359999999999999,
+                "rotationDeg": 0,
+                "blurPx": 9,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            },
+            "hold": {
+              "startFrame": 125,
+              "endFrame": 148,
+              "easing": {
+                "type": "linear"
+              },
+              "from": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            },
+            "exit": {
+              "startFrame": 148,
+              "endFrame": 151,
+              "easing": {
+                "type": "cubic_bezier",
+                "x1": 0.16,
+                "y1": 1,
+                "x2": 0.3,
+                "y2": 1
+              },
+              "from": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 0,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 9,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            }
+          },
+          "envelope": {
+            "maxTranslateXPx": 0,
+            "maxTranslateYPx": 0,
+            "maxScale": 1.08,
+            "maxBlurPx": 9
+          },
+          "visualRecipe": {
+            "family": "focus_lock",
+            "variant": 8,
+            "accent": "shade",
+            "depthPx": 1,
+            "shadowPx": 21,
+            "skewDeg": 1,
+            "strokeWidthPx": 0,
+            "colorSplitPx": 0,
+            "shadeOpacity": 0.3
+          }
+        },
+        "phases": {
+          "entry": {
+            "outputStartMs": 4000,
+            "outputEndMs": 4167,
+            "easing": {
+              "type": "cubic_bezier",
+              "x1": 0.16,
+              "y1": 1,
+              "x2": 0.3,
+              "y2": 1
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          },
+          "hold": {
+            "outputStartMs": 4167,
+            "outputEndMs": 4933,
+            "easing": {
+              "type": "linear"
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          },
+          "exit": {
+            "outputStartMs": 4933,
+            "outputEndMs": 5033,
+            "easing": {
+              "type": "cubic_bezier",
+              "x1": 0.16,
+              "y1": 1,
+              "x2": 0.3,
+              "y2": 1
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          }
+        },
+        "rationale": "Execute two_word_focus_pivot for stable token token_b1a4b8210d480bcf024bd189 from its authoritative transcript interval as cinematic semantic emphasis; four_word_banner_drift remains the chunk-level stylistic anchor. Requested treatment documentary-soft-lock is not an executable frame source; selected four_word_banner_drift from the governed capability registry."
+      },
+      {
+        "animationId": "maul_text_animation_placement_segment_d59e292e8fb830be1b339046_token_09a98761b43a6878c0af4eaf_0",
+        "treatment": "text-entry.velocity-slide-reveal",
+        "target": {
+          "scope": "tokens",
+          "placementSegmentId": "placement_segment_d59e292e8fb830be1b339046",
+          "tokenIds": [
+            "token_09a98761b43a6878c0af4eaf"
+          ]
+        },
+        "executorId": "joseph:text-entry.velocity-slide-reveal",
+        "frameMotion": {
+          "schemaVersion": "maul-frame-motion/v1",
+          "executorId": "joseph:text-entry.velocity-slide-reveal",
+          "sourceTreatment": "text-entry.velocity-slide-reveal",
+          "unit": "word",
+          "tokenId": "token_09a98761b43a6878c0af4eaf",
+          "placementSegmentId": "placement_segment_d59e292e8fb830be1b339046",
+          "fps": 30,
+          "sourceIntervalMs": {
+            "startMs": 4560,
+            "endMs": 4920
+          },
+          "phases": {
+            "entry": {
+              "startFrame": 136,
+              "endFrame": 141,
+              "easing": {
+                "type": "cubic_bezier",
+                "x1": 0.16,
+                "y1": 1,
+                "x2": 0.3,
+                "y2": 1
+              },
+              "from": {
+                "opacity": 0.02,
+                "translateXPx": -96,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": -3,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            },
+            "hold": {
+              "startFrame": 141,
+              "endFrame": 149,
+              "easing": {
+                "type": "linear"
+              },
+              "from": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            },
+            "exit": {
+              "startFrame": 149,
+              "endFrame": 151,
+              "easing": {
+                "type": "cubic_bezier",
+                "x1": 0.16,
+                "y1": 1,
+                "x2": 0.3,
+                "y2": 1
+              },
+              "from": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 0,
+                "translateXPx": 96,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            }
+          },
+          "envelope": {
+            "maxTranslateXPx": 96,
+            "maxTranslateYPx": 72,
+            "maxScale": 1.06,
+            "maxBlurPx": 10
+          },
+          "visualRecipe": {
+            "family": "split",
+            "variant": 41,
+            "accent": "none",
+            "depthPx": 6,
+            "shadowPx": 1,
+            "skewDeg": 1,
+            "strokeWidthPx": 0,
+            "colorSplitPx": 0,
+            "shadeOpacity": 0
+          }
+        },
+        "phases": {
+          "entry": {
+            "outputStartMs": 4533,
+            "outputEndMs": 4700,
+            "easing": {
+              "type": "cubic_bezier",
+              "x1": 0.16,
+              "y1": 1,
+              "x2": 0.3,
+              "y2": 1
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          },
+          "hold": {
+            "outputStartMs": 4700,
+            "outputEndMs": 4967,
+            "easing": {
+              "type": "linear"
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          },
+          "exit": {
+            "outputStartMs": 4967,
+            "outputEndMs": 5033,
+            "easing": {
+              "type": "cubic_bezier",
+              "x1": 0.16,
+              "y1": 1,
+              "x2": 0.3,
+              "y2": 1
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          }
+        },
+        "rationale": "Execute text-entry.velocity-slide-reveal for stable token token_09a98761b43a6878c0af4eaf from its authoritative transcript interval as supporting word motion; four_word_banner_drift remains the chunk-level stylistic anchor. Requested treatment documentary-soft-lock is not an executable frame source; selected four_word_banner_drift from the governed capability registry."
+      },
+      {
+        "animationId": "maul_text_animation_placement_segment_d59e292e8fb830be1b339046_token_188a987143ea03436d84cb2f_0",
+        "treatment": "text-entry.word-riser",
+        "target": {
+          "scope": "tokens",
+          "placementSegmentId": "placement_segment_d59e292e8fb830be1b339046",
+          "tokenIds": [
+            "token_188a987143ea03436d84cb2f"
+          ]
+        },
+        "executorId": "joseph:text-entry.word-riser",
+        "frameMotion": {
+          "schemaVersion": "maul-frame-motion/v1",
+          "executorId": "joseph:text-entry.word-riser",
+          "sourceTreatment": "text-entry.word-riser",
+          "unit": "word",
+          "tokenId": "token_188a987143ea03436d84cb2f",
+          "placementSegmentId": "placement_segment_d59e292e8fb830be1b339046",
+          "fps": 30,
+          "sourceIntervalMs": {
+            "startMs": 4920,
+            "endMs": 5200
+          },
+          "phases": {
+            "entry": {
+              "startFrame": 147,
+              "endFrame": 149,
+              "easing": {
+                "type": "cubic_bezier",
+                "x1": 0.16,
+                "y1": 1,
+                "x2": 0.3,
+                "y2": 1
+              },
+              "from": {
+                "opacity": 0.02,
+                "translateXPx": 0,
+                "translateYPx": 72,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            },
+            "hold": {
+              "startFrame": 149,
+              "endFrame": 150,
+              "easing": {
+                "type": "linear"
+              },
+              "from": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            },
+            "exit": {
+              "startFrame": 150,
+              "endFrame": 151,
+              "easing": {
+                "type": "cubic_bezier",
+                "x1": 0.16,
+                "y1": 1,
+                "x2": 0.3,
+                "y2": 1
+              },
+              "from": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 0,
+                "translateXPx": 0,
+                "translateYPx": -72,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            }
+          },
+          "envelope": {
+            "maxTranslateXPx": 0,
+            "maxTranslateYPx": 72,
+            "maxScale": 1.04,
+            "maxBlurPx": 8
+          },
+          "visualRecipe": {
+            "family": "rise",
+            "variant": 38,
+            "accent": "none",
+            "depthPx": 3,
+            "shadowPx": 2,
+            "skewDeg": 1,
+            "strokeWidthPx": 0,
+            "colorSplitPx": 0,
+            "shadeOpacity": 0
+          }
+        },
+        "phases": {
+          "entry": {
+            "outputStartMs": 4900,
+            "outputEndMs": 4967,
+            "easing": {
+              "type": "cubic_bezier",
+              "x1": 0.16,
+              "y1": 1,
+              "x2": 0.3,
+              "y2": 1
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          },
+          "hold": {
+            "outputStartMs": 4967,
+            "outputEndMs": 5000,
+            "easing": {
+              "type": "linear"
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          },
+          "exit": {
+            "outputStartMs": 5000,
+            "outputEndMs": 5033,
+            "easing": {
+              "type": "cubic_bezier",
+              "x1": 0.16,
+              "y1": 1,
+              "x2": 0.3,
+              "y2": 1
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          }
+        },
+        "rationale": "Execute text-entry.word-riser for stable token token_188a987143ea03436d84cb2f from its authoritative transcript interval as supporting word motion; four_word_banner_drift remains the chunk-level stylistic anchor. Requested treatment documentary-soft-lock is not an executable frame source; selected four_word_banner_drift from the governed capability registry."
+      },
+      {
+        "animationId": "maul_text_animation_placement_segment_d59e292e8fb830be1b339046_token_320670743d7b94818541394a_bridge",
+        "treatment": "two_word_arc_sweep",
+        "target": {
+          "scope": "tokens",
+          "placementSegmentId": "placement_segment_d59e292e8fb830be1b339046",
+          "tokenIds": [
+            "token_320670743d7b94818541394a"
+          ]
+        },
+        "executorId": "gsap:two_word_arc_sweep",
+        "frameMotion": {
+          "schemaVersion": "maul-frame-motion/v1",
+          "executorId": "gsap:two_word_arc_sweep",
+          "sourceTreatment": "two_word_arc_sweep",
+          "unit": "word",
+          "tokenId": "token_320670743d7b94818541394a",
+          "placementSegmentId": "placement_segment_d59e292e8fb830be1b339046",
+          "fps": 30,
+          "sourceIntervalMs": {
+            "startMs": 5200,
+            "endMs": 6080
+          },
+          "phases": {
+            "entry": {
+              "startFrame": 120,
+              "endFrame": 121,
+              "easing": {
+                "type": "linear"
+              },
+              "from": {
+                "opacity": 0,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 0,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            },
+            "hold": {
+              "startFrame": 121,
+              "endFrame": 150,
+              "easing": {
+                "type": "linear"
+              },
+              "from": {
+                "opacity": 0,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 0,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            },
+            "exit": {
+              "startFrame": 150,
+              "endFrame": 151,
+              "easing": {
+                "type": "linear"
+              },
+              "from": {
+                "opacity": 0,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 0,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            }
+          },
+          "envelope": {
+            "maxTranslateXPx": 128,
+            "maxTranslateYPx": 48,
+            "maxScale": 1.08,
+            "maxBlurPx": 11
+          },
+          "visualRecipe": {
+            "family": "arc",
+            "variant": 6,
+            "accent": "none",
+            "depthPx": 6,
+            "shadowPx": 2,
+            "skewDeg": -6,
+            "strokeWidthPx": 0,
+            "colorSplitPx": 0,
+            "shadeOpacity": 0
+          }
+        },
+        "phases": {
+          "entry": {
+            "outputStartMs": 4000,
+            "outputEndMs": 4033,
+            "easing": {
+              "type": "linear"
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          },
+          "hold": {
+            "outputStartMs": 4033,
+            "outputEndMs": 5000,
+            "easing": {
+              "type": "linear"
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          },
+          "exit": {
+            "outputStartMs": 5000,
+            "outputEndMs": 5033,
+            "easing": {
+              "type": "linear"
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          }
+        },
+        "rationale": "Preserve token_320670743d7b94818541394a as a pending visibility bridge without replaying its routed word animation."
+      },
+      {
+        "animationId": "maul_text_animation_placement_segment_31e52a1c6fb07b6a5132487d_token_b1a4b8210d480bcf024bd189_bridge",
+        "treatment": "two_word_focus_pivot",
+        "target": {
+          "scope": "tokens",
+          "placementSegmentId": "placement_segment_31e52a1c6fb07b6a5132487d",
+          "tokenIds": [
+            "token_b1a4b8210d480bcf024bd189"
+          ]
+        },
+        "executorId": "gsap:two_word_focus_pivot",
+        "frameMotion": {
+          "schemaVersion": "maul-frame-motion/v1",
+          "executorId": "gsap:two_word_focus_pivot",
+          "sourceTreatment": "two_word_focus_pivot",
+          "unit": "word",
+          "tokenId": "token_b1a4b8210d480bcf024bd189",
+          "placementSegmentId": "placement_segment_31e52a1c6fb07b6a5132487d",
+          "fps": 30,
+          "sourceIntervalMs": {
+            "startMs": 4000,
+            "endMs": 4560
+          },
+          "phases": {
+            "entry": {
+              "startFrame": 150,
+              "endFrame": 151,
+              "easing": {
+                "type": "linear"
+              },
+              "from": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            },
+            "hold": {
+              "startFrame": 151,
+              "endFrame": 182,
+              "easing": {
+                "type": "linear"
+              },
+              "from": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            },
+            "exit": {
+              "startFrame": 182,
+              "endFrame": 183,
+              "easing": {
+                "type": "linear"
+              },
+              "from": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            }
+          },
+          "envelope": {
+            "maxTranslateXPx": 0,
+            "maxTranslateYPx": 0,
+            "maxScale": 1.08,
+            "maxBlurPx": 9
+          },
+          "visualRecipe": {
+            "family": "focus_lock",
+            "variant": 8,
+            "accent": "shade",
+            "depthPx": 1,
+            "shadowPx": 21,
+            "skewDeg": 1,
+            "strokeWidthPx": 0,
+            "colorSplitPx": 0,
+            "shadeOpacity": 0.3
+          }
+        },
+        "phases": {
+          "entry": {
+            "outputStartMs": 5000,
+            "outputEndMs": 5033,
+            "easing": {
+              "type": "linear"
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          },
+          "hold": {
+            "outputStartMs": 5033,
+            "outputEndMs": 6067,
+            "easing": {
+              "type": "linear"
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          },
+          "exit": {
+            "outputStartMs": 6067,
+            "outputEndMs": 6100,
+            "easing": {
+              "type": "linear"
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          }
+        },
+        "rationale": "Preserve token_b1a4b8210d480bcf024bd189 as a settled visibility bridge without replaying its routed word animation."
+      },
+      {
+        "animationId": "maul_text_animation_placement_segment_31e52a1c6fb07b6a5132487d_token_09a98761b43a6878c0af4eaf_bridge",
+        "treatment": "text-entry.velocity-slide-reveal",
+        "target": {
+          "scope": "tokens",
+          "placementSegmentId": "placement_segment_31e52a1c6fb07b6a5132487d",
+          "tokenIds": [
+            "token_09a98761b43a6878c0af4eaf"
+          ]
+        },
+        "executorId": "joseph:text-entry.velocity-slide-reveal",
+        "frameMotion": {
+          "schemaVersion": "maul-frame-motion/v1",
+          "executorId": "joseph:text-entry.velocity-slide-reveal",
+          "sourceTreatment": "text-entry.velocity-slide-reveal",
+          "unit": "word",
+          "tokenId": "token_09a98761b43a6878c0af4eaf",
+          "placementSegmentId": "placement_segment_31e52a1c6fb07b6a5132487d",
+          "fps": 30,
+          "sourceIntervalMs": {
+            "startMs": 4560,
+            "endMs": 4920
+          },
+          "phases": {
+            "entry": {
+              "startFrame": 150,
+              "endFrame": 151,
+              "easing": {
+                "type": "linear"
+              },
+              "from": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            },
+            "hold": {
+              "startFrame": 151,
+              "endFrame": 182,
+              "easing": {
+                "type": "linear"
+              },
+              "from": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            },
+            "exit": {
+              "startFrame": 182,
+              "endFrame": 183,
+              "easing": {
+                "type": "linear"
+              },
+              "from": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            }
+          },
+          "envelope": {
+            "maxTranslateXPx": 96,
+            "maxTranslateYPx": 72,
+            "maxScale": 1.06,
+            "maxBlurPx": 10
+          },
+          "visualRecipe": {
+            "family": "split",
+            "variant": 41,
+            "accent": "none",
+            "depthPx": 6,
+            "shadowPx": 1,
+            "skewDeg": 1,
+            "strokeWidthPx": 0,
+            "colorSplitPx": 0,
+            "shadeOpacity": 0
+          }
+        },
+        "phases": {
+          "entry": {
+            "outputStartMs": 5000,
+            "outputEndMs": 5033,
+            "easing": {
+              "type": "linear"
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          },
+          "hold": {
+            "outputStartMs": 5033,
+            "outputEndMs": 6067,
+            "easing": {
+              "type": "linear"
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          },
+          "exit": {
+            "outputStartMs": 6067,
+            "outputEndMs": 6100,
+            "easing": {
+              "type": "linear"
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          }
+        },
+        "rationale": "Preserve token_09a98761b43a6878c0af4eaf as a settled visibility bridge without replaying its routed word animation."
+      },
+      {
+        "animationId": "maul_text_animation_placement_segment_31e52a1c6fb07b6a5132487d_token_188a987143ea03436d84cb2f_0",
+        "treatment": "text-entry.word-riser",
+        "target": {
+          "scope": "tokens",
+          "placementSegmentId": "placement_segment_31e52a1c6fb07b6a5132487d",
+          "tokenIds": [
+            "token_188a987143ea03436d84cb2f"
+          ]
+        },
+        "executorId": "joseph:text-entry.word-riser",
+        "frameMotion": {
+          "schemaVersion": "maul-frame-motion/v1",
+          "executorId": "joseph:text-entry.word-riser",
+          "sourceTreatment": "text-entry.word-riser",
+          "unit": "word",
+          "tokenId": "token_188a987143ea03436d84cb2f",
+          "placementSegmentId": "placement_segment_31e52a1c6fb07b6a5132487d",
+          "fps": 30,
+          "sourceIntervalMs": {
+            "startMs": 4920,
+            "endMs": 5200
+          },
+          "phases": {
+            "entry": {
+              "startFrame": 150,
+              "endFrame": 155,
+              "easing": {
+                "type": "cubic_bezier",
+                "x1": 0.16,
+                "y1": 1,
+                "x2": 0.3,
+                "y2": 1
+              },
+              "from": {
+                "opacity": 0.02,
+                "translateXPx": 0,
+                "translateYPx": 72,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            },
+            "hold": {
+              "startFrame": 155,
+              "endFrame": 182,
+              "easing": {
+                "type": "linear"
+              },
+              "from": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            },
+            "exit": {
+              "startFrame": 182,
+              "endFrame": 183,
+              "easing": {
+                "type": "cubic_bezier",
+                "x1": 0.16,
+                "y1": 1,
+                "x2": 0.3,
+                "y2": 1
+              },
+              "from": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 0,
+                "translateXPx": 0,
+                "translateYPx": -72,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            }
+          },
+          "envelope": {
+            "maxTranslateXPx": 0,
+            "maxTranslateYPx": 72,
+            "maxScale": 1.04,
+            "maxBlurPx": 8
+          },
+          "visualRecipe": {
+            "family": "rise",
+            "variant": 38,
+            "accent": "none",
+            "depthPx": 3,
+            "shadowPx": 2,
+            "skewDeg": 1,
+            "strokeWidthPx": 0,
+            "colorSplitPx": 0,
+            "shadeOpacity": 0
+          }
+        },
+        "phases": {
+          "entry": {
+            "outputStartMs": 5000,
+            "outputEndMs": 5167,
+            "easing": {
+              "type": "cubic_bezier",
+              "x1": 0.16,
+              "y1": 1,
+              "x2": 0.3,
+              "y2": 1
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          },
+          "hold": {
+            "outputStartMs": 5167,
+            "outputEndMs": 6067,
+            "easing": {
+              "type": "linear"
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          },
+          "exit": {
+            "outputStartMs": 6067,
+            "outputEndMs": 6100,
+            "easing": {
+              "type": "cubic_bezier",
+              "x1": 0.16,
+              "y1": 1,
+              "x2": 0.3,
+              "y2": 1
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          }
+        },
+        "rationale": "Execute text-entry.word-riser for stable token token_188a987143ea03436d84cb2f from its authoritative transcript interval as supporting word motion; four_word_outline_whip remains the chunk-level stylistic anchor. Requested treatment documentary-soft-lock is not an executable frame source; selected four_word_outline_whip from the governed capability registry."
+      },
+      {
+        "animationId": "maul_text_animation_placement_segment_31e52a1c6fb07b6a5132487d_token_320670743d7b94818541394a_0",
+        "treatment": "two_word_arc_sweep",
+        "target": {
+          "scope": "tokens",
+          "placementSegmentId": "placement_segment_31e52a1c6fb07b6a5132487d",
+          "tokenIds": [
+            "token_320670743d7b94818541394a"
+          ]
+        },
+        "executorId": "gsap:two_word_arc_sweep",
+        "frameMotion": {
+          "schemaVersion": "maul-frame-motion/v1",
+          "executorId": "gsap:two_word_arc_sweep",
+          "sourceTreatment": "two_word_arc_sweep",
+          "unit": "word",
+          "tokenId": "token_320670743d7b94818541394a",
+          "placementSegmentId": "placement_segment_31e52a1c6fb07b6a5132487d",
+          "fps": 30,
+          "sourceIntervalMs": {
+            "startMs": 5200,
+            "endMs": 6080
+          },
+          "phases": {
+            "entry": {
+              "startFrame": 156,
+              "endFrame": 162,
+              "easing": {
+                "type": "cubic_bezier",
+                "x1": 0.16,
+                "y1": 1,
+                "x2": 0.3,
+                "y2": 1
+              },
+              "from": {
+                "opacity": 0.02,
+                "translateXPx": -128,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": -7,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            },
+            "hold": {
+              "startFrame": 162,
+              "endFrame": 178,
+              "easing": {
+                "type": "linear"
+              },
+              "from": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            },
+            "exit": {
+              "startFrame": 178,
+              "endFrame": 183,
+              "easing": {
+                "type": "cubic_bezier",
+                "x1": 0.16,
+                "y1": 1,
+                "x2": 0.3,
+                "y2": 1
+              },
+              "from": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 0,
+                "translateXPx": 128,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            }
+          },
+          "envelope": {
+            "maxTranslateXPx": 128,
+            "maxTranslateYPx": 48,
+            "maxScale": 1.08,
+            "maxBlurPx": 11
+          },
+          "visualRecipe": {
+            "family": "arc",
+            "variant": 6,
+            "accent": "none",
+            "depthPx": 6,
+            "shadowPx": 2,
+            "skewDeg": -6,
+            "strokeWidthPx": 0,
+            "colorSplitPx": 0,
+            "shadeOpacity": 0
+          }
+        },
+        "phases": {
+          "entry": {
+            "outputStartMs": 5200,
+            "outputEndMs": 5400,
+            "easing": {
+              "type": "cubic_bezier",
+              "x1": 0.16,
+              "y1": 1,
+              "x2": 0.3,
+              "y2": 1
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          },
+          "hold": {
+            "outputStartMs": 5400,
+            "outputEndMs": 5933,
+            "easing": {
+              "type": "linear"
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          },
+          "exit": {
+            "outputStartMs": 5933,
+            "outputEndMs": 6100,
+            "easing": {
+              "type": "cubic_bezier",
+              "x1": 0.16,
+              "y1": 1,
+              "x2": 0.3,
+              "y2": 1
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          }
+        },
+        "rationale": "Execute two_word_arc_sweep for stable token token_320670743d7b94818541394a from its authoritative transcript interval as supporting word motion; four_word_outline_whip remains the chunk-level stylistic anchor. Requested treatment documentary-soft-lock is not an executable frame source; selected four_word_outline_whip from the governed capability registry."
+      },
+      {
+        "animationId": "maul_text_animation_placement_segment_58dce0b409be4aff38367bfc_token_0cf5d2b3fc4096b1597881ec_0",
+        "treatment": "cinematic_text_preset_1",
+        "target": {
+          "scope": "tokens",
+          "placementSegmentId": "placement_segment_58dce0b409be4aff38367bfc",
+          "tokenIds": [
+            "token_0cf5d2b3fc4096b1597881ec"
+          ]
+        },
+        "executorId": "svg:cinematic_text_preset_1",
+        "frameMotion": {
+          "schemaVersion": "maul-frame-motion/v1",
+          "executorId": "svg:cinematic_text_preset_1",
+          "sourceTreatment": "cinematic_text_preset_1",
+          "unit": "letter",
+          "tokenId": "token_0cf5d2b3fc4096b1597881ec",
+          "placementSegmentId": "placement_segment_58dce0b409be4aff38367bfc",
+          "fps": 30,
+          "sourceIntervalMs": {
+            "startMs": 6240,
+            "endMs": 6520
+          },
+          "phases": {
+            "entry": {
+              "startFrame": 187,
+              "endFrame": 192,
+              "easing": {
+                "type": "cubic_bezier",
+                "x1": 0.16,
+                "y1": 1,
+                "x2": 0.3,
+                "y2": 1
+              },
+              "from": {
+                "opacity": 0.02,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": -0.08
+              },
+              "to": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            },
+            "hold": {
+              "startFrame": 192,
+              "endFrame": 223,
+              "easing": {
+                "type": "linear"
+              },
+              "from": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            },
+            "exit": {
+              "startFrame": 223,
+              "endFrame": 224,
+              "easing": {
+                "type": "cubic_bezier",
+                "x1": 0.16,
+                "y1": 1,
+                "x2": 0.3,
+                "y2": 1
+              },
+              "from": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 0,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            }
+          },
+          "envelope": {
+            "maxTranslateXPx": 28,
+            "maxTranslateYPx": 42,
+            "maxScale": 1.04,
+            "maxBlurPx": 8
+          },
+          "visualRecipe": {
+            "family": "stagger",
+            "variant": 27,
+            "accent": "none",
+            "depthPx": 6,
+            "shadowPx": 3,
+            "skewDeg": -1,
+            "strokeWidthPx": 0,
+            "colorSplitPx": 0,
+            "shadeOpacity": 0
+          }
+        },
+        "phases": {
+          "entry": {
+            "outputStartMs": 6233,
+            "outputEndMs": 6400,
+            "easing": {
+              "type": "cubic_bezier",
+              "x1": 0.16,
+              "y1": 1,
+              "x2": 0.3,
+              "y2": 1
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          },
+          "hold": {
+            "outputStartMs": 6400,
+            "outputEndMs": 7433,
+            "easing": {
+              "type": "linear"
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          },
+          "exit": {
+            "outputStartMs": 7433,
+            "outputEndMs": 7467,
+            "easing": {
+              "type": "cubic_bezier",
+              "x1": 0.16,
+              "y1": 1,
+              "x2": 0.3,
+              "y2": 1
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          }
+        },
+        "rationale": "Execute cinematic_text_preset_1 for stable token token_0cf5d2b3fc4096b1597881ec from its authoritative transcript interval as supporting word motion; four_word_split_stagger remains the chunk-level stylistic anchor. Requested treatment documentary-soft-lock is not an executable frame source; selected four_word_split_stagger from the governed capability registry."
+      },
+      {
+        "animationId": "maul_text_animation_placement_segment_58dce0b409be4aff38367bfc_token_fa052135c353b6d7fb43c021_0",
+        "treatment": "accent-motion.caption-rail",
+        "target": {
+          "scope": "tokens",
+          "placementSegmentId": "placement_segment_58dce0b409be4aff38367bfc",
+          "tokenIds": [
+            "token_fa052135c353b6d7fb43c021"
+          ]
+        },
+        "executorId": "joseph:accent-motion.caption-rail",
+        "frameMotion": {
+          "schemaVersion": "maul-frame-motion/v1",
+          "executorId": "joseph:accent-motion.caption-rail",
+          "sourceTreatment": "accent-motion.caption-rail",
+          "unit": "word",
+          "tokenId": "token_fa052135c353b6d7fb43c021",
+          "placementSegmentId": "placement_segment_58dce0b409be4aff38367bfc",
+          "fps": 30,
+          "sourceIntervalMs": {
+            "startMs": 6520,
+            "endMs": 6760
+          },
+          "phases": {
+            "entry": {
+              "startFrame": 195,
+              "endFrame": 200,
+              "easing": {
+                "type": "cubic_bezier",
+                "x1": 0.4,
+                "y1": 0,
+                "x2": 0.2,
+                "y2": 1
+              },
+              "from": {
+                "opacity": 0,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            },
+            "hold": {
+              "startFrame": 200,
+              "endFrame": 223,
+              "easing": {
+                "type": "linear"
+              },
+              "from": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            },
+            "exit": {
+              "startFrame": 223,
+              "endFrame": 224,
+              "easing": {
+                "type": "cubic_bezier",
+                "x1": 0.4,
+                "y1": 0,
+                "x2": 0.2,
+                "y2": 1
+              },
+              "from": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 0,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            }
+          },
+          "envelope": {
+            "maxTranslateXPx": 18,
+            "maxTranslateYPx": 6,
+            "maxScale": 1.02,
+            "maxBlurPx": 2
+          },
+          "visualRecipe": {
+            "family": "rail",
+            "variant": 51,
+            "accent": "rail",
+            "depthPx": 2,
+            "shadowPx": 3,
+            "skewDeg": -1,
+            "strokeWidthPx": 0,
+            "colorSplitPx": 0,
+            "shadeOpacity": 0
+          }
+        },
+        "phases": {
+          "entry": {
+            "outputStartMs": 6500,
+            "outputEndMs": 6667,
+            "easing": {
+              "type": "cubic_bezier",
+              "x1": 0.4,
+              "y1": 0,
+              "x2": 0.2,
+              "y2": 1
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          },
+          "hold": {
+            "outputStartMs": 6667,
+            "outputEndMs": 7433,
+            "easing": {
+              "type": "linear"
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          },
+          "exit": {
+            "outputStartMs": 7433,
+            "outputEndMs": 7467,
+            "easing": {
+              "type": "cubic_bezier",
+              "x1": 0.4,
+              "y1": 0,
+              "x2": 0.2,
+              "y2": 1
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          }
+        },
+        "rationale": "Execute accent-motion.caption-rail for stable token token_fa052135c353b6d7fb43c021 from its authoritative transcript interval as supporting word motion; four_word_split_stagger remains the chunk-level stylistic anchor. Requested treatment documentary-soft-lock is not an executable frame source; selected four_word_split_stagger from the governed capability registry."
+      },
+      {
+        "animationId": "maul_text_animation_placement_segment_58dce0b409be4aff38367bfc_token_97a801171634b0070541c253_0",
+        "treatment": "three_word_ref_through_column",
+        "target": {
+          "scope": "tokens",
+          "placementSegmentId": "placement_segment_58dce0b409be4aff38367bfc",
+          "tokenIds": [
+            "token_97a801171634b0070541c253"
+          ]
+        },
+        "executorId": "gsap:three_word_ref_through_column",
+        "frameMotion": {
+          "schemaVersion": "maul-frame-motion/v1",
+          "executorId": "gsap:three_word_ref_through_column",
+          "sourceTreatment": "three_word_ref_through_column",
+          "unit": "word",
+          "tokenId": "token_97a801171634b0070541c253",
+          "placementSegmentId": "placement_segment_58dce0b409be4aff38367bfc",
+          "fps": 30,
+          "sourceIntervalMs": {
+            "startMs": 6760,
+            "endMs": 6960
+          },
+          "phases": {
+            "entry": {
+              "startFrame": 202,
+              "endFrame": 207,
+              "easing": {
+                "type": "cubic_bezier",
+                "x1": 0.2,
+                "y1": 0.9,
+                "x2": 0.3,
+                "y2": 1
+              },
+              "from": {
+                "opacity": 0.02,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 0,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            },
+            "hold": {
+              "startFrame": 207,
+              "endFrame": 223,
+              "easing": {
+                "type": "linear"
+              },
+              "from": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            },
+            "exit": {
+              "startFrame": 223,
+              "endFrame": 224,
+              "easing": {
+                "type": "cubic_bezier",
+                "x1": 0.2,
+                "y1": 0.9,
+                "x2": 0.3,
+                "y2": 1
+              },
+              "from": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 0,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 0,
+                "trackingEm": 0
+              }
+            }
+          },
+          "envelope": {
+            "maxTranslateXPx": 20,
+            "maxTranslateYPx": 28,
+            "maxScale": 1.02,
+            "maxBlurPx": 4
+          },
+          "visualRecipe": {
+            "family": "mask",
+            "variant": 14,
+            "accent": "none",
+            "depthPx": 0,
+            "shadowPx": 2,
+            "skewDeg": 1,
+            "strokeWidthPx": 0,
+            "colorSplitPx": 0,
+            "shadeOpacity": 0
+          }
+        },
+        "phases": {
+          "entry": {
+            "outputStartMs": 6733,
+            "outputEndMs": 6900,
+            "easing": {
+              "type": "cubic_bezier",
+              "x1": 0.2,
+              "y1": 0.9,
+              "x2": 0.3,
+              "y2": 1
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          },
+          "hold": {
+            "outputStartMs": 6900,
+            "outputEndMs": 7433,
+            "easing": {
+              "type": "linear"
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          },
+          "exit": {
+            "outputStartMs": 7433,
+            "outputEndMs": 7467,
+            "easing": {
+              "type": "cubic_bezier",
+              "x1": 0.2,
+              "y1": 0.9,
+              "x2": 0.3,
+              "y2": 1
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          }
+        },
+        "rationale": "Execute three_word_ref_through_column for stable token token_97a801171634b0070541c253 from its authoritative transcript interval as supporting word motion; four_word_split_stagger remains the chunk-level stylistic anchor. Requested treatment documentary-soft-lock is not an executable frame source; selected four_word_split_stagger from the governed capability registry."
+      },
+      {
+        "animationId": "maul_text_animation_placement_segment_58dce0b409be4aff38367bfc_token_324d50c68c4b5622d759f126_0",
+        "treatment": "three_word_ref_lockup",
+        "target": {
+          "scope": "tokens",
+          "placementSegmentId": "placement_segment_58dce0b409be4aff38367bfc",
+          "tokenIds": [
+            "token_324d50c68c4b5622d759f126"
+          ]
+        },
+        "executorId": "gsap:three_word_ref_lockup",
+        "frameMotion": {
+          "schemaVersion": "maul-frame-motion/v1",
+          "executorId": "gsap:three_word_ref_lockup",
+          "sourceTreatment": "three_word_ref_lockup",
+          "unit": "word",
+          "tokenId": "token_324d50c68c4b5622d759f126",
+          "placementSegmentId": "placement_segment_58dce0b409be4aff38367bfc",
+          "fps": 30,
+          "sourceIntervalMs": {
+            "startMs": 6960,
+            "endMs": 7440
+          },
+          "phases": {
+            "entry": {
+              "startFrame": 208,
+              "endFrame": 213,
+              "easing": {
+                "type": "cubic_bezier",
+                "x1": 0.16,
+                "y1": 1,
+                "x2": 0.3,
+                "y2": 1
+              },
+              "from": {
+                "opacity": 0.02,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 0.9359999999999999,
+                "rotationDeg": 0,
+                "blurPx": 9,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            },
+            "hold": {
+              "startFrame": 213,
+              "endFrame": 221,
+              "easing": {
+                "type": "linear"
+              },
+              "from": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            },
+            "exit": {
+              "startFrame": 221,
+              "endFrame": 224,
+              "easing": {
+                "type": "cubic_bezier",
+                "x1": 0.16,
+                "y1": 1,
+                "x2": 0.3,
+                "y2": 1
+              },
+              "from": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 0,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 9,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            }
+          },
+          "envelope": {
+            "maxTranslateXPx": 0,
+            "maxTranslateYPx": 0,
+            "maxScale": 1.08,
+            "maxBlurPx": 9
+          },
+          "visualRecipe": {
+            "family": "focus_lock",
+            "variant": 12,
+            "accent": "shade",
+            "depthPx": 5,
+            "shadowPx": 18,
+            "skewDeg": -1,
+            "strokeWidthPx": 0,
+            "colorSplitPx": 0,
+            "shadeOpacity": 0.26
+          }
+        },
+        "phases": {
+          "entry": {
+            "outputStartMs": 6933,
+            "outputEndMs": 7100,
+            "easing": {
+              "type": "cubic_bezier",
+              "x1": 0.16,
+              "y1": 1,
+              "x2": 0.3,
+              "y2": 1
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          },
+          "hold": {
+            "outputStartMs": 7100,
+            "outputEndMs": 7367,
+            "easing": {
+              "type": "linear"
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          },
+          "exit": {
+            "outputStartMs": 7367,
+            "outputEndMs": 7467,
+            "easing": {
+              "type": "cubic_bezier",
+              "x1": 0.16,
+              "y1": 1,
+              "x2": 0.3,
+              "y2": 1
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          }
+        },
+        "rationale": "Execute three_word_ref_lockup for stable token token_324d50c68c4b5622d759f126 from its authoritative transcript interval as cinematic semantic emphasis; four_word_split_stagger remains the chunk-level stylistic anchor. Requested treatment documentary-soft-lock is not an executable frame source; selected four_word_split_stagger from the governed capability registry."
+      },
+      {
+        "animationId": "maul_text_animation_placement_segment_999cd0422b7ecafb353ab40f_token_a319556febb86457dd1367c2_0",
+        "treatment": "cinematic_text_preset_2",
+        "target": {
+          "scope": "tokens",
+          "placementSegmentId": "placement_segment_999cd0422b7ecafb353ab40f",
+          "tokenIds": [
+            "token_a319556febb86457dd1367c2"
+          ]
+        },
+        "executorId": "svg:cinematic_text_preset_2",
+        "frameMotion": {
+          "schemaVersion": "maul-frame-motion/v1",
+          "executorId": "svg:cinematic_text_preset_2",
+          "sourceTreatment": "cinematic_text_preset_2",
+          "unit": "word",
+          "tokenId": "token_a319556febb86457dd1367c2",
+          "placementSegmentId": "placement_segment_999cd0422b7ecafb353ab40f",
+          "fps": 30,
+          "sourceIntervalMs": {
+            "startMs": 7440,
+            "endMs": 7640
+          },
+          "phases": {
+            "entry": {
+              "startFrame": 223,
+              "endFrame": 228,
+              "easing": {
+                "type": "cubic_bezier",
+                "x1": 0.16,
+                "y1": 1,
+                "x2": 0.3,
+                "y2": 1
+              },
+              "from": {
+                "opacity": 0.02,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            },
+            "hold": {
+              "startFrame": 228,
+              "endFrame": 260,
+              "easing": {
+                "type": "linear"
+              },
+              "from": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            },
+            "exit": {
+              "startFrame": 260,
+              "endFrame": 261,
+              "easing": {
+                "type": "cubic_bezier",
+                "x1": 0.16,
+                "y1": 1,
+                "x2": 0.3,
+                "y2": 1
+              },
+              "from": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 0,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            }
+          },
+          "envelope": {
+            "maxTranslateXPx": 48,
+            "maxTranslateYPx": 44,
+            "maxScale": 1.04,
+            "maxBlurPx": 9
+          },
+          "visualRecipe": {
+            "family": "script_glide",
+            "variant": 28,
+            "accent": "none",
+            "depthPx": 0,
+            "shadowPx": 0,
+            "skewDeg": -2,
+            "strokeWidthPx": 0,
+            "colorSplitPx": 0,
+            "shadeOpacity": 0
+          }
+        },
+        "phases": {
+          "entry": {
+            "outputStartMs": 7433,
+            "outputEndMs": 7600,
+            "easing": {
+              "type": "cubic_bezier",
+              "x1": 0.16,
+              "y1": 1,
+              "x2": 0.3,
+              "y2": 1
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          },
+          "hold": {
+            "outputStartMs": 7600,
+            "outputEndMs": 8667,
+            "easing": {
+              "type": "linear"
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          },
+          "exit": {
+            "outputStartMs": 8667,
+            "outputEndMs": 8700,
+            "easing": {
+              "type": "cubic_bezier",
+              "x1": 0.16,
+              "y1": 1,
+              "x2": 0.3,
+              "y2": 1
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          }
+        },
+        "rationale": "Execute cinematic_text_preset_2 for stable token token_a319556febb86457dd1367c2 from its authoritative transcript interval as supporting word motion; six_word_quad_duo_depth remains the chunk-level stylistic anchor. Requested treatment documentary-soft-lock is not an executable frame source; selected six_word_quad_duo_depth from the governed capability registry."
+      },
+      {
+        "animationId": "maul_text_animation_placement_segment_999cd0422b7ecafb353ab40f_token_b715f889d95009206bf271ab_0",
+        "treatment": "text-emphasis.capsule-highlight",
+        "target": {
+          "scope": "tokens",
+          "placementSegmentId": "placement_segment_999cd0422b7ecafb353ab40f",
+          "tokenIds": [
+            "token_b715f889d95009206bf271ab"
+          ]
+        },
+        "executorId": "joseph:text-emphasis.capsule-highlight",
+        "frameMotion": {
+          "schemaVersion": "maul-frame-motion/v1",
+          "executorId": "joseph:text-emphasis.capsule-highlight",
+          "sourceTreatment": "text-emphasis.capsule-highlight",
+          "unit": "word",
+          "tokenId": "token_b715f889d95009206bf271ab",
+          "placementSegmentId": "placement_segment_999cd0422b7ecafb353ab40f",
+          "fps": 30,
+          "sourceIntervalMs": {
+            "startMs": 7640,
+            "endMs": 8120
+          },
+          "phases": {
+            "entry": {
+              "startFrame": 229,
+              "endFrame": 234,
+              "easing": {
+                "type": "cubic_bezier",
+                "x1": 0.16,
+                "y1": 1,
+                "x2": 0.3,
+                "y2": 1
+              },
+              "from": {
+                "opacity": 0.02,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 0.86,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            },
+            "hold": {
+              "startFrame": 234,
+              "endFrame": 258,
+              "easing": {
+                "type": "linear"
+              },
+              "from": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            },
+            "exit": {
+              "startFrame": 258,
+              "endFrame": 261,
+              "easing": {
+                "type": "cubic_bezier",
+                "x1": 0.16,
+                "y1": 1,
+                "x2": 0.3,
+                "y2": 1
+              },
+              "from": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 0,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1.12,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            }
+          },
+          "envelope": {
+            "maxTranslateXPx": 16,
+            "maxTranslateYPx": 10,
+            "maxScale": 1.12,
+            "maxBlurPx": 4
+          },
+          "visualRecipe": {
+            "family": "capsule",
+            "variant": 45,
+            "accent": "capsule",
+            "depthPx": 3,
+            "shadowPx": 1,
+            "skewDeg": -1,
+            "strokeWidthPx": 2,
+            "colorSplitPx": 0,
+            "shadeOpacity": 0
+          }
+        },
+        "phases": {
+          "entry": {
+            "outputStartMs": 7633,
+            "outputEndMs": 7800,
+            "easing": {
+              "type": "cubic_bezier",
+              "x1": 0.16,
+              "y1": 1,
+              "x2": 0.3,
+              "y2": 1
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          },
+          "hold": {
+            "outputStartMs": 7800,
+            "outputEndMs": 8600,
+            "easing": {
+              "type": "linear"
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          },
+          "exit": {
+            "outputStartMs": 8600,
+            "outputEndMs": 8700,
+            "easing": {
+              "type": "cubic_bezier",
+              "x1": 0.16,
+              "y1": 1,
+              "x2": 0.3,
+              "y2": 1
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          }
+        },
+        "rationale": "Execute text-emphasis.capsule-highlight for stable token token_b715f889d95009206bf271ab from its authoritative transcript interval as cinematic semantic emphasis; six_word_quad_duo_depth remains the chunk-level stylistic anchor. Requested treatment documentary-soft-lock is not an executable frame source; selected six_word_quad_duo_depth from the governed capability registry."
+      },
+      {
+        "animationId": "maul_text_animation_placement_segment_999cd0422b7ecafb353ab40f_token_4a6ab6bd7805346a5e712623_0",
+        "treatment": "four_word_split_stagger",
+        "target": {
+          "scope": "tokens",
+          "placementSegmentId": "placement_segment_999cd0422b7ecafb353ab40f",
+          "tokenIds": [
+            "token_4a6ab6bd7805346a5e712623"
+          ]
+        },
+        "executorId": "gsap:four_word_split_stagger",
+        "frameMotion": {
+          "schemaVersion": "maul-frame-motion/v1",
+          "executorId": "gsap:four_word_split_stagger",
+          "sourceTreatment": "four_word_split_stagger",
+          "unit": "word",
+          "tokenId": "token_4a6ab6bd7805346a5e712623",
+          "placementSegmentId": "placement_segment_999cd0422b7ecafb353ab40f",
+          "fps": 30,
+          "sourceIntervalMs": {
+            "startMs": 8120,
+            "endMs": 8320
+          },
+          "phases": {
+            "entry": {
+              "startFrame": 243,
+              "endFrame": 248,
+              "easing": {
+                "type": "cubic_bezier",
+                "x1": 0.16,
+                "y1": 1,
+                "x2": 0.3,
+                "y2": 1
+              },
+              "from": {
+                "opacity": 0.02,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            },
+            "hold": {
+              "startFrame": 248,
+              "endFrame": 260,
+              "easing": {
+                "type": "linear"
+              },
+              "from": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            },
+            "exit": {
+              "startFrame": 260,
+              "endFrame": 261,
+              "easing": {
+                "type": "cubic_bezier",
+                "x1": 0.16,
+                "y1": 1,
+                "x2": 0.3,
+                "y2": 1
+              },
+              "from": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 0,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            }
+          },
+          "envelope": {
+            "maxTranslateXPx": 28,
+            "maxTranslateYPx": 42,
+            "maxScale": 1.04,
+            "maxBlurPx": 8
+          },
+          "visualRecipe": {
+            "family": "stagger",
+            "variant": 21,
+            "accent": "none",
+            "depthPx": 0,
+            "shadowPx": 1,
+            "skewDeg": -1,
+            "strokeWidthPx": 0,
+            "colorSplitPx": 0,
+            "shadeOpacity": 0
+          }
+        },
+        "phases": {
+          "entry": {
+            "outputStartMs": 8100,
+            "outputEndMs": 8267,
+            "easing": {
+              "type": "cubic_bezier",
+              "x1": 0.16,
+              "y1": 1,
+              "x2": 0.3,
+              "y2": 1
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          },
+          "hold": {
+            "outputStartMs": 8267,
+            "outputEndMs": 8667,
+            "easing": {
+              "type": "linear"
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          },
+          "exit": {
+            "outputStartMs": 8667,
+            "outputEndMs": 8700,
+            "easing": {
+              "type": "cubic_bezier",
+              "x1": 0.16,
+              "y1": 1,
+              "x2": 0.3,
+              "y2": 1
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          }
+        },
+        "rationale": "Execute four_word_split_stagger for stable token token_4a6ab6bd7805346a5e712623 from its authoritative transcript interval as supporting word motion; six_word_quad_duo_depth remains the chunk-level stylistic anchor. Requested treatment documentary-soft-lock is not an executable frame source; selected six_word_quad_duo_depth from the governed capability registry."
+      },
+      {
+        "animationId": "maul_text_animation_placement_segment_999cd0422b7ecafb353ab40f_token_06ad87a4084e4a546e97c36c_0",
+        "treatment": "text-entry.letter-riser",
+        "target": {
+          "scope": "tokens",
+          "placementSegmentId": "placement_segment_999cd0422b7ecafb353ab40f",
+          "tokenIds": [
+            "token_06ad87a4084e4a546e97c36c"
+          ]
+        },
+        "executorId": "joseph:text-entry.letter-riser",
+        "frameMotion": {
+          "schemaVersion": "maul-frame-motion/v1",
+          "executorId": "joseph:text-entry.letter-riser",
+          "sourceTreatment": "text-entry.letter-riser",
+          "unit": "letter",
+          "tokenId": "token_06ad87a4084e4a546e97c36c",
+          "placementSegmentId": "placement_segment_999cd0422b7ecafb353ab40f",
+          "fps": 30,
+          "sourceIntervalMs": {
+            "startMs": 8320,
+            "endMs": 8440
+          },
+          "phases": {
+            "entry": {
+              "startFrame": 249,
+              "endFrame": 254,
+              "easing": {
+                "type": "cubic_bezier",
+                "x1": 0.16,
+                "y1": 1,
+                "x2": 0.3,
+                "y2": 1
+              },
+              "from": {
+                "opacity": 0.02,
+                "translateXPx": 0,
+                "translateYPx": 72,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            },
+            "hold": {
+              "startFrame": 254,
+              "endFrame": 260,
+              "easing": {
+                "type": "linear"
+              },
+              "from": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            },
+            "exit": {
+              "startFrame": 260,
+              "endFrame": 261,
+              "easing": {
+                "type": "cubic_bezier",
+                "x1": 0.16,
+                "y1": 1,
+                "x2": 0.3,
+                "y2": 1
+              },
+              "from": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 0,
+                "translateXPx": 0,
+                "translateYPx": -72,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            }
+          },
+          "envelope": {
+            "maxTranslateXPx": 0,
+            "maxTranslateYPx": 72,
+            "maxScale": 1.04,
+            "maxBlurPx": 8
+          },
+          "visualRecipe": {
+            "family": "rise",
+            "variant": 39,
+            "accent": "none",
+            "depthPx": 4,
+            "shadowPx": 3,
+            "skewDeg": -1,
+            "strokeWidthPx": 0,
+            "colorSplitPx": 0,
+            "shadeOpacity": 0
+          }
+        },
+        "phases": {
+          "entry": {
+            "outputStartMs": 8300,
+            "outputEndMs": 8467,
+            "easing": {
+              "type": "cubic_bezier",
+              "x1": 0.16,
+              "y1": 1,
+              "x2": 0.3,
+              "y2": 1
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          },
+          "hold": {
+            "outputStartMs": 8467,
+            "outputEndMs": 8667,
+            "easing": {
+              "type": "linear"
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          },
+          "exit": {
+            "outputStartMs": 8667,
+            "outputEndMs": 8700,
+            "easing": {
+              "type": "cubic_bezier",
+              "x1": 0.16,
+              "y1": 1,
+              "x2": 0.3,
+              "y2": 1
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          }
+        },
+        "rationale": "Execute text-entry.letter-riser for stable token token_06ad87a4084e4a546e97c36c from its authoritative transcript interval as supporting word motion; six_word_quad_duo_depth remains the chunk-level stylistic anchor. Requested treatment documentary-soft-lock is not an executable frame source; selected six_word_quad_duo_depth from the governed capability registry."
+      },
+      {
+        "animationId": "maul_text_animation_placement_segment_999cd0422b7ecafb353ab40f_token_95cab6407360366e699bf424_0",
+        "treatment": "three_word_script_glide",
+        "target": {
+          "scope": "tokens",
+          "placementSegmentId": "placement_segment_999cd0422b7ecafb353ab40f",
+          "tokenIds": [
+            "token_95cab6407360366e699bf424"
+          ]
+        },
+        "executorId": "gsap:three_word_script_glide",
+        "frameMotion": {
+          "schemaVersion": "maul-frame-motion/v1",
+          "executorId": "gsap:three_word_script_glide",
+          "sourceTreatment": "three_word_script_glide",
+          "unit": "word",
+          "tokenId": "token_95cab6407360366e699bf424",
+          "placementSegmentId": "placement_segment_999cd0422b7ecafb353ab40f",
+          "fps": 30,
+          "sourceIntervalMs": {
+            "startMs": 8440,
+            "endMs": 8680
+          },
+          "phases": {
+            "entry": {
+              "startFrame": 253,
+              "endFrame": 258,
+              "easing": {
+                "type": "cubic_bezier",
+                "x1": 0.16,
+                "y1": 1,
+                "x2": 0.3,
+                "y2": 1
+              },
+              "from": {
+                "opacity": 0.02,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            },
+            "hold": {
+              "startFrame": 258,
+              "endFrame": 260,
+              "easing": {
+                "type": "linear"
+              },
+              "from": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            },
+            "exit": {
+              "startFrame": 260,
+              "endFrame": 261,
+              "easing": {
+                "type": "cubic_bezier",
+                "x1": 0.16,
+                "y1": 1,
+                "x2": 0.3,
+                "y2": 1
+              },
+              "from": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 0,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            }
+          },
+          "envelope": {
+            "maxTranslateXPx": 48,
+            "maxTranslateYPx": 44,
+            "maxScale": 1.04,
+            "maxBlurPx": 9
+          },
+          "visualRecipe": {
+            "family": "script_glide",
+            "variant": 11,
+            "accent": "none",
+            "depthPx": 4,
+            "shadowPx": 3,
+            "skewDeg": -6,
+            "strokeWidthPx": 0,
+            "colorSplitPx": 0,
+            "shadeOpacity": 0
+          }
+        },
+        "phases": {
+          "entry": {
+            "outputStartMs": 8433,
+            "outputEndMs": 8600,
+            "easing": {
+              "type": "cubic_bezier",
+              "x1": 0.16,
+              "y1": 1,
+              "x2": 0.3,
+              "y2": 1
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          },
+          "hold": {
+            "outputStartMs": 8600,
+            "outputEndMs": 8667,
+            "easing": {
+              "type": "linear"
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          },
+          "exit": {
+            "outputStartMs": 8667,
+            "outputEndMs": 8700,
+            "easing": {
+              "type": "cubic_bezier",
+              "x1": 0.16,
+              "y1": 1,
+              "x2": 0.3,
+              "y2": 1
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          }
+        },
+        "rationale": "Execute three_word_script_glide for stable token token_95cab6407360366e699bf424 from its authoritative transcript interval as supporting word motion; six_word_quad_duo_depth remains the chunk-level stylistic anchor. Requested treatment documentary-soft-lock is not an executable frame source; selected six_word_quad_duo_depth from the governed capability registry."
+      },
+      {
+        "animationId": "maul_text_animation_placement_segment_02300c8fe04e34096235416c_token_29cc682301db4d92ddae15fe_0",
+        "treatment": "cinematic_text_preset_4",
+        "target": {
+          "scope": "tokens",
+          "placementSegmentId": "placement_segment_02300c8fe04e34096235416c",
+          "tokenIds": [
+            "token_29cc682301db4d92ddae15fe"
+          ]
+        },
+        "executorId": "svg:cinematic_text_preset_4",
+        "frameMotion": {
+          "schemaVersion": "maul-frame-motion/v1",
+          "executorId": "svg:cinematic_text_preset_4",
+          "sourceTreatment": "cinematic_text_preset_4",
+          "unit": "word",
+          "tokenId": "token_29cc682301db4d92ddae15fe",
+          "placementSegmentId": "placement_segment_02300c8fe04e34096235416c",
+          "fps": 30,
+          "sourceIntervalMs": {
+            "startMs": 8680,
+            "endMs": 9000
+          },
+          "phases": {
+            "entry": {
+              "startFrame": 260,
+              "endFrame": 265,
+              "easing": {
+                "type": "cubic_bezier",
+                "x1": 0.2,
+                "y1": 0.9,
+                "x2": 0.3,
+                "y2": 1
+              },
+              "from": {
+                "opacity": 0.02,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 0,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            },
+            "hold": {
+              "startFrame": 265,
+              "endFrame": 296,
+              "easing": {
+                "type": "linear"
+              },
+              "from": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            },
+            "exit": {
+              "startFrame": 296,
+              "endFrame": 298,
+              "easing": {
+                "type": "cubic_bezier",
+                "x1": 0.2,
+                "y1": 0.9,
+                "x2": 0.3,
+                "y2": 1
+              },
+              "from": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 0,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 0,
+                "trackingEm": 0
+              }
+            }
+          },
+          "envelope": {
+            "maxTranslateXPx": 20,
+            "maxTranslateYPx": 28,
+            "maxScale": 1.02,
+            "maxBlurPx": 4
+          },
+          "visualRecipe": {
+            "family": "mask",
+            "variant": 30,
+            "accent": "none",
+            "depthPx": 2,
+            "shadowPx": 2,
+            "skewDeg": -1,
+            "strokeWidthPx": 0,
+            "colorSplitPx": 0,
+            "shadeOpacity": 0
+          }
+        },
+        "phases": {
+          "entry": {
+            "outputStartMs": 8667,
+            "outputEndMs": 8833,
+            "easing": {
+              "type": "cubic_bezier",
+              "x1": 0.2,
+              "y1": 0.9,
+              "x2": 0.3,
+              "y2": 1
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          },
+          "hold": {
+            "outputStartMs": 8833,
+            "outputEndMs": 9867,
+            "easing": {
+              "type": "linear"
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          },
+          "exit": {
+            "outputStartMs": 9867,
+            "outputEndMs": 9933,
+            "easing": {
+              "type": "cubic_bezier",
+              "x1": 0.2,
+              "y1": 0.9,
+              "x2": 0.3,
+              "y2": 1
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          }
+        },
+        "rationale": "Execute cinematic_text_preset_4 for stable token token_29cc682301db4d92ddae15fe from its authoritative transcript interval as supporting word motion; four_word_outline_whip remains the chunk-level stylistic anchor. Requested treatment documentary-soft-lock is not an executable frame source; selected four_word_outline_whip from the governed capability registry."
+      },
+      {
+        "animationId": "maul_text_animation_placement_segment_02300c8fe04e34096235416c_token_b62928a664eb4e706cca111a_0",
+        "treatment": "four_word_outline_whip",
+        "target": {
+          "scope": "tokens",
+          "placementSegmentId": "placement_segment_02300c8fe04e34096235416c",
+          "tokenIds": [
+            "token_b62928a664eb4e706cca111a"
+          ]
+        },
+        "executorId": "gsap:four_word_outline_whip",
+        "frameMotion": {
+          "schemaVersion": "maul-frame-motion/v1",
+          "executorId": "gsap:four_word_outline_whip",
+          "sourceTreatment": "four_word_outline_whip",
+          "unit": "word",
+          "tokenId": "token_b62928a664eb4e706cca111a",
+          "placementSegmentId": "placement_segment_02300c8fe04e34096235416c",
+          "fps": 30,
+          "sourceIntervalMs": {
+            "startMs": 9000,
+            "endMs": 9360
+          },
+          "phases": {
+            "entry": {
+              "startFrame": 270,
+              "endFrame": 275,
+              "easing": {
+                "type": "cubic_bezier",
+                "x1": 0.16,
+                "y1": 1,
+                "x2": 0.3,
+                "y2": 1
+              },
+              "from": {
+                "opacity": 0.02,
+                "translateXPx": -112,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            },
+            "hold": {
+              "startFrame": 275,
+              "endFrame": 296,
+              "easing": {
+                "type": "linear"
+              },
+              "from": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            },
+            "exit": {
+              "startFrame": 296,
+              "endFrame": 298,
+              "easing": {
+                "type": "cubic_bezier",
+                "x1": 0.16,
+                "y1": 1,
+                "x2": 0.3,
+                "y2": 1
+              },
+              "from": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 0,
+                "translateXPx": 112,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            }
+          },
+          "envelope": {
+            "maxTranslateXPx": 112,
+            "maxTranslateYPx": 32,
+            "maxScale": 1.05,
+            "maxBlurPx": 8
+          },
+          "visualRecipe": {
+            "family": "outline",
+            "variant": 23,
+            "accent": "outline",
+            "depthPx": 2,
+            "shadowPx": 3,
+            "skewDeg": 1,
+            "strokeWidthPx": 4,
+            "colorSplitPx": 0,
+            "shadeOpacity": 0
+          }
+        },
+        "phases": {
+          "entry": {
+            "outputStartMs": 9000,
+            "outputEndMs": 9167,
+            "easing": {
+              "type": "cubic_bezier",
+              "x1": 0.16,
+              "y1": 1,
+              "x2": 0.3,
+              "y2": 1
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          },
+          "hold": {
+            "outputStartMs": 9167,
+            "outputEndMs": 9867,
+            "easing": {
+              "type": "linear"
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          },
+          "exit": {
+            "outputStartMs": 9867,
+            "outputEndMs": 9933,
+            "easing": {
+              "type": "cubic_bezier",
+              "x1": 0.16,
+              "y1": 1,
+              "x2": 0.3,
+              "y2": 1
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          }
+        },
+        "rationale": "Execute four_word_outline_whip for stable token token_b62928a664eb4e706cca111a from its authoritative transcript interval as cinematic semantic emphasis; four_word_outline_whip remains the chunk-level stylistic anchor. Requested treatment documentary-soft-lock is not an executable frame source; selected four_word_outline_whip from the governed capability registry."
+      },
+      {
+        "animationId": "maul_text_animation_placement_segment_02300c8fe04e34096235416c_token_cc69acaa6e89d9a93c37a8b1_0",
+        "treatment": "cinematic_text_preset_11",
+        "target": {
+          "scope": "tokens",
+          "placementSegmentId": "placement_segment_02300c8fe04e34096235416c",
+          "tokenIds": [
+            "token_cc69acaa6e89d9a93c37a8b1"
+          ]
+        },
+        "executorId": "svg:cinematic_text_preset_11",
+        "frameMotion": {
+          "schemaVersion": "maul-frame-motion/v1",
+          "executorId": "svg:cinematic_text_preset_11",
+          "sourceTreatment": "cinematic_text_preset_11",
+          "unit": "letter",
+          "tokenId": "token_cc69acaa6e89d9a93c37a8b1",
+          "placementSegmentId": "placement_segment_02300c8fe04e34096235416c",
+          "fps": 30,
+          "sourceIntervalMs": {
+            "startMs": 9360,
+            "endMs": 9560
+          },
+          "phases": {
+            "entry": {
+              "startFrame": 280,
+              "endFrame": 285,
+              "easing": {
+                "type": "cubic_bezier",
+                "x1": 0.2,
+                "y1": 0.9,
+                "x2": 0.3,
+                "y2": 1
+              },
+              "from": {
+                "opacity": 0.02,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 0,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            },
+            "hold": {
+              "startFrame": 285,
+              "endFrame": 297,
+              "easing": {
+                "type": "linear"
+              },
+              "from": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            },
+            "exit": {
+              "startFrame": 297,
+              "endFrame": 298,
+              "easing": {
+                "type": "cubic_bezier",
+                "x1": 0.2,
+                "y1": 0.9,
+                "x2": 0.3,
+                "y2": 1
+              },
+              "from": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 0,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 0,
+                "trackingEm": 0
+              }
+            }
+          },
+          "envelope": {
+            "maxTranslateXPx": 0,
+            "maxTranslateYPx": 12,
+            "maxScale": 1,
+            "maxBlurPx": 5
+          },
+          "visualRecipe": {
+            "family": "typing",
+            "variant": 37,
+            "accent": "none",
+            "depthPx": 2,
+            "shadowPx": 1,
+            "skewDeg": 0,
+            "strokeWidthPx": 0,
+            "colorSplitPx": 0,
+            "shadeOpacity": 0
+          }
+        },
+        "phases": {
+          "entry": {
+            "outputStartMs": 9333,
+            "outputEndMs": 9500,
+            "easing": {
+              "type": "cubic_bezier",
+              "x1": 0.2,
+              "y1": 0.9,
+              "x2": 0.3,
+              "y2": 1
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          },
+          "hold": {
+            "outputStartMs": 9500,
+            "outputEndMs": 9900,
+            "easing": {
+              "type": "linear"
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          },
+          "exit": {
+            "outputStartMs": 9900,
+            "outputEndMs": 9933,
+            "easing": {
+              "type": "cubic_bezier",
+              "x1": 0.2,
+              "y1": 0.9,
+              "x2": 0.3,
+              "y2": 1
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          }
+        },
+        "rationale": "Execute cinematic_text_preset_11 for stable token token_cc69acaa6e89d9a93c37a8b1 from its authoritative transcript interval as supporting word motion; four_word_outline_whip remains the chunk-level stylistic anchor. Requested treatment documentary-soft-lock is not an executable frame source; selected four_word_outline_whip from the governed capability registry."
+      },
+      {
+        "animationId": "maul_text_animation_placement_segment_02300c8fe04e34096235416c_token_7dce936013b91f54f9f44d23_0",
+        "treatment": "cinematic_text_preset_6",
+        "target": {
+          "scope": "tokens",
+          "placementSegmentId": "placement_segment_02300c8fe04e34096235416c",
+          "tokenIds": [
+            "token_7dce936013b91f54f9f44d23"
+          ]
+        },
+        "executorId": "svg:cinematic_text_preset_6",
+        "frameMotion": {
+          "schemaVersion": "maul-frame-motion/v1",
+          "executorId": "svg:cinematic_text_preset_6",
+          "sourceTreatment": "cinematic_text_preset_6",
+          "unit": "letter",
+          "tokenId": "token_7dce936013b91f54f9f44d23",
+          "placementSegmentId": "placement_segment_02300c8fe04e34096235416c",
+          "fps": 30,
+          "sourceIntervalMs": {
+            "startMs": 9560,
+            "endMs": 9920
+          },
+          "phases": {
+            "entry": {
+              "startFrame": 286,
+              "endFrame": 291,
+              "easing": {
+                "type": "cubic_bezier",
+                "x1": 0.16,
+                "y1": 1,
+                "x2": 0.3,
+                "y2": 1
+              },
+              "from": {
+                "opacity": 0.02,
+                "translateXPx": 0,
+                "translateYPx": -72,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            },
+            "hold": {
+              "startFrame": 291,
+              "endFrame": 296,
+              "easing": {
+                "type": "linear"
+              },
+              "from": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            },
+            "exit": {
+              "startFrame": 296,
+              "endFrame": 298,
+              "easing": {
+                "type": "cubic_bezier",
+                "x1": 0.16,
+                "y1": 1,
+                "x2": 0.3,
+                "y2": 1
+              },
+              "from": {
+                "opacity": 1,
+                "translateXPx": 0,
+                "translateYPx": 0,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              },
+              "to": {
+                "opacity": 0,
+                "translateXPx": 0,
+                "translateYPx": 72,
+                "scale": 1,
+                "rotationDeg": 0,
+                "blurPx": 0,
+                "clipProgress": 1,
+                "trackingEm": 0
+              }
+            }
+          },
+          "envelope": {
+            "maxTranslateXPx": 24,
+            "maxTranslateYPx": 72,
+            "maxScale": 1.05,
+            "maxBlurPx": 8
+          },
+          "visualRecipe": {
+            "family": "drop",
+            "variant": 32,
+            "accent": "none",
+            "depthPx": 4,
+            "shadowPx": 0,
+            "skewDeg": 1,
+            "strokeWidthPx": 0,
+            "colorSplitPx": 0,
+            "shadeOpacity": 0
+          }
+        },
+        "phases": {
+          "entry": {
+            "outputStartMs": 9533,
+            "outputEndMs": 9700,
+            "easing": {
+              "type": "cubic_bezier",
+              "x1": 0.16,
+              "y1": 1,
+              "x2": 0.3,
+              "y2": 1
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          },
+          "hold": {
+            "outputStartMs": 9700,
+            "outputEndMs": 9867,
+            "easing": {
+              "type": "linear"
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          },
+          "exit": {
+            "outputStartMs": 9867,
+            "outputEndMs": 9933,
+            "easing": {
+              "type": "cubic_bezier",
+              "x1": 0.16,
+              "y1": 1,
+              "x2": 0.3,
+              "y2": 1
+            },
+            "from": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            },
+            "to": {
+              "opacity": 1,
+              "translateXPx": 0,
+              "translateYPx": 0,
+              "scale": 1
+            }
+          }
+        },
+        "rationale": "Execute cinematic_text_preset_6 for stable token token_7dce936013b91f54f9f44d23 from its authoritative transcript interval as supporting word motion; four_word_outline_whip remains the chunk-level stylistic anchor. Requested treatment documentary-soft-lock is not an executable frame source; selected four_word_outline_whip from the governed capability registry."
+      }
+    ],
+    "inputHashes": {
+      "textChunkPlan": "0985b495596ba78c712d36ec23b07b25ae07243198aad55939194e52194fdb32",
+      "textPlacementPlan": "605013dcae183821e4f9ee5b9d7ffccdc05ad2ca74a89bc5902cd3ce270ae411",
+      "treatmentGenome": "558291d8a3feebf5b6b15f61d36c33cc15dc9899b6af299ae28320502abfd343"
+    }
+  }
+}

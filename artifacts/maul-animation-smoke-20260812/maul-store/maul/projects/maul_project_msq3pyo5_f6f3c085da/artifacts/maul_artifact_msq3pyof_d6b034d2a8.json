@@ -1,0 +1,66 @@
+{
+  "schemaVersion": "maul-artifact/v1",
+  "artifactId": "maul_artifact_msq3pyof_d6b034d2a8",
+  "artifactType": "editorial_timeline",
+  "lineage": {
+    "projectId": "maul_project_msq3pyo5_f6f3c085da",
+    "canonicalJobId": "maul_job_msq3pyo5_f032480175",
+    "runId": "maul_run_msq3pyo5_c7c601fbe5",
+    "rootSourceAssetId": "maul_artifact_msq3pyo5_f4812dd7e7",
+    "parentArtifactIds": [
+      "maul_artifact_msq3pyo5_f4812dd7e7",
+      "maul_artifact_msq3pyob_c6c315e91c"
+    ],
+    "sequence": 3,
+    "producedBy": {
+      "module": "maul-editorial-timeline",
+      "version": "1"
+    },
+    "createdAt": "2026-08-12T13:04:46.287Z"
+  },
+  "payload": {
+    "sourceAssetId": "maul_artifact_msq3pyo5_f4812dd7e7",
+    "analysisArtifactId": "maul_artifact_msq3pyob_c6c315e91c",
+    "sourceDurationMs": 10043,
+    "outputDurationMs": 10043,
+    "selectedClipWindows": [
+      {
+        "sourceStartMs": 0,
+        "sourceEndMs": 10043
+      }
+    ],
+    "cutCandidates": [],
+    "protectedRanges": [],
+    "timestampMap": [
+      {
+        "sourceStartMs": 0,
+        "sourceEndMs": 10043,
+        "outputStartMs": 0,
+        "outputEndMs": 10043,
+        "mode": "keep"
+      }
+    ],
+    "speakerCropTracks": [
+      {
+        "speakerId": "principal_unknown",
+        "outputStartMs": 0,
+        "outputEndMs": 10043,
+        "crop": {
+          "x": 0.3418,
+          "y": 0,
+          "width": 0.3164,
+          "height": 1
+        }
+      }
+    ],
+    "editRationale": [
+      "Removed 0 verified dead air ranges.",
+      "Protected 0 meaningful pauses.",
+      "Every output timestamp is mapped back to the authoritative source."
+    ],
+    "qualityWarnings": [
+      "Principal-speaker detection unavailable; centered vertical crop fallback used.",
+      "Shot detection unavailable; treatment must avoid shot-dependent transitions."
+    ]
+  }
+}

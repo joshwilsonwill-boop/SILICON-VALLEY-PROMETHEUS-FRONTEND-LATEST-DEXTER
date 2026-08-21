@@ -1,0 +1,191 @@
+{
+  "schemaVersion": "maul-artifact/v1",
+  "artifactId": "maul_artifact_msq3pyor_a5530e8e26",
+  "artifactType": "treatment_genome",
+  "lineage": {
+    "projectId": "maul_project_msq3pyo5_f6f3c085da",
+    "canonicalJobId": "maul_job_msq3pyo5_f032480175",
+    "runId": "maul_run_msq3pyo5_c7c601fbe5",
+    "rootSourceAssetId": "maul_artifact_msq3pyo5_f4812dd7e7",
+    "parentArtifactIds": [
+      "maul_artifact_msq3pyof_d6b034d2a8"
+    ],
+    "sequence": 5,
+    "producedBy": {
+      "module": "maul-treatment-catalog",
+      "version": "1"
+    },
+    "createdAt": "2026-08-12T13:04:46.299Z"
+  },
+  "payload": {
+    "treatmentId": "premium_direct_response",
+    "timelineArtifactId": "maul_artifact_msq3pyof_d6b034d2a8",
+    "catalogEntryName": "Premium Direct Response",
+    "version": "maul-treatment/premium-direct-response/v1",
+    "replayKey": "1c39661902c2e241ae169a549a117ce626a883685e2b612df0743b53d011acd9",
+    "purpose": "Compress a source-supported benefit, proof, and payoff into a decisive conversion arc.",
+    "targetViewerState": "Convinced by specific evidence and ready to take the source-supported next action.",
+    "grammar": {
+      "hook": "Lead with the strongest source-supported benefit or costly problem.",
+      "escalation": "Alternate claim, friction, and evidence at explicit editorial beats.",
+      "proof": "Show quantified proof only when its exact value exists in source evidence.",
+      "reveal": "Use one deliberate pattern interrupt to expose the mechanism or offer.",
+      "payoff": "Resolve into a concrete outcome with hierarchy concentrated on the benefit.",
+      "cta": "Render one governed CTA after proof, never before credibility is established."
+    },
+    "pacing": {
+      "minCutsPerMinute": 20,
+      "maxCutsPerMinute": 34,
+      "protectedPausePolicy": "Protect comprehension pauses after quantified proof and immediately before the offer."
+    },
+    "visualPolicy": {
+      "framing": "benefit_first",
+      "accents": "editorial_beats",
+      "hierarchy": "benefit_then_proof_then_cta",
+      "safeZone": "platform_ui_strict"
+    },
+    "audioPolicy": {
+      "voicePriority": "high",
+      "musicEnergy": "rising_controlled",
+      "sfx": "beat_confirmations_only"
+    },
+    "rendererInputs": {
+      "framing": {
+        "mode": "benefit_first",
+        "safeZone": "platform_ui_strict",
+        "maxPunchInScale": 1.28,
+        "speakerPriority": true
+      },
+      "caption": {
+        "profile": "conversion_stack",
+        "maxWordsPerCard": 5,
+        "minFontScale": 0.9,
+        "hierarchy": [
+          "benefit",
+          "proof",
+          "mechanism",
+          "cta"
+        ],
+        "typographyGrammar": "Short stacked cards; numbers receive emphasis only when directly sourced."
+      },
+      "motion": {
+        "intensity": "energetic",
+        "permittedPrimitives": [
+          "benefit_card",
+          "evidence_counter",
+          "pattern_interrupt",
+          "cta_lockup"
+        ],
+        "permittedTransitions": [
+          "hard_cut",
+          "directional_wipe",
+          "match_scale"
+        ]
+      },
+      "bRoll": {
+        "policy": "Use proof-bearing product or process visuals; decorative stock is forbidden.",
+        "maxInsertsPerMinute": 8
+      },
+      "audio": {
+        "musicBehavior": "Licensed rhythmic bed may rise across escalation but must duck under every spoken claim.",
+        "sfxBehavior": "Short render-safe accents only on hook, verified proof, reveal, and CTA.",
+        "duckingDb": -12
+      }
+    },
+    "repetitionBudget": {
+      "maxRepeatedPrimitivePerClip": 2,
+      "maxRecentFeedReuse": 1,
+      "lookbackPosts": 8
+    },
+    "brandConstraints": [
+      "CTA and benefit colors must come from the approved brand/default kit.",
+      "Never imitate a reference creator's identity markers."
+    ],
+    "accessibilityConstraints": [
+      "Maintain 4.5:1 text contrast.",
+      "No flash sequence exceeds accessibility limits."
+    ],
+    "prohibitedMotifs": [
+      "fake scarcity timer",
+      "unsupported percentage",
+      "casino animation",
+      "continuous whoosh track"
+    ],
+    "referenceCorpusArtifactIds": [],
+    "judgmentLayer": {
+      "minimumWeightedScore": 84,
+      "rubric": [
+        {
+          "id": "editorial_clarity",
+          "label": "Editorial clarity",
+          "weight": 25,
+          "minimumScore": 75
+        },
+        {
+          "id": "source_fidelity",
+          "label": "Source fidelity",
+          "weight": 25,
+          "minimumScore": 90
+        },
+        {
+          "id": "pacing_fit",
+          "label": "Pacing fit",
+          "weight": 20,
+          "minimumScore": 70
+        },
+        {
+          "id": "visual_hierarchy",
+          "label": "Visual hierarchy",
+          "weight": 15,
+          "minimumScore": 75
+        },
+        {
+          "id": "accessibility",
+          "label": "Accessibility",
+          "weight": 15,
+          "minimumScore": 85
+        }
+      ],
+      "failureClasses": [
+        {
+          "id": "unsupported_claim",
+          "label": "Unsupported claim",
+          "description": "A benefit, number, or outcome is not present in source evidence.",
+          "severity": "blocking"
+        },
+        {
+          "id": "cta_before_proof",
+          "label": "CTA before proof",
+          "description": "The call to action arrives before credibility is established.",
+          "severity": "blocking"
+        },
+        {
+          "id": "pattern_interrupt_spam",
+          "label": "Pattern-interrupt spam",
+          "description": "Interrupts occur without semantic editorial beats.",
+          "severity": "major"
+        },
+        {
+          "id": "conversion_hierarchy_blur",
+          "label": "Conversion hierarchy blur",
+          "description": "Benefit, proof, and CTA compete at the same visual level.",
+          "severity": "major"
+        },
+        {
+          "id": "cheap_urgency",
+          "label": "Cheap urgency",
+          "description": "Canned urgency devices undermine premium credibility.",
+          "severity": "major"
+        }
+      ]
+    },
+    "renderFallbacks": [
+      "Replace unavailable proof visuals with source-timestamped typography.",
+      "Reduce motion before reducing evidence dwell time."
+    ],
+    "provenanceRules": [
+      "Quantified claims require an exact transcript or supplied-evidence pointer.",
+      "Music and SFX must be licensed and render-safe."
+    ]
+  }
+}
