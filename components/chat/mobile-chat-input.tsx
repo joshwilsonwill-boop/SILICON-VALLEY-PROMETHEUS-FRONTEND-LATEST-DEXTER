@@ -1,12 +1,13 @@
 "use client";
 
-import { LoaderCircle, Mic, Send, Square } from "lucide-react";
+import { LoaderCircle, Mic, Send } from "lucide-react";
 import type { RefObject } from "react";
 
 import { cn } from "@/lib/utils";
 import { useVoiceInput } from "@/hooks/use-voice-input";
 
 import { StreamingControls } from "./streaming-controls";
+import { VoiceWaveform } from "@/components/editor/voice-waveform";
 
 export function MobileChatInput({
   inputRef,
@@ -51,28 +52,30 @@ export function MobileChatInput({
         />
         {isStreaming ? (
           <StreamingControls isStreaming onStop={onStop} />
+        ) : voice.state === "recording" ? (
+          <VoiceWaveform
+            getLevel={voice.getLevel}
+            inputRef={inputRef}
+            onStop={() => voice.stop()}
+          />
         ) : (
           <>
             <button
               type="button"
               onClick={() => {
-                if (voice.state === "recording" || voice.state === "transcribing") {
+                if (voice.state === "transcribing") {
                   voice.stop();
                 } else {
                   void voice.start();
                 }
               }}
               disabled={isStreaming}
-              aria-label={voice.state === "recording" ? "Stop recording" : "Record voice input"}
-              aria-pressed={voice.state === "recording"}
+              aria-label="Record voice input"
               className={cn(
                 "grid size-8 shrink-0 place-items-center rounded-full text-white/75 transition-colors hover:bg-white/[0.06] hover:text-white disabled:pointer-events-none disabled:opacity-20",
-                voice.state === "recording" && "text-red-300",
               )}
             >
-              {voice.state === "recording" ? (
-                <Square className="size-3.5 fill-current" />
-              ) : voice.state === "transcribing" ? (
+              {voice.state === "transcribing" ? (
                 <LoaderCircle className="size-4 animate-spin" />
               ) : (
                 <Mic className="size-4" />

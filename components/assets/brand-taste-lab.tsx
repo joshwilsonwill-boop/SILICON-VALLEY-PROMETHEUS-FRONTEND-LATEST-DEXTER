@@ -19,7 +19,6 @@ import {
   Scan,
   Send,
   Sparkles,
-  Square,
   Type,
   Wand2,
   Zap,
@@ -28,6 +27,7 @@ import type { LucideIcon } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { useVoiceInput } from '@/hooks/use-voice-input'
+import { VoiceWaveform } from '@/components/editor/voice-waveform'
 import { consumePrometheusChatStream } from '@/lib/prometheus-assistant/chat-stream-client'
 import type { PrometheusChatStreamEvent } from '@/lib/prometheus-assistant/chat-stream'
 import { cn } from '@/lib/utils'
@@ -553,47 +553,52 @@ function AiPanel({
       {open ? (
         <div className="mt-4 flex flex-col gap-3">
           <div className="flex items-end gap-2">
-            <div className="flex max-h-20 flex-1 items-center gap-2 rounded-[10px] border border-white/10 bg-black/30 px-3 focus-within:border-[#55ff9b]/40">
-              <textarea
-                value={prompt}
-                onChange={(event) => onPromptChange(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' && !event.shiftKey) {
-                    event.preventDefault()
-                    void run()
-                  }
-                }}
-                rows={1}
-                placeholder={voice.state === 'recording' ? 'Listening…' : 'Tell the strategist about your brand…'}
-                aria-label="Ask the brand strategist"
-                className="max-h-20 min-h-8 flex-1 resize-none bg-transparent text-sm leading-6 text-white/88 outline-none placeholder:text-white/28"
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  if (voice.state === 'recording' || voice.state === 'transcribing') {
-                    voice.stop()
-                  } else {
-                    void voice.start()
-                  }
-                }}
-                disabled={streaming}
-                aria-label={voice.state === 'recording' ? 'Stop recording' : 'Record voice input'}
-                aria-pressed={voice.state === 'recording'}
-                className={cn(
-                  'grid size-8 shrink-0 place-items-center rounded-full text-white/70 transition-colors hover:bg-white/[0.06] hover:text-white disabled:opacity-20',
-                  voice.state === 'recording' && 'text-[#ff6a55]',
-                )}
-              >
-                {voice.state === 'recording' ? (
-                  <Square className="size-3.5 fill-current" />
-                ) : voice.state === 'transcribing' ? (
-                  <LoaderCircle className="size-4 animate-spin" />
-                ) : (
-                  <Mic className="size-4" />
-                )}
-              </button>
-            </div>
+            {voice.state === 'recording' ? (
+              <div className="flex h-12 flex-1 items-center rounded-[10px] border border-white/10 bg-black/30 px-3">
+                <VoiceWaveform
+                  getLevel={voice.getLevel}
+                  onStop={() => voice.stop()}
+                />
+              </div>
+            ) : (
+              <div className="flex max-h-20 flex-1 items-center gap-2 rounded-[10px] border border-white/10 bg-black/30 px-3 focus-within:border-[#55ff9b]/40">
+                <textarea
+                  value={prompt}
+                  onChange={(event) => onPromptChange(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' && !event.shiftKey) {
+                      event.preventDefault()
+                      void run()
+                    }
+                  }}
+                  rows={1}
+                  placeholder="Tell the strategist about your brand…"
+                  aria-label="Ask the brand strategist"
+                  className="max-h-20 min-h-8 flex-1 resize-none bg-transparent text-sm leading-6 text-white/88 outline-none placeholder:text-white/28"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (voice.state === 'transcribing') {
+                      voice.stop()
+                    } else {
+                      void voice.start()
+                    }
+                  }}
+                  disabled={streaming}
+                  aria-label="Record voice input"
+                  className={cn(
+                    'grid size-8 shrink-0 place-items-center rounded-full text-white/70 transition-colors hover:bg-white/[0.06] hover:text-white disabled:opacity-20',
+                  )}
+                >
+                  {voice.state === 'transcribing' ? (
+                    <LoaderCircle className="size-4 animate-spin" />
+                  ) : (
+                    <Mic className="size-4" />
+                  )}
+                </button>
+              </div>
+            )}
             <button
               type="button"
               onClick={() => void run()}
