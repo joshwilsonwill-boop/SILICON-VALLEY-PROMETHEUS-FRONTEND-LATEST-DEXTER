@@ -2,7 +2,6 @@
 
 import * as React from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
-import { useRouter } from 'next/navigation'
 import {
   ArrowUpRight,
   ChevronDown,
@@ -21,6 +20,7 @@ import {
 import { toast } from 'sonner'
 
 import { CreateProjectModal } from '@/components/projects/create-project-modal'
+import { ProjectDetailsModal } from '@/components/projects/project-details-modal'
 import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { useProjectsList } from '@/hooks/use-projects-list'
 import type { ProjectCardStatus, ProjectListItem } from '@/lib/projects/types'
@@ -163,13 +163,13 @@ function ProjectTile({
 }
 
 export function ProjectsPageEditorial() {
-  const router = useRouter()
   const prefersReducedMotion = useReducedMotion()
   const [query, setQuery] = React.useState('')
   const [filter, setFilter] = React.useState<FilterKey>('all')
   const [sortKey, setSortKey] = React.useState<SortKey>('updated')
   const [isCreateOpen, setIsCreateOpen] = React.useState(false)
   const [isControlsOpen, setIsControlsOpen] = React.useState(false)
+  const [detailProject, setDetailProject] = React.useState<ProjectListItem | null>(null)
   const { projects, isLoading, error, refetch, deleteProject, duplicateProject, isDeleting, isDuplicating } = useProjectsList()
 
   const visibleProjects = React.useMemo(() => {
@@ -184,12 +184,14 @@ export function ProjectsPageEditorial() {
   const countFor = React.useCallback((key: FilterKey) => key === 'all' ? projects.length : projects.filter((project) => project.status === key).length, [projects])
 
   const handleDelete = React.useCallback(async (project: ProjectListItem) => {
-    if (!window.confirm(`Delete “${project.title}”? This cannot be undone.`)) return
+    if (!window.confirm(`Delete “${project.title}”? This cannot be undone.`)) return false
     try {
       await deleteProject(project.id)
       toast.success('Project deleted')
+      return true
     } catch (deleteError) {
       toast.error(deleteError instanceof Error ? deleteError.message : 'Could not delete project')
+      return false
     }
   }, [deleteProject])
 
@@ -197,8 +199,10 @@ export function ProjectsPageEditorial() {
     try {
       await duplicateProject(project.id)
       toast.success(`Duplicated ${project.title}`)
+      return true
     } catch (duplicateError) {
       toast.error(duplicateError instanceof Error ? duplicateError.message : 'Could not duplicate project')
+      return false
     }
   }, [duplicateProject])
 
@@ -366,7 +370,7 @@ export function ProjectsPageEditorial() {
                 key={project.id}
                 project={project}
                 index={index}
-                onOpen={() => router.push(`/editor/${project.id}`)}
+                onOpen={() => setDetailProject(project)}
                 onDuplicate={() => void handleDuplicate(project)}
                 onDelete={() => void handleDelete(project)}
                 isDuplicating={isDuplicating}
@@ -377,6 +381,18 @@ export function ProjectsPageEditorial() {
         )}
       </section>
       <CreateProjectModal open={isCreateOpen} onClose={() => setIsCreateOpen(false)} />
+      <ProjectDetailsModal
+        project={detailProject}
+        isDeleting={isDeleting}
+        isDuplicating={isDuplicating}
+        onClose={() => setDetailProject(null)}
+        onDelete={async (project) => {
+          if (await handleDelete(project)) setDetailProject(null)
+        }}
+        onDuplicate={async (project) => {
+          if (await handleDuplicate(project)) setDetailProject(null)
+        }}
+      />
     </main>
   )
 }

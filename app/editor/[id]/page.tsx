@@ -82,6 +82,7 @@ import { dispatchCompletionEvent } from '@/components/editor/completion-event'
 import { useSourceStage } from '@/hooks/use-source-stage'
 import { useViralClipJob } from '@/hooks/use-viral-clip-job'
 import { buildTimedTranscriptWords } from '@/lib/editor/modal-viral-clip-workflow'
+import { buildMotionTranscriptSegments } from '@/lib/editor/motion-transcript'
 import { clearPendingEditorNavigation, getRememberedEditorReturnPath } from '@/lib/editor-navigation'
 import { useFrameTargeting } from '@/hooks/use-frame-targeting'
 import { parseFrameReference } from '@/lib/editorial-frame/parse-frame-reference'
@@ -6945,6 +6946,10 @@ function OriginalEditorPage() {
   )
   const viralClipClipPreset = VIRAL_CLIP_COUNT_PRESETS[viralClipClipPresetIndex] ?? VIRAL_CLIP_COUNT_PRESETS[1]!
   const viralClipProvidedTranscript = buildProvidedTranscript(job)
+  const motionTranscriptSegments = React.useMemo(
+    () => buildMotionTranscriptSegments(job?.artifacts.transcript),
+    [job?.artifacts.transcript],
+  )
   const viralClipPrompt = React.useMemo(
     () =>
       buildViralClipQuickActionPrompt({
@@ -7910,6 +7915,24 @@ function OriginalEditorPage() {
     setIsInlineSourceDragOver(false)
   }, [])
 
+  const handleMotionSourceDragOver = React.useCallback((event: React.DragEvent) => {
+    event.preventDefault()
+    setIsInlineSourceDragOver(true)
+  }, [])
+
+  const handleMotionSourceDragLeave = React.useCallback(() => {
+    setIsInlineSourceDragOver(false)
+  }, [])
+
+  const handleMotionSourceDrop = React.useCallback(
+    (event: React.DragEvent) => {
+      event.preventDefault()
+      setIsInlineSourceDragOver(false)
+      void handleInlineSourceSelection(Array.from(event.dataTransfer.files ?? []))
+    },
+    [handleInlineSourceSelection],
+  )
+
   const hasSourceAsset = Boolean(project?.sourceAssetId)
 
   const [isIterationModalOpen, setIsIterationModalOpen] = React.useState(false)
@@ -8003,6 +8026,13 @@ function OriginalEditorPage() {
 
   return (
     <>
+      <input
+        ref={sourceFileInputRef}
+        type="file"
+        accept="video/mp4,video/quicktime,video/webm,video/x-m4v,video/x-matroska,.mp4,.mov,.m4v,.webm,.mkv"
+        className="sr-only"
+        onChange={handleInlineSourceFileInputChange}
+      />
       <div className="relative h-full min-h-0 overflow-hidden bg-black text-white">
       <div
         aria-hidden
@@ -8133,6 +8163,11 @@ function OriginalEditorPage() {
                     videoRef={previewVideoRef}
                     onTogglePlayback={togglePreviewPlayback}
                     onPickSource={openInlineSourcePicker}
+                    onSourceDrop={handleMotionSourceDrop}
+                    onSourceDragOver={handleMotionSourceDragOver}
+                    onSourceDragLeave={handleMotionSourceDragLeave}
+                    isSourceDragOver={isInlineSourceDragOver}
+                    transcriptSegments={motionTranscriptSegments}
                     onSeek={handlePreviewSeekSeconds}
                     onVideoLoadedMetadata={handlePreviewMetadataLoaded}
                     onVideoLoadedData={handlePreviewVideoReady}
