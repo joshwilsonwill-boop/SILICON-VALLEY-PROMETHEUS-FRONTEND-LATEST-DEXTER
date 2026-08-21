@@ -56,7 +56,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ user, requiresVerification })
   } catch (err) {
     const message = getErrorMessage(err, 'Login failed', 'login')
-    console.error('[api/auth/login] error', { ms: Date.now() - startedAt, message })
+    console.error('[api/auth/login] error', {
+      ms: Date.now() - startedAt,
+      message,
+      rawName: err instanceof Error ? err.name : typeof err,
+      rawMessage: err instanceof Error ? err.message : String(err),
+    })
     return NextResponse.json({ error: message }, { status: 401 })
   }
 }

@@ -121,6 +121,7 @@ export function PrometheusChat({
       role: message.role,
       content: message.content,
       isComplete: message.isComplete,
+      thoughts: message.thoughts,
       frames: message.frames,
       toolCalls: message.toolCalls,
       actionDrafts: message.actionDrafts,
@@ -151,6 +152,9 @@ export function PrometheusChat({
     ? Boolean(persistentChat.isSending || persistentChat.isAwaitingResponse || persistentChat.streamStatus)
     : thinking || renderedMessages.some((message) => message.status === 'thinking')
   const lastMessage = renderedMessages[renderedMessages.length - 1]
+  const videoContext = persistentChat.videoContext
+  const isVideoContextLoading = persistentChat.isVideoContextLoading
+  const videoPresent = videoContext?.status === 'video' || Boolean(videoContext?.video)
 
   const setDraft = React.useCallback(
     (value: string) => {
@@ -303,6 +307,31 @@ export function PrometheusChat({
               >
                 Retry
               </button>
+            </div>
+          ) : null}
+          {videoContext ? (
+            <div className="mb-4 flex min-w-0 items-center gap-2 text-[11px] uppercase tracking-[0.14em] text-white/30">
+              {isVideoContextLoading ? (
+                <span className="inline-flex items-center gap-2">
+                  <span className="size-1.5 animate-pulse rounded-full bg-white/40" />
+                  Retrieving video metadata
+                </span>
+              ) : videoPresent ? (
+                <span className="inline-flex items-center gap-2 truncate">
+                  <span className="size-1.5 shrink-0 rounded-full bg-[#7ff2d4]/80" />
+                  <span className="truncate">
+                    {videoContext.video?.filename || 'Video loaded'}
+                    {videoContext.video?.durationMs
+                      ? ` · ${Math.floor(videoContext.video.durationMs / 60000)}:${String(Math.floor((videoContext.video.durationMs % 60000) / 1000)).padStart(2, '0')}`
+                      : ''}
+                  </span>
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-2">
+                  <span className="size-1.5 rounded-full bg-white/20" />
+                  No source video yet
+                </span>
+              )}
             </div>
           ) : null}
           {renderedMessages.length === 0 && !showingThinking ? (
@@ -475,6 +504,7 @@ function PrometheusMessageBubble({
 }) {
   const isUser = message.role === 'user'
   const isThinking = message.status === 'thinking'
+  const [showThoughts, setShowThoughts] = React.useState(false)
 
   if (isThinking) {
     return <p className="font-elegist text-sm text-white/38" role="status">Thinking…</p>
@@ -488,29 +518,37 @@ function PrometheusMessageBubble({
   const frames = isUser ? [] : (message.frames ?? []).filter((frame) => frame.thumbnailUrl)
 
   const thoughts = message.thoughts ?? []
-  const [showThoughts, setShowThoughts] = React.useState(false)
+  const showThoughtsResolved = message.isComplete === false ? true : showThoughts
 
   return (
     <article className={cn('flex w-full', isUser ? 'justify-end' : 'justify-start')}>
       <div className={cn('flex max-w-[82%] flex-col gap-3 md:max-w-[74%]', isUser ? 'items-end' : 'items-start')}>
         {!isUser && thoughts.length > 0 ? (
-          <div className="flex flex-col items-start gap-1.5">
+          <div className="flex w-full flex-col items-start gap-1.5">
             <button
               type="button"
               onClick={() => setShowThoughts((prev) => !prev)}
+              aria-expanded={showThoughtsResolved}
               className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[11px] font-medium text-white/60 transition-all hover:border-amber-500/30 hover:text-amber-300"
             >
-              <Brain className="size-3 text-amber-400/80" />
+              <Brain className={cn('size-3 text-amber-400/80', message.isComplete === false && 'animate-pulse')} />
               <span>{thoughts.length} thinking {thoughts.length === 1 ? 'step' : 'steps'}</span>
-              <ChevronDown className={cn('size-3 transition-transform duration-200', showThoughts && 'rotate-180')} />
+              <ChevronDown className={cn('size-3 transition-transform duration-200', showThoughtsResolved && 'rotate-180')} />
             </button>
-            {showThoughts ? (
-              <div className="space-y-1.5 border-l border-amber-500/20 py-1 pl-3 font-mono text-xs text-white/50">
+            {showThoughtsResolved ? (
+              <div className="w-full space-y-1.5 border-l border-amber-500/20 py-1 pl-3 font-mono text-xs text-white/50">
                 {thoughts.map((thought, idx) => (
                   <div key={`thought-${idx}-${thought.slice(0, 10)}`} className="leading-snug">
-                    • {thought}
+                    <span className="mr-1.5 text-amber-400/40">{idx + 1}.</span>
+                    {thought}
                   </div>
                 ))}
+                {message.isComplete === false ? (
+                  <div className="flex items-center gap-1.5 text-amber-400/50">
+                    <span className="size-1.5 animate-pulse rounded-full bg-amber-400/60" />
+                    Thinking…
+                  </div>
+                ) : null}
               </div>
             ) : null}
           </div>

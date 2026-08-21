@@ -42,7 +42,7 @@ import {
 
 export const runtime = 'nodejs'
 
-const DEFAULT_GROQ_MODEL = 'llama-3.1-8b-instant'
+const DEFAULT_GROQ_MODEL = 'openai/gpt-oss-20b'
 const REQUEST_TIMEOUT_MS = 32_000
 
 type ChatMessage = {

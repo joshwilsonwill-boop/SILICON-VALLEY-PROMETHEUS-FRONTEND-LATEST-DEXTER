@@ -198,7 +198,7 @@ describe("consumePrometheusChatStream Client Contract", () => {
     ]);
 
     const received: PrometheusChatStreamEvent[] = [];
-    await consumePrometheusChatStream(response, (ev) => received.push(ev));
+    await consumePrometheusChatStream(response, (ev) => { received.push(ev); });
 
     assert.deepEqual(received, [
       { type: "thought", content: "Thinking..." },
@@ -238,7 +238,7 @@ describe("consumePrometheusChatStream Client Contract", () => {
 
     const receivedEvents: PrometheusChatStreamEvent[] = [];
     await assert.rejects(
-      consumePrometheusChatStream(networkErrorResponse, (ev) => receivedEvents.push(ev)),
+      consumePrometheusChatStream(networkErrorResponse, (ev) => { receivedEvents.push(ev); }),
       /TCP connection reset by peer|interrupted/i,
     );
 
@@ -258,7 +258,7 @@ describe("consumePrometheusChatStream Client Contract", () => {
     ]);
 
     const order: string[] = [];
-    await consumePrometheusChatStream(response, (ev) => order.push(ev.type));
+    await consumePrometheusChatStream(response, (ev) => { order.push(ev.type); });
 
     assert.deepEqual(order, ["status", "thought", "tool", "delta", "done"]);
   });

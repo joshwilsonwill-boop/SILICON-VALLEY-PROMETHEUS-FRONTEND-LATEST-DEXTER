@@ -20,11 +20,13 @@ import {
 import {
   formatProjectContextForPrompt,
   loadProjectChatContext,
+  type ProjectChatContext,
 } from "@/lib/prometheus-assistant/project-context";
 import {
   createExtractivePrometheusAnswer,
   formatKnowledgeContext,
   retrievePrometheusKnowledge,
+  type PrometheusKnowledgeMatch,
 } from "@/lib/prometheus-assistant/retrieval";
 import { createLocalPrometheusFallback } from "@/lib/prometheus-assistant/local-chat-fallback";
 import {
@@ -37,11 +39,12 @@ import {
   type ChatFrameReference,
   type PrometheusToolCall,
 } from "@/lib/prometheus-assistant/tools";
+import type { ChatMediaJob } from "@/lib/prometheus-assistant/chat-media";
 import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 
-const DEFAULT_GROQ_MODEL = "llama-3.1-8b-instant";
+const DEFAULT_GROQ_MODEL = "openai/gpt-oss-20b";
 
 type StreamRequest = {
   message?: unknown;
@@ -53,6 +56,7 @@ type StreamRequest = {
   verbosity?: unknown;
   editorContext?: unknown;
   frameThumbs?: unknown;
+  videoContext?: unknown;
 };
 
 type StreamMessage = {
@@ -82,11 +86,17 @@ export async function POST(request: Request) {
         6,
       ).filter((match) => match.score >= 2)
     : [];
-  // Project metadata (video + transcript) so the assistant knows the video exists.
   const projectContext = projectId ? await loadProjectChatContext(projectId, {playheadSec: editorContext?.playheadSec}) : null;
-  const toolsEnabled =
-    intent.allowTools || Boolean(editorContext) || Boolean(projectContext?.video);
   const encoder = new TextEncoder();
+
+  const clientVideoContext = normalizeClientVideoContext(body?.videoContext);
+  const projectContextBlock = projectContext
+    ? formatProjectContextForPrompt(projectContext)
+    : clientVideoContext?.video
+      ? formatClientVideoContextForPrompt(clientVideoContext)
+      : "";
+  const toolsEnabled =
+    intent.allowTools || Boolean(editorContext) || Boolean(projectContext?.video) || Boolean(clientVideoContext?.video);
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
@@ -94,6 +104,10 @@ export async function POST(request: Request) {
         controller.enqueue(
           encoder.encode(encodePrometheusChatStreamEvent(event)),
         );
+      };
+
+      const sendThought = (content: string) => {
+        send({ type: "thought", content });
       };
 
       let reply = "";
@@ -133,15 +147,17 @@ export async function POST(request: Request) {
               cleanText(process.env.GROQ_CHAT_MODEL) ||
               cleanText(process.env.GROQ_MODEL) ||
               DEFAULT_GROQ_MODEL;
+            const fallbackModel = "openai/gpt-oss-20b";
             const maxTokens = normalizeMaxTokens(body?.verbosity);
+
+            emitVideoContextThoughts(sendThought, projectContext, editorContext, knowledge);
+
             const systemPrompt = buildStreamSystemPrompt({
               intentInstruction: getPrometheusIntentInstruction(intent),
               knowledgeContext: formatKnowledgeContext(knowledge),
               originalPrompt,
               projectId,
-              projectContextBlock: projectContext
-                ? formatProjectContextForPrompt(projectContext)
-                : "",
+              projectContextBlock,
               editorContext,
               frameReferences,
               toolsEnabled,
@@ -154,11 +170,10 @@ export async function POST(request: Request) {
 
             let streamed = false;
 
-            // Tool-eligible messages get a non-streaming planning pass first so
-            // the assistant can read knowledge, reference frames, and draft
-            // editor actions before composing the streamed answer.
             if (toolsEnabled) {
               try {
+                sendThought("Planning editorial approach...");
+
                 const planning = await groq.chat.completions.create(
                   {
                     model,
@@ -175,16 +190,43 @@ export async function POST(request: Request) {
                 const planMessage = planning.choices?.[0]?.message as unknown as
                   | Record<string, unknown>
                   | undefined;
+
+                const planContent = typeof planMessage?.content === "string" ? planMessage.content.trim() : "";
+                if (planContent) {
+                  sendThought(planContent);
+                }
+
                 const requested = normalizeGroqToolCalls(planMessage?.tool_calls);
                 if (requested.length) {
                   send({ type: "status", message: "Running editorial tools" });
-                  toolCalls = requested.map((toolCall) => {
+                  toolCalls = [];
+                  const streamJobs: ChatMediaJob[] = [];
+                  for (const toolCall of requested) {
+                    if (toolCall.name === "submit_editor_job") {
+                      const submitted = await submitEditorJob(toolCall, { message, projectId });
+                      if (submitted) {
+                        toolCalls.push(submitted.toolCall);
+                        if (submitted.job) streamJobs.push(submitted.job);
+                        send({
+                          type: "tool",
+                          toolCall: {
+                            id: submitted.toolCall.id,
+                            name: submitted.toolCall.name,
+                            label: submitted.toolCall.label,
+                            status: submitted.toolCall.status,
+                            summary: submitted.toolCall.summary,
+                          },
+                        });
+                      }
+                      continue;
+                    }
                     const completedToolCall = executePrometheusTool(toolCall, {
                       latestMessage: message,
                       knowledge,
                       frameReferences,
                       projectId,
                     });
+                    toolCalls.push(completedToolCall);
                     send({
                       type: "tool",
                       toolCall: {
@@ -195,8 +237,9 @@ export async function POST(request: Request) {
                         summary: completedToolCall.summary,
                       },
                     });
-                    return completedToolCall;
-                  });
+                  }
+
+                  sendThought("Composing final answer with tool results...");
 
                   const followup = await groq.chat.completions.create(
                     {
@@ -205,10 +248,7 @@ export async function POST(request: Request) {
                         ...groqMessages,
                         {
                           role: "assistant",
-                          content:
-                            typeof planMessage?.content === "string"
-                              ? planMessage.content
-                              : "",
+                          content: planContent,
                           tool_calls: planMessage?.tool_calls,
                         },
                         ...toolCalls.map((toolCall) => ({
@@ -234,11 +274,14 @@ export async function POST(request: Request) {
                   }
                 }
               } catch (error) {
-                // Provider-side tool failures (e.g. tool_use_failed) must never
-                // surface as chat errors — answer without tools instead.
                 if (isToolUseFailed(error)) {
                   console.warn(
                     "[prometheus-chat-stream] tool planning failed; answering without tools",
+                  );
+                  toolCalls = [];
+                } else if (!request.signal.aborted) {
+                  console.warn(
+                    "[prometheus-chat-stream] tool planning errored; answering without tools",
                   );
                   toolCalls = [];
                 } else {
@@ -248,22 +291,64 @@ export async function POST(request: Request) {
             }
 
             if (!streamed) {
-              const completion = await groq.chat.completions.create(
-                {
-                  model,
-                  messages: [...groqMessages],
-                  temperature: intent.kind === "conversation" ? 0.52 : 0.38,
-                  max_tokens: maxTokens,
-                  stream: true,
-                },
-                { signal: request.signal },
-              );
+              sendThought("Generating response...");
 
-              for await (const chunk of completion) {
-                const content = chunk.choices[0]?.delta?.content ?? "";
-                if (!content) continue;
-                reply += content;
-                send({ type: "delta", content });
+              const modelsToTry = model === fallbackModel ? [model] : [model, fallbackModel];
+              let completionFailed = false;
+
+              for (let attempt = 0; attempt < modelsToTry.length; attempt += 1) {
+                const attemptModel = modelsToTry[attempt];
+                try {
+                  const completion = await groq.chat.completions.create(
+                    {
+                      model: attemptModel,
+                      messages: [...groqMessages],
+                      temperature: intent.kind === "conversation" ? 0.52 : 0.38,
+                      max_tokens: maxTokens,
+                      stream: true,
+                    },
+                    { signal: request.signal },
+                  );
+
+                  for await (const chunk of completion) {
+                    const content = chunk.choices[0]?.delta?.content ?? "";
+                    if (!content) continue;
+                    reply += content;
+                    send({ type: "delta", content });
+                  }
+                  completionFailed = false;
+                  break;
+                } catch (error) {
+                  if (request.signal.aborted) throw error;
+                  if (isToolUseFailed(error)) {
+                    console.warn("[prometheus-chat-stream] generation tool failure; retrying without tools");
+                    completionFailed = true;
+                    break;
+                  }
+                  if (attempt < modelsToTry.length - 1) {
+                    console.warn(`[prometheus-chat-stream] model ${attemptModel} failed; falling back to ${modelsToTry[attempt + 1]}`);
+                    completionFailed = true;
+                    continue;
+                  }
+                  throw error;
+                }
+              }
+
+              if (completionFailed && !reply.trim()) {
+                sendThought("Falling back to extractive guidance...");
+                const fallback = knowledge.length
+                  ? createExtractivePrometheusAnswer(message, knowledge, maxTokens)
+                  : createLocalPrometheusFallback({
+                      intentKind: intent.kind,
+                      projectTitle: projectContext?.title,
+                      filename: projectContext?.video?.filename,
+                      durationSec: projectContext?.video?.durationMs
+                        ? projectContext.video.durationMs / 1000
+                        : editorContext?.durationSec,
+                      playheadSec: editorContext?.playheadSec,
+                    });
+                reply = fallback;
+                send({ type: "delta", content: fallback });
               }
             }
           }
@@ -271,14 +356,16 @@ export async function POST(request: Request) {
 
         if (!reply.trim()) {
           reply =
-            "I couldn’t complete that response. Please try once more with the result you want from the edit.";
+            "I couldn't complete that response. Please try once more with the result you want from the edit.";
           send({ type: "delta", content: reply });
         }
 
         const persisted = await persistAssistantReply(sessionId, reply, clientMessageId);
         const actionDrafts = collectActionDrafts(toolCalls);
         const frames = toolCalls.length ? toFramePayload(frameReferences, toolCalls) : [];
-        if (knowledge.length || toolCalls.length || actionDrafts.length || frames.length || projectContext?.editorialAnalysis || projectContext?.transcript?.text) {
+        const editorialRecommendations = projectContext?.editorialAnalysis?.recommendations ?? [];
+        const streamJobs = collectStreamJobs(toolCalls);
+        if (knowledge.length || toolCalls.length || actionDrafts.length || frames.length || streamJobs.length || projectContext?.editorialAnalysis || projectContext?.transcript?.text) {
           send({
             type: "metadata",
             sources: [
@@ -294,13 +381,36 @@ export async function POST(request: Request) {
                 title: match.title || "Prometheus guidance",
                 type: "knowledge",
               })),
+              ...(editorialRecommendations.length > 0 ? editorialRecommendations.slice(0, 3).map((rec) => ({
+                title: rec.title,
+                type: "recommendation" as const,
+              })) : []),
             ],
             frames,
             toolCalls,
             actionDrafts,
+            jobs: streamJobs,
+            suggestions: editorialRecommendations.length > 0 
+              ? editorialRecommendations.slice(0, 3).map((rec) => `Try: ${rec.title}`)
+              : undefined,
+            carousel: editorialRecommendations.length > 0
+              ? editorialRecommendations.slice(0, 4).map((rec, index) => ({
+                  id: `rec-${index}`,
+                  kind: "action" as const,
+                  title: rec.title,
+                  subtitle: rec.rationale.slice(0, 80),
+                  payload: rec.rangeMs
+                    ? { message: `Apply recommendation: ${rec.title}` }
+                    : undefined,
+                }))
+              : undefined,
           });
         }
         send({ type: "done", persisted });
+
+        if (sessionId && message.trim()) {
+          void extractAndUpdateSessionTitle(sessionId, message, reply).catch(() => {});
+        }
       } catch (error) {
         if (request.signal.aborted) {
           controller.close();
@@ -308,10 +418,15 @@ export async function POST(request: Request) {
         }
 
         console.error("[prometheus-chat-stream] generation failed", error);
+        const errorMessage = error instanceof Error ? error.message.toLowerCase() : "";
+        const userFacingMessage = errorMessage.includes("model") || errorMessage.includes("not found") || errorMessage.includes("401") || errorMessage.includes("402") || errorMessage.includes("403")
+          ? "Prometheus is temporarily unable to respond. The model configuration may need updating."
+          : errorMessage.includes("429") || errorMessage.includes("rate")
+            ? "Prometheus is receiving too many requests. Please wait a moment and retry."
+            : "Prometheus couldn't finish that response. Your message is safe; please retry.";
         send({
           type: "error",
-          message:
-            "Prometheus couldn’t finish that response. Your message is saved; please retry.",
+          message: userFacingMessage,
         });
       } finally {
         controller.close();
@@ -326,6 +441,84 @@ export async function POST(request: Request) {
       "X-Accel-Buffering": "no",
     },
   });
+}
+
+function emitVideoContextThoughts(
+  sendThought: (content: string) => void,
+  projectContext: ProjectChatContext | null,
+  editorContext: ChatEditorContext | null,
+  knowledge: PrometheusKnowledgeMatch[],
+) {
+  if (projectContext?.video) {
+    const video = projectContext.video;
+    const parts: string[] = [];
+    if (video.filename) parts.push(`file: ${video.filename}`);
+    if (video.durationMs !== null) parts.push(`duration: ${formatDuration(video.durationMs)}`);
+    if (video.width && video.height) parts.push(`resolution: ${video.width}x${video.height}`);
+    if (video.fps) parts.push(`${video.fps}fps`);
+    sendThought(`Video context: ${parts.join(", ")}`);
+  }
+
+  if (projectContext?.editorialAnalysis) {
+    const analysis = projectContext.editorialAnalysis;
+    sendThought(`Editorial analysis: ${analysis.summary}`);
+    if (analysis.recommendations.length > 0) {
+      sendThought(`Recommendations available: ${analysis.recommendations.map((r) => r.title).join(", ")}`);
+    }
+  }
+
+  if (knowledge.length > 0) {
+    sendThought(`Retrieved ${knowledge.length} relevant guidance references from Prometheus knowledge base`);
+  }
+
+  if (editorContext?.playheadSec !== undefined) {
+    sendThought(`Playhead position: ${formatSecondsAsTimecode(editorContext.playheadSec)}`);
+  }
+}
+
+function formatDuration(ms: number): string {
+  const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+}
+
+function extractOneLinerTitle(userMessage: string, reply: string): string {
+  const cleaned = userMessage
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/^(?:i\s+(?:want\s+to\s+|need\s+to\s+|would\s+like\s+to\s+|am\s+(?:looking\s+to\s+|trying\s+to\s+))|please\s+|can\s+(?:you\s+)?|could\s+(?:you\s+)?|help\s+me\s+)/i, "")
+    .replace(/\s+(?:please|thanks|thank\s+you)\s*$/i, "")
+    .replace(/\bthis\s+video\b/gi, "video")
+    .replace(/\bthe\s+video\b/gi, "video")
+    .replace(/^edit\s+(?:this\s+)?video/i, "Edit video")
+    .trim();
+
+  if (cleaned.length <= 45) return cleaned || "New Chat";
+
+  const bounded = cleaned.slice(0, 42);
+  const boundary = Math.max(bounded.lastIndexOf(" "), bounded.lastIndexOf("."), bounded.lastIndexOf(","));
+  const cut = boundary > 24 ? boundary : bounded.length;
+  return `${cleaned.slice(0, cut).trim()}…`;
+}
+
+async function extractAndUpdateSessionTitle(
+  sessionId: string,
+  userMessage: string,
+  reply: string,
+) {
+  if (!sessionId || !userMessage.trim()) return;
+  try {
+    const title = extractOneLinerTitle(userMessage, reply);
+    if (title === "New Chat" || !title.trim()) return;
+    const supabase = await createClient();
+    await supabase.from("chat_sessions").update({
+      title: title.trim(),
+      updated_at: new Date().toISOString(),
+    }).eq("id", sessionId);
+  } catch {
+    // Title extraction is best-effort
+  }
 }
 
 function normalizeMessages(value: unknown): StreamMessage[] {
@@ -345,7 +538,6 @@ function normalizeMessages(value: unknown): StreamMessage[] {
   });
 }
 
-/** Timeline thumbnails sent by the client become frame references the model can cite. */
 function frameRefsFromThumbs(
   value: unknown,
   editorContext: ChatEditorContext | null,
@@ -409,6 +601,7 @@ function buildStreamSystemPrompt({
     intentInstruction,
     "Deliver immediate, high-value insight first. Maintain an effortless, authoritative tone. Never expose underlying LLM providers, internal APIs, tool execution mechanics, or system errors to the user.",
     "Use clean, refined markdown and structured guidance. Do not state an editor action occurred until it has been explicitly approved and confirmed.",
+    "When the user's question is unrelated to video editing (e.g., general knowledge, casual conversation), answer naturally and concisely without forcing video-editing advice. If the user asks about a specific editing style or person you don't have knowledge of, be honest and offer to work with the video's existing material to find a comparable approach.",
     toolsEnabled
       ? "Execute available tools decisively. For editor navigation, transport, or layout shifts (seek, play/pause, fit, workspace), call draft_editor_actions with machine-readable actions immediately. For media-mutating changes (trim, split, captions, style, render), use kind \"propose\" to present a clear execution plan. Cite specific video frames using reference_video_frames whenever temporal precision is needed."
       : "",
@@ -448,19 +641,265 @@ async function persistAssistantReply(
     } = await supabase.auth.getUser();
     if (!user) return false;
 
-    const { error } = await supabase.from("chat_messages").insert({
+    const insertPayload: Record<string, unknown> = {
       session_id: sessionId,
       role: "assistant",
       content,
-      client_message_id: clientMessageId || null,
       metadata: { transport: "stream" },
+    };
+
+    const selectColumns = "id, session_id, role, content, platform, post_type, metadata, created_at";
+
+    const { error } = await supabase.from("chat_messages").insert({
+      ...insertPayload,
+      client_message_id: clientMessageId || null,
     });
+
+    if (error && isMissingColumnError(error)) {
+      const { error: legacyError } = await supabase
+        .from("chat_messages")
+        .insert(insertPayload)
+        .select(selectColumns);
+      return !legacyError;
+    }
+
     return !error || error.code === "23505";
   } catch {
     return false;
   }
 }
 
+function isMissingColumnError(error: { code?: string; message?: string }): boolean {
+  return error.code === "42703" || error.code === "PGRST204" ||
+    (typeof error.message === "string" && error.message.includes("client_message_id"));
+}
+
+type StreamChatMediaJob = ChatMediaJob;
+
+async function submitEditorJob(
+  toolCall: { id: string; name: string; arguments: unknown },
+  context: { message: string; projectId: string },
+) {
+  const args = toolCall.arguments && typeof toolCall.arguments === "object"
+    ? toolCall.arguments as Record<string, unknown>
+    : {};
+  const type = cleanText(args.type);
+  const label = cleanText(args.label) || "Background processing";
+  const description = cleanText(args.description);
+
+  if (!type) {
+    return {
+      toolCall: {
+        id: toolCall.id,
+        name: toolCall.name,
+        label: "Submit editor job",
+        status: "failed" as const,
+        input: args,
+        output: { error: "A job type is required." },
+        summary: "Job submission failed: missing type.",
+      },
+      job: null,
+    };
+  }
+
+  const supabase = await createClient().catch(() => null);
+  if (!supabase) {
+    return {
+      toolCall: {
+        id: toolCall.id,
+        name: toolCall.name,
+        label: "Submit editor job",
+        status: "failed" as const,
+        input: args,
+        output: { error: "No database session available for job submission." },
+        summary: "Job submission failed: no database session.",
+      },
+      job: null,
+    };
+  }
+
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return {
+        toolCall: {
+          id: toolCall.id,
+          name: toolCall.name,
+          label: "Submit editor job",
+          status: "failed" as const,
+          input: args,
+          output: { error: "Sign in to submit background jobs." },
+          summary: "Job submission failed: not signed in.",
+        },
+        job: null,
+      };
+    }
+
+    if (!context.projectId) {
+      return {
+        toolCall: {
+          id: toolCall.id,
+          name: toolCall.name,
+          label: "Submit editor job",
+          status: "failed" as const,
+          input: args,
+          output: { error: "A project is required to run background jobs." },
+          summary: "Job submission failed: no project linked.",
+        },
+        job: null,
+      };
+    }
+
+    const { data: job, error } = await supabase
+      .from("durable_jobs")
+      .insert({
+        user_id: user.id,
+        project_id: context.projectId,
+        type,
+        status: "pending",
+        progress: 0,
+        result_metadata: description ? { label, description } : { label },
+      })
+      .select("id, status, progress")
+      .single();
+
+    if (error || !job) {
+      return {
+        toolCall: {
+          id: toolCall.id,
+          name: toolCall.name,
+          label: "Submit editor job",
+          status: "failed" as const,
+          input: args,
+          output: { error: error?.message ?? "Unable to queue the job." },
+          summary: "Job submission failed.",
+        },
+        job: null,
+      };
+    }
+
+    const streamJob: StreamChatMediaJob = {
+      id: String(job.id),
+      label,
+      state: "queued",
+      statusUrl: `/api/jobs/${encodeURIComponent(String(job.id))}/status`,
+    };
+
+    return {
+      toolCall: {
+        id: toolCall.id,
+        name: toolCall.name,
+        label: "Submit editor job",
+        status: "completed" as const,
+        input: args,
+        output: { status: "queued", jobId: String(job.id) },
+        summary: `Background job queued with id ${String(job.id).slice(0, 8)}.`,
+      },
+      job: streamJob,
+    };
+  } catch {
+    return {
+      toolCall: {
+        id: toolCall.id,
+        name: toolCall.name,
+        label: "Submit editor job",
+        status: "failed" as const,
+        input: args,
+        output: { error: "Unexpected job submission failure." },
+        summary: "Job submission failed.",
+      },
+      job: null,
+    };
+  }
+}
+
+function collectStreamJobs(toolCalls: PrometheusToolCall[]): StreamChatMediaJob[] {
+  const jobs: StreamChatMediaJob[] = [];
+  for (const toolCall of toolCalls) {
+    if (toolCall.name !== "submit_editor_job") continue;
+    const output = toolCall.output && typeof toolCall.output === "object"
+      ? toolCall.output as Record<string, unknown>
+      : {};
+    const jobId = cleanText(output.jobId);
+    const input = toolCall.input && typeof toolCall.input === "object"
+      ? toolCall.input as Record<string, unknown>
+      : {};
+    const label = cleanText(input.label) || "Background processing";
+    if (jobId) {
+      jobs.push({
+        id: jobId,
+        label,
+        state: "queued",
+        statusUrl: `/api/jobs/${encodeURIComponent(jobId)}/status`,
+      });
+    }
+  }
+  return jobs;
+}
+
 function cleanText(value: unknown) {
   return typeof value === "string" ? value.replace(/\s+/g, " ").trim() : "";
+}
+
+function normalizeClientVideoContext(value: unknown) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const record = value as Record<string, unknown>;
+  const videoRecord = record.video as Record<string, unknown> | null | undefined;
+  if (!videoRecord || typeof videoRecord !== "object") return null;
+  const video = {
+    filename: cleanText(videoRecord.filename) || null,
+    mimeType: cleanText(videoRecord.mimeType) || null,
+    durationMs: typeof videoRecord.durationMs === "number" && Number.isFinite(videoRecord.durationMs) ? videoRecord.durationMs : null,
+    width: typeof videoRecord.width === "number" && Number.isFinite(videoRecord.width) ? videoRecord.width : null,
+    height: typeof videoRecord.height === "number" && Number.isFinite(videoRecord.height) ? videoRecord.height : null,
+    fps: typeof videoRecord.fps === "number" && Number.isFinite(videoRecord.fps) ? videoRecord.fps : null,
+  };
+  const analysis = record.editorialAnalysis as Record<string, unknown> | null | undefined;
+  return {
+    video,
+    transcriptAvailable: record.transcriptAvailable === true,
+    editorialAnalysis: analysis && typeof analysis === "object"
+      ? {
+          summary: cleanText(analysis.summary) || null,
+          pacing: cleanText(analysis.pacing) || null,
+          recommendations: Array.isArray(analysis.recommendations)
+            ? analysis.recommendations.flatMap((item) => {
+                if (!item || typeof item !== "object") return [];
+                const rec = item as Record<string, unknown>;
+                const title = cleanText(rec.title);
+                const rationale = cleanText(rec.rationale);
+                return title && rationale ? [{ title, rationale, rangeMs: null }] : [];
+              }).slice(0, 4)
+            : [],
+        }
+      : null,
+    ingestionStatus: cleanText(record.ingestionStatus) || null,
+  };
+}
+
+function formatClientVideoContextForPrompt(context: NonNullable<ReturnType<typeof normalizeClientVideoContext>>) {
+  const lines: string[] = ["Project: current editorial session"];
+  const video = context.video;
+  if (video) {
+    const parts = [
+      video.filename ? `file: ${video.filename}` : "",
+      video.durationMs !== null ? `duration: ${formatDuration(video.durationMs)}` : "",
+      video.width && video.height ? `resolution: ${video.width}x${video.height}` : "",
+      video.fps ? `fps: ${video.fps}` : "",
+    ].filter(Boolean);
+    lines.push(parts.length ? `Video - ${parts.join(", ")}` : "Video uploaded.");
+  } else {
+    lines.push("Video: none uploaded yet.");
+  }
+  if (context.ingestionStatus && context.ingestionStatus !== "completed") {
+    lines.push(`Analysis status: ${context.ingestionStatus}; do not claim missing analysis is complete.`);
+  }
+  if (context.editorialAnalysis) {
+    if (context.editorialAnalysis.summary) lines.push(`Saved editorial analysis: ${context.editorialAnalysis.summary}`);
+    if (context.editorialAnalysis.recommendations.length) {
+      lines.push(`Saved recommendations:\n${context.editorialAnalysis.recommendations.map((item) => `- ${item.title}: ${item.rationale}`).join("\n")}`);
+    }
+  }
+  if (context.transcriptAvailable) lines.push("Transcript: available.");
+  return lines.join("\n");
 }

@@ -22,16 +22,82 @@ export function getUnknownErrorMessage(error: unknown, fallback = 'Something wen
   return fallback
 }
 
+const DATABASE_ERROR = 'Prometheus hit a database problem while finishing that step. This is on our side — nothing is wrong with your connection. Please try again in a moment.'
+const NETWORK_ERROR = 'The connection dropped before Prometheus could finish. Check your network and try again.'
+
+// Every message this module can produce. normalizeUxError is applied on both the
+// server (route catch) and the client (form catch), so an already-normalized
+// message must pass through unchanged instead of being re-matched against
+// keywords it happens to contain.
+const CANONICAL_MESSAGES = new Set([
+  'That email is already attached to a Prometheus account. Sign in or reset your password to continue.',
+  'The email or password does not match our records. Check the details and try again.',
+  'Confirm your email before signing in. We can send a fresh verification link.',
+  'That secure link is no longer valid. Request a fresh email and use the newest link.',
+  'The identity provider could not complete the handoff. Try again in a moment.',
+  NETWORK_ERROR,
+  'Your session needs a refresh. Sign in again to continue.',
+  'That source is too large for this ingestion lane. Choose a smaller video or use the queued upload path.',
+  'That file type is not supported here. Upload an MP4, MOV, or WEBM video.',
+  'This is taking longer than expected. Prometheus is still watching the job and will reconnect automatically.',
+  DATABASE_ERROR,
+  'We could not create the account. Check the details and try again.',
+  'We could not sign you in. Check the details and try again.',
+  'The identity provider handoff did not complete. Try again in a moment.',
+  'We could not complete the password reset. Request a fresh link and try again.',
+  'We could not verify this email link. Request a fresh one and try again.',
+  'We could not stage that source. Choose a supported video and try again.',
+  'We could not load this workspace. Refresh the page to try again.',
+  'We could not complete that workspace action. Refresh the page and try again.',
+  'We could not prepare that export. Try again in a moment.',
+  'The preview renderer paused before it could draw this frame.',
+  'The render engine did not return a clean status update.',
+  'The connection dropped before Prometheus could finish.',
+  'Something went wrong. Try again in a moment.',
+])
+
 export function normalizeUxError(error: unknown, context: UxErrorContext = 'generic'): string {
   const raw = getUnknownErrorMessage(error, '')
-  const normalized = raw.toLowerCase()
 
   if (!raw) return fallbackForContext(context)
+
+  if (CANONICAL_MESSAGES.has(raw)) return raw
+
+  const normalized = raw.toLowerCase()
+
+  // Database failures must be classified before everything else. Backend
+  // errors leak words like "duplicate", "connection", and "provider" into
+  // their messages, and the branches below would mislabel them as an
+  // email conflict or a user-side network problem.
+  const mentionsMissingRelation =
+    (normalized.includes('does not exist') || normalized.includes('doesnt exist')) &&
+    (normalized.includes('relation') || normalized.includes('column') || normalized.includes('table') || normalized.includes('schema'))
+
+  if (
+    normalized.includes('database error') ||
+    normalized.includes('database_error') ||
+    normalized.includes('row-level security') ||
+    normalized.includes('permission denied') ||
+    normalized.includes('permission_denied') ||
+    normalized.includes('schema cache') ||
+    normalized.includes('unique constraint') ||
+    normalized.includes('duplicate key') ||
+    normalized.includes('foreign key') ||
+    normalized.includes('violates') ||
+    normalized.includes('postgres') ||
+    mentionsMissingRelation ||
+    // Postgres error codes: 42501 RLS, 23505 unique, 23503 FK, 42P01 undefined table
+    normalized.includes('42501') ||
+    normalized.includes('23505') ||
+    normalized.includes('23503') ||
+    normalized.includes('42p01')
+  ) {
+    return DATABASE_ERROR
+  }
 
   if (
     normalized.includes('already registered') ||
     normalized.includes('already exists') ||
-    normalized.includes('duplicate') ||
     normalized.includes('user already') ||
     normalized.includes('email address is already')
   ) {
@@ -72,13 +138,22 @@ export function normalizeUxError(error: unknown, context: UxErrorContext = 'gene
     return 'The identity provider could not complete the handoff. Try again in a moment.'
   }
 
+  // Only genuine transport failures land here. Matching the bare substrings
+  // "connection" or "network" used to repaint database and backend faults as
+  // the user's WiFi dropping.
   if (
-    normalized.includes('network') ||
     normalized.includes('failed to fetch') ||
+    normalized.includes('fetch failed') ||
+    normalized.includes('networkerror') ||
+    normalized.includes('network request failed') ||
     normalized.includes('load failed') ||
-    normalized.includes('connection')
+    normalized.includes('net::err') ||
+    normalized.includes('econnrefused') ||
+    normalized.includes('econnreset') ||
+    normalized.includes('connection reset') ||
+    normalized.includes('socket hang up')
   ) {
-    return 'The connection dropped before Prometheus could finish. Check your network and try again.'
+    return NETWORK_ERROR
   }
 
   if (normalized.includes('unauthorized') || normalized.includes('not authenticated') || normalized.includes('logged in')) {

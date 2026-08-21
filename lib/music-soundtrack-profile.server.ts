@@ -2,7 +2,7 @@ import { buildHeuristicSoundtrackProfile, normalizeSoundtrackProfile, type Music
 import type { MusicSoundtrackProfile } from '@/lib/types'
 
 const GROQ_CHAT_COMPLETIONS_URL = 'https://api.groq.com/openai/v1/chat/completions'
-const DEFAULT_GROQ_MODEL = 'llama-3.1-8b-instant'
+const DEFAULT_GROQ_MODEL = 'openai/gpt-oss-20b'
 
 export type MusicProfileGenerationResult = {
   profile: MusicSoundtrackProfile

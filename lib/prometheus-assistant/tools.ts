@@ -125,6 +125,28 @@ export const PROMETHEUS_TOOLS = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'submit_editor_job',
+      description:
+        'Submit a background processing job (render, scene detection, export, video analysis, audio processing, or AI enhancement) to the durable job queue. Returns a job ID that is tracked and can be polled for status. Use when the user asks to render, export, analyze scenes, enhance, or process the video.',
+      parameters: {
+        type: 'object',
+        properties: {
+          type: {
+            type: 'string',
+            enum: ['render', 'scene_detection', 'export', 'video_analysis', 'audio_processing', 'ai_enhancement'],
+            description: 'The background job type to run.',
+          },
+          label: { type: 'string', description: 'Short user-facing label for the job (e.g. "Cinematic render").' },
+          description: { type: 'string', description: 'Optional detail about what the job should produce.' },
+        },
+        required: ['type'],
+        additionalProperties: false,
+      },
+    },
+  },
 ] as const
 
 export type PrometheusToolExecutionContext = {

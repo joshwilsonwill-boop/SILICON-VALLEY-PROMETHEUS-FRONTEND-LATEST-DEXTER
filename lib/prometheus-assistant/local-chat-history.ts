@@ -69,6 +69,26 @@ function browserStorage(): StorageLike | null {
   }
 }
 
+function extractLocalOneLiner(value: string): string {
+  const cleaned = value
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/^(?:i\s+(?:want\s+to\s+|need\s+to\s+|would\s+like\s+to\s+|am\s+(?:looking\s+to\s+|trying\s+to\s+))|please\s+|can\s+(?:you\s+)?|could\s+(?:you\s+)?|help\s+me\s+)/i, "")
+    .replace(/\s+(?:please|thanks|thank\s+you)\s*$/i, "")
+    .replace(/\bthis\s+video\b/gi, "video")
+    .replace(/\bthe\s+video\b/gi, "video")
+    .replace(/^edit\s+(?:this\s+)?video/i, "Edit video")
+    .trim();
+
+  if (!cleaned) return "New Chat";
+  if (cleaned.length <= 45) return cleaned;
+
+  const bounded = cleaned.slice(0, 42);
+  const boundary = Math.max(bounded.lastIndexOf(" "), bounded.lastIndexOf("."), bounded.lastIndexOf(","));
+  const cut = boundary > 24 ? boundary : bounded.length;
+  return `${cleaned.slice(0, cut).trim()}…`;
+}
+
 export function isLocalChatSessionId(sessionId: string) {
   return sessionId.startsWith(LOCAL_SESSION_PREFIX);
 }
@@ -194,9 +214,7 @@ export function createLocalChatHistoryStore(
     const sessions = state.sessions.map((session) => {
       if (session.id !== sessionId) return session;
       const title = payload.role === "user" && session.title === "New Chat"
-        ? payload.content.length > 40
-          ? `${payload.content.slice(0, 37)}...`
-          : payload.content
+        ? extractLocalOneLiner(payload.content)
         : session.title;
       return { ...session, title, updated_at: now };
     });

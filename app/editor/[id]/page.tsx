@@ -44,7 +44,7 @@ import { MusicPlayNotification } from '@/components/editor/music-play-notificati
 import { MusicRecommendationShowcase } from '@/components/editor/music-recommendation-showcase'
 import { PrometheusChat, type PrometheusChatMessage } from '@/components/editor/PrometheusChat'
 import { applyEditorActionDrafts, type EditorActionContext, type EditorActionDraft } from '@/lib/editor-actions'
-import type { AIChatContextProvider, AIChatLiveContext } from '@/hooks/use-ai-chat'
+import type { AIChatContextProvider, AIChatLiveContext, AIChatVideoContext } from '@/hooks/use-ai-chat'
 import { ChatStyleSelector } from '@/components/editor/chat-style-selector'
 import { MusicTabPanel } from '@/components/editor/music-tab-panel'
 import { MotionPropertyCanvas } from '@/components/editor/motion-property-canvas'
@@ -1645,6 +1645,52 @@ function buildProvidedTranscript(job: ProcessingJob | null) {
   const transcript = buildTimedTranscriptWords(job?.artifacts.transcript ?? [])
   return transcript.length > 0 ? transcript : null
 }
+
+function buildWorkspaceVideoContext({
+  project,
+  job,
+  durationSec,
+}: {
+  project: Project | null
+  job: ProcessingJob | null
+  durationSec: number
+}): AIChatVideoContext | null {
+  const inspection = project?.sourceProfile?.inspection
+  const hasVideo = Boolean(inspection?.fileName || inspection?.durationSec || project?.sourceAssetId)
+  if (!hasVideo) return null
+
+  const transcriptAvailable = job?.transcriptStatus === 'completed' && Boolean(job?.transcriptText?.trim())
+  const highlights = job?.artifacts.highlights ?? []
+  return {
+    video: {
+      filename: inspection?.fileName ?? null,
+      mimeType: inspection?.mimeType ?? null,
+      durationMs: inspection?.durationSec != null
+        ? Math.round(inspection.durationSec * 1000)
+        : durationSec > 0
+          ? Math.round(durationSec * 1000)
+          : null,
+      width: inspection?.width ?? null,
+      height: inspection?.height ?? null,
+      fps: inspection?.fps ?? null,
+    },
+    transcriptAvailable,
+    editorialAnalysis: highlights.length > 0
+      ? {
+          summary: highlights.map((item) => item.label).join(', '),
+          pacing: 'unknown',
+          recommendations: highlights.slice(0, 4).map((item) => ({
+            title: item.label,
+            rationale: 'Recommended moment in the current source.',
+            rangeMs: typeof item.atMs === 'number' && Number.isFinite(item.atMs) ? [item.atMs, item.atMs] : null,
+          })),
+        }
+      : null,
+    ingestionStatus: job?.status === 'completed' ? 'completed' : job?.status === 'running' ? 'processing' : null,
+    status: 'video',
+  }
+}
+
 
 function buildVideoMusicContext({
   projectTitle,
@@ -7686,6 +7732,7 @@ function OriginalEditorPage() {
     fitMode: 'fill',
     muted: true,
     frameThumbs: [],
+    videoContext: null,
   })
 
   React.useEffect(() => {
@@ -7696,8 +7743,9 @@ function OriginalEditorPage() {
       fitMode,
       muted: isPreviewMuted,
       frameThumbs: [],
+      videoContext: buildWorkspaceVideoContext({ project, job, durationSec: transportDurationSec }),
     }
-  }, [previewCurrentTimeSec, transportDurationSec, activeWorkspaceTab, fitMode, isPreviewMuted])
+  }, [previewCurrentTimeSec, transportDurationSec, activeWorkspaceTab, fitMode, isPreviewMuted, project, job])
 
   const chatContextProvider = React.useCallback<AIChatContextProvider>(() => chatLiveStateRef.current, [])
 

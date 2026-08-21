@@ -133,6 +133,24 @@ async function insertRemoteChatMessages(sessionId: string, payloads: ChatMessage
     )
     .select("id, session_id, role, content, platform, post_type, metadata, client_message_id, created_at");
 
+  if (error && isMissingClientMessageIdError(error)) {
+    const { data: legacyData, error: legacyError } = await supabase
+      .from("chat_messages")
+      .insert(
+        payloads.map((payload) => ({
+          session_id: sessionId,
+          role: payload.role,
+          content: payload.content,
+          platform: payload.platform ?? null,
+          post_type: payload.post_type ?? null,
+          metadata: payload.metadata ?? {},
+        })),
+      )
+      .select(CHAT_MESSAGE_SELECT_WITHOUT_CLIENT_ID);
+
+    if (legacyError) throw legacyError;
+    return (legacyData ?? []).map(mapChatMessageRecord);
+  }
   if (error) throw error;
   return (data ?? []) as ChatMessageRecord[];
 }

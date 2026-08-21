@@ -20,6 +20,7 @@ export type PrometheusChatStreamEvent =
       actionDrafts?: unknown[];
       carousel?: unknown[];
       suggestions?: unknown[];
+      jobs?: unknown[];
     }
   | { type: "done"; persisted: boolean }
   | { type: "error"; message: string };
@@ -85,6 +86,7 @@ function parsePrometheusChatStreamLine(
           suggestions: Array.isArray(value.suggestions)
             ? value.suggestions
             : undefined,
+          jobs: Array.isArray(value.jobs) ? value.jobs : undefined,
         },
       ];
     }

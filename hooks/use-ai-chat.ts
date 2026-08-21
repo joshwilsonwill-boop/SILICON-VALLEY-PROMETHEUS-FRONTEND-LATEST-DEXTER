@@ -87,9 +87,28 @@ export type AIChatActivity =
       state: "completed" | "needs_approval" | "failed";
     };
 
-export type AIChatLiveContext = ChatEditorContext & { frameThumbs?: ChatFrameThumb[] };
+export type AIChatLiveContext = ChatEditorContext & { frameThumbs?: ChatFrameThumb[]; videoContext?: AIChatVideoContext | null };
 
 export type AIChatContextProvider = () => AIChatLiveContext | null;
+
+export type AIChatVideoContext = {
+  video: {
+    filename: string | null;
+    mimeType: string | null;
+    durationMs: number | null;
+    width: number | null;
+    height: number | null;
+    fps: number | null;
+  } | null;
+  transcriptAvailable: boolean;
+  editorialAnalysis: {
+    summary: string;
+    pacing: string;
+    recommendations: Array<{ title: string; rationale: string; rangeMs: [number, number] | null }>;
+  } | null;
+  ingestionStatus: string | null;
+  status: "video" | "no-video" | "no-context" | "no-project" | "error" | "loading";
+};
 
 const SOCIAL_STRATEGIST_CONTEXT =
   "Act as a social media content strategist for video creators. Tailor posts, hooks, calls to action, and hashtags to the requested platform.";
@@ -115,6 +134,8 @@ export function useAIChat({
   const [streamStatus, setStreamStatus] = useState<string | null>(null);
   const [streamActivity, setStreamActivity] = useState<AIChatActivity[]>([]);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [videoContext, setVideoContext] = useState<AIChatVideoContext | null>(null);
+  const [isVideoContextLoading, setIsVideoContextLoading] = useState(false);
   const messagesRef = useRef<AIChatMessage[]>([]);
   const abortControllerRef = useRef<AbortController | null>(null);
   const currentSessionIdRef = useRef<string | null>(null);
@@ -123,6 +144,7 @@ export function useAIChat({
   const pendingAssistantMessagesRef = useRef(new Map<string, { message: AIChatMessage; sessionId: string | null }>());
   const streamedContentRef = useRef(new Map<string, string>());
   const contextProviderRef = useRef<AIChatContextProvider | undefined>(contextProvider);
+  const videoContextRef = useRef<AIChatVideoContext | null>(null);
   const failedPersistRef = useRef<{ sessionId: string; payload: ChatMessageInsert } | null>(null);
   const lastLoadAttemptRef = useRef<string | null>(null);
   const loadGenerationRef = useRef(0);
@@ -134,6 +156,24 @@ export function useAIChat({
   useEffect(() => {
     contextProviderRef.current = contextProvider;
   }, [contextProvider]);
+
+  useEffect(() => {
+    videoContextRef.current = videoContext;
+  }, [videoContext]);
+
+  useEffect(() => {
+    const providerContext = contextProviderRef.current?.();
+    const providerVideo = providerContext?.videoContext ?? null;
+    if (providerVideo) {
+      videoContextRef.current = providerVideo;
+      setVideoContext(providerVideo);
+      setIsVideoContextLoading(false);
+    }
+  }, [projectId, contextProvider]);
+
+  const hasProviderVideoContext = Boolean(
+    contextProviderRef.current?.()?.videoContext?.status === "video",
+  );
 
   const setActiveSessionId = useCallback((sessionId: string | null) => {
     currentSessionIdRef.current = sessionId;
@@ -164,6 +204,35 @@ export function useAIChat({
       creatingSessionRef.current = null;
     }
   }, [projectId, setActiveSessionId]);
+
+  useEffect(() => {
+    if (!enabled || !projectId || projectId === "__new__" || hasProviderVideoContext) return;
+    let disposed = false;
+    setIsVideoContextLoading(true);
+    const fetchVideoContext = async () => {
+      try {
+        const response = await fetch(`/api/prometheus-chat/video-context?projectId=${encodeURIComponent(projectId)}`);
+        if (!disposed) {
+          const data = await response.json();
+          setVideoContext(data);
+        }
+      } catch {
+        if (!disposed) {
+          setVideoContext({
+            video: null,
+            transcriptAvailable: false,
+            editorialAnalysis: null,
+            ingestionStatus: null,
+            status: "error",
+          });
+        }
+      } finally {
+        if (!disposed) setIsVideoContextLoading(false);
+      }
+    };
+    void fetchVideoContext();
+    return () => { disposed = true; };
+  }, [enabled, projectId, hasProviderVideoContext]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -331,7 +400,8 @@ export function useAIChat({
         } catch {
           liveContext = null;
         }
-        const { frameThumbs: liveFrameThumbs, ...liveEditorContext } = liveContext ?? {};
+        const { frameThumbs: liveFrameThumbs, videoContext: liveVideoContext, ...liveEditorContext } = liveContext ?? {};
+        const effectiveVideoContext = liveVideoContext ?? videoContextRef.current;
         const response = await fetch("/api/prometheus-chat/stream", {
           method: "POST",
           headers: {
@@ -346,6 +416,7 @@ export function useAIChat({
             sessionId,
             verbosity: "normal",
             clientMessageId: assistantMessageId,
+            videoContext: effectiveVideoContext,
             ...(liveContext
               ? { editorContext: liveEditorContext, frameThumbs: liveFrameThumbs ?? [] }
               : {}),
@@ -371,6 +442,7 @@ export function useAIChat({
         let streamActionDrafts: EditorActionDraft[] = [];
         let streamCarousel: CarouselItem[] = [];
         let streamSuggestions: string[] = [];
+        let streamJobs: ChatMediaJob[] = [];
 
         const flushReply = () => {
           renderFrame = null;
@@ -448,6 +520,7 @@ export function useAIChat({
             streamActionDrafts = parseEditorActionDrafts(event.actionDrafts);
             streamCarousel = normalizeCarouselItems(event.carousel);
             streamSuggestions = normalizeSuggestionList(event.suggestions);
+            streamJobs = normalizeChatJobs(event.jobs);
             return;
           }
           if (event.type === "done") {
@@ -480,6 +553,7 @@ export function useAIChat({
                   ...(streamActionDrafts.length ? { actionDrafts: streamActionDrafts } : {}),
                   ...(streamCarousel.length ? { carousel: streamCarousel } : {}),
                   ...(streamSuggestions.length ? { suggestions: streamSuggestions } : {}),
+                  ...(streamJobs.length ? { jobs: streamJobs } : {}),
                   ...inferPostMetadata(`${text}\n${reply}`),
                 }
               : entry,
@@ -500,6 +574,7 @@ export function useAIChat({
               ...(streamActionDrafts.length ? { actionDrafts: streamActionDrafts } : {}),
               ...(streamCarousel.length ? { carousel: streamCarousel } : {}),
               ...(streamSuggestions.length ? { suggestions: streamSuggestions } : {}),
+              ...(streamJobs.length ? { jobs: streamJobs } : {}),
             },
           };
           try {
@@ -729,6 +804,7 @@ export function useAIChat({
     isAwaitingResponse,
     isHistoryLoading,
     isSending,
+    isVideoContextLoading,
     messages,
     removeSession,
     renameSession,
@@ -743,6 +819,7 @@ export function useAIChat({
     sessions,
     streamActivity,
     streamStatus,
+    videoContext,
   };
 }
 

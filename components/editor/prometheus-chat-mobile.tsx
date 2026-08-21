@@ -154,6 +154,31 @@ export function PrometheusChatMobile({
               </button>
             </div>
           ) : null}
+          {chat.videoContext ? (
+            <div className="mb-4 flex min-w-0 items-center gap-2 text-[11px] uppercase tracking-[0.14em] text-white/30">
+              {chat.isVideoContextLoading ? (
+                <span className="inline-flex items-center gap-2">
+                  <span className="size-1.5 animate-pulse rounded-full bg-white/40" />
+                  Retrieving video metadata
+                </span>
+              ) : chat.videoContext.video ? (
+                <span className="inline-flex items-center gap-2 truncate">
+                  <span className="size-1.5 shrink-0 rounded-full bg-[#7ff2d4]/80" />
+                  <span className="truncate">
+                    {chat.videoContext.video.filename || 'Video loaded'}
+                    {chat.videoContext.video.durationMs
+                      ? ` · ${Math.floor(chat.videoContext.video.durationMs / 60000)}:${String(Math.floor((chat.videoContext.video.durationMs % 60000) / 1000)).padStart(2, '0')}`
+                      : ''}
+                  </span>
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-2">
+                  <span className="size-1.5 rounded-full bg-white/20" />
+                  No source video yet
+                </span>
+              )}
+            </div>
+          ) : null}
           {chat.messages.length === 0 && !chat.isAwaitingResponse ? (
             <div className="flex min-h-full items-center justify-center px-4 pb-16 text-center">
               <ElegistChatGreeting

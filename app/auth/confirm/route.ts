@@ -2,6 +2,7 @@ import { type EmailOtpType } from '@supabase/supabase-js'
 import { type NextRequest, NextResponse } from 'next/server'
 
 import { getSiteOrigin, normalizeNextPath } from '@/lib/auth/redirect'
+import { ensureProfile } from '@/lib/supabase/profile'
 import { createClient } from '@/lib/supabase/server'
 import { normalizeUxError } from '@/lib/ux/errors'
 
@@ -61,9 +62,17 @@ export async function GET(request: NextRequest) {
     if (code) {
       const { error } = await supabase.auth.exchangeCodeForSession(code)
       if (!error) {
+        // First moment the user's session exists server-side: create their
+        // profile row before the redirect lands in the workspace.
+        await ensureProfile(supabase)
         return NextResponse.redirect(redirectTo)
       }
 
+      console.error('[auth/confirm] code exchange failed', {
+        rawName: error.name,
+        rawMessage: error.message,
+        rawStatus: error.status ?? null,
+      })
       return NextResponse.redirect(buildRedirect(request, '/login', normalizeUxError(error, 'oauth_callback'), nextPath, email ?? undefined))
     }
 
@@ -78,8 +87,15 @@ export async function GET(request: NextRequest) {
           return NextResponse.redirect(buildRedirect(request, '/reset-password', undefined, nextPath, email ?? undefined))
         }
 
+        await ensureProfile(supabase)
         return NextResponse.redirect(redirectTo)
       }
+
+      console.error('[auth/confirm] otp verification failed', {
+        rawName: error.name,
+        rawMessage: error.message,
+        rawStatus: error.status ?? null,
+      })
 
       const failurePath = type === 'recovery' ? '/forgot-password' : '/verify'
       return NextResponse.redirect(buildRedirect(request, failurePath, normalizeUxError(error, 'verification'), nextPath, email ?? undefined))

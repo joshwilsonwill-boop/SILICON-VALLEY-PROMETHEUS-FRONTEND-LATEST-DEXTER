@@ -28,6 +28,11 @@ function deriveSignupName(name: string, email: string) {
   return emailHandle || 'Prometheus User'
 }
 
+// Carries the server's already-normalized message verbatim; re-normalizing it
+// client-side can only distort it (e.g. the captcha text becomes the generic
+// signup fallback).
+class ServerSignupError extends Error {}
+
 type SignupFormProps = {
   compact?: boolean
 }
@@ -105,7 +110,7 @@ export function SignupForm({ compact = false }: SignupFormProps) {
                 requiresVerification?: boolean
                 error?: string
               }
-              if (!res.ok) throw new Error(data.error || 'Signup failed')
+              if (!res.ok) throw new ServerSignupError(data.error || 'Signup failed')
               console.log('signup', { email })
               markOnboardingPending(email)
               if (data.requiresVerification) {
@@ -122,7 +127,10 @@ export function SignupForm({ compact = false }: SignupFormProps) {
 
               window.location.assign(nextPath)
             } catch (err) {
-              const message = normalizeUxError(err, 'signup')
+              const message =
+                err instanceof ServerSignupError && err.message.trim()
+                  ? err.message
+                  : normalizeUxError(err, 'signup')
               setServerError(message)
               toast.error('Account setup paused', { description: message })
               turnstileRef.current?.reset()

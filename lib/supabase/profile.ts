@@ -1,5 +1,7 @@
 import 'server-only'
 
+import type { SupabaseClient } from '@supabase/supabase-js'
+
 import { createClient } from '@/lib/supabase/server'
 
 export type ServerProfile = {
@@ -15,32 +17,46 @@ function metadataValue(metadata: Record<string, unknown>, key: string) {
   return typeof value === 'string' && value.trim() ? value.trim() : null
 }
 
-export async function getProfile(): Promise<ServerProfile | null> {
-  const supabase = await createClient()
+/**
+ * Idempotent profile bootstrap. Runs with the signed-in user's session, so
+ * RLS must allow `insert ... with check (auth.uid() = id)` on public.profiles.
+ * Never throws: a rejected insert is logged (with its Postgres code) and the
+ * caller treats the profile as missing rather than failing the whole request.
+ */
+export async function ensureProfile(supabase: SupabaseClient): Promise<ServerProfile | null> {
   const {
     data: { user },
+    error: userError,
   } = await supabase.auth.getUser()
 
-  if (!user) return null
+  if (userError || !user) return null
 
-  const { data, error } = await supabase
+  const { data: existing, error: selectError } = await supabase
     .from('profiles')
     .select('id, username, display_name, avatar_url, email')
     .eq('id', user.id)
     .maybeSingle()
 
-  if (error) {
-    console.error('Failed to fetch profile:', error)
+  if (selectError) {
+    console.error('[profile-bootstrap] select failed', {
+      userId: user.id,
+      code: selectError.code ?? null,
+      message: selectError.message,
+      details: selectError.details ?? null,
+      hint: selectError.hint ?? null,
+    })
     return null
   }
 
-  if (data) return data as ServerProfile
+  if (existing) return existing as ServerProfile
 
   const metadata = user.user_metadata ?? {}
-  const fallbackName = metadataValue(metadata, 'display_name')
+  const fallbackName = metadataValue(metadata, 'full_name')
+    ?? metadataValue(metadata, 'display_name')
     ?? metadataValue(metadata, 'username')
     ?? user.email?.split('@')[0]
     ?? 'user'
+
   const { data: created, error: createError } = await supabase
     .from('profiles')
     .upsert(
@@ -57,9 +73,22 @@ export async function getProfile(): Promise<ServerProfile | null> {
     .single()
 
   if (createError) {
-    console.error('Failed to create profile:', createError)
+    // code 42501 = row-level security rejection: the anon/session role cannot
+    // insert into profiles. Fix lives in the Supabase SQL policy, not here.
+    console.error('[profile-bootstrap] insert rejected', {
+      userId: user.id,
+      code: createError.code ?? null,
+      message: createError.message,
+      details: createError.details ?? null,
+      hint: createError.hint ?? null,
+    })
     return null
   }
 
   return created as ServerProfile
+}
+
+export async function getProfile(): Promise<ServerProfile | null> {
+  const supabase = await createClient()
+  return ensureProfile(supabase)
 }
