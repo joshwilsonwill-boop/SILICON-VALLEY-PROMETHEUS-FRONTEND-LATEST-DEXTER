@@ -26,6 +26,7 @@ export async function POST(request: Request) {
         "Content-Type": "application/octet-stream",
       },
       body: audioBuffer,
+      signal: AbortSignal.timeout(20_000),
     });
 
     if (!uploadResponse.ok) {
@@ -46,9 +47,10 @@ export async function POST(request: Request) {
         speaker_labels: false,
         punctuate: true,
         format_text: true,
-        speech_model: "universal_2",
+        speech_model: "universal-3-pro",
         language_detection: true,
       }),
+      signal: AbortSignal.timeout(20_000),
     });
 
     if (!transcriptResponse.ok) {
@@ -63,6 +65,7 @@ export async function POST(request: Request) {
       await new Promise((resolve) => setTimeout(resolve, 1000));
       const pollResponse = await fetch(`${ASSEMBLYAI_API_URL}/transcript/${id}`, {
         headers: { "Authorization": apiKey },
+        signal: AbortSignal.timeout(10_000),
       });
       if (!pollResponse.ok) {
         return Response.json({ error: "Polling failed." }, { status: 502 });

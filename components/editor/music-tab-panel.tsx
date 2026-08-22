@@ -1378,7 +1378,7 @@ export function MusicTabPanel({
       animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
       exit={reduceMotion ? undefined : { opacity: 0, y: 10 }}
       transition={{ duration: reduceMotion ? 0 : 0.3, ease: chamberEase }}
-      className="premium-ambient-panel premium-vignette-surface editorial-light-effect relative flex min-h-[38rem] w-full max-w-[1140px] flex-1 self-center overflow-hidden rounded-[20px] border border-white/8 bg-black px-4 pb-28 pt-4 shadow-[0_32px_90px_-58px_rgba(0,0,0,0.98)] sm:px-5 sm:pt-5 lg:min-h-[42rem]"
+      className="premium-ambient-panel premium-vignette-surface editorial-light-effect relative flex min-h-0 w-full max-w-[1140px] flex-1 self-center overflow-hidden rounded-[20px] border border-white/8 bg-black px-4 pb-28 pt-4 shadow-[0_32px_90px_-58px_rgba(0,0,0,0.98)] sm:px-5 sm:pt-5"
     >
         <style>{`
           @keyframes music-eq {
@@ -1388,7 +1388,7 @@ export function MusicTabPanel({
           ${musicCatalogScrollbarStyles}
         `}</style>
       <LuxuryVignette tone="music" />
-      <div className="relative z-10 grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(18rem,1.04fr)_minmax(21rem,0.9fr)] xl:grid-cols-[minmax(20rem,1.08fr)_minmax(22rem,0.92fr)]">
+      <div className="relative z-10 grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(17rem,0.66fr)_minmax(21rem,1fr)] xl:grid-cols-[minmax(19rem,0.7fr)_minmax(22rem,1fr)]">
         <div className="flex min-h-0 min-w-0">
           {selectedSong ? (
             <div className="music-hero-shell music-disc-safe-stage relative flex min-h-0 flex-1 flex-col rounded-[18px] border border-white/8 bg-black p-4 shadow-[0_24px_54px_-44px_rgba(0,0,0,0.98)] sm:p-5">

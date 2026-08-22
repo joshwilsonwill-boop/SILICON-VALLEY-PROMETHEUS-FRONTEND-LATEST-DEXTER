@@ -42,10 +42,15 @@ function identifier(value: string, label: string) {
   return encodeURIComponent(value)
 }
 
+const DEFAULT_CLIENT_TIMEOUT_MS = 30_000
+
 export function createModalCoreClient(fetchImpl: FetchLike = fetch) {
   const jsonRequest = async <T>(path: string, init?: RequestInit) => {
+    const timeoutSignal = AbortSignal.timeout(DEFAULT_CLIENT_TIMEOUT_MS)
+    const signal = init?.signal ? AbortSignal.any([init.signal, timeoutSignal]) : timeoutSignal
     const response = await fetchImpl(`${proxyRoot}${path}`, {
       ...init,
+      signal,
       credentials: 'same-origin',
       cache: 'no-store',
       headers: init?.body ? {'Content-Type': 'application/json', ...init.headers} : init?.headers,

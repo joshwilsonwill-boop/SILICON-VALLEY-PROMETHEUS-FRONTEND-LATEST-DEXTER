@@ -203,7 +203,7 @@ export async function POST(request: Request) {
                   const streamJobs: ChatMediaJob[] = [];
                   for (const toolCall of requested) {
                     if (toolCall.name === "submit_editor_job") {
-                      const submitted = await submitEditorJob(toolCall, { message, projectId });
+                      const submitted = await submitEditorJob(toolCall, { message, projectId, sessionId });
                       if (submitted) {
                         toolCalls.push(submitted.toolCall);
                         if (submitted.job) streamJobs.push(submitted.job);
@@ -360,11 +360,11 @@ export async function POST(request: Request) {
           send({ type: "delta", content: reply });
         }
 
-        const persisted = await persistAssistantReply(sessionId, reply, clientMessageId);
+        const streamJobs = collectStreamJobs(toolCalls);
         const actionDrafts = collectActionDrafts(toolCalls);
         const frames = toolCalls.length ? toFramePayload(frameReferences, toolCalls) : [];
         const editorialRecommendations = projectContext?.editorialAnalysis?.recommendations ?? [];
-        const streamJobs = collectStreamJobs(toolCalls);
+        const persisted = await persistAssistantReply(sessionId, reply, clientMessageId, streamJobs);
         if (knowledge.length || toolCalls.length || actionDrafts.length || frames.length || streamJobs.length || projectContext?.editorialAnalysis || projectContext?.transcript?.text) {
           send({
             type: "metadata",
@@ -631,6 +631,7 @@ async function persistAssistantReply(
   sessionId: string,
   content: string,
   clientMessageId: string,
+  jobs?: ChatMediaJob[],
 ) {
   if (!sessionId || !content.trim()) return false;
 
@@ -645,7 +646,9 @@ async function persistAssistantReply(
       session_id: sessionId,
       role: "assistant",
       content,
-      metadata: { transport: "stream" },
+      metadata: jobs && jobs.length
+        ? { transport: "stream", jobs }
+        : { transport: "stream" },
     };
 
     const selectColumns = "id, session_id, role, content, platform, post_type, metadata, created_at";
@@ -678,7 +681,7 @@ type StreamChatMediaJob = ChatMediaJob;
 
 async function submitEditorJob(
   toolCall: { id: string; name: string; arguments: unknown },
-  context: { message: string; projectId: string },
+  context: { message: string; projectId: string; sessionId?: string },
 ) {
   const args = toolCall.arguments && typeof toolCall.arguments === "object"
     ? toolCall.arguments as Record<string, unknown>
@@ -758,7 +761,9 @@ async function submitEditorJob(
         type,
         status: "pending",
         progress: 0,
-        result_metadata: description ? { label, description } : { label },
+        result_metadata: description
+          ? { label, description, sessionId: context.sessionId ?? null }
+          : { label, sessionId: context.sessionId ?? null },
       })
       .select("id, status, progress")
       .single();

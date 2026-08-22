@@ -73,8 +73,47 @@ const VOICES = [
   { id: 'sol', label: 'Sol', tone: 'Bright' },
 ]
 
-function cleanEditableValue(event: React.FormEvent<HTMLElement>, fallback: string) {
-  return event.currentTarget.textContent?.replace(/\s+/g, ' ').trim() || fallback
+function cleanEditableValue(text: string, fallback: string) {
+  return text.replace(/\s+/g, ' ').trim() || fallback
+}
+
+function EditableText({
+  as: Tag = 'span',
+  value,
+  onCommit,
+  className,
+  ariaLabel,
+}: {
+  as?: React.ElementType
+  value: string
+  onCommit: (next: string) => void
+  className?: string
+  ariaLabel?: string
+}) {
+  const ref = React.useRef<HTMLElement | null>(null)
+
+  React.useEffect(() => {
+    const node = ref.current
+    if (node && node.textContent !== value) node.textContent = value
+  }, [value])
+
+  return (
+    <Tag
+      ref={ref}
+      contentEditable
+      suppressContentEditableWarning
+      role="textbox"
+      aria-label={ariaLabel}
+      onBlur={() => onCommit(cleanEditableValue(ref.current?.textContent ?? '', value))}
+      onKeyDown={(event: React.KeyboardEvent<HTMLElement>) => {
+        if (event.key === 'Enter') {
+          event.preventDefault()
+          event.currentTarget.blur()
+        }
+      }}
+      className={className}
+    />
+  )
 }
 
 function BrandVoicePanel({ onClose, reduceMotion }: { onClose: () => void; reduceMotion: boolean }) {
@@ -280,34 +319,26 @@ export function BrandCanvas() {
               <div className="flex items-start justify-between border-b border-[#5f3df2]/22 pb-4">
                 <div className="min-w-0">
                   <span className="font-mono text-[9px] tracking-[0.12em] text-[#241448]/48">{card.index}</span>
-                  <h3
-                    contentEditable
-                    suppressContentEditableWarning
-                    role="textbox"
-                    aria-label={`Edit ${card.title} card title`}
-                    onBlur={(event) => updateCard(card.id, (current) => ({ ...current, title: cleanEditableValue(event, current.title) }))}
-                    onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); event.currentTarget.blur() } }}
+                  <EditableText
+                    as="h3"
+                    value={card.title}
+                    onCommit={(next) => updateCard(card.id, (current) => ({ ...current, title: next }))}
+                    ariaLabel={`Edit ${card.title} card title`}
                     className="mt-1 cursor-text text-xl font-semibold tracking-[-0.07em] outline-none transition focus:bg-[#5f3df2]/[0.07] focus:text-[#3e22a6] sm:text-2xl"
-                  >
-                    {card.title}
-                  </h3>
+                  />
                 </div>
                 <span className="text-2xl leading-none sm:text-3xl" aria-hidden="true">{card.accent}</span>
               </div>
               <ul className="mt-4 space-y-2.5 text-[10px] font-medium leading-tight text-[#21183b]/76 sm:mt-5 sm:text-[11px]">
                 {card.lines.map((line, lineIndex) => (
-                  <li
+                  <EditableText
+                    as="li"
                     key={lineIndex}
-                    contentEditable
-                    suppressContentEditableWarning
-                    role="textbox"
-                    aria-label={`Edit ${card.title} item ${lineIndex + 1}`}
-                    onBlur={(event) => updateCard(card.id, (current) => ({ ...current, lines: current.lines.map((item, itemIndex) => itemIndex === lineIndex ? cleanEditableValue(event, item) : item) }))}
-                    onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); event.currentTarget.blur() } }}
+                    value={line}
+                    onCommit={(next) => updateCard(card.id, (current) => ({ ...current, lines: current.lines.map((item, itemIndex) => itemIndex === lineIndex ? next : item) }))}
+                    ariaLabel={`Edit ${card.title} item ${lineIndex + 1}`}
                     className="cursor-text border-b border-dotted border-[#5f3df2]/32 pb-1.5 outline-none transition focus:bg-[#5f3df2]/[0.07] focus:text-[#3e22a6]"
-                  >
-                    {line}
-                  </li>
+                  />
                 ))}
               </ul>
               <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between sm:bottom-5 sm:left-5 sm:right-5">

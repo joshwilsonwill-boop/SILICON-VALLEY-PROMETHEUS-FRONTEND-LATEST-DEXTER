@@ -6,6 +6,7 @@ import { ProjectService } from '@/lib/projects/service'
 import { getPresignedGetUrl } from '@/lib/r2/presigned-url'
 import { r2Client } from '@/lib/r2/client'
 import { dispatchModalSourceAnalysis } from '@/lib/server/modal-source-analysis'
+import { startSourceAssetTranscription } from '@/lib/server/source-transcript'
 import { createClient } from '@/lib/supabase/server'
 
 export async function GET(
@@ -115,7 +116,22 @@ export async function POST(
       }
     }
 
-    return NextResponse.json({...committed, analysisDispatch})
+    // Kick off AssemblyAI transcription immediately for videos of sensible
+    // length — this must not wait for the chat system or the editor. Best-effort:
+    // the asset is already durable, so a later /transcript call can start it.
+    let transcriptDispatch: {status: string; transcriptJobId?: string} | null = null
+    if (committed?.asset?.id && String(committed.asset.mime_type).startsWith('video/')) {
+      try {
+        transcriptDispatch = await startSourceAssetTranscription({
+          assetId: committed.asset.id,
+          supabase,
+        })
+      } catch (error) {
+        console.error('[api/projects/[id]/assets] transcript dispatch failed:', error)
+      }
+    }
+
+    return NextResponse.json({...committed, analysisDispatch, transcriptDispatch})
   } catch (err) {
     console.error('[api/projects/[id]/assets] POST error:', err)
     return NextResponse.json({

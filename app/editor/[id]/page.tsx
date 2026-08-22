@@ -158,6 +158,7 @@ import type {
   ViralClipTargetPlatform,
   CinematicAssetRegistry,
   ProjectExport,
+  TranscriptSegment,
 } from '@/lib/types'
 import { EditorProvider, useEditor } from "@/components/editor/EditorContext";
 import { CommandBubble } from "@/components/editor/CommandBubble";
@@ -6742,6 +6743,50 @@ function OriginalEditorPage() {
       }
     }
   }, [project?.sourceAssetId, projectId])
+
+  // Fetch the AssemblyAI transcript from R2 once it's available, separate from
+  // the MAUL source-analysis polling. The first completed response populates
+  // the motion section regardless of which backend transcribes.
+  React.useEffect(() => {
+    if (!project?.sourceAssetId) return
+    let active = true
+    let intervalId: number | null = null
+    let completed = false
+
+    const pollTranscript = async () => {
+      if (completed) return
+      try {
+        const response = await fetch(`/api/assets/${project!.sourceAssetId}/transcript`, {cache: 'no-store'})
+        if (!response.ok) return
+        const body = (await response.json()) as {status: string; segments?: TranscriptSegment[]}
+        if (!active) return
+        if (body.status === 'completed' && body.segments) {
+          completed = true
+          if (intervalId !== null) window.clearInterval(intervalId)
+          intervalId = null
+          const segments = body.segments
+          setJob((current) => {
+            if (!current) return current
+            return {
+              ...current,
+              artifacts: {...current.artifacts, transcript: segments},
+              transcriptStatus: 'completed',
+              transcriptText: segments.map((s) => s.text).join(' '),
+            }
+          })
+        }
+      } catch {
+        // Retry on next tick
+      }
+    }
+
+    void pollTranscript()
+    intervalId = window.setInterval(() => void pollTranscript(), 3_000)
+    return () => {
+      active = false
+      if (intervalId !== null) window.clearInterval(intervalId)
+    }
+  }, [project?.sourceAssetId])
 
   React.useEffect(() => {
     let active = true

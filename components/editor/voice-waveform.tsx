@@ -56,14 +56,21 @@ export function VoiceWaveform({
       const levels = levelsRef.current;
       const target = level ?? 0;
       const center = Math.floor(BAR_COUNT / 2);
+      const now = performance.now();
+      // Idle = mic is live but nobody is speaking yet. Keep a gentle base
+      // "breathing" pulse so the user can see the indicator is working.
+      const isIdle = level === null || target < 0.05;
 
       for (let index = 0; index < BAR_COUNT; index += 1) {
         const distance = Math.abs(index - center);
         const falloff = 1 - Math.min(1, distance / (BAR_COUNT / 2));
         const envelope = target * falloff;
-        const noise = Math.abs(Math.sin(index * 0.7 + performance.now() * 0.004)) * 0.08;
+        const noise = Math.abs(Math.sin(index * 0.7 + now * 0.004)) * 0.08;
         const previous = levels[index];
-        const next = level === null ? ease(previous, 0.03) : ease(previous, Math.min(1, envelope + noise * (target > 0.06 ? 1 : 0.3)));
+        const desired = isIdle
+          ? 0.12 + Math.abs(Math.sin(now * 0.0016 + index * 0.55)) * 0.07 * falloff
+          : Math.min(1, envelope + noise * (target > 0.06 ? 1 : 0.3));
+        const next = ease(previous, desired);
         levels[index] = next;
 
         const bar = barRefs.current[index];
@@ -86,7 +93,8 @@ export function VoiceWaveform({
   }, [inputRef, onStop]);
 
   return (
-    <div className="flex h-12 w-full items-center gap-3">
+    <div className="flex h-12 w-full items-center">
+      <div aria-hidden="true" className="w-24 shrink-0" />
       <div className="flex h-full min-w-0 flex-1 items-center justify-center gap-[3px]" aria-hidden="true">
         {Array.from({ length: BAR_COUNT }, (_, index) => (
           <span
@@ -99,15 +107,17 @@ export function VoiceWaveform({
           />
         ))}
       </div>
-      <span className="shrink-0 font-mono text-xs tabular-nums text-white/40">{formatElapsed(elapsed)}</span>
-      <button
-        type="button"
-        onClick={handleStop}
-        aria-label="Stop recording"
-        className="grid size-8 shrink-0 place-items-center rounded-full border border-white/15 bg-white/[0.04] text-white/80 transition-colors hover:border-white/30 hover:bg-white/[0.09] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
-      >
-        <Square className="size-3.5 fill-current" />
-      </button>
+      <div className="flex w-24 shrink-0 items-center justify-end gap-3">
+        <span className="shrink-0 font-mono text-xs tabular-nums text-white/40">{formatElapsed(elapsed)}</span>
+        <button
+          type="button"
+          onClick={handleStop}
+          aria-label="Stop recording"
+          className="grid size-8 shrink-0 place-items-center rounded-full border border-white/15 bg-white/[0.04] text-white/80 transition-colors hover:border-white/30 hover:bg-white/[0.09] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+        >
+          <Square className="size-3.5 fill-current" />
+        </button>
+      </div>
     </div>
   );
 }

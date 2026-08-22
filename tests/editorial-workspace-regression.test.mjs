@@ -26,6 +26,7 @@ assert.doesNotMatch(editorLoading, /Preparing the editor workspace/)
 
 const uploadInterface = read('components/video-upload-interface.tsx')
 assert.doesNotMatch(uploadInterface, /CinematicLogoLoader/)
-assert.match(uploadInterface, /<InlineLoadingAnimation size=\{28\} label="Preparing your project"/)
+assert.doesNotMatch(uploadInterface, /<InlineLoadingAnimation size=\{28\} label="Preparing your project"/)
+assert.match(uploadInterface, /role="status" aria-label="Preparing your project"/)
 
 console.log('editorial workspace regression checks passed')

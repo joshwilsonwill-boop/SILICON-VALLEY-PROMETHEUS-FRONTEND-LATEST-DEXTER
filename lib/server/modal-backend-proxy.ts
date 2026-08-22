@@ -120,6 +120,18 @@ const forwardedResponseHeaders = [
   'retry-after',
 ] as const
 
+/**
+ * Upstream latency guard. The Modal "mini runs" are cold-started on demand, so
+ * the first call can take longer than subsequent ones — but a hung worker should
+ * never pin a Next.js route open forever. Media downloads get a longer budget.
+ */
+const MODAL_PROXY_TIMEOUT_MS = 30_000
+const MODAL_PROXY_MEDIA_TIMEOUT_MS = 120_000
+
+function modalProxyTimeoutFor(pathSegments: string[]) {
+  return pathSegments[0] === 'media' ? MODAL_PROXY_MEDIA_TIMEOUT_MS : MODAL_PROXY_TIMEOUT_MS
+}
+
 export async function proxyModalBackendRequest({
   request,
   pathSegments,
@@ -132,7 +144,10 @@ export async function proxyModalBackendRequest({
   fetchImpl?: typeof fetch
 }) {
   const outbound = await buildModalBackendRequest({request, pathSegments, env})
-  const upstream = await fetchImpl(outbound.url, outbound.init)
+  const upstream = await fetchImpl(outbound.url, {
+    ...outbound.init,
+    signal: AbortSignal.timeout(modalProxyTimeoutFor(pathSegments)),
+  })
   const headers = new Headers()
   for (const name of forwardedResponseHeaders) {
     const value = upstream.headers.get(name)

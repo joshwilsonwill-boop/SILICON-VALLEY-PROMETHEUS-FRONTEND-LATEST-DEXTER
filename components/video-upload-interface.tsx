@@ -3041,7 +3041,6 @@ export function VideoUploadInterface() {
                     >
                         {(uploadStatus === 'presigning' || uploadStatus === 'uploading' || uploadStatus === 'retrying' || uploadStatus === 'paused') ? (
                             <div role="status" aria-label="Preparing your project" className="flex h-full flex-col items-center justify-center px-6 text-center">
-                                <InlineLoadingAnimation size={28} label="Preparing your project" />
                                 <div className="pointer-events-auto mt-5 flex flex-col items-center gap-4">
                                     <div className="text-center">
                                         <div className="text-xs uppercase tracking-[0.2em] text-white/56">{uploadPartLabel ?? 'Preparing your project'}</div>
