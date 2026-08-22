@@ -3,7 +3,6 @@
 import { motion, useReducedMotion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 
-import { splitChatSessionTitle } from "@/lib/prometheus-assistant/chat-history";
 import type { ChatSession } from "@/lib/supabase/chat-sessions";
 import { cn } from "@/lib/utils";
 
@@ -30,7 +29,6 @@ export function PrometheusChatHistoryRow({
   const [editing, setEditing] = useState(false);
   const [draftTitle, setDraftTitle] = useState(session.title);
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const titleWords = splitChatSessionTitle(session.title);
 
   useEffect(() => {
     if (editing) inputRef.current?.select();
@@ -98,26 +96,10 @@ export function PrometheusChatHistoryRow({
           <span className="sr-only">{session.title}</span>
           <span
             className="block truncate text-sm font-medium text-white"
+            title={session.title}
             aria-hidden="true"
           >
-            {titleWords.map((word, wordIndex) => (
-              <motion.span
-                key={`${word}-${wordIndex}`}
-                className="inline-block"
-                initial={reduceMotion ? false : { opacity: 0, y: "0.4em" }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{
-                  duration: reduceMotion ? 0 : 0.2,
-                  delay: reduceMotion
-                    ? 0
-                    : Math.min(index * 0.045 + wordIndex * 0.022, 0.42),
-                  ease: [0.16, 1, 0.3, 1],
-                }}
-              >
-                {word}
-                {wordIndex < titleWords.length - 1 ? "\u00a0" : ""}
-              </motion.span>
-            ))}
+            {session.title}
           </span>
           <span className="mt-1 block text-xs text-white/38">
             {formatSessionTimestamp(session.updated_at)}

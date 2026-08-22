@@ -57,6 +57,9 @@ export function RootClientEffects() {
   const pathname = usePathname()
   const isAuthRoute = AUTH_ROUTE_REGEX.test(pathname)
   const supportsOnboarding = pathname.startsWith('/studio') || pathname.startsWith('/editor/')
+  // The editor chamber runs its own heavy rAF/pointer workloads; skip the
+  // global cursor + luxury-motion rAF loops there to keep the page responsive.
+  const isEditorRoute = pathname.startsWith('/editor/')
   const enhancementsReady = useDeferredEnhancementsReady()
   useActivityDetector()
   usePasteDetector()
@@ -66,8 +69,8 @@ export function RootClientEffects() {
       <ThemeInjector />
       {enhancementsReady && (
         <>
-          <LuxuryMotionController />
-          <CustomCursor />
+          {isEditorRoute ? null : <LuxuryMotionController />}
+          {isEditorRoute ? null : <CustomCursor />}
           <UserPreferencesHydrator />
           {isAuthRoute ? null : <CinematicClickRipple />}
           {isAuthRoute ? null : <GlobalHelpLauncher />}

@@ -317,10 +317,24 @@ export function FloatingChatComposer({
   React.useEffect(() => {
     if (!isOpen) return
 
+    // Throttle eye-target state updates so a full composer re-render happens at
+    // most ~20x/sec instead of once per animation frame.
+    let lastEyeUpdateAt = 0
+    const EYE_UPDATE_INTERVAL_MS = 50
+
     const handleMouseMove = (event: MouseEvent) => {
       if (mouseMoveFrameRef.current !== null) {
         window.cancelAnimationFrame(mouseMoveFrameRef.current)
       }
+
+      const now = performance.now()
+      if (now - lastEyeUpdateAt < EYE_UPDATE_INTERVAL_MS) {
+        mouseMoveFrameRef.current = window.requestAnimationFrame(() => {
+          mouseMoveFrameRef.current = null
+        })
+        return
+      }
+      lastEyeUpdateAt = now
 
       mouseMoveFrameRef.current = window.requestAnimationFrame(() => {
         eyeSourceRef.current = 'pointer'

@@ -150,11 +150,11 @@ export function CinematicOnboarding({ pathname }: { pathname: string }) {
             </DialogPrimitive.Overlay>
             <DialogPrimitive.Content asChild forceMount onOpenAutoFocus={(event) => event.preventDefault()}>
               <motion.div
-                initial={reducedMotion ? false : { opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={reducedMotion ? undefined : { opacity: 0, y: 10 }}
+                initial={reducedMotion ? false : { opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={reducedMotion ? undefined : { opacity: 0 }}
                 transition={{ duration: reducedMotion ? 0 : 0.48, ease: [0.16, 1, 0.3, 1] }}
-                className="fixed inset-4 z-[141] mx-auto flex max-h-[48rem] w-[min(62rem,calc(100vw-2rem))] flex-col overflow-hidden border border-white/[0.16] bg-[#080808] text-white shadow-[0_40px_140px_-40px_rgba(0,0,0,1)] outline-none sm:inset-y-1/2 sm:-translate-y-1/2"
+                className="fixed inset-4 z-[141] mx-auto flex max-h-[48rem] w-[min(62rem,calc(100vw-2rem))] flex-col overflow-hidden border border-white/[0.16] bg-[#080808] text-white shadow-[0_40px_140px_-40px_rgba(0,0,0,1)] outline-none sm:left-1/2 sm:right-auto sm:top-1/2 sm:bottom-auto sm:w-[min(62rem,calc(100vw-2rem))] sm:-translate-x-1/2 sm:-translate-y-1/2"
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="cinematic-onboarding-title"
