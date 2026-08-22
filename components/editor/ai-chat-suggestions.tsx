@@ -145,7 +145,7 @@ export function ChatSuggestions({
       role="group"
       aria-label={ariaLabel}
       className={cn(
-        "grid gap-2",
+        "relative z-10 grid gap-2",
         layout === "responsive" && "grid-cols-2 md:grid-cols-4",
         layout === "grid" && "grid-cols-2",
         layout === "row" && "grid-cols-4",
@@ -157,8 +157,8 @@ export function ChatSuggestions({
         hidden: {},
         visible: {
           transition: {
-            staggerChildren: 0.07,
-            delayChildren: 0.08,
+            staggerChildren: 0.065,
+            delayChildren: 0.045,
           },
         },
       }}
@@ -173,29 +173,27 @@ export function ChatSuggestions({
               ? {}
               : {
                   opacity: 0,
-                  y: 26,
-                  scale: 0.92,
-                  filter: "blur(6px)",
+                  y: 24,
+                  scale: 0.96,
+                  filter: "blur(10px)",
                 },
             visible: {
-              opacity: [0, 0.78, 1],
-              y: [54, 30, 0],
+              opacity: [0, 0.72, 1],
+              y: [30, 8, 0],
               scale: 1,
-              filter: ["blur(14px)", "blur(7px)", "blur(0px)"],
+              filter: ["blur(12px)", "blur(4px)", "blur(0px)"],
             },
           }}
           transition={{
-            y: { duration: 0.62, times: [0, 0.52, 1], ease: [0.16, 1, 0.3, 1] },
-            opacity: { duration: 0.55, times: [0, 0.48, 1], ease: [0.16, 1, 0.3, 1] },
-            scale: { type: "spring", stiffness: 320, damping: 24, mass: 0.8 },
-            filter: { duration: 0.58, times: [0, 0.55, 1], ease: [0.16, 1, 0.3, 1] },
+            y: { duration: 0.5, times: [0, 0.5, 1], ease: [0.22, 1, 0.36, 1] },
+            opacity: { duration: 0.46, times: [0, 0.48, 1], ease: [0.22, 1, 0.36, 1] },
+            scale: { duration: 0.48, ease: [0.22, 1, 0.36, 1] },
+            filter: { duration: 0.5, times: [0, 0.5, 1], ease: [0.22, 1, 0.36, 1] },
           }}
-          whileHover={prefersReducedMotion ? undefined : { y: -2, scale: 1.02 }}
-          whileTap={prefersReducedMotion ? undefined : { scale: 0.97, transition: { duration: 0.12 } }}
           className={cn(
-            "group relative flex min-h-11 w-full items-center justify-center overflow-hidden rounded-full border border-white/[0.14] bg-white/[0.045] px-4 py-2.5 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_8px_24px_rgba(0,0,0,0.12)]",
+            "group relative flex min-h-11 w-full items-center justify-center overflow-hidden rounded-full border border-white/[0.14] bg-white/[0.055] px-4 py-2.5 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_8px_24px_rgba(0,0,0,0.14)] backdrop-blur-md",
             "text-[13px] font-medium leading-[1.25] text-white/68 transition-[background-color,border-color,color,box-shadow] duration-500",
-            "hover:border-white/30 hover:bg-white/[0.09] hover:text-white/95 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.16),0_12px_32px_rgba(0,0,0,0.2)]",
+            "hover:border-white/30 hover:bg-white/[0.1] hover:text-white/95 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.17),0_12px_32px_rgba(0,0,0,0.22)]",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30",
           )}
         >

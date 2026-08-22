@@ -14,6 +14,8 @@ import { MusicPlayer } from '@/components/ui/music-player'
 import { Button } from '@/components/ui/button'
 import { chamberEase, chamberSpring } from '@/lib/chamber-motion'
 import { FALLBACK_ALBUM_ART } from '@/lib/music-art'
+import { createClient } from '@/lib/supabase/client'
+import { isSupabaseConfigured } from '@/lib/supabase/config'
 import type { MusicRecommendation } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { useStableReducedMotion } from '@/hooks/use-stable-reduced-motion'
@@ -39,6 +41,39 @@ type PersonalMusicFile = {
   id: string
   name: string
   sizeLabel: string
+  uploadState?: 'failed' | 'uploading'
+}
+
+type PersonalMusicTrackRow = {
+  id: string
+  original_filename: string
+  size_bytes: number
+}
+
+const PERSONAL_MUSIC_LIBRARY_STORAGE_KEY = 'prometheus.editor.personal-music.v1'
+
+function readPersonalMusicLibrary() {
+  if (typeof window === 'undefined') return { files: [] as PersonalMusicFile[], folders: [] as string[] }
+
+  try {
+    const value = window.localStorage.getItem(PERSONAL_MUSIC_LIBRARY_STORAGE_KEY)
+    if (!value) return { files: [] as PersonalMusicFile[], folders: [] as string[] }
+    const parsed = JSON.parse(value) as { files?: unknown; folders?: unknown }
+    const files = Array.isArray(parsed.files)
+      ? parsed.files.filter((file): file is PersonalMusicFile => Boolean(
+        file && typeof file === 'object' &&
+        typeof (file as PersonalMusicFile).id === 'string' &&
+        typeof (file as PersonalMusicFile).name === 'string' &&
+        typeof (file as PersonalMusicFile).sizeLabel === 'string',
+      ))
+      : []
+    const folders = Array.isArray(parsed.folders)
+      ? parsed.folders.filter((folder): folder is string => typeof folder === 'string')
+      : []
+    return { files, folders }
+  } catch {
+    return { files: [] as PersonalMusicFile[], folders: [] as string[] }
+  }
 }
 
 const MUSIC_COLLECTION_TABS: Array<{ id: MusicCollectionTab; label: string }> = [
@@ -51,6 +86,26 @@ const MUSIC_COLLECTION_TABS: Array<{ id: MusicCollectionTab; label: string }> = 
 function formatPersonalMusicSize(bytes: number) {
   if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
+function toPersonalMusicFile(file: File): PersonalMusicFile {
+  return {
+    id: `${file.name}-${file.size}-${file.lastModified}`,
+    name: file.name,
+    sizeLabel: formatPersonalMusicSize(file.size),
+  }
+}
+
+function fromPersonalMusicTrackRow(track: PersonalMusicTrackRow): PersonalMusicFile {
+  return {
+    id: track.id,
+    name: track.original_filename,
+    sizeLabel: formatPersonalMusicSize(track.size_bytes),
+  }
+}
+
+function createMusicStoragePath(userId: string) {
+  return `${userId}/${crypto.randomUUID()}`
 }
 
 function MusicCollectionTabs({ activeTab, onChange }: { activeTab: MusicCollectionTab; onChange: (tab: MusicCollectionTab) => void }) {
@@ -95,20 +150,27 @@ function MyMusicShelf({
   const matchingFiles = files.filter((file) => file.name.toLowerCase().includes(query.trim().toLowerCase()))
 
   return (
-    <section className="space-y-3 rounded-[20px] border border-white/10 bg-white/[0.025] p-3" aria-label="My Music library">
+    <section className="min-h-[26rem] space-y-4 rounded-[16px] border border-white/10 bg-white/[0.025] p-4" aria-label="My Music library">
       <input ref={inputRef} type="file" accept="audio/*" multiple className="hidden" onChange={onFilesSelected} />
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-sm font-medium text-white/88">Your music</p>
+          <p className="mt-1 text-xs text-white/42">Upload a soundtrack or keep a private working folder.</p>
+        </div>
+        <span className="rounded-full border border-white/10 bg-black/20 px-2.5 py-1 font-mono text-[10px] text-white/48">{files.length} tracks</span>
+      </div>
       <div className="grid grid-cols-2 gap-2">
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
-          className="inline-flex min-h-20 items-center justify-center gap-2 rounded-[15px] border border-dashed border-white/24 bg-white/[0.025] px-3 text-sm font-medium text-white/78 transition hover:border-[#6366f1]/70 hover:bg-[#6366f1]/[0.09] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6366f1]/50"
+          className="inline-flex min-h-28 items-center justify-center gap-2 rounded-[12px] border border-dashed border-white/24 bg-white/[0.025] px-3 text-sm font-medium text-white/78 transition hover:border-[#6366f1]/70 hover:bg-[#6366f1]/[0.09] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6366f1]/50"
         >
           <FileUp className="size-5" /> Tap to upload
         </button>
         <button
           type="button"
           onClick={onCreateFolder}
-          className="inline-flex min-h-20 items-center justify-center gap-2 rounded-[15px] border border-white/16 bg-white/[0.025] px-3 text-sm font-medium text-white/72 transition hover:border-white/35 hover:bg-white/[0.07] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/35"
+          className="inline-flex min-h-28 items-center justify-center gap-2 rounded-[12px] border border-white/16 bg-white/[0.025] px-3 text-sm font-medium text-white/72 transition hover:border-white/35 hover:bg-white/[0.07] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/35"
         >
           <Folder className="size-5" /> New folder
         </button>
@@ -124,14 +186,16 @@ function MyMusicShelf({
         {matchingFiles.length ? (
           <div className="space-y-1.5">
             {matchingFiles.map((file) => (
-              <div key={file.id} className="flex items-center justify-between gap-3 rounded-[11px] bg-black/20 px-3 py-2 text-sm text-white/74">
+              <div key={file.id} className="flex items-center justify-between gap-3 rounded-[10px] border border-white/[0.06] bg-black/20 px-3 py-2.5 text-sm text-white/74">
                 <span className="flex min-w-0 items-center gap-2 truncate"><Music className="size-3.5 shrink-0 text-[#a5b4fc]" /> <span className="truncate">{file.name}</span></span>
-                <span className="shrink-0 font-mono text-[10px] text-white/35">{file.sizeLabel}</span>
+                <span className={cn('shrink-0 font-mono text-[10px]', file.uploadState === 'failed' ? 'text-red-300/70' : 'text-white/35')}>
+                  {file.uploadState === 'uploading' ? 'Uploading…' : file.uploadState === 'failed' ? 'Upload failed' : file.sizeLabel}
+                </span>
               </div>
             ))}
           </div>
         ) : (
-          <p className="px-1 py-3 text-center text-xs leading-5 text-white/42">Your uploaded tracks and folders will live here.</p>
+          <p className="px-1 py-8 text-center text-xs leading-5 text-white/42">Your uploaded tracks and folders will live here.</p>
         )}
       </div>
     </section>
@@ -798,8 +862,8 @@ export function MusicTabPanel({
   const [playingTrackId, setPlayingTrackId] = React.useState<string | null>(null)
   const [selectedTrackIds, setSelectedTrackIds] = React.useState<Set<string>>(() => new Set())
   const [activeCollection, setActiveCollection] = React.useState<MusicCollectionTab>('trending')
-  const [personalMusicFiles, setPersonalMusicFiles] = React.useState<PersonalMusicFile[]>([])
-  const [personalMusicFolders, setPersonalMusicFolders] = React.useState<string[]>([])
+  const [personalMusicFiles, setPersonalMusicFiles] = React.useState<PersonalMusicFile[]>(() => readPersonalMusicLibrary().files)
+  const [personalMusicFolders, setPersonalMusicFolders] = React.useState<string[]>(() => readPersonalMusicLibrary().folders)
   const [searchQuery, setSearchQuery] = React.useState('')
   const [visibleTrackCount, setVisibleTrackCount] = React.useState(INITIAL_VISIBLE_TRACKS)
   const [brokenArtworkIds, setBrokenArtworkIds] = React.useState<Record<string, true>>({})
@@ -808,19 +872,111 @@ export function MusicTabPanel({
   const [isPlayerBuffering, setIsPlayerBuffering] = React.useState(false)
   const [playerProgress, setPlayerProgress] = React.useState({ currentTime: 0, duration: 0 })
   const [seekRequest, setSeekRequest] = React.useState<{ time: number; token: number } | null>(null)
+  const selectionTrayRef = React.useRef<HTMLDivElement | null>(null)
 
-  const handlePersonalMusicUpload = React.useCallback<React.ChangeEventHandler<HTMLInputElement>>((event) => {
+  React.useEffect(() => {
+    try {
+      window.localStorage.setItem(PERSONAL_MUSIC_LIBRARY_STORAGE_KEY, JSON.stringify({
+        files: personalMusicFiles,
+        folders: personalMusicFolders,
+      }))
+    } catch {
+      // Browser storage is an enhancement: the in-session library remains usable without it.
+    }
+  }, [personalMusicFiles, personalMusicFolders])
+
+  React.useEffect(() => {
+    let disposed = false
+
+    async function loadPersonalMusic() {
+      try {
+        const supabase = createClient()
+        const { data: { user }, error: userError } = await supabase.auth.getUser()
+        if (userError) throw userError
+        if (!user) return
+
+        const { data, error } = await supabase
+          .from('user_music_tracks')
+          .select('id, original_filename, size_bytes')
+          .order('created_at', { ascending: false })
+
+        if (error) throw error
+        if (!disposed && data) setPersonalMusicFiles(data.map((track) => fromPersonalMusicTrackRow(track as PersonalMusicTrackRow)))
+      } catch {
+        // Local storage keeps the shelf useful until Supabase is configured or the migration is applied.
+      }
+    }
+
+    void loadPersonalMusic()
+    return () => {
+      disposed = true
+    }
+  }, [])
+
+  const handlePersonalMusicUpload = React.useCallback<React.ChangeEventHandler<HTMLInputElement>>(async (event) => {
     const nextFiles = Array.from(event.target.files ?? [])
     if (!nextFiles.length) return
-    setPersonalMusicFiles((current) => [
-      ...nextFiles.map((file) => ({
-        id: `${file.name}-${file.size}-${file.lastModified}`,
-        name: file.name,
-        sizeLabel: formatPersonalMusicSize(file.size),
-      })),
-      ...current.filter((currentFile) => !nextFiles.some((file) => `${file.name}-${file.size}-${file.lastModified}` === currentFile.id)),
-    ])
     event.target.value = ''
+
+    const optimisticFiles = nextFiles.map((file) => ({ ...toPersonalMusicFile(file), uploadState: 'uploading' as const }))
+    setPersonalMusicFiles((current) => [
+      ...optimisticFiles,
+      ...current.filter((currentFile) => !optimisticFiles.some((file) => file.id === currentFile.id)),
+    ])
+
+    if (!isSupabaseConfigured()) {
+      setPersonalMusicFiles((current) => current.map((currentFile) => (
+        optimisticFiles.some((file) => file.id === currentFile.id)
+          ? { ...currentFile, uploadState: undefined }
+          : currentFile
+      )))
+      return
+    }
+
+    try {
+      const supabase = createClient()
+      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      if (userError) throw userError
+      if (!user) throw new Error('Sign in to save music to your library.')
+
+      const uploadedFiles = await Promise.all(nextFiles.map(async (file) => {
+        const storagePath = createMusicStoragePath(user.id)
+        const { error: storageError } = await supabase.storage
+          .from('user-music')
+          .upload(storagePath, file, { contentType: file.type || 'audio/mpeg', upsert: false })
+        if (storageError) throw storageError
+
+        const { data, error: insertError } = await supabase
+          .from('user_music_tracks')
+          .insert({
+            user_id: user.id,
+            original_filename: file.name,
+            storage_path: storagePath,
+            mime_type: file.type || null,
+            size_bytes: file.size,
+          })
+          .select('id, original_filename, size_bytes')
+          .single()
+
+        if (insertError) {
+          await supabase.storage.from('user-music').remove([storagePath])
+          throw insertError
+        }
+        return fromPersonalMusicTrackRow(data as PersonalMusicTrackRow)
+      }))
+
+      setPersonalMusicFiles((current) => [
+        ...uploadedFiles,
+        ...current.filter((currentFile) => !optimisticFiles.some((file) => file.id === currentFile.id)),
+      ])
+    } catch (error) {
+      setPersonalMusicFiles((current) => current.map((currentFile) => (
+        optimisticFiles.some((file) => file.id === currentFile.id)
+          ? { ...currentFile, uploadState: 'failed' }
+          : currentFile
+      )))
+      toast.error(error instanceof Error ? error.message : 'Unable to upload music')
+    }
   }, [])
 
   const createPersonalMusicFolder = React.useCallback(() => {
@@ -863,16 +1019,36 @@ export function MusicTabPanel({
     })
   }, [catalogReady, catalogTracks])
 
+  const collectionTracks = React.useMemo(() => {
+    if (activeCollection === 'premium') {
+      const premium = displayTracks
+        .filter((track) => (
+          (track.qualityScore ?? 0) >= 88 ||
+          track.license === 'owned' ||
+          track.license === 'licensed' ||
+          track.vibeTags.some((tag) => /cinematic|luxury|editorial/i.test(tag))
+        ))
+        .sort((left, right) => (right.qualityScore ?? 0) - (left.qualityScore ?? 0))
+      return premium.length ? premium : [...displayTracks].sort((left, right) => (right.qualityScore ?? 0) - (left.qualityScore ?? 0)).slice(0, 8)
+    }
+
+    if (activeCollection === 'trending') {
+      return [...displayTracks].sort((left, right) => (right.freshnessScore ?? 0) - (left.freshnessScore ?? 0))
+    }
+
+    return displayTracks
+  }, [activeCollection, displayTracks])
+
   const normalizedQuery = searchQuery.trim().toLowerCase()
   const filteredTracks = React.useMemo(() => {
-    if (!normalizedQuery) return displayTracks
-    return displayTracks.filter((track) => {
+    if (!normalizedQuery) return collectionTracks
+    return collectionTracks.filter((track) => {
       const title = track.title.toLowerCase()
       const artist = track.artist.toLowerCase()
 
       return title.includes(normalizedQuery) || artist.includes(normalizedQuery)
     })
-  }, [displayTracks, normalizedQuery])
+  }, [collectionTracks, normalizedQuery])
   const visibleTracks = React.useMemo(() => filteredTracks.slice(0, visibleTrackCount), [filteredTracks, visibleTrackCount])
 
   React.useEffect(() => {
@@ -970,6 +1146,25 @@ export function MusicTabPanel({
     })
   }, [])
 
+  React.useEffect(() => {
+    if (!selectedTrackIds.size) return
+
+    const dismissSelection = (event: PointerEvent) => {
+      if (event.target instanceof Node && selectionTrayRef.current?.contains(event.target)) return
+      setSelectedTrackIds(new Set())
+    }
+    const dismissOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setSelectedTrackIds(new Set())
+    }
+
+    document.addEventListener('pointerdown', dismissSelection, true)
+    document.addEventListener('keydown', dismissOnEscape)
+    return () => {
+      document.removeEventListener('pointerdown', dismissSelection, true)
+      document.removeEventListener('keydown', dismissOnEscape)
+    }
+  }, [selectedTrackIds.size])
+
   const handleAutoMatch = React.useCallback(async () => {
     const trackIds = Array.from(selectedTrackIds)
     if (!trackIds.length) return
@@ -1001,6 +1196,7 @@ export function MusicTabPanel({
       toast.error(error instanceof Error ? error.message : 'Unable to run AI Auto-Match')
     } finally {
       setIsAutoMatching(false)
+      setSelectedTrackIds(new Set())
     }
   }, [displayTracks, handleTrackFocus, projectTitle, selectedTrackIds])
 
@@ -1026,7 +1222,7 @@ export function MusicTabPanel({
         animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
         exit={reduceMotion ? undefined : { opacity: 0, y: 8 }}
         transition={{ duration: reduceMotion ? 0 : 0.2, ease: chamberEase }}
-        className="premium-ambient-panel premium-vignette-surface editorial-light-effect relative flex h-full min-h-[34rem] w-full flex-col overflow-hidden rounded-[24px] border border-white/8 bg-black pb-28"
+      className="premium-ambient-panel premium-vignette-surface editorial-light-effect relative flex h-full min-h-[38rem] w-full flex-col overflow-hidden rounded-[18px] border border-white/8 bg-black pb-28"
       >
         <style>{`
           @keyframes music-eq {
@@ -1182,7 +1378,7 @@ export function MusicTabPanel({
       animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
       exit={reduceMotion ? undefined : { opacity: 0, y: 10 }}
       transition={{ duration: reduceMotion ? 0 : 0.3, ease: chamberEase }}
-      className="premium-ambient-panel premium-vignette-surface editorial-light-effect relative flex min-h-0 w-full max-w-[1080px] flex-1 self-center overflow-hidden rounded-[32px] border border-white/8 bg-black px-4 pb-28 pt-4 sm:px-5 sm:pt-5"
+      className="premium-ambient-panel premium-vignette-surface editorial-light-effect relative flex min-h-[38rem] w-full max-w-[1140px] flex-1 self-center overflow-hidden rounded-[20px] border border-white/8 bg-black px-4 pb-28 pt-4 shadow-[0_32px_90px_-58px_rgba(0,0,0,0.98)] sm:px-5 sm:pt-5 lg:min-h-[42rem]"
     >
         <style>{`
           @keyframes music-eq {
@@ -1195,7 +1391,7 @@ export function MusicTabPanel({
       <div className="relative z-10 grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(18rem,1.04fr)_minmax(21rem,0.9fr)] xl:grid-cols-[minmax(20rem,1.08fr)_minmax(22rem,0.92fr)]">
         <div className="flex min-h-0 min-w-0">
           {selectedSong ? (
-            <div className="music-hero-shell music-disc-safe-stage relative flex min-h-0 flex-1 flex-col rounded-[28px] border border-white/8 bg-black p-4 shadow-[0_24px_54px_-44px_rgba(0,0,0,0.98)] sm:p-5">
+            <div className="music-hero-shell music-disc-safe-stage relative flex min-h-0 flex-1 flex-col rounded-[18px] border border-white/8 bg-black p-4 shadow-[0_24px_54px_-44px_rgba(0,0,0,0.98)] sm:p-5">
               <MusicPlayer
                 albumArt={selectedSong.artwork || FALLBACK_COVER_ART}
                 albumArtPosition={selectedSong.artworkPosition}
@@ -1301,13 +1497,24 @@ export function MusicTabPanel({
       <AnimatePresence>
         {selectedTrackIds.size > 0 ? (
           <motion.div
+            ref={selectionTrayRef}
             initial={reduceMotion ? false : { opacity: 0, y: 18 }}
             animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
             exit={reduceMotion ? undefined : { opacity: 0, y: 18 }}
             transition={{ duration: reduceMotion ? 0 : 0.2, ease: chamberEase }}
-            className="absolute inset-x-4 bottom-24 z-40 flex flex-col gap-3 rounded-[22px] border border-white/12 bg-[#111116]/[0.92] p-3 shadow-[0_34px_90px_-58px_rgba(0,0,0,0.95)] backdrop-blur-[24px] sm:flex-row sm:items-center sm:justify-between"
+            className="absolute inset-x-4 bottom-24 z-40 flex flex-col gap-3 rounded-[14px] border border-white/12 bg-[#111116]/[0.92] p-3 shadow-[0_34px_90px_-58px_rgba(0,0,0,0.95)] backdrop-blur-[24px] sm:flex-row sm:items-center sm:justify-between"
           >
-            <div className="text-sm font-medium text-white">{selectedTrackIds.size} tracks selected</div>
+            <div className="flex items-center gap-2 text-sm font-medium text-white">
+              <span>{selectedTrackIds.size} tracks selected</span>
+              <button
+                type="button"
+                onClick={() => setSelectedTrackIds(new Set())}
+                className="grid size-7 place-items-center rounded-full text-white/45 transition-colors hover:bg-white/[0.08] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+                aria-label="Clear selected tracks"
+              >
+                <X className="size-3.5" />
+              </button>
+            </div>
             <Button
               type="button"
               disabled={isAutoMatching}

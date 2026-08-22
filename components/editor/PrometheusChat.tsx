@@ -423,7 +423,7 @@ export function PrometheusChat({
             onSelect={handleSuggestionSelect}
             layout="responsive"
             className={cn(
-              "mx-auto mb-3 w-full max-w-3xl",
+              "relative z-10 mx-auto -mb-6 w-full max-w-3xl pb-7",
               suggestionsHidden && "invisible pointer-events-none",
             )}
           />
@@ -442,7 +442,7 @@ export function PrometheusChat({
             ) : null}
           </AnimatePresence>
           <form
-            className="mx-auto flex min-h-14 w-full max-w-3xl items-center gap-3 rounded-2xl border border-white/10 bg-black px-5 py-3 transition-colors focus-within:border-white/22"
+            className="relative z-20 mx-auto flex min-h-14 w-full max-w-3xl items-center gap-3 rounded-2xl border border-white/10 bg-black px-5 py-3 transition-colors focus-within:border-white/22"
             onSubmit={(event) => {
               event.preventDefault()
               void handleSend()

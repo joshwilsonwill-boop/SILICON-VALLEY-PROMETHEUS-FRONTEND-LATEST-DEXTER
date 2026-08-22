@@ -33,7 +33,7 @@ export function MobileChatInput({
   });
 
   return (
-    <div className="shrink-0 bg-black px-4 pb-[calc(env(safe-area-inset-bottom)+0.875rem)] pt-3">
+    <div className="relative z-20 shrink-0 bg-black px-4 pb-[calc(env(safe-area-inset-bottom)+0.875rem)] pt-3">
       <div className="mx-auto flex min-h-14 w-full max-w-xl items-end gap-2 rounded-2xl border border-white/10 bg-black px-4 py-2.5 focus-within:border-white/20">
         <textarea
           ref={inputRef}

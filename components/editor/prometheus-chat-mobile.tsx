@@ -229,7 +229,7 @@ export function PrometheusChatMobile({
 
         <div
           className={cn(
-            "shrink-0 px-4 pb-1 pt-3",
+            "relative z-10 shrink-0 -mb-5 px-4 pb-7 pt-3",
             suggestionsHidden && "invisible pointer-events-none",
           )}
         >

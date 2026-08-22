@@ -18,8 +18,8 @@ assert.match(music, /New folder/)
 assert.match(music, /accept="audio\/\*"/)
 
 const suggestions = read('components/editor/ai-chat-suggestions.tsx')
-assert.match(suggestions, /y: \[54, 30, 0\]/)
-assert.match(suggestions, /filter: \["blur\(14px\)", "blur\(7px\)", "blur\(0px\)"\]/)
+assert.match(suggestions, /y: \[30, 8, 0\]/)
+assert.match(suggestions, /filter: \["blur\(12px\)", "blur\(4px\)", "blur\(0px\)"\]/)
 
 const editorLoading = read('components/editor/editor-loading-screen.tsx')
 assert.doesNotMatch(editorLoading, /Preparing the editor workspace/)
