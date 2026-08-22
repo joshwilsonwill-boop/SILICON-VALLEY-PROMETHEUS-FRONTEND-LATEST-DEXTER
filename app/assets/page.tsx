@@ -104,7 +104,10 @@ export default function AssetsPage() {
     ) : null
 
   return (
-    <PrometheusShell overlay={overlay}>
+    <PrometheusShell
+      overlay={overlay}
+      mainClassName="relative z-auto h-full snap-y snap-mandatory scroll-smooth overflow-y-auto overflow-x-hidden overscroll-contain"
+    >
       <LibraryCollection
         onSelect={(showcaseId) => {
           setTab('uploads')

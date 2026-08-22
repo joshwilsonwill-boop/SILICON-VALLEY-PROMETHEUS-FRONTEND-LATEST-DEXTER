@@ -13,7 +13,7 @@ export function LibraryCollection({ onSelect }: { onSelect: (showcaseId: string)
   const reduceMotion = useReducedMotion() ?? false
 
   return (
-    <section className="relative min-h-full overflow-hidden bg-black text-white" aria-labelledby="creator-library-title">
+    <section className="relative min-h-full snap-start snap-always overflow-hidden bg-black text-white" aria-labelledby="creator-library-title">
       <div
         className="pointer-events-none absolute inset-0 opacity-80"
         style={{
