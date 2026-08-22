@@ -47,7 +47,6 @@ import { GlassUploadModalView } from "@/components/ui/glass-upload-modal-view";
 import { TextEffect } from "@/components/ui/text-effect";
 import { GooeyText } from "@/components/ui/gooey-text-morphing";
 import { InlineLoadingAnimation } from "@/components/loading-animation";
-import { CinematicLogoLoader } from "@/components/loading-animation/cinematic-logo-loader";
 import { InteractiveOrb } from "@/components/ui/interactive-orb";
 import { PersonalStylizationShowcase, type PersonalStylizationItem } from "@/components/ui/personal-stylization-showcase";
 import { STYLE_TEMPLATES } from "@/lib/styles/style-templates";
@@ -3041,14 +3040,12 @@ export function VideoUploadInterface() {
                         className="fixed inset-0 z-[90] bg-black"
                     >
                         {(uploadStatus === 'presigning' || uploadStatus === 'uploading' || uploadStatus === 'retrying' || uploadStatus === 'paused') ? (
-                            <CinematicLogoLoader
-                                variant="overlay"
-                                label="Preparing your project"
-                                caption={uploadPartLabel ?? 'Preparing your project'}
-                            >
-                                <div className="pointer-events-auto mt-6 flex flex-col items-center gap-4">
+                            <div role="status" aria-label="Preparing your project" className="flex h-full flex-col items-center justify-center px-6 text-center">
+                                <InlineLoadingAnimation size={28} label="Preparing your project" />
+                                <div className="pointer-events-auto mt-5 flex flex-col items-center gap-4">
                                     <div className="text-center">
-                                        <div className="font-mono text-sm tabular-nums text-white">{uploadProgress}%</div>
+                                        <div className="text-xs uppercase tracking-[0.2em] text-white/56">{uploadPartLabel ?? 'Preparing your project'}</div>
+                                        <div className="mt-2 font-mono text-sm tabular-nums text-white">{uploadProgress}%</div>
                                         {uploadStatus === 'retrying' ? (
                                             <div className="mt-1 text-xs text-[#c7d2fe]">
                                                 Network hiccup — resuming the upload.
@@ -3064,7 +3061,7 @@ export function VideoUploadInterface() {
                                         Cancel Upload
                                     </Button>
                                 </div>
-                            </CinematicLogoLoader>
+                            </div>
                         ) : null}
                         {uploadStatus === 'error' && uploadErrorDetail ? (
                             <div className="fixed inset-x-4 bottom-8 z-[91] mx-auto max-w-[620px] text-center text-sm text-red-100">

@@ -2,6 +2,7 @@
 
 import * as React from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
+import { useRouter } from 'next/navigation'
 import {
   ArrowUpRight,
   ChevronDown,
@@ -20,9 +21,9 @@ import {
 import { toast } from 'sonner'
 
 import { CreateProjectModal } from '@/components/projects/create-project-modal'
-import { ProjectDetailsModal } from '@/components/projects/project-details-modal'
 import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { useProjectsList } from '@/hooks/use-projects-list'
+import { rememberCurrentPathForEditorReturn } from '@/lib/editor-navigation'
 import type { ProjectCardStatus, ProjectListItem } from '@/lib/projects/types'
 
 type FilterKey = 'all' | ProjectCardStatus
@@ -163,14 +164,19 @@ function ProjectTile({
 }
 
 export function ProjectsPageEditorial() {
+  const router = useRouter()
   const prefersReducedMotion = useReducedMotion()
   const [query, setQuery] = React.useState('')
   const [filter, setFilter] = React.useState<FilterKey>('all')
   const [sortKey, setSortKey] = React.useState<SortKey>('updated')
   const [isCreateOpen, setIsCreateOpen] = React.useState(false)
   const [isControlsOpen, setIsControlsOpen] = React.useState(false)
-  const [detailProject, setDetailProject] = React.useState<ProjectListItem | null>(null)
   const { projects, isLoading, error, refetch, deleteProject, duplicateProject, isDeleting, isDuplicating } = useProjectsList()
+
+  const openProject = React.useCallback((project: ProjectListItem) => {
+    rememberCurrentPathForEditorReturn()
+    router.push(`/editor/${project.id}`)
+  }, [router])
 
   const visibleProjects = React.useMemo(() => {
     const cleanedQuery = query.trim().toLocaleLowerCase()
@@ -370,7 +376,7 @@ export function ProjectsPageEditorial() {
                 key={project.id}
                 project={project}
                 index={index}
-                onOpen={() => setDetailProject(project)}
+                onOpen={() => openProject(project)}
                 onDuplicate={() => void handleDuplicate(project)}
                 onDelete={() => void handleDelete(project)}
                 isDuplicating={isDuplicating}
@@ -381,18 +387,6 @@ export function ProjectsPageEditorial() {
         )}
       </section>
       <CreateProjectModal open={isCreateOpen} onClose={() => setIsCreateOpen(false)} />
-      <ProjectDetailsModal
-        project={detailProject}
-        isDeleting={isDeleting}
-        isDuplicating={isDuplicating}
-        onClose={() => setDetailProject(null)}
-        onDelete={async (project) => {
-          if (await handleDelete(project)) setDetailProject(null)
-        }}
-        onDuplicate={async (project) => {
-          if (await handleDuplicate(project)) setDetailProject(null)
-        }}
-      />
     </main>
   )
 }

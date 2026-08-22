@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import { AnimatePresence, motion, useMotionValue, useSpring, useTransform } from 'framer-motion'
-import { Check, Music, Pause, Play, Plus, Search, Sparkles, Volume2, VolumeX, X } from 'lucide-react'
+import { Check, FileUp, Folder, Music, Pause, Play, Plus, Search, Sparkles, Volume2, VolumeX, X } from 'lucide-react'
 import Image from 'next/image'
 import { toast } from 'sonner'
 
@@ -31,6 +31,111 @@ type SelectedSongDisplay = {
   artwork: string
   artworkPosition: string
   audioSrc: string
+}
+
+type MusicCollectionTab = 'trending' | 'premium' | 'my-music' | 'favorites'
+
+type PersonalMusicFile = {
+  id: string
+  name: string
+  sizeLabel: string
+}
+
+const MUSIC_COLLECTION_TABS: Array<{ id: MusicCollectionTab; label: string }> = [
+  { id: 'trending', label: 'Trendy' },
+  { id: 'premium', label: 'Premium' },
+  { id: 'my-music', label: 'My Music' },
+  { id: 'favorites', label: 'Favorites' },
+]
+
+function formatPersonalMusicSize(bytes: number) {
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
+function MusicCollectionTabs({ activeTab, onChange }: { activeTab: MusicCollectionTab; onChange: (tab: MusicCollectionTab) => void }) {
+  return (
+    <div className="flex gap-1 overflow-x-auto border-b border-white/10 pb-2 [scrollbar-width:none]" role="tablist" aria-label="Music collections">
+      {MUSIC_COLLECTION_TABS.map((tab) => {
+        const active = tab.id === activeTab
+        return (
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            aria-selected={active}
+            onClick={() => onChange(tab.id)}
+            className={cn(
+              'shrink-0 rounded-[10px] px-3 py-2 text-[11px] font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6366f1]/50',
+              active ? 'bg-white/[0.12] text-white' : 'text-white/46 hover:bg-white/[0.05] hover:text-white/76',
+            )}
+          >
+            {tab.label}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+function MyMusicShelf({
+  files,
+  folders,
+  query,
+  onCreateFolder,
+  onFilesSelected,
+}: {
+  files: PersonalMusicFile[]
+  folders: string[]
+  query: string
+  onCreateFolder: () => void
+  onFilesSelected: React.ChangeEventHandler<HTMLInputElement>
+}) {
+  const inputRef = React.useRef<HTMLInputElement | null>(null)
+  const matchingFiles = files.filter((file) => file.name.toLowerCase().includes(query.trim().toLowerCase()))
+
+  return (
+    <section className="space-y-3 rounded-[20px] border border-white/10 bg-white/[0.025] p-3" aria-label="My Music library">
+      <input ref={inputRef} type="file" accept="audio/*" multiple className="hidden" onChange={onFilesSelected} />
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          className="inline-flex min-h-20 items-center justify-center gap-2 rounded-[15px] border border-dashed border-white/24 bg-white/[0.025] px-3 text-sm font-medium text-white/78 transition hover:border-[#6366f1]/70 hover:bg-[#6366f1]/[0.09] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6366f1]/50"
+        >
+          <FileUp className="size-5" /> Tap to upload
+        </button>
+        <button
+          type="button"
+          onClick={onCreateFolder}
+          className="inline-flex min-h-20 items-center justify-center gap-2 rounded-[15px] border border-white/16 bg-white/[0.025] px-3 text-sm font-medium text-white/72 transition hover:border-white/35 hover:bg-white/[0.07] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/35"
+        >
+          <Folder className="size-5" /> New folder
+        </button>
+      </div>
+
+      {folders.length ? (
+        <div className="flex flex-wrap gap-2">
+          {folders.map((folder) => <span key={folder} className="inline-flex items-center gap-1.5 rounded-full border border-white/12 bg-black/20 px-2.5 py-1 text-[10px] text-white/58"><Folder className="size-3" />{folder}</span>)}
+        </div>
+      ) : null}
+
+      <div className="border-t border-white/8 pt-2">
+        {matchingFiles.length ? (
+          <div className="space-y-1.5">
+            {matchingFiles.map((file) => (
+              <div key={file.id} className="flex items-center justify-between gap-3 rounded-[11px] bg-black/20 px-3 py-2 text-sm text-white/74">
+                <span className="flex min-w-0 items-center gap-2 truncate"><Music className="size-3.5 shrink-0 text-[#a5b4fc]" /> <span className="truncate">{file.name}</span></span>
+                <span className="shrink-0 font-mono text-[10px] text-white/35">{file.sizeLabel}</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="px-1 py-3 text-center text-xs leading-5 text-white/42">Your uploaded tracks and folders will live here.</p>
+        )}
+      </div>
+    </section>
+  )
 }
 
 function buildParallaxRange(reduceMotion: boolean, output: [number, number]) {
@@ -692,6 +797,9 @@ export function MusicTabPanel({
   const [focusedTrackId, setFocusedTrackId] = React.useState<string | null>(selectedTrackId ?? tracks[0]?.id ?? null)
   const [playingTrackId, setPlayingTrackId] = React.useState<string | null>(null)
   const [selectedTrackIds, setSelectedTrackIds] = React.useState<Set<string>>(() => new Set())
+  const [activeCollection, setActiveCollection] = React.useState<MusicCollectionTab>('trending')
+  const [personalMusicFiles, setPersonalMusicFiles] = React.useState<PersonalMusicFile[]>([])
+  const [personalMusicFolders, setPersonalMusicFolders] = React.useState<string[]>([])
   const [searchQuery, setSearchQuery] = React.useState('')
   const [visibleTrackCount, setVisibleTrackCount] = React.useState(INITIAL_VISIBLE_TRACKS)
   const [brokenArtworkIds, setBrokenArtworkIds] = React.useState<Record<string, true>>({})
@@ -700,6 +808,26 @@ export function MusicTabPanel({
   const [isPlayerBuffering, setIsPlayerBuffering] = React.useState(false)
   const [playerProgress, setPlayerProgress] = React.useState({ currentTime: 0, duration: 0 })
   const [seekRequest, setSeekRequest] = React.useState<{ time: number; token: number } | null>(null)
+
+  const handlePersonalMusicUpload = React.useCallback<React.ChangeEventHandler<HTMLInputElement>>((event) => {
+    const nextFiles = Array.from(event.target.files ?? [])
+    if (!nextFiles.length) return
+    setPersonalMusicFiles((current) => [
+      ...nextFiles.map((file) => ({
+        id: `${file.name}-${file.size}-${file.lastModified}`,
+        name: file.name,
+        sizeLabel: formatPersonalMusicSize(file.size),
+      })),
+      ...current.filter((currentFile) => !nextFiles.some((file) => `${file.name}-${file.size}-${file.lastModified}` === currentFile.id)),
+    ])
+    event.target.value = ''
+  }, [])
+
+  const createPersonalMusicFolder = React.useCallback(() => {
+    const name = window.prompt('Name this music folder')?.trim()
+    if (!name) return
+    setPersonalMusicFolders((current) => current.includes(name) ? current : [...current, name])
+  }, [])
 
   React.useEffect(() => {
     let disposed = false
@@ -876,7 +1004,7 @@ export function MusicTabPanel({
     }
   }, [displayTracks, handleTrackFocus, projectTitle, selectedTrackIds])
 
-  const showCatalogLoader = !catalogReady || (catalogLoading && !displayTracks.length)
+  const showCatalogLoader = activeCollection !== 'my-music' && (!catalogReady || (catalogLoading && !displayTracks.length))
 
   return (
     <>
@@ -934,6 +1062,7 @@ export function MusicTabPanel({
         ) : null}
 
         <div className="relative z-10 flex min-h-0 flex-1 flex-col gap-3 p-3">
+          <MusicCollectionTabs activeTab={activeCollection} onChange={setActiveCollection} />
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-white/35" />
             <input
@@ -954,6 +1083,16 @@ export function MusicTabPanel({
             ) : null}
           </div>
 
+          {activeCollection === 'my-music' ? (
+            <MyMusicShelf
+              files={personalMusicFiles}
+              folders={personalMusicFolders}
+              query={searchQuery}
+              onCreateFolder={createPersonalMusicFolder}
+              onFilesSelected={handlePersonalMusicUpload}
+            />
+          ) : (
+            <>
           <div className="rounded-[20px] border border-white/10 bg-white/[0.035] p-2">
             <div className="mb-2 flex items-center justify-between px-1 text-xs text-white/48">
               <span>{selectedTrackIds.size ? `${selectedTrackIds.size} selected` : 'Select tracks to compare'}</span>
@@ -1016,6 +1155,8 @@ export function MusicTabPanel({
               ) : null}
             </div>
           </div>
+            </>
+          )}
         </div>
 
         <NowPlayingBar
@@ -1079,6 +1220,7 @@ export function MusicTabPanel({
         </div>
 
         <div className="flex min-h-0 min-w-0 flex-col pl-2 pr-1 pt-1 sm:pl-3 sm:pr-2">
+          <MusicCollectionTabs activeTab={activeCollection} onChange={setActiveCollection} />
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-white/35" />
             <input
@@ -1099,6 +1241,17 @@ export function MusicTabPanel({
             ) : null}
           </div>
 
+          {activeCollection === 'my-music' ? (
+            <div className="mt-4 min-h-0 flex-1 overflow-y-auto pr-1">
+              <MyMusicShelf
+                files={personalMusicFiles}
+                folders={personalMusicFolders}
+                query={searchQuery}
+                onCreateFolder={createPersonalMusicFolder}
+                onFilesSelected={handlePersonalMusicUpload}
+              />
+            </div>
+          ) : (
           <div className="music-catalog-scrollbar mt-4 min-h-0 flex-1 overflow-y-auto pr-1">
             <div className="space-y-2 pb-4">
               {catalogLoading && !visibleTracks.length ? (
@@ -1141,6 +1294,7 @@ export function MusicTabPanel({
               ) : null}
             </div>
           </div>
+          )}
         </div>
       </div>
 

@@ -141,6 +141,7 @@ export function ChatSuggestions({
 
   return (
     <motion.div
+      key={items.join('|')}
       role="group"
       aria-label={ariaLabel}
       className={cn(
@@ -177,17 +178,17 @@ export function ChatSuggestions({
                   filter: "blur(6px)",
                 },
             visible: {
-              opacity: 1,
-              y: 0,
+              opacity: [0, 0.78, 1],
+              y: [54, 30, 0],
               scale: 1,
-              filter: "blur(0px)",
+              filter: ["blur(14px)", "blur(7px)", "blur(0px)"],
             },
           }}
           transition={{
-            y: { type: "spring", stiffness: 320, damping: 24, mass: 0.8 },
-            opacity: { duration: 0.34, ease: [0.16, 1, 0.3, 1] },
+            y: { duration: 0.62, times: [0, 0.52, 1], ease: [0.16, 1, 0.3, 1] },
+            opacity: { duration: 0.55, times: [0, 0.48, 1], ease: [0.16, 1, 0.3, 1] },
             scale: { type: "spring", stiffness: 320, damping: 24, mass: 0.8 },
-            filter: { duration: 0.4, ease: "easeOut" },
+            filter: { duration: 0.58, times: [0, 0.55, 1], ease: [0.16, 1, 0.3, 1] },
           }}
           whileHover={prefersReducedMotion ? undefined : { y: -2, scale: 1.02 }}
           whileTap={prefersReducedMotion ? undefined : { scale: 0.97, transition: { duration: 0.12 } }}

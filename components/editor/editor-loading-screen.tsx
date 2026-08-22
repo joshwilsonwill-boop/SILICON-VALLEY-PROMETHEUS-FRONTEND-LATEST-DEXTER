@@ -7,13 +7,9 @@ interface EditorLoadingScreenProps {
   className?: string
 }
 
-export function EditorLoadingScreen({
-  caption = 'Loading...',
-  className,
-}: EditorLoadingScreenProps) {
+export function EditorLoadingScreen({ className }: EditorLoadingScreenProps) {
   return (
     <LoadingAnimation
-      message={`${caption} Preparing the editor workspace.`}
       className={className}
     />
   )
