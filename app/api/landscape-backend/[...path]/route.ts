@@ -9,7 +9,7 @@ type RouteContext = {
   params: Promise<{path: string[]}>
 }
 
-const handleModalBackendRequest = createModalBackendRouteHandler({
+const handleLandscapeBackendRequest = createModalBackendRouteHandler({
   authenticate: async () => {
     const supabase = await createClient()
     const {
@@ -24,7 +24,7 @@ const handleModalBackendRequest = createModalBackendRouteHandler({
       pathSegments,
       target,
       env: {
-        MINI_RUN_BACKEND_URL: process.env.MINI_RUN_BACKEND_URL,
+        LANDSCAPE_BACKEND_URL: process.env.LANDSCAPE_BACKEND_URL,
         MODAL_PROXY_KEY: process.env.MODAL_PROXY_KEY,
         MODAL_PROXY_SECRET: process.env.MODAL_PROXY_SECRET,
       },
@@ -33,7 +33,7 @@ const handleModalBackendRequest = createModalBackendRouteHandler({
 
 async function handle(request: Request, context: RouteContext) {
   const {path} = await context.params
-  return handleModalBackendRequest(request, path, 'mini-run')
+  return handleLandscapeBackendRequest(request, path, 'landscape')
 }
 
 export const GET = handle

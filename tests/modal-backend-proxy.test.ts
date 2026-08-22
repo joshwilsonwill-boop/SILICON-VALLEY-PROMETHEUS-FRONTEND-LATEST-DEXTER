@@ -19,55 +19,59 @@ async function run() {
   assert.equal(typeof proxy.proxyModalBackendRequest, 'function')
 
   const env = {
-    PROMETHEUS_BACKEND_URL: 'https://joshuagreat965--api.modal.run/',
+    MINI_RUN_BACKEND_URL: 'https://joshuagreat965--mini-run.modal.run/',
+    LANDSCAPE_BACKEND_URL: 'https://joshuagreat965--landscape-studio.modal.run/',
     MODAL_PROXY_KEY: 'wk-test-key',
     MODAL_PROXY_SECRET: 'ws-test-secret',
   }
-  assert.deepEqual(proxy.resolveModalBackendConfig!(env), {
-    baseUrl: 'https://joshuagreat965--api.modal.run',
+  assert.deepEqual(proxy.resolveModalBackendConfig!(env, 'mini-run'), {
+    target: 'mini-run',
+    baseUrl: 'https://joshuagreat965--mini-run.modal.run',
+    proxyKey: 'wk-test-key',
+    proxySecret: 'ws-test-secret',
+  })
+  assert.deepEqual(proxy.resolveModalBackendConfig!(env, 'landscape'), {
+    target: 'landscape',
+    baseUrl: 'https://joshuagreat965--landscape-studio.modal.run',
     proxyKey: 'wk-test-key',
     proxySecret: 'ws-test-secret',
   })
   assert.throws(
-    () => proxy.resolveModalBackendConfig!({...env, MODAL_PROXY_SECRET: ''}),
+    () => proxy.resolveModalBackendConfig!({...env, MODAL_PROXY_SECRET: ''}, 'mini-run'),
     /MODAL_PROXY_SECRET/,
   )
+  assert.throws(
+    () => proxy.resolveModalBackendConfig!({...env, MINI_RUN_BACKEND_URL: ''}, 'mini-run'),
+    /MINI_RUN_BACKEND_URL/,
+  )
 
-  assert.equal(proxy.isAllowedModalBackendRequest!('GET', ['health']), true)
+  // Mini-run allow-list
+  assert.equal(proxy.isAllowedModalBackendRequest!('GET', ['health'], 'mini-run'), true)
+  assert.equal(proxy.isAllowedModalBackendRequest!('POST', ['api', 'pipeline', 'transcribe'], 'mini-run'), true)
+  assert.equal(proxy.isAllowedModalBackendRequest!('POST', ['api', 'pipeline', 'chunk'], 'mini-run'), true)
+  assert.equal(proxy.isAllowedModalBackendRequest!('POST', ['api', 'pipeline', 'video_chunker'], 'mini-run'), true)
+  assert.equal(proxy.isAllowedModalBackendRequest!('POST', ['api', 'pipeline', 'matte'], 'mini-run'), true)
+  assert.equal(proxy.isAllowedModalBackendRequest!('POST', ['api', 'pipeline', 'render'], 'mini-run'), true)
   assert.equal(
-    proxy.isAllowedModalBackendRequest!('POST', ['api', 'maul', 'text-chunks', 'preview']),
+    proxy.isAllowedModalBackendRequest!('GET', ['api', 'pipeline', 'job', 'job_abc_123'], 'mini-run'),
     true,
   )
-  assert.equal(proxy.isAllowedModalBackendRequest!('POST', ['api', 'render', 'jobs']), true)
-  assert.equal(proxy.isAllowedModalBackendRequest!('POST', ['api', 'source-analysis', 'jobs']), true)
-  assert.equal(
-    proxy.isAllowedModalBackendRequest!('GET', [
-      'api',
-      'source-analysis',
-      'jobs',
-      '123e4567-e89b-12d3-a456-426614174100',
-      'calls',
-      'fc-source-123',
-    ]),
-    true,
-  )
-  assert.equal(
-    proxy.isAllowedModalBackendRequest!('GET', [
-      'api',
-      'render',
-      'jobs',
-      '123e4567-e89b-12d3-a456-426614174100',
-      'calls',
-      'fc-render-123',
-    ]),
-    true,
-  )
-  assert.equal(proxy.isAllowedModalBackendRequest!('GET', ['media', 'job_final.mp4']), true)
-  assert.equal(proxy.isAllowedModalBackendRequest!('POST', ['health']), false)
-  assert.equal(proxy.isAllowedModalBackendRequest!('GET', ['api', 'admin']), false)
-  assert.equal(proxy.isAllowedModalBackendRequest!('GET', ['media', '..']), false)
+  assert.equal(proxy.isAllowedModalBackendRequest!('POST', ['api', 'render', 'jobs'], 'mini-run'), false)
+  assert.equal(proxy.isAllowedModalBackendRequest!('GET', ['media', 'job_final.mp4'], 'mini-run'), false)
 
-  const request = new Request('https://prometheusstudio.tech/api/modal-backend/api/render/jobs', {
+  // Landscape allow-list
+  assert.equal(proxy.isAllowedModalBackendRequest!('GET', ['health'], 'landscape'), true)
+  assert.equal(proxy.isAllowedModalBackendRequest!('GET', ['api', 'status'], 'landscape'), true)
+  assert.equal(proxy.isAllowedModalBackendRequest!('GET', ['api', 'runs'], 'landscape'), true)
+  assert.equal(proxy.isAllowedModalBackendRequest!('POST', ['api', 'runs'], 'landscape'), true)
+  assert.equal(proxy.isAllowedModalBackendRequest!('GET', ['api', 'run', 'run-1'], 'landscape'), true)
+  assert.equal(proxy.isAllowedModalBackendRequest!('GET', ['api', 'manifest'], 'landscape'), true)
+  assert.equal(proxy.isAllowedModalBackendRequest!('GET', ['p', 'run-1'], 'landscape'), true)
+  assert.equal(proxy.isAllowedModalBackendRequest!('GET', ['landscape'], 'landscape'), true)
+  assert.equal(proxy.isAllowedModalBackendRequest!('POST', ['api', 'runs'], 'mini-run'), false)
+  assert.equal(proxy.isAllowedModalBackendRequest!('GET', ['api', 'admin'], 'mini-run'), false)
+
+  const request = new Request('https://prometheusstudio.tech/api/modal-backend/api/pipeline/render', {
     method: 'POST',
     headers: {
       Accept: 'application/json',
@@ -76,32 +80,37 @@ async function run() {
       'Content-Type': 'application/json',
       'Modal-Key': 'browser-supplied-key',
     },
-    body: JSON.stringify({manifest: {jobId: 'job-123'}}),
+    body: JSON.stringify({source: 'https://example.com/video.mp4', metadata: {durationSec: 45}}),
   })
   const outbound = await proxy.buildModalBackendRequest!({
     request: request.clone(),
-    pathSegments: ['api', 'render', 'jobs'],
+    pathSegments: ['api', 'pipeline', 'render'],
+    target: 'mini-run',
     env,
   })
 
-  assert.equal(outbound.url, 'https://joshuagreat965--api.modal.run/api/render/jobs')
+  assert.equal(outbound.url, 'https://joshuagreat965--mini-run.modal.run/api/pipeline/render')
   assert.equal(outbound.init.method, 'POST')
   assert.equal(new Headers(outbound.init.headers).get('Modal-Key'), 'wk-test-key')
   assert.equal(new Headers(outbound.init.headers).get('Modal-Secret'), 'ws-test-secret')
   assert.equal(new Headers(outbound.init.headers).get('Authorization'), null)
   assert.equal(new Headers(outbound.init.headers).get('Cookie'), null)
-  assert.deepEqual(JSON.parse(String(outbound.init.body)), {manifest: {jobId: 'job-123'}})
+  assert.deepEqual(JSON.parse(String(outbound.init.body)), {
+    source: 'https://example.com/video.mp4',
+    metadata: {durationSec: 45},
+  })
 
   let capturedUrl = ''
   let capturedInit: RequestInit | undefined
   const response = await proxy.proxyModalBackendRequest!({
     request,
-    pathSegments: ['api', 'render', 'jobs'],
+    pathSegments: ['api', 'pipeline', 'render'],
+    target: 'mini-run',
     env,
     fetchImpl: async (url, init) => {
       capturedUrl = String(url)
       capturedInit = init
-      return new Response(JSON.stringify({callId: 'fc-render-123'}), {
+      return new Response(JSON.stringify({jobId: 'job_1_2', status: 'queued'}), {
         status: 202,
         headers: {
           'Content-Type': 'application/json',
@@ -118,7 +127,7 @@ async function run() {
   assert.equal(response.headers.get('Content-Type'), 'application/json')
   assert.equal(response.headers.get('Retry-After'), '2')
   assert.equal(response.headers.get('X-Internal-Header'), null)
-  assert.deepEqual(await response.json(), {callId: 'fc-render-123'})
+  assert.deepEqual(await response.json(), {jobId: 'job_1_2', status: 'queued'})
 }
 
 void run()

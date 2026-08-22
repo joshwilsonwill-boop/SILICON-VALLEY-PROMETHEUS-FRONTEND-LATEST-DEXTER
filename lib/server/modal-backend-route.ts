@@ -1,8 +1,11 @@
 type AuthenticatedUser = {id: string}
 
+export type ModalBackendRouteTarget = 'mini-run' | 'landscape'
+
 type ProxyRequest = {
   request: Request
   pathSegments: string[]
+  target: ModalBackendRouteTarget
 }
 
 type RouteDependencies = {
@@ -15,12 +18,12 @@ function jsonError(message: string, status: number) {
 }
 
 export function createModalBackendRouteHandler({authenticate, proxy}: RouteDependencies) {
-  return async (request: Request, pathSegments: string[]) => {
+  return async (request: Request, pathSegments: string[], target: ModalBackendRouteTarget = 'mini-run') => {
     const user = await authenticate()
     if (!user) return jsonError('Unauthorized', 401)
 
     try {
-      return await proxy({request, pathSegments})
+      return await proxy({request, pathSegments, target})
     } catch (error) {
       const message = error instanceof Error ? error.message : ''
       if (message === 'This Modal backend route is not allowed.') {

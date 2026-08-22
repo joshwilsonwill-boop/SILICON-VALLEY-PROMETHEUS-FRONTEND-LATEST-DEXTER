@@ -1,6 +1,5 @@
 import {NextResponse} from 'next/server'
 
-import {dispatchModalSourceAnalysis} from '@/lib/server/modal-source-analysis'
 import {createClient} from '@/lib/supabase/server'
 
 async function ownedIngestion(projectId: string) {
@@ -53,23 +52,9 @@ export async function POST(_request: Request, {params}: {params: Promise<{id: st
   const {id: projectId} = await params
   const owned = await ownedIngestion(projectId)
   if ('response' in owned) return owned.response
-  const {ingestion} = owned
-  if (ingestion.status !== 'queued') {
-    return NextResponse.json({jobId: ingestion.durable_job_id, status: ingestion.status})
-  }
-  try {
-    const dispatch = await dispatchModalSourceAnalysis({
-      request: {jobId: ingestion.durable_job_id, sourceAssetId: ingestion.source_asset_id},
-      env: {
-        PROMETHEUS_BACKEND_URL: process.env.PROMETHEUS_BACKEND_URL,
-        MODAL_PROXY_KEY: process.env.MODAL_PROXY_KEY,
-        MODAL_PROXY_SECRET: process.env.MODAL_PROXY_SECRET,
-      },
-    })
-    return NextResponse.json({jobId: ingestion.durable_job_id, ...dispatch}, {status: 202})
-  } catch (error) {
-    return NextResponse.json({
-      error: error instanceof Error ? error.message : 'Source analysis dispatch failed',
-    }, {status: 502})
-  }
+  // The legacy Modal `api/source-analysis/jobs` dispatch endpoint no longer
+  // exists. Ingestion now flows through the MAUL control-plane worker which
+  // leases source ingestions directly from Supabase — the frontend just reports
+  // current state and lets the worker pick the job up.
+  return NextResponse.json({jobId: owned.ingestion.durable_job_id, status: owned.ingestion.status})
 }

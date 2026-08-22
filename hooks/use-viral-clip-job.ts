@@ -369,7 +369,7 @@ export function useViralClipJob({ projectId, videoId }: UseViralClipJobArgs) {
         ? await planModalTypographyForViralClips({
             result: rawResponse,
             request: activeRequest,
-            previewTextChunks: (payload) => modalCore.previewTextChunks(payload),
+            previewTextChunks: (payload) => modalCore.chunk(payload),
           })
         : rawResponse
       const selectedClips = normalizeSelectedClips(response.selected_clips)
@@ -588,7 +588,7 @@ export function useViralClipJob({ projectId, videoId }: UseViralClipJobArgs) {
             const fallbackResponse = await planModalTypographyForViralClips({
               result: buildFallbackViralClipResult(nextRequest),
               request: nextRequest,
-              previewTextChunks: (payload) => modalCore.previewTextChunks(payload),
+              previewTextChunks: (payload) => modalCore.chunk(payload),
             })
             const selectedClips = normalizeSelectedClips(fallbackResponse.selected_clips)
             if (!selectedClips.some((clip) => Boolean(clip.modal_text_chunk_plan))) {
