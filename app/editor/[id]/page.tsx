@@ -6294,6 +6294,7 @@ function OriginalEditorPage() {
   }, [projectId])
 
   const [project, setProject] = React.useState<Project | null>(null)
+  const [projectLoadError, setProjectLoadError] = React.useState<string | null>(null)
   const [job, setJob] = React.useState<ProcessingJob | null>(null)
   const [saveStatus, setSaveStatus] = React.useState<'saved' | 'saving' | 'error'>('saved')
   const [fitMode, setFitMode] = React.useState<PreviewFitMode>('fill')
@@ -6502,11 +6503,19 @@ function OriginalEditorPage() {
           const { project: apiProject } = await res.json()
           if (active && apiProject) {
             setProject(apiProject)
+            setProjectLoadError(null)
             upsertProject(apiProject)
+          } else if (active && !projects.get(projectId)) {
+            setProjectLoadError('This project could not be found.')
           }
+        } else if (active && !projects.get(projectId)) {
+          setProjectLoadError('This project could not be found.')
         }
       } catch (err) {
         console.error('Failed to fetch project from API:', err)
+        if (active && !projects.get(projectId)) {
+          setProjectLoadError('This project could not be loaded right now.')
+        }
       }
     }
     fetchProject()
@@ -6576,7 +6585,10 @@ function OriginalEditorPage() {
       const nextJob = projects.getJob(projectId)
       const nextProject = projects.get(projectId)
 
-      setProject(nextProject)
+      // Only ever replace the project with a real record. A null lookup during
+      // the API handoff (or a localStorage miss) must not clobber a project we
+      // already loaded, which previously dropped the editor to the empty state.
+      if (nextProject) setProject(nextProject)
       setJob(nextJob)
       if (nextJob?.status === 'completed' && intervalId !== null) {
         window.clearInterval(intervalId)
@@ -8007,6 +8019,29 @@ function OriginalEditorPage() {
       }, "-=0.4");
     }
   }, [isDeferredChromeReady, isMobile])
+
+  if (projectLoadError && !project) {
+    return (
+      <div className="flex h-full min-h-[70vh] w-full flex-col items-center justify-center gap-5 bg-black px-6 text-center text-white">
+        <div className="grid size-14 place-items-center rounded-full border border-white/15 bg-white/[0.04]">
+          <Film className="size-6 text-white/60" />
+        </div>
+        <div>
+          <h1 className="text-xl font-semibold text-white">Project not found</h1>
+          <p className="mt-2 max-w-md text-sm leading-6 text-white/55">
+            {projectLoadError} It may have been moved, deleted, or is still syncing.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => router.push('/projects')}
+          className="mt-2 inline-flex h-10 items-center gap-2 rounded-full border border-white/15 bg-white/[0.05] px-5 text-sm text-white/85 transition-colors hover:border-white/30 hover:bg-white/[0.1] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+        >
+          Back to projects
+        </button>
+      </div>
+    )
+  }
 
   if (isMobile) {
     return (

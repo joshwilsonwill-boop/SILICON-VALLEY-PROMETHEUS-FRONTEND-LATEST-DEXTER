@@ -7,6 +7,7 @@ const EXIT_DURATION_MS = 650
 
 export interface CinematicLogoLoaderProps {
   caption?: string
+  children?: React.ReactNode
   className?: string
   label?: string
   onExited?: () => void
@@ -23,6 +24,7 @@ export interface CinematicLogoLoaderProps {
  */
 export function CinematicLogoLoader({
   caption,
+  children,
   className,
   label,
   onExited,
@@ -85,8 +87,10 @@ export function CinematicLogoLoader({
       className={`prom-cine-overlay fixed inset-0 z-[110] flex flex-col items-center justify-center ${exiting ? 'prom-cine-exit' : 'prom-cine-enter'} ${className ?? ''}`}
     >
       <style>{PROM_CINE_STYLES}</style>
+      <div className="prom-cine-backdrop" aria-hidden="true" />
       {logo}
       {caption ? <p className="prom-cine-caption">{caption}</p> : null}
+      {children}
     </div>
   )
 }
@@ -95,9 +99,18 @@ const PROM_CINE_STYLES = `
   .prom-cine-overlay {
     background: transparent;
   }
+  .prom-cine-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background: linear-gradient(180deg, rgba(4,4,6,0.86) 0%, rgba(6,6,8,0.9) 55%, rgba(3,3,5,0.92) 100%);
+    backdrop-filter: blur(18px) saturate(0.72);
+    -webkit-backdrop-filter: blur(18px) saturate(0.72);
+  }
   .prom-cine-overlay .prom-cine-logo {
     width: 44vmin;
     height: 44vmin;
+    filter: drop-shadow(0 0 36px rgba(255,255,255,0.10));
   }
   .prom-cine-logo,
   .prom-cine-logo video {
