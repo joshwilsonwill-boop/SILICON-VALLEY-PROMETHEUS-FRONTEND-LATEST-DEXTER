@@ -120,7 +120,10 @@ export function useVoiceInput({
             onTranscript(payload.text.trim());
             setState("idle");
           } catch (transcribeError) {
-            const message = transcribeError instanceof Error ? transcribeError.message : "Transcription failed.";
+            const raw = transcribeError instanceof Error ? transcribeError.message : "Transcription failed.";
+            const message = /failed to fetch|networkerror|load failed|aborted/i.test(raw)
+              ? "Could not reach the transcription service. Check your connection and try again."
+              : raw;
             setError(message);
             setState("error");
           } finally {

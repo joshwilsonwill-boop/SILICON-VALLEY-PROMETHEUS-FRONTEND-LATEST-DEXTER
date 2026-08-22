@@ -46,7 +46,7 @@ export async function POST(request: Request) {
         speaker_labels: false,
         punctuate: true,
         format_text: true,
-        speech_models: ["universal-3-pro", "universal-2"],
+        speech_model: "universal_2",
         language_detection: true,
       }),
     });

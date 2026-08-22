@@ -156,8 +156,8 @@ export function ChatSuggestions({
         hidden: {},
         visible: {
           transition: {
-            staggerChildren: 0.055,
-            delayChildren: 0.04,
+            staggerChildren: 0.07,
+            delayChildren: 0.08,
           },
         },
       }}
@@ -168,17 +168,29 @@ export function ChatSuggestions({
           type="button"
           onClick={() => onSelect(suggestion)}
           variants={{
-            hidden: prefersReducedMotion ? {} : { opacity: 0, y: 14, scale: 0.96 },
-            visible: { opacity: 1, y: 0, scale: 1 },
+            hidden: prefersReducedMotion
+              ? {}
+              : {
+                  opacity: 0,
+                  y: 26,
+                  scale: 0.92,
+                  filter: "blur(6px)",
+                },
+            visible: {
+              opacity: 1,
+              y: 0,
+              scale: 1,
+              filter: "blur(0px)",
+            },
           }}
           transition={{
-            type: "spring",
-            stiffness: 260,
-            damping: 22,
-            mass: 0.7,
+            y: { type: "spring", stiffness: 320, damping: 24, mass: 0.8 },
+            opacity: { duration: 0.34, ease: [0.16, 1, 0.3, 1] },
+            scale: { type: "spring", stiffness: 320, damping: 24, mass: 0.8 },
+            filter: { duration: 0.4, ease: "easeOut" },
           }}
-          whileHover={prefersReducedMotion ? undefined : { y: -2, scale: 1.018 }}
-          whileTap={prefersReducedMotion ? undefined : { scale: 0.975, transition: { duration: 0.12 } }}
+          whileHover={prefersReducedMotion ? undefined : { y: -2, scale: 1.02 }}
+          whileTap={prefersReducedMotion ? undefined : { scale: 0.97, transition: { duration: 0.12 } }}
           className={cn(
             "group relative flex min-h-11 w-full items-center justify-center overflow-hidden rounded-full border border-white/[0.14] bg-white/[0.045] px-4 py-2.5 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_8px_24px_rgba(0,0,0,0.12)]",
             "text-[13px] font-medium leading-[1.25] text-white/68 transition-[background-color,border-color,color,box-shadow] duration-500",
@@ -190,6 +202,10 @@ export function ChatSuggestions({
             aria-hidden="true"
             className="pointer-events-none absolute inset-x-[-35%] top-0 h-px bg-gradient-to-r from-transparent via-white/55 to-transparent opacity-0 transition-[transform,opacity] duration-700 group-hover:translate-x-[70%] group-hover:opacity-100"
             style={{ transitionDelay: `${index * 35}ms` }}
+          />
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/55 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100"
           />
           <span className="relative z-10 block w-full text-balance">{suggestion}</span>
         </motion.button>

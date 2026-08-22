@@ -87,14 +87,14 @@ export function VoiceWaveform({
 
   return (
     <div className="flex h-12 w-full items-center gap-3">
-      <div className="flex min-w-0 flex-1 items-center justify-center gap-[3px]" aria-hidden="true">
+      <div className="flex h-full min-w-0 flex-1 items-center justify-center gap-[3px]" aria-hidden="true">
         {Array.from({ length: BAR_COUNT }, (_, index) => (
           <span
             key={index}
             ref={(node) => {
               barRefs.current[index] = node;
             }}
-            className={cn("w-[3px] shrink-0 rounded-full", index === 0 || index === BAR_COUNT - 1 ? "bg-white/30" : "bg-white/85")}
+            className={cn("w-[3px] shrink-0 rounded-full", index === 0 || index === BAR_COUNT - 1 ? "bg-white/40" : "bg-white/95")}
             style={{ height: "6%" }}
           />
         ))}

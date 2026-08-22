@@ -20,6 +20,7 @@ import {
 } from '@/components/assets/cinematic-library'
 import { LibraryCollection } from '@/components/assets/library-collection'
 import { BrandTasteLab } from '@/components/assets/brand-taste-lab'
+import { BrandShowcase } from '@/components/assets/brand-showcase'
 import { PrometheusShell } from '@/components/prometheus-shell'
 import { readLocalStorageJSON, writeLocalStorageJSON } from '@/lib/storage'
 import type { AssetItem, AssetKind } from '@/lib/types'
@@ -114,6 +115,8 @@ export default function AssetsPage() {
       />
 
       <BrandTasteLab />
+
+      <BrandShowcase />
 
       <Dialog
         open={libraryOpen}
