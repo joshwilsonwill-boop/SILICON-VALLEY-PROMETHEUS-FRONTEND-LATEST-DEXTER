@@ -21,7 +21,6 @@ import { PrometheusChatHistoryDrawer } from './prometheus-chat-history-drawer'
 import { AIChatStreamingText } from './ai-chat-streaming-text'
 import { PrometheusChatActivity } from './prometheus-chat-activity'
 import { PrometheusChatMedia } from './prometheus-chat-media'
-import { ActiveChatEngagement } from './active-chat-engagement'
 import { VoiceWaveform } from './voice-waveform'
 
 export type PrometheusChatMessage = {
@@ -427,20 +426,6 @@ export function PrometheusChat({
               suggestionsHidden && "invisible pointer-events-none",
             )}
           />
-          <AnimatePresence initial={false}>
-            {!suggestionsHidden ? (
-              <ActiveChatEngagement
-                draft={composedDraft}
-                workspaceTab={workspaceTab}
-                hasProject={Boolean(projectId)}
-                onSelect={(prompt) => {
-                  setDraft(prompt)
-                  inputRef.current?.focus()
-                }}
-                className="mx-[-1.25rem] mb-3 md:mx-[-2.5rem]"
-              />
-            ) : null}
-          </AnimatePresence>
           <form
             className="relative z-20 mx-auto flex min-h-14 w-full max-w-3xl items-center gap-3 rounded-2xl border border-white/10 bg-black px-5 py-3 transition-colors focus-within:border-white/22"
             onSubmit={(event) => {

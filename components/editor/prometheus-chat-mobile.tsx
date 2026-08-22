@@ -14,7 +14,6 @@ import { ChatSuggestions } from "@/components/editor/ai-chat-suggestions";
 import { ElegistChatGreeting } from "@/components/editor/elegist-chat-greeting";
 import { PrometheusChatHistoryDrawer } from "@/components/editor/prometheus-chat-history-drawer";
 import { PrometheusChatActivity } from "@/components/editor/prometheus-chat-activity";
-import { ActiveChatEngagement } from "@/components/editor/active-chat-engagement";
 import { useAIChat, type CarouselItem } from "@/hooks/use-ai-chat";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { useProfile } from "@/hooks/use-profile";
@@ -243,18 +242,6 @@ export function PrometheusChatMobile({
             onSelect={handleSuggestionSelect}
           />
         </div>
-
-        <AnimatePresence initial={false}>
-          {!suggestionsHidden ? (
-            <ActiveChatEngagement
-              draft={chat.draft}
-              workspaceTab={workspaceTab}
-              hasProject={Boolean(projectId)}
-              onSelect={handleSuggestionSelect}
-              className="mb-2"
-            />
-          ) : null}
-        </AnimatePresence>
 
         <MobileChatInput
           inputRef={composerInputRef}

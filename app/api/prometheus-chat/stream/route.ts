@@ -95,6 +95,8 @@ export async function POST(request: Request) {
     : clientVideoContext?.video
       ? formatClientVideoContextForPrompt(clientVideoContext)
       : "";
+  const hasVideo =
+    Boolean(projectContext?.video) || Boolean(clientVideoContext?.video);
   const toolsEnabled =
     intent.allowTools || Boolean(editorContext) || Boolean(projectContext?.video) || Boolean(clientVideoContext?.video);
 
@@ -161,6 +163,7 @@ export async function POST(request: Request) {
               editorContext,
               frameReferences,
               toolsEnabled,
+              hasVideo,
             });
             const groqMessages = [
               { role: "system", content: systemPrompt },
@@ -569,6 +572,7 @@ function buildStreamSystemPrompt({
   editorContext,
   frameReferences,
   toolsEnabled,
+  hasVideo,
 }: {
   intentInstruction: string;
   knowledgeContext: string;
@@ -578,6 +582,7 @@ function buildStreamSystemPrompt({
   editorContext: ChatEditorContext | null;
   frameReferences: ChatFrameReference[];
   toolsEnabled: boolean;
+  hasVideo: boolean;
 }) {
   const editorLines: string[] = [];
   if (editorContext) {
@@ -608,6 +613,9 @@ function buildStreamSystemPrompt({
     originalPrompt ? `Relevant creative direction: ${originalPrompt}` : "",
     projectId ? `Current project ID: ${projectId}` : "",
     projectContextBlock ? `Current project context:\n${projectContextBlock}` : "",
+    hasVideo
+      ? ""
+      : "No source video is loaded in the current project. If the user references footage, clips, timestamps, a 48-second clip, or asks you to edit/transcribe a video, do NOT assume or invent any video details. State plainly that there is no source video yet and ask them to upload or attach footage first before any video processing can begin.",
     editorLines.length ? `Live editor state:\n${editorLines.join("\n")}` : "",
     frameReferences.length
       ? `Available video frame thumbnails (cite these by timecode when relevant):\n${frameReferences
