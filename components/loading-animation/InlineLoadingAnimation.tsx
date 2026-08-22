@@ -1,7 +1,5 @@
 'use client'
 
-import { CinematicLogoLoader } from '@/components/loading-animation/cinematic-logo-loader'
-
 export interface InlineLoadingAnimationProps {
   className?: string
   label?: string
@@ -9,16 +7,22 @@ export interface InlineLoadingAnimationProps {
 }
 
 /**
- * Inline cinematic Prometheus loader. Renders the alpha WebM logo at the
- * requested size inside the current layout without an overlay.
+ * Lightweight inline loader used inside compact UI (buttons, chips, drop zones).
+ * Deliberately NOT the cinematic logo-video — that full treatment belongs to the
+ * overlay `LoadingAnimation` / `CinematicLogoLoader`, not to inline surfaces
+ * where a large looping WebM would crowd the layout.
  */
-export function InlineLoadingAnimation({ className, label, size }: InlineLoadingAnimationProps) {
+export function InlineLoadingAnimation({ className, label, size = 16 }: InlineLoadingAnimationProps) {
   return (
-    <CinematicLogoLoader
-      variant="inline"
-      size={size}
-      label={label}
-      className={className}
-    />
+    <span
+      role="status"
+      aria-label={label ?? 'Loading'}
+      className={`inline-flex shrink-0 items-center justify-center ${className ?? ''}`}
+      style={{ width: size, height: size }}
+    >
+      <span className="relative block h-full w-full">
+        <span className="absolute inset-0 animate-spin rounded-full border-[2px] border-white/12 border-t-white/70" style={{ borderWidth: Math.max(1.5, size * 0.12) }} />
+      </span>
+    </span>
   )
 }
