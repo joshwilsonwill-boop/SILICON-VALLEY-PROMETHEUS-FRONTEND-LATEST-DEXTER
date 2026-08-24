@@ -6,9 +6,9 @@ const root = process.cwd()
 const read = (relativePath) => readFileSync(join(root, relativePath), 'utf8')
 
 const projects = read('components/projects/projects-page-editorial.tsx')
-assert.match(projects, /import \{ useRouter \} from 'next\/navigation'/)
-assert.match(projects, /rememberCurrentPathForEditorReturn\(\)/)
-assert.match(projects, /router\.push\(`\/editor\/\$\{project\.id\}`\)/)
+assert.match(projects, /ProjectPreviewDrawer/)
+assert.match(projects, /setPreviewProject\(project\)/)
+assert.doesNotMatch(projects, /router\.push\(`\/editor\/\$\{project\.id\}`\)/)
 assert.doesNotMatch(projects, /onOpen=\{\(\) => setDetailProject\(project\)\}/)
 
 const music = read('components/editor/music-tab-panel.tsx')
