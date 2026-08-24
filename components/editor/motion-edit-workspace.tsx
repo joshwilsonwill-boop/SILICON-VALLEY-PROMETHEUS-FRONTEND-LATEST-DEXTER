@@ -6,6 +6,7 @@ import {
   Check,
   Crop,
   Download,
+  Edit3,
   Filter,
   Frame,
   GripHorizontal,
@@ -21,6 +22,7 @@ import {
   Upload,
   Volume2,
   Wand2,
+  X,
   ZoomIn,
   ZoomOut,
 } from 'lucide-react'
@@ -68,6 +70,7 @@ export interface MotionEditWorkspaceProps {
   onPreviewMutedChange: (muted: boolean) => void
   videoRef: React.Ref<HTMLVideoElement>
   transcriptSegments?: MotionTranscriptSegment[]
+  onUpdateTranscriptSegment?: (segmentId: string, nextText: string) => void
   onTogglePlayback: () => void
   onPickSource: () => void
   onSourceDrop?: (event: React.DragEvent) => void
@@ -144,6 +147,7 @@ export function MotionEditWorkspace({
   projectTitle, previewUrl, previewKind, hasPreviewMedia, sourceLabel, previewAspectRatio, fitMode,
   onFitModeChange, objectFit, mediaTransformStyle, currentTimeLabel, durationLabel, currentTimeSec,
   durationSec, previewPlaying, previewMuted, onPreviewMutedChange, videoRef, transcriptSegments = DEFAULT_TRANSCRIPT,
+  onUpdateTranscriptSegment,
   onTogglePlayback, onPickSource, onSourceDrop, onSourceDragOver, onSourceDragLeave, isSourceDragOver = false,
   textPlacements, onSeek, onVideoLoadedMetadata, onVideoLoadedData, onVideoCanPlay,
   onVideoTimeUpdate, onVideoEnded, onVideoPlay, onVideoPause, onVideoError, onImageLoaded, onApplyPrompt,
@@ -324,6 +328,28 @@ export function MotionEditWorkspace({
     <button type="button" onClick={onPickSource} className="absolute inset-0 grid place-items-center bg-[radial-gradient(circle_at_center,rgba(152,242,55,0.1),transparent_38%)] text-sm text-white/66 transition-colors hover:text-white"><span className="inline-flex items-center gap-2 rounded-md border border-white/12 bg-black/45 px-4 py-2.5"><Upload className="size-4" /> Choose source media</span></button>
   )
 
+  const [editingSegmentId, setEditingSegmentId] = React.useState<string | null>(null)
+  const [editingText, setEditingText] = React.useState('')
+
+  const handleStartEdit = (segment: MotionTranscriptSegment, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setEditingSegmentId(segment.id)
+    setEditingText(segment.text)
+  }
+
+  const handleSaveEdit = (segmentId: string, e?: React.MouseEvent | React.FormEvent) => {
+    if (e) e.stopPropagation()
+    if (editingText.trim() && onUpdateTranscriptSegment) {
+      onUpdateTranscriptSegment(segmentId, editingText.trim())
+    }
+    setEditingSegmentId(null)
+  }
+
+  const handleCancelEdit = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation()
+    setEditingSegmentId(null)
+  }
+
   return (
     <section ref={workspaceRef} data-motion-chamber className="relative flex h-full min-h-0 flex-col overflow-hidden bg-[radial-gradient(ellipse_at_50%_42%,#080808_0%,#000_68%)] text-white" aria-label="Motion editing workspace" onDragOver={onSourceDragOver} onDragLeave={onSourceDragLeave} onDrop={onSourceDrop}>
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.035)_0_1px,transparent_1.2px)] bg-[length:7px_7px] opacity-[0.24]" aria-hidden="true" />
@@ -335,7 +361,7 @@ export function MotionEditWorkspace({
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
         <aside className="hidden w-[clamp(250px,24vw,340px)] shrink-0 flex-col border-r border-white/10 xl:flex">
           <div className="flex min-h-14 shrink-0 items-center gap-3 border-b border-white/8 px-5">
-            <span className="text-sm font-medium">Transcript</span><span className="rounded bg-white/[0.08] px-1.5 py-0.5 text-[10px] text-white/46">Live</span>
+            <span className="text-sm font-medium">Transcript</span><span className="rounded bg-white/[0.08] px-1.5 py-0.5 text-[10px] text-white/46">AssemblyAI</span>
             <button type="button" onClick={() => setTranscriptQuery((value) => value ? '' : ' ')} className="ml-auto grid size-9 place-items-center text-white/58 transition-colors hover:text-white" aria-label="Search transcript"><Search className="size-4" /></button>
             <button type="button" onClick={() => setActiveOnly((value) => !value)} className={cn('grid size-9 place-items-center transition-colors', activeOnly ? 'text-[#b4fb60]' : 'text-white/58 hover:text-white')} aria-label="Filter transcript to current line"><Filter className="size-4" /></button>
           </div>
@@ -344,7 +370,76 @@ export function MotionEditWorkspace({
             <button type="button" onClick={() => onApplyPrompt?.('Clean up the selected speech in the current edit.')} className="mb-5 inline-flex min-h-10 items-center gap-2 rounded-md border border-white/10 bg-white/[0.08] px-3 py-2 text-xs font-medium text-white/86 transition-colors hover:bg-white/[0.13]"><Wand2 className="size-3.5" /> Speech cleanup</button>
             <div className="space-y-3.5 text-[17px] leading-8">{visibleSegments.map((segment) => {
               const active = isActiveSegment(segment, currentTimeSec)
-              return <button key={segment.id} type="button" data-active-transcript={active} onClick={() => onSeek(segment.start)} className={cn('block w-full rounded-md px-1 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#98f237]/55', active ? 'bg-white/[0.035]' : 'hover:bg-white/[0.025]')}><HighlightedTranscript segment={segment} active={active} /><span className={cn('ml-2 inline-flex translate-y-[-1px] rounded px-1.5 py-0.5 text-[10px] leading-none', active ? 'bg-[#98f237]/16 text-[#b4fb60]' : 'bg-white/[0.08] text-white/38')}>{formatTime(segment.start).slice(0, 5)}</span></button>
+              const isEditing = editingSegmentId === segment.id
+
+              if (isEditing) {
+                return (
+                  <div key={segment.id} className="rounded-md border border-[#98f237]/40 bg-black/50 p-2.5 shadow-lg">
+                    <textarea
+                      autoFocus
+                      rows={3}
+                      value={editingText}
+                      onChange={(e) => setEditingText(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault()
+                          handleSaveEdit(segment.id)
+                        } else if (e.key === 'Escape') {
+                          handleCancelEdit()
+                        }
+                      }}
+                      className="w-full resize-none rounded border border-white/10 bg-black/60 p-2 text-xs leading-relaxed text-white outline-none focus:border-[#98f237]"
+                    />
+                    <div className="mt-2 flex items-center justify-end gap-1.5">
+                      <button
+                        type="button"
+                        onClick={handleCancelEdit}
+                        className="inline-flex items-center gap-1 rounded border border-white/10 px-2 py-1 text-[11px] text-white/60 hover:bg-white/10 hover:text-white"
+                      >
+                        <X className="size-3" /> Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => handleSaveEdit(segment.id, e)}
+                        className="inline-flex items-center gap-1 rounded bg-[#98f237] px-2.5 py-1 text-[11px] font-semibold text-black hover:bg-[#b4fb60]"
+                      >
+                        <Check className="size-3" /> Save
+                      </button>
+                    </div>
+                  </div>
+                )
+              }
+
+              return (
+                <div
+                  key={segment.id}
+                  data-active-transcript={active}
+                  onClick={() => onSeek(segment.start)}
+                  className={cn(
+                    'group relative block w-full cursor-pointer rounded-md p-1.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#98f237]/55',
+                    active ? 'bg-white/[0.045] ring-1 ring-[#98f237]/25' : 'hover:bg-white/[0.025]',
+                  )}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1">
+                      <HighlightedTranscript segment={segment} active={active} />
+                      <span className={cn('ml-2 inline-flex translate-y-[-1px] rounded px-1.5 py-0.5 text-[10px] tabular-nums leading-none', active ? 'bg-[#98f237]/16 font-semibold text-[#b4fb60]' : 'bg-white/[0.08] text-white/38')}>
+                        {formatTime(segment.start).slice(0, 5)}
+                      </span>
+                    </div>
+                    {onUpdateTranscriptSegment ? (
+                      <button
+                        type="button"
+                        onClick={(e) => handleStartEdit(segment, e)}
+                        title="Edit transcript text"
+                        className="opacity-0 transition-opacity group-hover:opacity-100 p-1 rounded hover:bg-white/10 text-white/50 hover:text-white"
+                      >
+                        <Edit3 className="size-3" />
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
+              )
             })}{visibleSegments.length === 0 ? <p className="text-sm text-white/42">No matching transcript lines.</p> : null}</div>
           </div>
         </aside>

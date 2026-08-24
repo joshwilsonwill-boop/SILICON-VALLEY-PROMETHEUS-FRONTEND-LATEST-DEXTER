@@ -6833,9 +6833,10 @@ function OriginalEditorPage() {
     let active = true
     let intervalId: number | null = null
     let completed = false
+    let started = false
 
     const pollTranscript = async () => {
-      if (completed) return
+      if (completed || !active) return
       try {
         const response = await fetch(`/api/assets/${project!.sourceAssetId}/transcript`, {cache: 'no-store'})
         if (!response.ok) return
@@ -6855,6 +6856,16 @@ function OriginalEditorPage() {
               transcriptText: segments.map((s) => s.text).join(' '),
             }
           })
+          return
+        }
+
+        // If no transcription job is in flight yet, kick off AssemblyAI auto-transcription
+        if (body.status === 'idle' && !started) {
+          started = true
+          await fetch(`/api/assets/${project!.sourceAssetId}/transcript`, {
+            method: 'POST',
+            cache: 'no-store',
+          }).catch(() => {})
         }
       } catch {
         // Retry on next tick
@@ -7149,6 +7160,29 @@ function OriginalEditorPage() {
     () => buildMotionTranscriptSegments(job?.artifacts.transcript),
     [job?.artifacts.transcript],
   )
+
+  const handleUpdateTranscriptSegment = React.useCallback((segmentId: string, nextText: string) => {
+    setJob((current) => {
+      if (!current) return current
+      const existing = current.artifacts.transcript ?? []
+      const updated = existing.map((seg, index) => {
+        const matches =
+          seg.id === segmentId ||
+          String(index) === segmentId ||
+          `transcript-${index}` === segmentId ||
+          `motion-transcript-${index + 1}` === segmentId
+        if (matches) {
+          return { ...seg, text: nextText }
+        }
+        return seg
+      })
+      return {
+        ...current,
+        artifacts: { ...current.artifacts, transcript: updated },
+        transcriptText: updated.map((s) => s.text).join(' '),
+      }
+    })
+  }, [])
   const viralClipPrompt = React.useMemo(
     () =>
       buildViralClipQuickActionPrompt({
@@ -8400,6 +8434,7 @@ function OriginalEditorPage() {
                     onSourceDragLeave={handleMotionSourceDragLeave}
                     isSourceDragOver={isInlineSourceDragOver}
                     transcriptSegments={motionTranscriptSegments}
+                    onUpdateTranscriptSegment={handleUpdateTranscriptSegment}
                     onSeek={handlePreviewSeekSeconds}
                     onVideoLoadedMetadata={handlePreviewMetadataLoaded}
                     onVideoLoadedData={handlePreviewVideoReady}
