@@ -27,7 +27,7 @@ export const ProjectService = {
 
     const { data: projectRows, error: projectsError } = await supabase
       .from('projects')
-      .select('id, user_id, name, status, thumbnail_url, created_at, updated_at, source_profile, editor_state')
+      .select('id, user_id, name, status, thumbnail_url, source_asset_id, created_at, updated_at, source_profile, editor_state')
       .eq('user_id', user.id)
       .order('updated_at', { ascending: false })
 

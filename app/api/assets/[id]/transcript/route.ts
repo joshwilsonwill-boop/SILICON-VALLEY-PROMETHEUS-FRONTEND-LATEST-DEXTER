@@ -5,6 +5,33 @@ import { downloadTextFromR2 } from '@/lib/r2/download-text'
 import { startSourceAssetTranscription } from '@/lib/server/source-transcript'
 import { createClient } from '@/lib/supabase/server'
 
+type TranscriptSegment = {
+  id: string
+  startMs: number
+  endMs: number
+  text: string
+}
+
+function normalizeSegments(value: unknown): TranscriptSegment[] | null {
+  if (!Array.isArray(value) || value.length === 0) return null
+
+  const segments = value.map((segment, index) => {
+    const record = segment && typeof segment === 'object' ? segment as Record<string, unknown> : {}
+    const text = typeof record.text === 'string' ? record.text.trim() : ''
+    const startMs = Number(record.startMs)
+    const endMs = Number(record.endMs)
+    if (!text || !Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs < startMs) return null
+    return {
+      id: typeof record.id === 'string' && record.id.trim() ? record.id.trim() : `transcript-${index + 1}`,
+      startMs: Math.round(startMs),
+      endMs: Math.round(endMs),
+      text,
+    }
+  })
+
+  return segments.every((segment): segment is TranscriptSegment => segment !== null) ? segments : null
+}
+
 /**
  * GET returns the normalized transcript segments for a source asset (for the
  * motion section), reading from the R2 transcript object. Returns `idle` until
@@ -38,12 +65,23 @@ export async function GET(
       return NextResponse.json({ status: 'transcribing' })
     }
 
+    const savedSegments = normalizeSegments(asset.transcript_segments)
+    if (asset.transcript_status === 'completed' && savedSegments) {
+      return NextResponse.json({ status: 'completed', segments: savedSegments })
+    }
+
     if (asset.transcript_status === 'completed' && asset.transcript_r2_key) {
       const bucket = process.env.R2_BUCKET_SOURCES || 'prometheus-sources'
       const raw = await downloadTextFromR2(bucket, asset.transcript_r2_key)
       if (raw) {
         const parsed = JSON.parse(raw) as Record<string, unknown>
-        return NextResponse.json({ status: 'completed', segments: assemblyTranscriptToSegments(parsed) })
+        const segments = assemblyTranscriptToSegments(parsed)
+        await supabase
+          .from('source_assets')
+          .update({ transcript_segments: segments })
+          .eq('id', assetId)
+          .eq('user_id', user.id)
+        return NextResponse.json({ status: 'completed', segments })
       }
     }
 
@@ -54,6 +92,38 @@ export async function GET(
       { error: err instanceof Error ? err.message : 'Failed to load transcript' },
       { status: 500 },
     )
+  }
+}
+
+/** Save user-authored edits to the normalized transcript segments. */
+export async function PATCH(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    const { id: assetId } = await params
+    const body = await req.json().catch(() => null) as { segments?: unknown } | null
+    const segments = normalizeSegments(body?.segments)
+    if (!segments) return NextResponse.json({ error: 'A non-empty timed transcript is required.' }, { status: 400 })
+
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    const { error } = await supabase
+      .from('source_assets')
+      .update({
+        transcript_segments: segments,
+        transcript_text: segments.map((segment) => segment.text).join(' ').slice(0, 500),
+      })
+      .eq('id', assetId)
+      .eq('user_id', user.id)
+
+    if (error) throw error
+    return NextResponse.json({ status: 'completed', segments })
+  } catch (err) {
+    console.error('[api/assets/[id]/transcript] PATCH error:', err)
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'Failed to save transcript' }, { status: 500 })
   }
 }
 

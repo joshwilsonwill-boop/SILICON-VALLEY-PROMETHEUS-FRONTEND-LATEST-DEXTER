@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getAssemblyAITranscriptionStatus } from '@/lib/api/assemblyai'
 import { uploadTranscriptToR2 } from '@/lib/r2/upload-transcript'
 import { R2Keys } from '@/lib/r2/keys'
+import { assemblyTranscriptToSegments } from '@/lib/r2/assembly-transcript'
 
 export async function POST(
   req: Request,
@@ -69,6 +70,7 @@ export async function POST(
           transcript_completed_at: new Date().toISOString(),
           transcript_synced_at: new Date().toISOString(),
           transcript_error: null,
+          transcript_segments: assemblyTranscriptToSegments(assemblyResponse as unknown as Record<string, unknown>),
           // Store a tiny preview if useful, otherwise leave null
           transcript_text: assemblyResponse.text?.slice(0, 500) || null
         })

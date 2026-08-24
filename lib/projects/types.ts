@@ -14,6 +14,7 @@ export interface ProjectListItem {
   width: number | null
   height: number | null
   fps: number | null
+  sourceAssetId: string | null
 }
 
 export interface CreateProjectInput {

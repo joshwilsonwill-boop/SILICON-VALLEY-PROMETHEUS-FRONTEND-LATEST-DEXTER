@@ -51,6 +51,11 @@ assert.match(suggestionsSource, /lastMessageRole/,
   "deterministic suggestions must react to the latest conversational turn");
 assert.match(suggestionsSource, /NO_PROJECT_CHAT_SUGGESTIONS/);
 assert.match(suggestionsSource, /FOLLOW_UP_SUGGESTIONS_BY_TAB/);
+assert.match(suggestionsSource, /Find the emotional turn in this cut/);
+assert.match(suggestionsSource, /Give this scene a cinematic rhythm/);
+assert.match(suggestionsSource, /Push the cinematic direction further/);
+assert.doesNotMatch(suggestionsSource, /Apply that direction to my cut/);
+assert.doesNotMatch(suggestionsSource, /Make my captions pop/);
 assert.match(suggestionsSource, /new Set<string>/, "stream suggestions must be de-duplicated");
 assert.match(suggestionsSource, /while \(items\.length < 4/,
   "short stream payloads must be filled to four stable slots");
@@ -61,12 +66,16 @@ assert.match(suggestionsSource, /grid-cols-2 md:grid-cols-4/,
   "responsive layout must be mobile 2x2 and desktop one-row");
 assert.match(suggestionsSource, /min-h-11/);
 assert.match(suggestionsSource, /focus-visible:ring-2/);
+assert.match(suggestionsSource, /isVisible = true/);
+assert.match(suggestionsSource, /isVisible \? "visible" : "hidden"/);
+assert.match(suggestionsSource, /staggerChildren: 0\.065/);
 assert.doesNotMatch(suggestionsSource, /overflow-x-(?:auto|scroll)/);
 assert.doesNotMatch(suggestionsSource, /#[0-9a-f]{3,8}\b/i);
 
 assert.match(desktopSource, /workspaceTab=\{workspaceTab\}/);
 assert.match(desktopSource, /hasProject=\{Boolean\(projectId\)\}/);
 assert.match(desktopSource, /lastMessageRole=\{lastMessage\?\.role\}/);
+assert.match(desktopSource, /isVisible=\{!suggestionsHidden\}/);
 assert.match(desktopSource, /layout="responsive"/);
 assert.match(desktopSource, /<ChatSuggestions[\s\S]*suggestionsHidden && "invisible pointer-events-none"/,
   "desktop must reserve suggestion layout space while generation hides the controls");
@@ -82,6 +91,7 @@ assert.doesNotMatch(
 assert.match(mobileSource, /workspaceTab=\{workspaceTab\}/);
 assert.match(mobileSource, /hasProject=\{Boolean\(projectId\)\}/);
 assert.match(mobileSource, /lastMessageRole=\{lastMessage\?\.role\}/);
+assert.match(mobileSource, /isVisible=\{!suggestionsHidden\}/);
 assert.match(mobileSource, /layout="grid"/);
 assert.match(mobileSource, /suggestionsHidden[\s\S]*invisible[\s\S]*ChatSuggestions/,
   "mobile must reserve suggestion layout space while generation hides the controls");

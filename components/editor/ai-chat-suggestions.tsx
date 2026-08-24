@@ -10,10 +10,10 @@ export type ChatSuggestionsWorkspaceTab = "Editor" | "Music" | "Motion";
 // desktop row stays symmetric and the mobile 2x2 grid stays balanced.
 export const CHAT_SUGGESTIONS_BY_TAB: Record<ChatSuggestionsWorkspaceTab, string[]> = {
   Editor: [
-    "Tighten my intro pacing",
+    "Find the emotional turn in this cut",
     "Suggest a hook for this clip",
     "Pick a music mood",
-    "Make my captions pop",
+    "Give this scene a cinematic rhythm",
   ],
   Music: [
     "Find a track that fits this scene",
@@ -31,10 +31,10 @@ export const CHAT_SUGGESTIONS_BY_TAB: Record<ChatSuggestionsWorkspaceTab, string
 
 // Fallback set when no workspace tab context is available (e.g. mobile chat).
 export const GENERIC_CHAT_SUGGESTIONS: string[] = [
-  "Give me three ways to improve this video",
+  "Find the emotional turn in this cut",
   "Suggest a hook for this clip",
   "Pick a music mood",
-  "Make my captions pop",
+  "Give this scene a cinematic rhythm",
 ];
 
 export const NO_PROJECT_CHAT_SUGGESTIONS: string[] = [
@@ -45,7 +45,7 @@ export const NO_PROJECT_CHAT_SUGGESTIONS: string[] = [
 ];
 
 export const FOLLOW_UP_SUGGESTIONS_BY_TAB: Record<ChatSuggestionsWorkspaceTab, string> = {
-  Editor: "Apply that direction to my cut",
+  Editor: "Push the cinematic direction further",
   Music: "Refine that soundtrack direction",
   Motion: "Turn that into a motion pass",
 };
@@ -119,6 +119,7 @@ export function ChatSuggestions({
   hasProject = true,
   lastMessageRole = null,
   onSelect,
+  isVisible = true,
   layout = "responsive",
   className,
   ariaLabel = "Suggested prompts",
@@ -131,6 +132,8 @@ export function ChatSuggestions({
   lastMessageRole?: ChatMessageRole | null;
   /** Clicking a chip hands the text back; the caller fills the draft (never auto-sends). */
   onSelect: (suggestion: string) => void;
+  /** Replays the entrance after a retained row becomes visible again. */
+  isVisible?: boolean;
   /** responsive: 2x2 mobile / one row desktop. row and grid support fixed chambers. */
   layout?: "responsive" | "row" | "grid";
   className?: string;
@@ -152,13 +155,13 @@ export function ChatSuggestions({
         className,
       )}
       initial={prefersReducedMotion ? false : "hidden"}
-      animate="visible"
+      animate={prefersReducedMotion ? false : isVisible ? "visible" : "hidden"}
       variants={{
         hidden: {},
         visible: {
           transition: {
             staggerChildren: 0.065,
-            delayChildren: 0.045,
+            delayChildren: 0.06,
           },
         },
       }}
@@ -173,22 +176,18 @@ export function ChatSuggestions({
               ? {}
               : {
                   opacity: 0,
-                  y: 24,
-                  scale: 0.96,
-                  filter: "blur(10px)",
+                  y: 18,
+                  filter: "blur(8px)",
                 },
             visible: {
-              opacity: [0, 0.72, 1],
-              y: [30, 8, 0],
-              scale: 1,
-              filter: ["blur(12px)", "blur(4px)", "blur(0px)"],
+              opacity: 1,
+              y: 0,
+              filter: "blur(0px)",
             },
           }}
           transition={{
-            y: { duration: 0.5, times: [0, 0.5, 1], ease: [0.22, 1, 0.36, 1] },
-            opacity: { duration: 0.46, times: [0, 0.48, 1], ease: [0.22, 1, 0.36, 1] },
-            scale: { duration: 0.48, ease: [0.22, 1, 0.36, 1] },
-            filter: { duration: 0.5, times: [0, 0.5, 1], ease: [0.22, 1, 0.36, 1] },
+            duration: 0.46,
+            ease: [0.22, 1, 0.36, 1],
           }}
           className={cn(
             "group relative flex min-h-11 w-full items-center justify-center overflow-hidden rounded-full border border-white/[0.14] bg-white/[0.055] px-4 py-2.5 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_8px_24px_rgba(0,0,0,0.14)] backdrop-blur-md",

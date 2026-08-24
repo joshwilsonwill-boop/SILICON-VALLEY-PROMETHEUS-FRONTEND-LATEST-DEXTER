@@ -1,5 +1,9 @@
 export type PrometheusChatIntentKind =
   | "conversation"
+  | "research"
+  | "comparison"
+  | "review"
+  | "planning"
   | "editing"
   | "editor-action"
   | "social-content";
@@ -22,6 +26,14 @@ const ACTION_PATTERN =
   /^(?:(?:please\s+)?(?:add|apply|change|cut|delete|draft|edit|insert|make|move|remove|replace|shorten|split|tighten|trim)|i\s+(?:want|need|would\s+like)\s+(?:you\s+to\s+|to\s+)?(?:add|apply|change|cut|delete|draft|edit|insert|make|move|remove|replace|shorten|split|tighten|trim))\b/i;
 const CONVERSATIONAL_FOLLOW_UP_PATTERN =
   /^(?:can|could|would)\s+you\s+(?:explain|expand|clarify|rephrase|say)\b/i;
+const RESEARCH_PATTERN =
+  /\b(?:research|find|look\s+up|what(?:'s|\s+is)\s+the|why|how\s+does|best\s+(?:way|practice)|examples?|references?)\b/i;
+const COMPARISON_PATTERN =
+  /\b(?:compare|comparison|versus|vs\.?|difference\s+between|which\s+(?:is|would|one))\b/i;
+const REVIEW_PATTERN =
+  /\b(?:review|evaluate|assess|critique|feedback|what(?:'s|\s+is)\s+working|audit)\b/i;
+const PLANNING_PATTERN =
+  /\b(?:plan|outline|strategy|approach|direction|roadmap|sequence|structure)\b/i;
 
 export function classifyPrometheusChatIntent(
   message: string,
@@ -48,6 +60,22 @@ export function classifyPrometheusChatIntent(
       useKnowledge: false,
       useSocialStrategist: true,
     };
+  }
+
+  if (COMPARISON_PATTERN.test(normalized)) {
+    return { kind: "comparison", allowTools: false, useKnowledge: true, useSocialStrategist: false };
+  }
+
+  if (REVIEW_PATTERN.test(normalized)) {
+    return { kind: "review", allowTools: false, useKnowledge: true, useSocialStrategist: false };
+  }
+
+  if (PLANNING_PATTERN.test(normalized)) {
+    return { kind: "planning", allowTools: false, useKnowledge: true, useSocialStrategist: false };
+  }
+
+  if (RESEARCH_PATTERN.test(normalized)) {
+    return { kind: "research", allowTools: false, useKnowledge: true, useSocialStrategist: false };
   }
 
   if (EDITING_PATTERN.test(normalized) && ACTION_PATTERN.test(normalized)) {
@@ -107,5 +135,36 @@ export function getPrometheusIntentInstruction(intent: PrometheusChatIntent) {
     return "Answer as a concise professional video-editing copilot using the supplied project and knowledge context.";
   }
 
+  if (intent.kind === "research") {
+    return "Research the request using the supplied project and knowledge context. State the finding first, then explain only the evidence or trade-offs that matter.";
+  }
+
+  if (intent.kind === "comparison") {
+    return "Compare the relevant options against the user's creative goal. Lead with a recommendation, then give the few trade-offs that would change the decision.";
+  }
+
+  if (intent.kind === "review") {
+    return "Evaluate the material against a clear editorial standard. Identify what is working, what is holding the result back, and the strongest next move.";
+  }
+
+  if (intent.kind === "planning") {
+    return "Turn the request into a concrete editorial plan. Make the sequence actionable and account for the available project context before proposing a change.";
+  }
+
   return "Respond naturally and concisely. Do not force video-editing advice into casual conversation.";
+}
+
+export function getPrometheusIntentLabel(intent: PrometheusChatIntent | PrometheusChatIntentKind) {
+  const kind = typeof intent === "string" ? intent : intent.kind;
+  const labels: Record<PrometheusChatIntentKind, string> = {
+    conversation: "Conversation",
+    research: "Researching",
+    comparison: "Comparing options",
+    review: "Evaluating",
+    planning: "Planning direction",
+    editing: "Editorial guidance",
+    "editor-action": "Preparing an edit",
+    "social-content": "Developing social content",
+  };
+  return labels[kind];
 }

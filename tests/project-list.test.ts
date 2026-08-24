@@ -15,6 +15,7 @@ function run() {
       name: 'Launch Cut',
       status: 'processing',
       thumbnail_url: 'https://cdn.example.com/thumb.jpg',
+      source_asset_id: 'asset_1',
       created_at: '2026-06-10T00:00:00.000Z',
       updated_at: '2026-06-10T01:00:00.000Z',
       source_profile: {
@@ -42,6 +43,7 @@ function run() {
   assert.equal(mapped.progress, 45)
   assert.equal(mapped.duration, 42)
   assert.equal(mapped.width, 1920)
+  assert.equal(mapped.sourceAssetId, 'asset_1')
 }
 
 run()

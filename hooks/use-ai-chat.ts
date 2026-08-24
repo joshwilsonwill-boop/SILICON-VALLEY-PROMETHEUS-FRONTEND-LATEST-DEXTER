@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateA
 import { toast } from "sonner";
 
 import { parseEditorActionDrafts, type EditorActionDraft } from "@/lib/editor-actions";
-import { classifyPrometheusChatIntent } from "@/lib/prometheus-assistant/chat-intent";
+import { classifyPrometheusChatIntent, getPrometheusIntentLabel } from "@/lib/prometheus-assistant/chat-intent";
 import { consumePrometheusChatStream } from "@/lib/prometheus-assistant/chat-stream-client";
 import type { PrometheusChatStreamEvent } from "@/lib/prometheus-assistant/chat-stream";
 import { buildPrometheusChatMemory } from "@/lib/prometheus-assistant/chat-memory";
@@ -132,6 +132,7 @@ export function useAIChat({
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
   const [historyLoadError, setHistoryLoadError] = useState<string | null>(null);
   const [streamStatus, setStreamStatus] = useState<string | null>(null);
+  const [streamIntent, setStreamIntent] = useState<string | null>(null);
   const [streamActivity, setStreamActivity] = useState<AIChatActivity[]>([]);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [videoContext, setVideoContext] = useState<AIChatVideoContext | null>(null);
@@ -345,9 +346,9 @@ export function useAIChat({
       setError(null);
       setIsSending(true);
       setIsAwaitingResponse(true);
-      setStreamStatus("Preparing response");
+      setStreamStatus("Understanding your request");
       setStreamActivity([
-        { id: "status-preparing", kind: "status", label: "Preparing response", state: "active" },
+        { id: "status-understanding", kind: "status", label: "Understanding your request", state: "active" },
       ]);
 
       abortControllerRef.current?.abort();
@@ -391,6 +392,7 @@ export function useAIChat({
         }
 
         const intent = classifyPrometheusChatIntent(text);
+        setStreamIntent(getPrometheusIntentLabel(intent));
         const assistantMessageId = `assistant-${crypto.randomUUID()}`;
 
         activeAssistantMessageId = assistantMessageId;
@@ -818,6 +820,7 @@ export function useAIChat({
     setDraft,
     sessions,
     streamActivity,
+    streamIntent,
     streamStatus,
     videoContext,
   };

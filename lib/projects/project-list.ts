@@ -17,6 +17,7 @@ type ProjectRowRecord = {
   updated_at: string
   source_profile?: Record<string, unknown> | null
   editor_state?: Record<string, unknown> | null
+  source_asset_id?: string | null
 }
 
 export function normalizeProjectCardStatus(
@@ -52,6 +53,7 @@ export function mapProjectRowToListItem(
     width: numberOrNull(inspection.width),
     height: numberOrNull(inspection.height),
     fps: numberOrNull(inspection.fps),
+    sourceAssetId: row.source_asset_id ?? null,
   }
 }
 

@@ -127,7 +127,7 @@ import {
 import { analyzeMusicIntent } from '@/lib/music-intent'
 import { queuePreviewRevisionRequest } from '@/lib/editorial-frame/mock-preview-api'
 import { getSessionSourcePreview, setSessionSourcePreview } from '@/lib/source-preview-session'
-import { createSourceAssetObjectUrl, getStoredSourceAssetFile, getLatestStoredSourceAssetRecord, restoreStoredSourceAssetFile, getProjectTranscript, saveProjectTranscript } from '@/lib/source-asset-store'
+import { createSourceAssetObjectUrl, getStoredSourceAssetFile, getLatestStoredSourceAssetRecord, restoreStoredSourceAssetFile } from '@/lib/source-asset-store'
 import { uploadProjectSourceMultipart } from '@/lib/r2/multipart-client'
 import { STYLE_TEMPLATES, type StyleTemplate } from '@/lib/styles/style-templates'
 import { toast } from 'sonner'
@@ -6856,17 +6856,26 @@ function OriginalEditorPage() {
               transcriptText: segments.map((s) => s.text).join(' '),
             }
           })
-          saveProjectTranscript(projectId, segments)
-          if (project?.sourceAssetId) {
-            saveProjectTranscript(project.sourceAssetId, segments)
-          }
           setIsTranscribingVideo(false)
           return
         }
 
-        // If no transcription job is in flight yet, kick off AssemblyAI auto-transcription
+        // Move the asynchronous AssemblyAI job forward before asking for its
+        // persisted result. Previously this poll only read the asset, leaving
+        // every queued job permanently queued.
+        if (body.status === 'transcribing' || body.status === 'queued') {
+          setIsTranscribingVideo(true)
+          await fetch(`/api/assets/${project!.sourceAssetId}/transcript/sync`, {
+            method: 'POST',
+            cache: 'no-store',
+          })
+          return
+        }
+
+        // If no transcription job is in flight yet, kick off AssemblyAI auto-transcription.
         if (body.status === 'idle' && !started) {
           started = true
+          setIsTranscribingVideo(true)
           await fetch(`/api/assets/${project!.sourceAssetId}/transcript`, {
             method: 'POST',
             cache: 'no-store',
@@ -7168,150 +7177,34 @@ function OriginalEditorPage() {
 
   const [isTranscribingVideo, setIsTranscribingVideo] = React.useState(false)
 
-  // Hydrate transcript from persistent local cache if not yet loaded in job
-  React.useEffect(() => {
-    if (job?.artifacts?.transcript && job.artifacts.transcript.length > 0) return
-    const cached = getProjectTranscript(projectId) || (project?.sourceAssetId ? getProjectTranscript(project.sourceAssetId) : null)
-    if (cached && Array.isArray(cached) && cached.length > 0) {
-      setJob((current) => {
-        if (!current) return current
-        return {
-          ...current,
-          artifacts: { ...current.artifacts, transcript: cached },
-          transcriptStatus: 'completed',
-          transcriptText: cached.map((s: any) => s.text).join(' '),
-        }
-      })
-    }
-  }, [projectId, project?.sourceAssetId, job?.artifacts?.transcript])
-
   const requestAssemblyAITranscription = React.useCallback(async () => {
     setIsTranscribingVideo(true)
     try {
-      // 1. If backend sourceAssetId exists, trigger backend AssemblyAI route
+      // The durable source asset is the only transcription input. Sending the
+      // browser's preview blob through a separate endpoint created a second,
+      // non-persistent transcript path and could fall back to sample text.
       if (project?.sourceAssetId) {
-        await fetch(`/api/assets/${project.sourceAssetId}/transcript`, {
+        const response = await fetch(`/api/assets/${project.sourceAssetId}/transcript`, {
           method: 'POST',
           cache: 'no-store',
-        }).catch(() => {})
-      }
-
-      // 2. Transcribe using local source file or preview stream if available
-      let videoFile: File | Blob | null = null
-      if (project?.sourceAssetId) {
-        videoFile = await getStoredSourceAssetFile(project.sourceAssetId)
-      }
-      if (!videoFile) {
-        const latestStored = await getLatestStoredSourceAssetRecord()
-        if (latestStored) {
-          videoFile = restoreStoredSourceAssetFile(latestStored)
-        }
-      }
-      if (!videoFile && previewUrl && previewKind === 'video') {
-        try {
-          const res = await fetch(previewUrl)
-          if (res.ok) {
-            videoFile = await res.blob()
-          }
-        } catch {}
-      }
-
-      if (videoFile) {
-        const formData = new FormData()
-        formData.append('audio', videoFile, (videoFile as File).name || 'source_video.mp4')
-        const response = await fetch('/api/prometheus-chat/transcribe', {
-          method: 'POST',
-          body: formData,
         })
-        if (response.ok) {
-          const data = (await response.json()) as { text?: string; segments?: TranscriptSegment[]; status?: string; transcriptId?: string }
-          if (data.segments && data.segments.length > 0) {
-            setJob((current) => {
-              if (!current) return current
-              return {
-                ...current,
-                artifacts: { ...current.artifacts, transcript: data.segments! },
-                transcriptStatus: 'completed',
-                transcriptText: data.text || data.segments!.map((s) => s.text).join(' '),
-              }
-            })
-            saveProjectTranscript(projectId, data.segments)
-            if (project?.sourceAssetId) {
-              saveProjectTranscript(project.sourceAssetId, data.segments)
-            }
-            toast.success('Prometheus AI transcription ready')
-            setIsTranscribingVideo(false)
-            return
-          }
-
-          // If transcription is processing asynchronously, poll GET /api/prometheus-chat/transcribe
-          if (data.transcriptId) {
-            const transcriptId = data.transcriptId
-            for (let attempt = 0; attempt < 30; attempt += 1) {
-              await new Promise((resolve) => setTimeout(resolve, 1500))
-              try {
-                const pollRes = await fetch(`/api/prometheus-chat/transcribe?transcriptId=${transcriptId}`)
-                if (!pollRes.ok) continue
-                const pollData = (await pollRes.json()) as { status?: string; text?: string; segments?: TranscriptSegment[] }
-                if (pollData.segments && pollData.segments.length > 0) {
-                  setJob((current) => {
-                    if (!current) return current
-                    return {
-                      ...current,
-                      artifacts: { ...current.artifacts, transcript: pollData.segments! },
-                      transcriptStatus: 'completed',
-                      transcriptText: pollData.text || pollData.segments!.map((s) => s.text).join(' '),
-                    }
-                  })
-                  saveProjectTranscript(projectId, pollData.segments)
-                  if (project?.sourceAssetId) {
-                    saveProjectTranscript(project.sourceAssetId, pollData.segments)
-                  }
-                  toast.success('Prometheus AI transcription ready')
-                  setIsTranscribingVideo(false)
-                  return
-                }
-              } catch {}
-            }
-          }
+        if (!response.ok && response.status !== 409) {
+          throw new Error('Unable to start the AssemblyAI transcription.')
         }
-      }
-
-      // 3. Fallback recovery for Dan Martell / sample media if direct blob transcription is unavailable
-      const titleLower = `${project?.title ?? ''} ${sourceAssetLabel ?? ''}`.toLowerCase()
-      if (titleLower.includes('dan martell') || titleLower.includes('scared of achieving') || titleLower.includes('male head') || titleLower.includes('unedited')) {
-        const sampleSegments: TranscriptSegment[] = [
-          { id: 'dm-1', startMs: 0, endMs: 5200, text: 'Most people open up their editor and feel completely overwhelmed by the raw footage.' },
-          { id: 'dm-2', startMs: 5200, endMs: 10400, text: 'The truth is that unedited videos are the ultimate crucible for mastering visual storytelling.' },
-          { id: 'dm-3', startMs: 10400, endMs: 16800, text: 'When you take away the crutches, you learn to identify the exact moments that hold retention.' },
-          { id: 'dm-4', startMs: 16800, endMs: 23200, text: 'Every cut you make has to serve the emotional rhythm and clarity of the message.' },
-          { id: 'dm-5', startMs: 23200, endMs: 31000, text: 'If you want to build high-converting assets, you have to embrace the messy beginnings.' },
-          { id: 'dm-6', startMs: 31000, endMs: 42500, text: 'That discipline is what separates a world-class creator from someone just pushing buttons.' },
-          { id: 'dm-7', startMs: 42500, endMs: 54000, text: 'So stop waiting for the perfect take, start trimming the fat, and let the truth shine through.' },
-          { id: 'dm-8', startMs: 54000, endMs: 69000, text: 'This is the exact framework that scaled our video performance across all channels.' },
-        ]
-        setJob((current) => {
-          if (!current) return current
-          return {
-            ...current,
-            artifacts: { ...current.artifacts, transcript: sampleSegments },
-            transcriptStatus: 'completed',
-            transcriptText: sampleSegments.map((s) => s.text).join(' '),
-          }
-        })
-        saveProjectTranscript(projectId, sampleSegments)
-        if (project?.sourceAssetId) {
-          saveProjectTranscript(project.sourceAssetId, sampleSegments)
-        }
-        setIsTranscribingVideo(false)
         return
       }
+
+      toast.error('Upload and save a video before requesting a transcript.')
+      return
     } catch (err) {
-      console.warn('[Prometheus AI] Direct video transcription notice:', err)
+      console.warn('[Prometheus AI] Transcription request failed:', err)
+      toast.error('Prometheus could not start the transcript.')
     } finally {
-      setIsTranscribingVideo(false)
+      if (!project?.sourceAssetId) {
+        setIsTranscribingVideo(false)
+      }
     }
-  }, [project?.sourceAssetId, projectId, previewUrl, previewKind])
+  }, [project?.sourceAssetId])
 
   // Automatically trigger AssemblyAI transcription whenever video media is loaded
   React.useEffect(() => {
@@ -7325,7 +7218,26 @@ function OriginalEditorPage() {
     }
   }, [previewUrl, previewKind, job?.artifacts?.transcript, requestAssemblyAITranscription])
 
+  const persistTranscriptSegments = React.useCallback((segments: TranscriptSegment[]) => {
+    if (!project?.sourceAssetId) return
+    void fetch(`/api/assets/${project.sourceAssetId}/transcript`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ segments }),
+    }).then((response) => {
+      if (!response.ok) throw new Error('Transcript save failed')
+    }).catch(() => {
+      toast.error('Transcript change could not be saved. Please try again.')
+    })
+  }, [project?.sourceAssetId])
+
   const handleUpdateTranscriptSegment = React.useCallback((segmentId: string, nextText: string) => {
+    const segments = job?.artifacts.transcript ?? []
+    const updatedForPersistence = segments.map((seg, index) => {
+      const matches = seg.id === segmentId || String(index) === segmentId || `transcript-${index}` === segmentId || `motion-transcript-${index + 1}` === segmentId
+      return matches ? { ...seg, text: nextText } : seg
+    })
+    persistTranscriptSegments(updatedForPersistence)
     setJob((current) => {
       if (!current) return current
       const existing = current.artifacts.transcript ?? []
@@ -7340,17 +7252,13 @@ function OriginalEditorPage() {
         }
         return seg
       })
-      saveProjectTranscript(projectId, updated)
-      if (project?.sourceAssetId) {
-        saveProjectTranscript(project.sourceAssetId, updated)
-      }
       return {
         ...current,
         artifacts: { ...current.artifacts, transcript: updated },
         transcriptText: updated.map((s) => s.text).join(' '),
       }
     })
-  }, [projectId, project?.sourceAssetId])
+  }, [job?.artifacts.transcript, persistTranscriptSegments])
 
   const videoMetadata = React.useMemo(() => {
     const inspection = project?.sourceProfile?.inspection

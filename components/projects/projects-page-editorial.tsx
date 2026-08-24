@@ -21,7 +21,7 @@ import {
 import { toast } from 'sonner'
 
 import { CreateProjectModal } from '@/components/projects/create-project-modal'
-import { InlineLoadingAnimation } from '@/components/loading-animation'
+import { InlineLoadingAnimation, LoadingAnimation } from '@/components/loading-animation'
 import { useProjectsList } from '@/hooks/use-projects-list'
 import { rememberCurrentPathForEditorReturn } from '@/lib/editor-navigation'
 import { getProject, upsertProject } from '@/lib/mock'
@@ -83,6 +83,7 @@ function ProjectTile({
   onDelete,
   isDuplicating,
   isDeleting,
+  isOpening,
 }: {
   project: ProjectListItem
   index: number
@@ -91,6 +92,7 @@ function ProjectTile({
   onDelete: () => void
   isDuplicating: boolean
   isDeleting: boolean
+  isOpening: boolean
 }) {
   const [menuOpen, setMenuOpen] = React.useState(false)
   const status = statusCopy[project.status]
@@ -122,6 +124,15 @@ function ProjectTile({
         <span className="absolute -right-12 -top-10 size-44 rounded-full bg-white/10 blur-3xl transition-[transform,background-color] duration-700 group-hover:translate-x-6 group-hover:translate-y-5 group-hover:bg-black/10 group-focus-within:translate-x-6 group-focus-within:translate-y-5 group-focus-within:bg-black/10" />
         <span className="absolute left-5 top-5 font-mono text-[10px] tracking-[0.22em] text-white/70 transition-colors duration-500 group-hover:text-black/65 group-focus-within:text-black/65">PROMETHEUS / 0{index + 1}</span>
       </div>
+
+      {isOpening ? (
+        <div className="absolute inset-0 z-40 grid place-items-center bg-black/78 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-3 text-center text-xs text-white/76">
+            <InlineLoadingAnimation size={46} label={`Opening ${project.title}`} />
+            <span>Opening editorial chamber</span>
+          </div>
+        </div>
+      ) : null}
 
       <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-start justify-between p-3">
         <span className="inline-flex items-center gap-1.5 border border-white/55 bg-black px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-white transition-[background-color,border-color,color] duration-500 group-hover:border-black group-hover:bg-black group-hover:text-white">
@@ -203,9 +214,13 @@ export function ProjectsPageEditorial() {
   const [sortKey, setSortKey] = React.useState<SortKey>('updated')
   const [isCreateOpen, setIsCreateOpen] = React.useState(false)
   const [isControlsOpen, setIsControlsOpen] = React.useState(false)
+  const [openingProjectId, setOpeningProjectId] = React.useState<string | null>(null)
   const { projects, isLoading, error, refetch, deleteProject, duplicateProject, isDeleting, isDuplicating } = useProjectsList()
+  const openingProjectTitle = projects.find((project) => project.id === openingProjectId)?.title ?? 'project'
 
   const openProject = React.useCallback((project: ProjectListItem) => {
+    if (openingProjectId) return
+    setOpeningProjectId(project.id)
     rememberCurrentPathForEditorReturn()
     const now = new Date().toISOString()
     const mappedStatus = (
@@ -223,14 +238,16 @@ export function ProjectsPageEditorial() {
       createdAt: project.createdAt || existing?.createdAt || now,
       updatedAt: project.updatedAt || existing?.updatedAt || now,
       thumbnailUrl: project.thumbnailUrl ?? existing?.thumbnailUrl ?? undefined,
-      sourceAssetId: existing?.sourceAssetId ?? undefined,
+      sourceAssetId: project.sourceAssetId ?? existing?.sourceAssetId ?? undefined,
       sourceProfile: existing?.sourceProfile ?? undefined,
       editorState: existing?.editorState ?? undefined,
       previewKind: existing?.previewKind ?? 'video',
     }
     upsertProject(projectRecord)
-    router.push(`/editor/${project.id}`)
-  }, [router])
+    window.requestAnimationFrame(() => {
+      router.push(`/editor/${project.id}`)
+    })
+  }, [openingProjectId, router])
 
   const visibleProjects = React.useMemo(() => {
     const cleanedQuery = query.trim().toLocaleLowerCase()
@@ -439,12 +456,14 @@ export function ProjectsPageEditorial() {
                 onDelete={() => void handleDelete(project)}
                 isDuplicating={isDuplicating}
                 isDeleting={isDeleting}
+                isOpening={openingProjectId === project.id}
               />
             ))}
           </div>
         )}
       </section>
       <CreateProjectModal open={isCreateOpen} onClose={() => setIsCreateOpen(false)} />
+      {openingProjectId ? <LoadingAnimation message={`Opening ${openingProjectTitle}...`} /> : null}
     </main>
   )
 }
