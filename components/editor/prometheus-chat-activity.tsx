@@ -1,9 +1,10 @@
 "use client";
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { Check, ChevronDown, CircleAlert, FileSearch, PanelTop, Sparkles, Wrench } from "lucide-react";
+import { Check, ChevronDown, CircleAlert, FileSearch, PanelTop, Wrench } from "lucide-react";
 import { useMemo, useState } from "react";
 
+import { PrometheusChatLoadingSkeleton } from "@/components/editor/prometheus-chat-loading-skeleton";
 import type { AIChatActivity } from "@/hooks/use-ai-chat";
 import { cn } from "@/lib/utils";
 
@@ -48,27 +49,15 @@ export function PrometheusChatActivity({
       initial={reduceMotion ? false : { opacity: 0, y: 8, filter: "blur(8px)" }}
       animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
       transition={{ duration: reduceMotion ? 0 : 0.28, ease: [0.22, 1, 0.36, 1] }}
-      className="w-full max-w-2xl overflow-hidden rounded-lg border border-white/10 bg-[#101113] shadow-[0_18px_46px_-28px_rgba(0,0,0,0.9)]"
-      aria-label="Prometheus is working"
+      className="w-full max-w-md"
+      aria-label="Live editorial process"
       aria-live="polite"
     >
-      <div className="flex items-center gap-3 px-3.5 py-3">
-        <ThinkingMark active={!reduceMotion} />
-        <div className="min-w-0 flex-1">
-          <div className="flex min-w-0 items-center gap-2">
-            <p className="truncate text-[13px] font-medium text-white/88">
-              {activeStage?.label ?? "Assessing your request"}
-            </p>
-            {intent ? (
-              <span className="shrink-0 rounded-full border border-[#9ff6e3]/20 bg-[#9ff6e3]/[0.07] px-2 py-0.5 text-[10px] font-medium text-[#b9fff0]/78">
-                {intent}
-              </span>
-            ) : null}
-          </div>
-          <p className="mt-0.5 truncate text-[11px] text-white/40">
-            {latestThought ?? "Building the right editorial context before answering."}
-          </p>
-        </div>
+      <div className="flex items-center gap-2">
+        <PrometheusChatLoadingSkeleton
+          label={activeStage?.label ?? latestThought ?? "Assessing your request"}
+          className="max-w-[18rem]"
+        />
         <button
           type="button"
           onClick={() => setDetailsOpen((value) => !value)}
@@ -87,7 +76,7 @@ export function PrometheusChatActivity({
             animate={{ height: "auto", opacity: 1 }}
             exit={reduceMotion ? undefined : { height: 0, opacity: 0 }}
             transition={{ duration: reduceMotion ? 0 : 0.22, ease: "easeOut" }}
-            className="overflow-hidden border-t border-white/[0.07]"
+            className="overflow-hidden border-t border-white/[0.07] pt-2"
           >
             <ol className="space-y-1 px-3.5 py-3">
               {stages.map((stage) => (
@@ -99,7 +88,7 @@ export function PrometheusChatActivity({
                     </p>
                     {stage.detail ? <p className="text-[11px] leading-4 text-white/34">{stage.detail}</p> : null}
                   </div>
-                  {stage.state === "active" ? <SkeletonLine /> : null}
+                  {stage.state === "active" ? <span className="mt-2 h-1.5 w-10 rounded-full bg-white/20" /> : null}
                 </li>
               ))}
             </ol>
@@ -116,41 +105,8 @@ export function PrometheusChatActivity({
   );
 }
 
-function ThinkingMark({ active }: { active: boolean }) {
-  return (
-    <motion.span
-      aria-hidden="true"
-      className="relative grid size-9 shrink-0 place-items-center"
-      animate={active ? { rotate: [0, 90, 180, 270, 360] } : undefined}
-      transition={{ duration: 6, ease: "linear", repeat: Infinity }}
-    >
-      <span className="absolute inset-0 rounded-[12px] border border-[#9ff6e3]/22 bg-[conic-gradient(from_180deg,rgba(159,246,227,0.82),rgba(255,217,143,0.66),rgba(164,189,255,0.72),rgba(159,246,227,0.82))] opacity-80" />
-      <span className="absolute inset-[2px] rounded-[10px] bg-[#101113]" />
-      <motion.span
-        animate={active ? { scale: [0.88, 1.12, 0.88], opacity: [0.45, 1, 0.45] } : undefined}
-        transition={{ duration: 1.8, ease: "easeInOut", repeat: Infinity }}
-        className="relative grid size-5 place-items-center rounded-md bg-[#9ff6e3]/12 text-[#b9fff0] shadow-[0_0_18px_rgba(159,246,227,0.25)]"
-      >
-        <Sparkles className="size-3.5" strokeWidth={1.5} />
-      </motion.span>
-    </motion.span>
-  );
-}
-
-function SkeletonLine() {
-  return (
-    <motion.span
-      aria-hidden="true"
-      className="mt-2 h-1.5 w-10 rounded-full bg-[linear-gradient(90deg,rgba(255,255,255,0.08),rgba(159,246,227,0.55),rgba(255,255,255,0.08))]"
-      animate={{ backgroundPositionX: ["0%", "200%"] }}
-      transition={{ duration: 1.35, ease: "linear", repeat: Infinity }}
-      style={{ backgroundSize: "200% 100%" }}
-    />
-  );
-}
-
 function StageIcon({ stage, active }: { stage: ActivityStage; active: boolean }) {
-  if (stage.state === "active") return <ThinkingMark active={active} />;
+  if (stage.state === "active") return <span className="mt-0.5 size-4 shrink-0 rounded-full border border-white/30 border-l-white/10" />;
   if (stage.state === "failed") return <CircleAlert className="mt-0.5 size-4 shrink-0 text-red-300/75" strokeWidth={1.5} />;
   if (stage.kind === "tool" && stage.label === "Search knowledge") return <FileSearch className="mt-0.5 size-4 shrink-0 text-[#b9fff0]/60" strokeWidth={1.5} />;
   if (stage.kind === "tool" && stage.label === "Reference frames") return <PanelTop className="mt-0.5 size-4 shrink-0 text-[#b9fff0]/60" strokeWidth={1.5} />;

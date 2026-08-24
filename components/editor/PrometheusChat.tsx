@@ -21,6 +21,7 @@ import { PrometheusChatHistoryDrawer } from './prometheus-chat-history-drawer'
 import { AIChatStreamingText } from './ai-chat-streaming-text'
 import { PrometheusChatActivity } from './prometheus-chat-activity'
 import { PrometheusChatContextBrief } from './prometheus-chat-context-brief'
+import { PrometheusChatLoadingSkeleton } from './prometheus-chat-loading-skeleton'
 import { PrometheusChatMedia } from './prometheus-chat-media'
 import { VoiceWaveform } from './voice-waveform'
 
@@ -550,7 +551,7 @@ function PrometheusMessageBubble({
   const [showThoughts, setShowThoughts] = React.useState(false)
 
   if (isThinking) {
-    return <p className="font-elegist text-sm text-white/38" role="status">Thinking…</p>
+    return <PrometheusChatLoadingSkeleton className="max-w-[18rem] py-2" />
   }
 
   const drafts = message.actionDrafts ?? []

@@ -28,11 +28,14 @@ function run() {
   assert.match(route, /editorContext\?:\s*unknown/);
   assert.match(route, /frameThumbs\?:\s*unknown/);
   assert.match(route, /normalizeChatEditorContext\(body\?\.editorContext\)/);
-  assert.match(route, /loadProjectChatContext\(projectId\)/);
+  assert.match(route, /loadProjectChatContext\(projectId, \{playheadSec: editorContext\?\.playheadSec\}\)/);
   assert.match(route, /formatProjectContextForPrompt/);
+  assert.match(route, /const activeVideo = projectContext\?\.video \?\? clientVideoContext\?\.video \?\? null/);
+  assert.match(route, /clientVideoContext\?\.video\s*\? formatClientVideoContextForPrompt\(clientVideoContext\)/);
+  assert.equal(route.includes("model configuration may need updating"), false);
   assert.match(
     route,
-    /intent\.allowTools \|\| Boolean\(editorContext\) \|\| Boolean\(projectContext\?\.video\)/,
+    /intent\.allowTools \|\| Boolean\(editorContext\) \|\| Boolean\(projectContext\?\.video\) \|\| Boolean\(clientVideoContext\?\.video\)/,
   );
 
   // Client thumbnails become model-citable frame references
@@ -45,10 +48,10 @@ function run() {
   assert.match(route, /Available video frame thumbnails/);
   assert.match(route, /draft_editor_actions/);
   assert.match(route, /reference_video_frames/);
-  assert.match(route, /never executed here/);
+  assert.match(route, /use kind \\\"propose\\\" to present a clear execution plan/);
   assert.match(
     route,
-    /Do not claim an editor action happened unless the user approved it/,
+    /Do not state an editor action occurred until it has been explicitly approved and confirmed/,
   );
 
   // Structured assistant payload is delivered as a metadata stream event

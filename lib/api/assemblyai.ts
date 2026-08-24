@@ -5,6 +5,8 @@
  */
 
 const ASSEMBLYAI_API_URL = 'https://api.assemblyai.com/v2'
+const ASSEMBLYAI_START_TIMEOUT_MS = 25_000
+const ASSEMBLYAI_STATUS_TIMEOUT_MS = 10_000
 
 export interface AssemblyAITranscriptionOptions {
   audio_url: string
@@ -41,7 +43,9 @@ export async function startAssemblyAITranscription(options: AssemblyAITranscript
       speaker_labels: options.speaker_labels ?? false,
       punctuate: options.punctuate ?? true,
       format_text: options.format_text ?? true,
+      ...(options.speech_models ? { speech_models: options.speech_models } : {}),
     }),
+    signal: AbortSignal.timeout(ASSEMBLYAI_START_TIMEOUT_MS),
   })
 
   if (!response.ok) {
@@ -66,6 +70,7 @@ export async function getAssemblyAITranscriptionStatus(jobId: string): Promise<A
     headers: {
       'Authorization': apiKey,
     },
+    signal: AbortSignal.timeout(ASSEMBLYAI_STATUS_TIMEOUT_MS),
   })
 
   if (!response.ok) {

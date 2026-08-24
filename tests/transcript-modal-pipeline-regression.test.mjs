@@ -26,6 +26,9 @@ assert.match(helper, /startAssemblyAITranscription/)
 assert.match(helper, /transcript_job_id/)
 assert.match(helper, /transcript_status: 'queued'/)
 
+const assemblyApi = read('lib/api/assemblyai.ts')
+assert.match(assemblyApi, /AbortSignal\.timeout/)
+
 const normalizer = read('lib/r2/assembly-transcript.ts')
 assert.match(normalizer, /assemblyTranscriptWords/)
 assert.match(normalizer, /assemblyTranscriptToSegments/)
@@ -41,6 +44,9 @@ assert.match(editorPage, /api\/assets\/\$\{project!\.sourceAssetId\}\/transcript
 assert.match(editorPage, /transcript\/sync/)
 assert.match(editorPage, /method: 'PATCH'/)
 assert.doesNotMatch(editorPage, /Fallback recovery for Dan Martell/)
+assert.match(editorPage, /transcriptStartAttemptedRef/)
+assert.match(editorPage, /!retry && transcriptStartAttemptedRef\.current === sourceAssetId/)
+assert.match(editorPage, /api\/prometheus-chat\/transcribe/)
 assert.match(editorPage, /transcriptStatus: 'completed'/)
 assert.match(editorPage, /TranscriptSegment/)
 

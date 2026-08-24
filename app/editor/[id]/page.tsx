@@ -6833,7 +6833,6 @@ function OriginalEditorPage() {
     let active = true
     let intervalId: number | null = null
     let completed = false
-    let started = false
 
     const pollTranscript = async () => {
       if (completed || !active) return
@@ -6872,15 +6871,9 @@ function OriginalEditorPage() {
           return
         }
 
-        // If no transcription job is in flight yet, kick off AssemblyAI auto-transcription.
-        if (body.status === 'idle' && !started) {
-          started = true
-          setIsTranscribingVideo(true)
-          await fetch(`/api/assets/${project!.sourceAssetId}/transcript`, {
-            method: 'POST',
-            cache: 'no-store',
-          }).catch(() => {})
-        }
+        // Starting is owned by the guarded request callback below. This poll
+        // only observes a durable job and advances it through AssemblyAI.
+        if (body.status === 'idle') return
       } catch {
         // Retry on next tick
       }
@@ -7176,47 +7169,97 @@ function OriginalEditorPage() {
   )
 
   const [isTranscribingVideo, setIsTranscribingVideo] = React.useState(false)
+  const transcriptStartAttemptedRef = React.useRef<string | null>(null)
 
-  const requestAssemblyAITranscription = React.useCallback(async () => {
+  const requestAssemblyAITranscription = React.useCallback(async (retry = false) => {
+    const sourceAssetId = project?.sourceAssetId
+    if (!sourceAssetId) {
+      toast.error('Upload and save a video before requesting a transcript.')
+      return
+    }
+    if (!retry && transcriptStartAttemptedRef.current === sourceAssetId) return
+
+    transcriptStartAttemptedRef.current = sourceAssetId
     setIsTranscribingVideo(true)
     try {
-      // The durable source asset is the only transcription input. Sending the
-      // browser's preview blob through a separate endpoint created a second,
-      // non-persistent transcript path and could fall back to sample text.
-      if (project?.sourceAssetId) {
-        const response = await fetch(`/api/assets/${project.sourceAssetId}/transcript`, {
-          method: 'POST',
-          cache: 'no-store',
-        })
-        if (!response.ok && response.status !== 409) {
-          throw new Error('Unable to start the AssemblyAI transcription.')
-        }
+      const response = await fetch(`/api/assets/${sourceAssetId}/transcript`, {
+        method: 'POST',
+        cache: 'no-store',
+      })
+      if (response.ok) {
         return
       }
 
-      toast.error('Upload and save a video before requesting a transcript.')
-      return
+      const primaryError = (await response.json().catch(() => null)) as { error?: string } | null
+      if (!previewUrl || previewKind !== 'video') {
+        throw new Error(primaryError?.error || 'The saved video could not be prepared for transcription.')
+      }
+
+      // Some R2 deployments do not allow AssemblyAI to retrieve a signed URL.
+      // In that case reuse the proven server upload transport and persist the
+      // same normalized segments back to this source asset.
+      const mediaResponse = await fetch(previewUrl)
+      if (!mediaResponse.ok) throw new Error(primaryError?.error || 'The saved video could not be read.')
+      const media = await mediaResponse.blob()
+      const formData = new FormData()
+      formData.append('audio', media, sourceAssetLabel || 'source-video.mp4')
+      const fallbackResponse = await fetch('/api/prometheus-chat/transcribe', {
+        method: 'POST',
+        body: formData,
+      })
+      const fallback = (await fallbackResponse.json().catch(() => null)) as {
+        error?: string
+        text?: string
+        segments?: TranscriptSegment[]
+        transcriptId?: string
+      } | null
+      if (!fallbackResponse.ok) throw new Error(fallback?.error || primaryError?.error || 'Transcription could not be started.')
+
+      const saveSegments = async (segments: TranscriptSegment[], text?: string) => {
+        setJob((current) => current ? {
+          ...current,
+          artifacts: { ...current.artifacts, transcript: segments },
+          transcriptStatus: 'completed',
+          transcriptText: text || segments.map((segment) => segment.text).join(' '),
+        } : current)
+        const saveResponse = await fetch(`/api/assets/${sourceAssetId}/transcript`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ segments }),
+        })
+        if (!saveResponse.ok) throw new Error('Transcript was created but could not be saved to the project.')
+        setIsTranscribingVideo(false)
+        toast.success('Prometheus AI transcription ready')
+      }
+
+      if (fallback?.segments?.length) {
+        await saveSegments(fallback.segments, fallback.text)
+        return
+      }
+
+      if (!fallback?.transcriptId) throw new Error(fallback?.error || 'Transcription did not return a job.')
+      for (let attempt = 0; attempt < 30; attempt += 1) {
+        await new Promise((resolve) => window.setTimeout(resolve, 1_500))
+        const pollResponse = await fetch(`/api/prometheus-chat/transcribe?transcriptId=${encodeURIComponent(fallback.transcriptId)}`)
+        const poll = (await pollResponse.json().catch(() => null)) as { error?: string; text?: string; segments?: TranscriptSegment[] } | null
+        if (!pollResponse.ok) throw new Error(poll?.error || 'Transcription polling failed.')
+        if (poll?.segments?.length) {
+          await saveSegments(poll.segments, poll.text)
+          return
+        }
+      }
+      throw new Error('Transcription is still processing. Please try again shortly.')
     } catch (err) {
       console.warn('[Prometheus AI] Transcription request failed:', err)
-      toast.error('Prometheus could not start the transcript.')
-    } finally {
-      if (!project?.sourceAssetId) {
-        setIsTranscribingVideo(false)
-      }
+      setIsTranscribingVideo(false)
+      toast.error(err instanceof Error ? err.message : 'Prometheus could not start the transcript.')
     }
-  }, [project?.sourceAssetId])
+  }, [previewKind, previewUrl, project?.sourceAssetId, sourceAssetLabel])
 
-  // Automatically trigger AssemblyAI transcription whenever video media is loaded
   React.useEffect(() => {
-    if (!previewUrl || previewKind !== 'video') return
-    const hasLoadedCustomTranscript = job?.artifacts?.transcript && job.artifacts.transcript.length > 0
-    if (!hasLoadedCustomTranscript) {
-      const timer = setTimeout(() => {
-        void requestAssemblyAITranscription()
-      }, 500)
-      return () => clearTimeout(timer)
-    }
-  }, [previewUrl, previewKind, job?.artifacts?.transcript, requestAssemblyAITranscription])
+    if (!previewUrl || previewKind !== 'video' || job?.artifacts?.transcript?.length) return
+    void requestAssemblyAITranscription()
+  }, [job?.artifacts?.transcript, previewKind, previewUrl, requestAssemblyAITranscription])
 
   const persistTranscriptSegments = React.useCallback((segments: TranscriptSegment[]) => {
     if (!project?.sourceAssetId) return
@@ -8525,7 +8568,7 @@ function OriginalEditorPage() {
                     isSourceDragOver={isInlineSourceDragOver}
                     transcriptSegments={motionTranscriptSegments}
                     onUpdateTranscriptSegment={handleUpdateTranscriptSegment}
-                    onRequestTranscribe={requestAssemblyAITranscription}
+                    onRequestTranscribe={() => void requestAssemblyAITranscription(true)}
                     isTranscribing={isTranscribingVideo}
                     videoMetadata={videoMetadata}
                     onSeek={handlePreviewSeekSeconds}

@@ -39,7 +39,7 @@ export interface ProjectChatContext {
 export type ProjectChatContextOptions = { playheadSec?: number | null }
 
 const TRANSCRIPT_BUDGET_CHARS = 1_800
-const CONTEXT_BUDGET_CHARS = 3_200
+const CONTEXT_BUDGET_CHARS = 3_000
 
 type CanonicalVideoContext = {
   status: string | null
@@ -71,7 +71,7 @@ function formatTimecode(ms: number): string {
 function clipToBudget(text: string, budget: number): string {
   if (text.length <= budget) return text
   const headChars = Math.floor(budget * 0.7)
-  return `${text.slice(0, headChars).trim()}\n[remaining transcript omitted]\n${text.slice(-Math.max(0, budget - headChars - 34)).trim()}`
+  return `${text.slice(0, headChars).trim()}\n[middle omitted]\n${text.slice(-Math.max(0, budget - headChars - 17)).trim()}`
 }
 
 function normalizeRange(value: unknown): [number, number] | null {
@@ -211,7 +211,9 @@ export async function loadProjectChatContext(projectId: string, options: Project
     if (error || !project) return null
 
     const canonical = await loadCanonicalVideoContext(projectId, options.playheadSec)
-    if (canonical?.video || canonical?.transcript || canonical?.editorialAnalysis || canonical?.status) {
+    // The canonical analysis response can arrive before its metadata snapshot.
+    // Do not let that temporary state hide an already-attached source asset.
+    if (canonical?.video) {
       return { projectId, title: asString(project.title), video: canonical.video, transcript: canonical.transcript, editorialAnalysis: canonical.editorialAnalysis, ingestionStatus: canonical.status }
     }
 
@@ -222,7 +224,14 @@ export async function loadProjectChatContext(projectId: string, options: Project
     } : sourceProfile ? {
       filename: asString(sourceProfile.filename), mimeType: asString(sourceProfile.mimeType), durationMs: asNumber(sourceProfile.durationMs ?? sourceProfile.duration_ms), width: asNumber(sourceProfile.width), height: asNumber(sourceProfile.height), fps: asNumber(sourceProfile.fps),
     } : null
-    return { projectId, title: asString(project.title), video, transcript: asset ? await loadLegacyTranscript(asset as Record<string, unknown>) : null, editorialAnalysis: null, ingestionStatus: null }
+    return {
+      projectId,
+      title: asString(project.title),
+      video,
+      transcript: canonical?.transcript ?? (asset ? await loadLegacyTranscript(asset as Record<string, unknown>) : null),
+      editorialAnalysis: canonical?.editorialAnalysis ?? null,
+      ingestionStatus: canonical?.status ?? null,
+    }
   } catch (error) {
     console.warn('[prometheus-chat] failed to load project context', { projectId, error })
     return null

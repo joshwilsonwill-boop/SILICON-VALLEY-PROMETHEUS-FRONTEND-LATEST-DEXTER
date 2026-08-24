@@ -90,13 +90,20 @@ export async function POST(request: Request) {
   const encoder = new TextEncoder();
 
   const clientVideoContext = normalizeClientVideoContext(body?.videoContext);
-  const projectContextBlock = projectContext
+  const projectContextBlock = projectContext?.video
     ? formatProjectContextForPrompt(projectContext)
     : clientVideoContext?.video
       ? formatClientVideoContextForPrompt(clientVideoContext)
-      : "";
+      : projectContext
+        ? formatProjectContextForPrompt(projectContext)
+        : "";
   const hasVideo =
     Boolean(projectContext?.video) || Boolean(clientVideoContext?.video);
+  const activeVideo = projectContext?.video ?? clientVideoContext?.video ?? null;
+  const activeRecommendation =
+    projectContext?.editorialAnalysis?.recommendations[0] ??
+    clientVideoContext?.editorialAnalysis?.recommendations[0] ??
+    null;
   const toolsEnabled =
     intent.allowTools || Boolean(editorContext) || Boolean(projectContext?.video) || Boolean(clientVideoContext?.video);
 
@@ -128,19 +135,18 @@ export async function POST(request: Request) {
         } else {
           const apiKey = cleanText(process.env.GROQ_API_KEY);
           if (!apiKey) {
-            const recommendation = projectContext?.editorialAnalysis?.recommendations[0] ?? null;
             reply = createLocalPrometheusFallback({
               intentKind: intent.kind,
               knowledgeAnswer: knowledge.length
                 ? createExtractivePrometheusAnswer(message, knowledge, 900)
                 : null,
               projectTitle: projectContext?.title,
-              filename: projectContext?.video?.filename,
-              durationSec: projectContext?.video?.durationMs
-                ? projectContext.video.durationMs / 1000
+              filename: activeVideo?.filename,
+              durationSec: activeVideo?.durationMs
+                ? activeVideo.durationMs / 1000
                 : editorContext?.durationSec,
               playheadSec: editorContext?.playheadSec,
-              recommendation,
+              recommendation: activeRecommendation,
             });
             send({ type: "delta", content: reply });
           } else {
@@ -344,9 +350,9 @@ export async function POST(request: Request) {
                   : createLocalPrometheusFallback({
                       intentKind: intent.kind,
                       projectTitle: projectContext?.title,
-                      filename: projectContext?.video?.filename,
-                      durationSec: projectContext?.video?.durationMs
-                        ? projectContext.video.durationMs / 1000
+                      filename: activeVideo?.filename,
+                      durationSec: activeVideo?.durationMs
+                        ? activeVideo.durationMs / 1000
                         : editorContext?.durationSec,
                       playheadSec: editorContext?.playheadSec,
                     });
@@ -422,15 +428,29 @@ export async function POST(request: Request) {
 
         console.error("[prometheus-chat-stream] generation failed", error);
         const errorMessage = error instanceof Error ? error.message.toLowerCase() : "";
-        const userFacingMessage = errorMessage.includes("model") || errorMessage.includes("not found") || errorMessage.includes("401") || errorMessage.includes("402") || errorMessage.includes("403")
-          ? "Prometheus is temporarily unable to respond. The model configuration may need updating."
-          : errorMessage.includes("429") || errorMessage.includes("rate")
+        const userFacingMessage = errorMessage.includes("429") || errorMessage.includes("rate")
             ? "Prometheus is receiving too many requests. Please wait a moment and retry."
-            : "Prometheus couldn't finish that response. Your message is safe; please retry.";
-        send({
-          type: "error",
-          message: userFacingMessage,
+            : "";
+        if (userFacingMessage) {
+          send({ type: "error", message: userFacingMessage });
+          return;
+        }
+        const fallback = createLocalPrometheusFallback({
+          intentKind: intent.kind,
+          knowledgeAnswer: knowledge.length
+            ? createExtractivePrometheusAnswer(message, knowledge, 900)
+            : null,
+          projectTitle: projectContext?.title,
+          filename: activeVideo?.filename,
+          durationSec: activeVideo?.durationMs
+            ? activeVideo.durationMs / 1000
+            : editorContext?.durationSec,
+          playheadSec: editorContext?.playheadSec,
+          recommendation: activeRecommendation,
         });
+        sendThought("Continuing with the local editorial context...");
+        send({ type: "delta", content: fallback });
+        send({ type: "done", persisted: false });
       } finally {
         controller.close();
       }

@@ -35,6 +35,8 @@ function run() {
   // Video identity comes from source_assets (or project source_profile fallback)
   assert.match(loader, /\.from\('source_assets'\)/);
   assert.match(loader, /original_filename, mime_type, duration_ms/);
+  assert.match(loader, /if \(canonical\?\.video\)/);
+  assert.match(loader, /canonical analysis response can arrive before its metadata snapshot/);
   assert.match(loader, /Video: none uploaded yet\./);
 
   // Prompt renderer exists and is capped
