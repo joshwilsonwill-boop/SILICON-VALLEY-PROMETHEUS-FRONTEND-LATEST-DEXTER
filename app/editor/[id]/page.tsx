@@ -7202,6 +7202,14 @@ function OriginalEditorPage() {
           videoFile = restoreStoredSourceAssetFile(latestStored)
         }
       }
+      if (!videoFile && previewUrl && previewKind === 'video') {
+        try {
+          const res = await fetch(previewUrl)
+          if (res.ok) {
+            videoFile = await res.blob()
+          }
+        } catch {}
+      }
 
       if (videoFile) {
         const formData = new FormData()
@@ -7237,7 +7245,19 @@ function OriginalEditorPage() {
     } finally {
       setIsTranscribingVideo(false)
     }
-  }, [project?.sourceAssetId, projectId])
+  }, [project?.sourceAssetId, projectId, previewUrl, previewKind])
+
+  // Automatically trigger AssemblyAI transcription whenever video media is loaded
+  React.useEffect(() => {
+    if (!previewUrl || previewKind !== 'video') return
+    const hasLoadedCustomTranscript = job?.artifacts?.transcript && job.artifacts.transcript.length > 0
+    if (!hasLoadedCustomTranscript) {
+      const timer = setTimeout(() => {
+        void requestAssemblyAITranscription()
+      }, 500)
+      return () => clearTimeout(timer)
+    }
+  }, [previewUrl, previewKind, job?.artifacts?.transcript, requestAssemblyAITranscription])
 
   const handleUpdateTranscriptSegment = React.useCallback((segmentId: string, nextText: string) => {
     setJob((current) => {

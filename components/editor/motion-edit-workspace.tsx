@@ -199,7 +199,8 @@ export function MotionEditWorkspace({
   const activeSegment = resolvedSegments.find((segment) => isActiveSegment(segment, currentTimeSec))
   const safeAspectRatio = Number.isFinite(previewAspectRatio) && previewAspectRatio > 0 ? previewAspectRatio : 16 / 9
   const visibleSegments = resolvedSegments.filter((segment) => {
-    const matchesQuery = segment.text.toLowerCase().includes(transcriptQuery.trim().toLowerCase())
+    const query = transcriptQuery.trim().toLowerCase()
+    const matchesQuery = query === '' || segment.text.toLowerCase().includes(query)
     return matchesQuery && (!activeOnly || isActiveSegment(segment, currentTimeSec))
   })
   const activeTreatment = TREATMENTS.find((item) => item.id === treatment) ?? TREATMENTS[0]
@@ -578,7 +579,16 @@ export function MotionEditWorkspace({
                 )
               })}
               {visibleSegments.length === 0 ? (
-                <p className="text-sm text-white/42">No matching transcript lines.</p>
+                <div className="py-4 text-center">
+                  <p className="text-xs text-white/42 mb-1.5">No matching transcript lines.</p>
+                  <button
+                    type="button"
+                    onClick={() => { setTranscriptQuery(''); setActiveOnly(false) }}
+                    className="text-xs text-[#b4fb60] underline underline-offset-4 hover:text-[#98f237]"
+                  >
+                    Clear filters
+                  </button>
+                </div>
               ) : null}
             </div>
           </div>
