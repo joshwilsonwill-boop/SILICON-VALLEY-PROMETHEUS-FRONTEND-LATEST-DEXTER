@@ -22,11 +22,11 @@ function getOpenAiKey() {
   return key || null;
 }
 
-async function transcribeWithGroq(audioFile: File, apiKey: string): Promise<string> {
+async function transcribeWithGroq(audioFile: File, apiKey: string): Promise<{ text: string; segments?: any[] }> {
   const formData = new FormData();
   formData.append("file", audioFile, audioFile.name || "voice.webm");
   formData.append("model", "whisper-large-v3-turbo");
-  formData.append("response_format", "json");
+  formData.append("response_format", "verbose_json");
 
   const res = await fetch(GROQ_AUDIO_URL, {
     method: "POST",
@@ -34,7 +34,7 @@ async function transcribeWithGroq(audioFile: File, apiKey: string): Promise<stri
       "Authorization": `Bearer ${apiKey}`,
     },
     body: formData,
-    signal: AbortSignal.timeout(20_000),
+    signal: AbortSignal.timeout(25_000),
   });
 
   if (!res.ok) {
@@ -42,15 +42,26 @@ async function transcribeWithGroq(audioFile: File, apiKey: string): Promise<stri
     throw new Error(`Groq Whisper error: ${errorText}`);
   }
 
-  const data = (await res.json()) as { text?: string };
-  return (data.text || "").trim();
+  const data = (await res.json()) as { text?: string; segments?: Array<{ id?: number | string; start: number; end: number; text: string }> };
+  const rawSegments = data.segments || [];
+  const segments = rawSegments.map((s, idx) => ({
+    id: String(s.id ?? `seg-${idx + 1}`),
+    startMs: Math.round(s.start * 1000),
+    endMs: Math.round(s.end * 1000),
+    text: s.text.trim(),
+  }));
+
+  return {
+    text: (data.text || "").trim(),
+    segments,
+  };
 }
 
-async function transcribeWithOpenAI(audioFile: File, apiKey: string): Promise<string> {
+async function transcribeWithOpenAI(audioFile: File, apiKey: string): Promise<{ text: string; segments?: any[] }> {
   const formData = new FormData();
   formData.append("file", audioFile, audioFile.name || "voice.webm");
   formData.append("model", "whisper-1");
-  formData.append("response_format", "json");
+  formData.append("response_format", "verbose_json");
 
   const res = await fetch(OPENAI_AUDIO_URL, {
     method: "POST",
@@ -66,8 +77,19 @@ async function transcribeWithOpenAI(audioFile: File, apiKey: string): Promise<st
     throw new Error(`OpenAI Whisper error: ${errorText}`);
   }
 
-  const data = (await res.json()) as { text?: string };
-  return (data.text || "").trim();
+  const data = (await res.json()) as { text?: string; segments?: Array<{ id?: number | string; start: number; end: number; text: string }> };
+  const rawSegments = data.segments || [];
+  const segments = rawSegments.map((s, idx) => ({
+    id: String(s.id ?? `seg-${idx + 1}`),
+    startMs: Math.round(s.start * 1000),
+    endMs: Math.round(s.end * 1000),
+    text: s.text.trim(),
+  }));
+
+  return {
+    text: (data.text || "").trim(),
+    segments,
+  };
 }
 
 async function transcribeWithAssemblyAI(audioFile: File, apiKey: string): Promise<{ text?: string; transcriptId?: string; segments?: any[] }> {
@@ -159,9 +181,9 @@ export async function POST(request: Request) {
     // 1. Groq Whisper (lightning-fast, ~300ms)
     if (groqKey) {
       try {
-        const text = await transcribeWithGroq(audioFile, groqKey);
-        if (text) {
-          return Response.json({ text });
+        const groqResult = await transcribeWithGroq(audioFile, groqKey);
+        if (groqResult.text) {
+          return Response.json({ text: groqResult.text, segments: groqResult.segments ?? [] });
         }
       } catch (groqErr) {
         console.warn("[transcribe] Groq Whisper failed, falling back:", groqErr);
@@ -186,9 +208,9 @@ export async function POST(request: Request) {
     // 3. OpenAI Whisper
     if (openAiKey) {
       try {
-        const text = await transcribeWithOpenAI(audioFile, openAiKey);
-        if (text) {
-          return Response.json({ text });
+        const openAiResult = await transcribeWithOpenAI(audioFile, openAiKey);
+        if (openAiResult.text) {
+          return Response.json({ text: openAiResult.text, segments: openAiResult.segments ?? [] });
         }
       } catch (openAiErr) {
         console.warn("[transcribe] OpenAI Whisper failed:", openAiErr);

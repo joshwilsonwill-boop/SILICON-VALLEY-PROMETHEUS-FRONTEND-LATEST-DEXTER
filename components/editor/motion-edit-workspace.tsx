@@ -169,10 +169,7 @@ export function MotionEditWorkspace({
   onVideoTimeUpdate, onVideoEnded, onVideoPlay, onVideoPause, onVideoError, onImageLoaded, onApplyPrompt,
 }: MotionEditWorkspaceProps) {
   const resolvedSegments = React.useMemo(() => {
-    if (Array.isArray(transcriptSegments) && transcriptSegments.length > 0) {
-      return transcriptSegments
-    }
-    return DEFAULT_TRANSCRIPT
+    return Array.isArray(transcriptSegments) ? transcriptSegments : []
   }, [transcriptSegments])
 
   const [activeTool, setActiveTool] = React.useState<MotionToolId>('layout')
@@ -387,14 +384,14 @@ export function MotionEditWorkspace({
         <aside className="hidden w-[clamp(270px,26vw,360px)] shrink-0 flex-col border-r border-white/10 xl:flex">
           <div className="flex min-h-14 shrink-0 items-center gap-2 border-b border-white/8 px-4">
             <span className="text-sm font-medium">Transcript</span>
-            <span className="rounded bg-[#98f237]/15 px-1.5 py-0.5 text-[10px] font-medium text-[#b4fb60]">AssemblyAI</span>
+            <span className="rounded bg-[#98f237]/15 px-1.5 py-0.5 text-[10px] font-medium text-[#b4fb60]">Prometheus AI</span>
             {onRequestTranscribe ? (
               <button
                 type="button"
                 onClick={onRequestTranscribe}
                 disabled={isTranscribing}
                 className="inline-flex items-center gap-1 rounded bg-white/[0.08] px-2 py-1 text-[10px] text-white/70 hover:bg-white/[0.14] hover:text-white disabled:opacity-40"
-                title="Transcribe source video with AssemblyAI"
+                title="Transcribe source video with Prometheus AI"
               >
                 {isTranscribing ? <Loader2 className="size-3 animate-spin text-[#98f237]" /> : <RefreshCw className="size-3" />}
                 <span>Sync</span>
@@ -476,11 +473,17 @@ export function MotionEditWorkspace({
 
           <div ref={transcriptRef} className="premium-scroll-hide min-h-0 flex-1 overflow-y-auto p-4">
             {isTranscribing ? (
-              <div className="mb-4 flex items-center gap-3 rounded-lg border border-[#98f237]/30 bg-[#98f237]/10 p-3 text-xs text-[#b4fb60] shadow-[0_0_20px_rgba(152,242,55,0.15)]">
-                <Loader2 className="size-4 animate-spin shrink-0 text-[#98f237]" />
-                <div>
-                  <div className="font-semibold text-white">Transcribing with AssemblyAI...</div>
-                  <div className="text-[11px] text-white/60">Processing speech and aligning word timestamps.</div>
+              <div className="mb-4 rounded-lg border border-[#98f237]/30 bg-[#98f237]/10 p-3.5 text-xs shadow-[0_0_20px_rgba(152,242,55,0.15)]">
+                <div className="flex items-center gap-2 text-[#b4fb60]">
+                  <Loader2 className="size-4 animate-spin shrink-0 text-[#98f237]" />
+                  <span className="font-semibold text-white">Transcribing with Prometheus AI...</span>
+                </div>
+                <div className="mt-1 text-[11px] text-white/65">Streaming speech analysis and aligning word timestamps.</div>
+                <div className="mt-2.5 flex items-center gap-1">
+                  <span className="h-1 flex-1 animate-pulse rounded-full bg-[#98f237]/40" />
+                  <span className="h-1 flex-1 animate-pulse rounded-full bg-[#98f237]/70 [animation-delay:150ms]" />
+                  <span className="h-1 flex-1 animate-pulse rounded-full bg-[#98f237] [animation-delay:300ms]" />
+                  <span className="h-1 flex-1 animate-pulse rounded-full bg-[#98f237]/60 [animation-delay:450ms]" />
                 </div>
               </div>
             ) : null}
@@ -499,10 +502,19 @@ export function MotionEditWorkspace({
                   onClick={onRequestTranscribe}
                   className="inline-flex min-h-8 items-center gap-1.5 rounded-md border border-[#98f237]/30 bg-[#98f237]/10 px-2.5 py-1.5 text-xs font-medium text-[#b4fb60] transition-colors hover:bg-[#98f237]/20"
                 >
-                  <Sparkles className="size-3.5" /> Re-transcribe
+                  <Sparkles className="size-3.5" /> Transcribe
                 </button>
               ) : null}
             </div>
+
+            {isTranscribing && visibleSegments.length === 0 ? (
+              <div className="space-y-3 py-2">
+                <div className="h-4 w-5/6 animate-pulse rounded bg-white/10" />
+                <div className="h-4 w-full animate-pulse rounded bg-white/10 [animation-delay:150ms]" />
+                <div className="h-4 w-4/6 animate-pulse rounded bg-white/10 [animation-delay:300ms]" />
+                <div className="h-4 w-3/4 animate-pulse rounded bg-white/10 [animation-delay:450ms]" />
+              </div>
+            ) : null}
 
             <div className="space-y-3.5 text-[17px] leading-8">
               {visibleSegments.map((segment) => {
@@ -578,16 +590,18 @@ export function MotionEditWorkspace({
                   </div>
                 )
               })}
-              {visibleSegments.length === 0 ? (
-                <div className="py-4 text-center">
-                  <p className="text-xs text-white/42 mb-1.5">No matching transcript lines.</p>
-                  <button
-                    type="button"
-                    onClick={() => { setTranscriptQuery(''); setActiveOnly(false) }}
-                    className="text-xs text-[#b4fb60] underline underline-offset-4 hover:text-[#98f237]"
-                  >
-                    Clear filters
-                  </button>
+              {!isTranscribing && visibleSegments.length === 0 ? (
+                <div className="py-6 text-center">
+                  <p className="text-xs text-white/42 mb-2">No transcript lines found.</p>
+                  {onRequestTranscribe ? (
+                    <button
+                      type="button"
+                      onClick={onRequestTranscribe}
+                      className="inline-flex items-center gap-1.5 rounded bg-[#98f237] px-3 py-1.5 text-xs font-semibold text-black hover:bg-[#b4fb60]"
+                    >
+                      <Sparkles className="size-3.5" /> Transcribe with Prometheus AI
+                    </button>
+                  ) : null}
                 </div>
               ) : null}
             </div>

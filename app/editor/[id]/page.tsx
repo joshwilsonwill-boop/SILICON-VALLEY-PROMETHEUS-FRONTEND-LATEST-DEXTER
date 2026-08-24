@@ -7234,7 +7234,7 @@ function OriginalEditorPage() {
             if (project?.sourceAssetId) {
               saveProjectTranscript(project.sourceAssetId, data.segments)
             }
-            toast.success('AssemblyAI transcription ready')
+            toast.success('Prometheus AI transcription ready')
             setIsTranscribingVideo(false)
             return
           }
