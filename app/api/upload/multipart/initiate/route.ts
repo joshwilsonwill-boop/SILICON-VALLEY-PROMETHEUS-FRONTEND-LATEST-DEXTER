@@ -19,7 +19,7 @@ export async function POST(req: Request) {
     // Generate a secure, unique key
     const uniqueId = crypto.randomUUID()
     const key = `uploads/${user.id}/${uniqueId}-${filename}`
-    const bucket = process.env.R2_BUCKET_NAME || 'prometheus-assets'
+    const bucket = process.env.R2_BUCKET_SOURCES || 'prometheus-sources'
 
     const command = new CreateMultipartUploadCommand({
       Bucket: bucket,

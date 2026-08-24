@@ -21,7 +21,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    const bucket = process.env.R2_BUCKET_NAME || 'prometheus-assets'
+    const bucket = process.env.R2_BUCKET_SOURCES || 'prometheus-sources'
 
     const command = new CompleteMultipartUploadCommand({
       Bucket: bucket,
@@ -37,14 +37,9 @@ export async function POST(req: Request) {
 
     const response = await r2Client.send(command)
 
-    // Construct the public/private URL (Edge URL)
-    // Assuming custom domain or default R2 public URL structure
-    const edgeUrl = `https://assets.prometheusstudio.tech/${response.Key}`
-
     return NextResponse.json({
       location: response.Location,
       key: response.Key,
-      url: edgeUrl
     })
   } catch (error: any) {
     console.error('[Multipart Complete Error]', error)

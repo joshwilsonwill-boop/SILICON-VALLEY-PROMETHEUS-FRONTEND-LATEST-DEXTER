@@ -22,7 +22,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    const bucket = process.env.R2_BUCKET_NAME || 'prometheus-assets'
+    const bucket = process.env.R2_BUCKET_SOURCES || 'prometheus-sources'
 
     const command = new UploadPartCommand({
       Bucket: bucket,
