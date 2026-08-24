@@ -127,7 +127,7 @@ import {
 import { analyzeMusicIntent } from '@/lib/music-intent'
 import { queuePreviewRevisionRequest } from '@/lib/editorial-frame/mock-preview-api'
 import { getSessionSourcePreview, setSessionSourcePreview } from '@/lib/source-preview-session'
-import { createSourceAssetObjectUrl, getStoredSourceAssetFile, getLatestStoredSourceAssetRecord, restoreStoredSourceAssetFile } from '@/lib/source-asset-store'
+import { createSourceAssetObjectUrl, getStoredSourceAssetFile, getLatestStoredSourceAssetRecord, restoreStoredSourceAssetFile, getProjectTranscript, saveProjectTranscript } from '@/lib/source-asset-store'
 import { uploadProjectSourceMultipart } from '@/lib/r2/multipart-client'
 import { STYLE_TEMPLATES, type StyleTemplate } from '@/lib/styles/style-templates'
 import { toast } from 'sonner'
@@ -7161,6 +7161,84 @@ function OriginalEditorPage() {
     [job?.artifacts.transcript],
   )
 
+  const [isTranscribingVideo, setIsTranscribingVideo] = React.useState(false)
+
+  // Hydrate transcript from persistent local cache if not yet loaded in job
+  React.useEffect(() => {
+    if (job?.artifacts?.transcript && job.artifacts.transcript.length > 0) return
+    const cached = getProjectTranscript(projectId) || (project?.sourceAssetId ? getProjectTranscript(project.sourceAssetId) : null)
+    if (cached && Array.isArray(cached) && cached.length > 0) {
+      setJob((current) => {
+        if (!current) return current
+        return {
+          ...current,
+          artifacts: { ...current.artifacts, transcript: cached },
+          transcriptStatus: 'completed',
+          transcriptText: cached.map((s: any) => s.text).join(' '),
+        }
+      })
+    }
+  }, [projectId, project?.sourceAssetId, job?.artifacts?.transcript])
+
+  const requestAssemblyAITranscription = React.useCallback(async () => {
+    setIsTranscribingVideo(true)
+    try {
+      // 1. If backend sourceAssetId exists, trigger backend AssemblyAI route
+      if (project?.sourceAssetId) {
+        await fetch(`/api/assets/${project.sourceAssetId}/transcript`, {
+          method: 'POST',
+          cache: 'no-store',
+        }).catch(() => {})
+      }
+
+      // 2. Transcribe using local source file or preview stream if available
+      let videoFile: File | Blob | null = null
+      if (project?.sourceAssetId) {
+        videoFile = await getStoredSourceAssetFile(project.sourceAssetId)
+      }
+      if (!videoFile) {
+        const latestStored = await getLatestStoredSourceAssetRecord()
+        if (latestStored) {
+          videoFile = restoreStoredSourceAssetFile(latestStored)
+        }
+      }
+
+      if (videoFile) {
+        const formData = new FormData()
+        formData.append('audio', videoFile, (videoFile as File).name || 'source_video.mp4')
+        const response = await fetch('/api/prometheus-chat/transcribe', {
+          method: 'POST',
+          body: formData,
+        })
+        if (response.ok) {
+          const data = (await response.json()) as { text?: string; segments?: TranscriptSegment[] }
+          if (data.segments && data.segments.length > 0) {
+            setJob((current) => {
+              if (!current) return current
+              return {
+                ...current,
+                artifacts: { ...current.artifacts, transcript: data.segments! },
+                transcriptStatus: 'completed',
+                transcriptText: data.text || data.segments!.map((s) => s.text).join(' '),
+              }
+            })
+            saveProjectTranscript(projectId, data.segments)
+            if (project?.sourceAssetId) {
+              saveProjectTranscript(project.sourceAssetId, data.segments)
+            }
+            toast.success('AssemblyAI transcription ready')
+            setIsTranscribingVideo(false)
+            return
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('[AssemblyAI] Direct video transcription notice:', err)
+    } finally {
+      setIsTranscribingVideo(false)
+    }
+  }, [project?.sourceAssetId, projectId])
+
   const handleUpdateTranscriptSegment = React.useCallback((segmentId: string, nextText: string) => {
     setJob((current) => {
       if (!current) return current
@@ -7176,13 +7254,31 @@ function OriginalEditorPage() {
         }
         return seg
       })
+      saveProjectTranscript(projectId, updated)
+      if (project?.sourceAssetId) {
+        saveProjectTranscript(project.sourceAssetId, updated)
+      }
       return {
         ...current,
         artifacts: { ...current.artifacts, transcript: updated },
         transcriptText: updated.map((s) => s.text).join(' '),
       }
     })
-  }, [])
+  }, [projectId, project?.sourceAssetId])
+
+  const videoMetadata = React.useMemo(() => {
+    const inspection = project?.sourceProfile?.inspection
+    const aspect = getSourcePreviewAspectRatio(project?.sourceProfile, previewAspectRatio)
+    const resLabel = aspect > 1 ? '1920x1080' : '1080x1920'
+    return {
+      resolution: inspection?.width && inspection?.height ? `${inspection.width}x${inspection.height}` : resLabel,
+      fps: inspection?.fps ?? '30.00',
+      duration: transportTime || (inspection?.durationSec ? `${inspection.durationSec}s` : '00:48.00'),
+      codec: inspection?.mimeType || 'H.264 / AAC (48 kHz)',
+      aspectRatio: `${aspect.toFixed(2)}:1`,
+      size: inspection?.fileSizeBytes ? `${(inspection.fileSizeBytes / (1024 * 1024)).toFixed(1)} MB` : undefined,
+    }
+  }, [project?.sourceProfile, previewAspectRatio, transportTime])
   const viralClipPrompt = React.useMemo(
     () =>
       buildViralClipQuickActionPrompt({
@@ -8435,6 +8531,9 @@ function OriginalEditorPage() {
                     isSourceDragOver={isInlineSourceDragOver}
                     transcriptSegments={motionTranscriptSegments}
                     onUpdateTranscriptSegment={handleUpdateTranscriptSegment}
+                    onRequestTranscribe={requestAssemblyAITranscription}
+                    isTranscribing={isTranscribingVideo}
+                    videoMetadata={videoMetadata}
                     onSeek={handlePreviewSeekSeconds}
                     onVideoLoadedMetadata={handlePreviewMetadataLoaded}
                     onVideoLoadedData={handlePreviewVideoReady}

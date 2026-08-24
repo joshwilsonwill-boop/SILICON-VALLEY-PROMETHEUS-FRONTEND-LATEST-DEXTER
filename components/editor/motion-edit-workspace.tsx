@@ -7,16 +7,20 @@ import {
   Crop,
   Download,
   Edit3,
+  Film,
   Filter,
   Frame,
   GripHorizontal,
   Grid2X2,
+  Info,
+  Loader2,
   Maximize2,
   Pause,
   PanelBottomClose,
   PanelBottomOpen,
   Play,
   Plus,
+  RefreshCw,
   Search,
   Sparkles,
   Upload,
@@ -50,6 +54,15 @@ export type MotionTextPlacement = {
   region?: 'top' | 'center' | 'bottom'
 }
 
+export interface VideoMetadataInfo {
+  resolution?: string
+  fps?: number | string
+  duration?: string
+  codec?: string
+  size?: string
+  aspectRatio?: string
+}
+
 export interface MotionEditWorkspaceProps {
   projectTitle: string
   previewUrl: string
@@ -71,6 +84,9 @@ export interface MotionEditWorkspaceProps {
   videoRef: React.Ref<HTMLVideoElement>
   transcriptSegments?: MotionTranscriptSegment[]
   onUpdateTranscriptSegment?: (segmentId: string, nextText: string) => void
+  onRequestTranscribe?: () => void
+  isTranscribing?: boolean
+  videoMetadata?: VideoMetadataInfo
   onTogglePlayback: () => void
   onPickSource: () => void
   onSourceDrop?: (event: React.DragEvent) => void
@@ -146,12 +162,19 @@ function HighlightedTranscript({ segment, active }: { segment: MotionTranscriptS
 export function MotionEditWorkspace({
   projectTitle, previewUrl, previewKind, hasPreviewMedia, sourceLabel, previewAspectRatio, fitMode,
   onFitModeChange, objectFit, mediaTransformStyle, currentTimeLabel, durationLabel, currentTimeSec,
-  durationSec, previewPlaying, previewMuted, onPreviewMutedChange, videoRef, transcriptSegments = DEFAULT_TRANSCRIPT,
-  onUpdateTranscriptSegment,
+  durationSec, previewPlaying, previewMuted, onPreviewMutedChange, videoRef, transcriptSegments,
+  onUpdateTranscriptSegment, onRequestTranscribe, isTranscribing = false, videoMetadata,
   onTogglePlayback, onPickSource, onSourceDrop, onSourceDragOver, onSourceDragLeave, isSourceDragOver = false,
   textPlacements, onSeek, onVideoLoadedMetadata, onVideoLoadedData, onVideoCanPlay,
   onVideoTimeUpdate, onVideoEnded, onVideoPlay, onVideoPause, onVideoError, onImageLoaded, onApplyPrompt,
 }: MotionEditWorkspaceProps) {
+  const resolvedSegments = React.useMemo(() => {
+    if (Array.isArray(transcriptSegments) && transcriptSegments.length > 0) {
+      return transcriptSegments
+    }
+    return DEFAULT_TRANSCRIPT
+  }, [transcriptSegments])
+
   const [activeTool, setActiveTool] = React.useState<MotionToolId>('layout')
   const [zoom, setZoom] = React.useState(1)
   const [showTimeline, setShowTimeline] = React.useState(true)
@@ -162,6 +185,7 @@ export function MotionEditWorkspace({
   const [treatment, setTreatment] = React.useState<PreviewTreatment>('clean')
   const [transcriptQuery, setTranscriptQuery] = React.useState('')
   const [activeOnly, setActiveOnly] = React.useState(false)
+  const [showMetadata, setShowMetadata] = React.useState(false)
   const workspaceRef = React.useRef<HTMLElement>(null)
   const transcriptRef = React.useRef<HTMLDivElement>(null)
   const timelineRef = React.useRef<HTMLDivElement>(null)
@@ -170,11 +194,11 @@ export function MotionEditWorkspace({
   const [timelineDragging, setTimelineDragging] = React.useState(false)
   const [timelineResizing, setTimelineResizing] = React.useState(false)
 
-  const effectiveDuration = durationSec > 0 ? durationSec : Math.max(60, ...transcriptSegments.map((segment) => segment.end))
+  const effectiveDuration = durationSec > 0 ? durationSec : Math.max(60, ...resolvedSegments.map((segment) => segment.end))
   const playheadPercent = Math.min(100, Math.max(0, (currentTimeSec / effectiveDuration) * 100))
-  const activeSegment = transcriptSegments.find((segment) => isActiveSegment(segment, currentTimeSec))
+  const activeSegment = resolvedSegments.find((segment) => isActiveSegment(segment, currentTimeSec))
   const safeAspectRatio = Number.isFinite(previewAspectRatio) && previewAspectRatio > 0 ? previewAspectRatio : 16 / 9
-  const visibleSegments = transcriptSegments.filter((segment) => {
+  const visibleSegments = resolvedSegments.filter((segment) => {
     const matchesQuery = segment.text.toLowerCase().includes(transcriptQuery.trim().toLowerCase())
     return matchesQuery && (!activeOnly || isActiveSegment(segment, currentTimeSec))
   })
@@ -359,88 +383,204 @@ export function MotionEditWorkspace({
         </div>
       ) : null}
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
-        <aside className="hidden w-[clamp(250px,24vw,340px)] shrink-0 flex-col border-r border-white/10 xl:flex">
-          <div className="flex min-h-14 shrink-0 items-center gap-3 border-b border-white/8 px-5">
-            <span className="text-sm font-medium">Transcript</span><span className="rounded bg-white/[0.08] px-1.5 py-0.5 text-[10px] text-white/46">AssemblyAI</span>
-            <button type="button" onClick={() => setTranscriptQuery((value) => value ? '' : ' ')} className="ml-auto grid size-9 place-items-center text-white/58 transition-colors hover:text-white" aria-label="Search transcript"><Search className="size-4" /></button>
-            <button type="button" onClick={() => setActiveOnly((value) => !value)} className={cn('grid size-9 place-items-center transition-colors', activeOnly ? 'text-[#b4fb60]' : 'text-white/58 hover:text-white')} aria-label="Filter transcript to current line"><Filter className="size-4" /></button>
+        <aside className="hidden w-[clamp(270px,26vw,360px)] shrink-0 flex-col border-r border-white/10 xl:flex">
+          <div className="flex min-h-14 shrink-0 items-center gap-2 border-b border-white/8 px-4">
+            <span className="text-sm font-medium">Transcript</span>
+            <span className="rounded bg-[#98f237]/15 px-1.5 py-0.5 text-[10px] font-medium text-[#b4fb60]">AssemblyAI</span>
+            {onRequestTranscribe ? (
+              <button
+                type="button"
+                onClick={onRequestTranscribe}
+                disabled={isTranscribing}
+                className="inline-flex items-center gap-1 rounded bg-white/[0.08] px-2 py-1 text-[10px] text-white/70 hover:bg-white/[0.14] hover:text-white disabled:opacity-40"
+                title="Transcribe source video with AssemblyAI"
+              >
+                {isTranscribing ? <Loader2 className="size-3 animate-spin text-[#98f237]" /> : <RefreshCw className="size-3" />}
+                <span>Sync</span>
+              </button>
+            ) : null}
+            <div className="ml-auto flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setShowMetadata((v) => !v)}
+                className={cn('grid size-8 place-items-center rounded transition-colors', showMetadata ? 'bg-[#98f237]/15 text-[#b4fb60]' : 'text-white/58 hover:bg-white/5 hover:text-white')}
+                aria-label="Toggle Video Metadata"
+                title="Video Metadata"
+              >
+                <Info className="size-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setTranscriptQuery((value) => value ? '' : ' ')}
+                className="grid size-8 place-items-center rounded text-white/58 transition-colors hover:bg-white/5 hover:text-white"
+                aria-label="Search transcript"
+              >
+                <Search className="size-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveOnly((value) => !value)}
+                className={cn('grid size-8 place-items-center rounded transition-colors', activeOnly ? 'text-[#b4fb60]' : 'text-white/58 hover:bg-white/5 hover:text-white')}
+                aria-label="Filter transcript to current line"
+              >
+                <Filter className="size-3.5" />
+              </button>
+            </div>
           </div>
-          {transcriptQuery !== '' ? <div className="border-b border-white/8 px-5 py-3"><label className="sr-only" htmlFor="motion-transcript-search">Search transcript</label><input id="motion-transcript-search" autoFocus value={transcriptQuery.trim()} onChange={(event) => setTranscriptQuery(event.target.value)} placeholder="Search transcript" className="h-9 w-full rounded-md border border-white/10 bg-black/30 px-3 text-xs text-white outline-none placeholder:text-white/34 focus:border-[#98f237]/50" /></div> : null}
-          <div ref={transcriptRef} className="premium-scroll-hide min-h-0 flex-1 overflow-y-auto px-5 py-5">
-            <button type="button" onClick={() => onApplyPrompt?.('Clean up the selected speech in the current edit.')} className="mb-5 inline-flex min-h-10 items-center gap-2 rounded-md border border-white/10 bg-white/[0.08] px-3 py-2 text-xs font-medium text-white/86 transition-colors hover:bg-white/[0.13]"><Wand2 className="size-3.5" /> Speech cleanup</button>
-            <div className="space-y-3.5 text-[17px] leading-8">{visibleSegments.map((segment) => {
-              const active = isActiveSegment(segment, currentTimeSec)
-              const isEditing = editingSegmentId === segment.id
 
-              if (isEditing) {
+          {showMetadata ? (
+            <div className="border-b border-white/8 bg-white/[0.02] p-4 text-xs text-white/80">
+              <div className="flex items-center justify-between pb-2">
+                <span className="font-semibold text-white flex items-center gap-1.5"><Film className="size-3.5 text-[#98f237]" /> Video Metadata</span>
+                <span className="text-[10px] text-white/40">Server Source</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-[11px] pt-1">
+                <div className="rounded bg-black/40 p-2 border border-white/5">
+                  <div className="text-[10px] text-white/40 uppercase tracking-wider">Resolution</div>
+                  <div className="font-mono text-white/90">{videoMetadata?.resolution || (previewAspectRatio ? (previewAspectRatio > 1 ? '1920x1080' : '1080x1920') : '1080p')}</div>
+                </div>
+                <div className="rounded bg-black/40 p-2 border border-white/5">
+                  <div className="text-[10px] text-white/40 uppercase tracking-wider">Aspect Ratio</div>
+                  <div className="font-mono text-white/90">{videoMetadata?.aspectRatio || (safeAspectRatio.toFixed(2) + ':1')}</div>
+                </div>
+                <div className="rounded bg-black/40 p-2 border border-white/5">
+                  <div className="text-[10px] text-white/40 uppercase tracking-wider">Duration</div>
+                  <div className="font-mono text-white/90">{durationLabel || formatTime(effectiveDuration)}</div>
+                </div>
+                <div className="rounded bg-black/40 p-2 border border-white/5">
+                  <div className="text-[10px] text-white/40 uppercase tracking-wider">Framerate</div>
+                  <div className="font-mono text-white/90">{videoMetadata?.fps ? `${videoMetadata.fps} fps` : '30.00 fps'}</div>
+                </div>
+                <div className="rounded bg-black/40 p-2 border border-white/5 col-span-2">
+                  <div className="text-[10px] text-white/40 uppercase tracking-wider">Encoding / Codec</div>
+                  <div className="font-mono text-white/90">{videoMetadata?.codec || 'H.264 / AAC (48.0 kHz)'}</div>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          {transcriptQuery !== '' ? (
+            <div className="border-b border-white/8 px-4 py-2.5">
+              <label className="sr-only" htmlFor="motion-transcript-search">Search transcript</label>
+              <input
+                id="motion-transcript-search"
+                autoFocus
+                value={transcriptQuery.trim()}
+                onChange={(event) => setTranscriptQuery(event.target.value)}
+                placeholder="Search transcript..."
+                className="h-8 w-full rounded-md border border-white/10 bg-black/30 px-3 text-xs text-white outline-none placeholder:text-white/34 focus:border-[#98f237]/50"
+              />
+            </div>
+          ) : null}
+
+          <div ref={transcriptRef} className="premium-scroll-hide min-h-0 flex-1 overflow-y-auto p-4">
+            {isTranscribing ? (
+              <div className="mb-4 flex items-center gap-3 rounded-lg border border-[#98f237]/30 bg-[#98f237]/10 p-3 text-xs text-[#b4fb60] shadow-[0_0_20px_rgba(152,242,55,0.15)]">
+                <Loader2 className="size-4 animate-spin shrink-0 text-[#98f237]" />
+                <div>
+                  <div className="font-semibold text-white">Transcribing with AssemblyAI...</div>
+                  <div className="text-[11px] text-white/60">Processing speech and aligning word timestamps.</div>
+                </div>
+              </div>
+            ) : null}
+
+            <div className="mb-4 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => onApplyPrompt?.('Clean up the selected speech in the current edit.')}
+                className="inline-flex min-h-8 items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.08] px-2.5 py-1.5 text-xs font-medium text-white/86 transition-colors hover:bg-white/[0.13]"
+              >
+                <Wand2 className="size-3.5 text-[#98f237]" /> Speech cleanup
+              </button>
+              {onRequestTranscribe && !isTranscribing ? (
+                <button
+                  type="button"
+                  onClick={onRequestTranscribe}
+                  className="inline-flex min-h-8 items-center gap-1.5 rounded-md border border-[#98f237]/30 bg-[#98f237]/10 px-2.5 py-1.5 text-xs font-medium text-[#b4fb60] transition-colors hover:bg-[#98f237]/20"
+                >
+                  <Sparkles className="size-3.5" /> Re-transcribe
+                </button>
+              ) : null}
+            </div>
+
+            <div className="space-y-3.5 text-[17px] leading-8">
+              {visibleSegments.map((segment) => {
+                const active = isActiveSegment(segment, currentTimeSec)
+                const isEditing = editingSegmentId === segment.id
+
+                if (isEditing) {
+                  return (
+                    <div key={segment.id} className="rounded-md border border-[#98f237]/40 bg-black/50 p-2.5 shadow-lg">
+                      <textarea
+                        autoFocus
+                        rows={3}
+                        value={editingText}
+                        onChange={(e) => setEditingText(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault()
+                            handleSaveEdit(segment.id)
+                          } else if (e.key === 'Escape') {
+                            handleCancelEdit()
+                          }
+                        }}
+                        className="w-full resize-none rounded border border-white/10 bg-black/60 p-2 text-xs leading-relaxed text-white outline-none focus:border-[#98f237]"
+                      />
+                      <div className="mt-2 flex items-center justify-end gap-1.5">
+                        <button
+                          type="button"
+                          onClick={handleCancelEdit}
+                          className="inline-flex items-center gap-1 rounded border border-white/10 px-2 py-1 text-[11px] text-white/60 hover:bg-white/10 hover:text-white"
+                        >
+                          <X className="size-3" /> Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => handleSaveEdit(segment.id, e)}
+                          className="inline-flex items-center gap-1 rounded bg-[#98f237] px-2.5 py-1 text-[11px] font-semibold text-black hover:bg-[#b4fb60]"
+                        >
+                          <Check className="size-3" /> Save
+                        </button>
+                      </div>
+                    </div>
+                  )
+                }
+
                 return (
-                  <div key={segment.id} className="rounded-md border border-[#98f237]/40 bg-black/50 p-2.5 shadow-lg">
-                    <textarea
-                      autoFocus
-                      rows={3}
-                      value={editingText}
-                      onChange={(e) => setEditingText(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                          e.preventDefault()
-                          handleSaveEdit(segment.id)
-                        } else if (e.key === 'Escape') {
-                          handleCancelEdit()
-                        }
-                      }}
-                      className="w-full resize-none rounded border border-white/10 bg-black/60 p-2 text-xs leading-relaxed text-white outline-none focus:border-[#98f237]"
-                    />
-                    <div className="mt-2 flex items-center justify-end gap-1.5">
-                      <button
-                        type="button"
-                        onClick={handleCancelEdit}
-                        className="inline-flex items-center gap-1 rounded border border-white/10 px-2 py-1 text-[11px] text-white/60 hover:bg-white/10 hover:text-white"
-                      >
-                        <X className="size-3" /> Cancel
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(e) => handleSaveEdit(segment.id, e)}
-                        className="inline-flex items-center gap-1 rounded bg-[#98f237] px-2.5 py-1 text-[11px] font-semibold text-black hover:bg-[#b4fb60]"
-                      >
-                        <Check className="size-3" /> Save
-                      </button>
+                  <div
+                    key={segment.id}
+                    data-active-transcript={active}
+                    onClick={() => onSeek(segment.start)}
+                    className={cn(
+                      'group relative block w-full cursor-pointer rounded-md p-1.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#98f237]/55',
+                      active ? 'bg-white/[0.045] ring-1 ring-[#98f237]/25' : 'hover:bg-white/[0.025]',
+                    )}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1">
+                        <HighlightedTranscript segment={segment} active={active} />
+                        <span className={cn('ml-2 inline-flex translate-y-[-1px] rounded px-1.5 py-0.5 text-[10px] tabular-nums leading-none', active ? 'bg-[#98f237]/16 font-semibold text-[#b4fb60]' : 'bg-white/[0.08] text-white/38')}>
+                          {formatTime(segment.start).slice(0, 5)}
+                        </span>
+                      </div>
+                      {onUpdateTranscriptSegment ? (
+                        <button
+                          type="button"
+                          onClick={(e) => handleStartEdit(segment, e)}
+                          title="Edit transcript text"
+                          className="opacity-0 transition-opacity group-hover:opacity-100 p-1 rounded hover:bg-white/10 text-white/50 hover:text-white"
+                        >
+                          <Edit3 className="size-3" />
+                        </button>
+                      ) : null}
                     </div>
                   </div>
                 )
-              }
-
-              return (
-                <div
-                  key={segment.id}
-                  data-active-transcript={active}
-                  onClick={() => onSeek(segment.start)}
-                  className={cn(
-                    'group relative block w-full cursor-pointer rounded-md p-1.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#98f237]/55',
-                    active ? 'bg-white/[0.045] ring-1 ring-[#98f237]/25' : 'hover:bg-white/[0.025]',
-                  )}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1">
-                      <HighlightedTranscript segment={segment} active={active} />
-                      <span className={cn('ml-2 inline-flex translate-y-[-1px] rounded px-1.5 py-0.5 text-[10px] tabular-nums leading-none', active ? 'bg-[#98f237]/16 font-semibold text-[#b4fb60]' : 'bg-white/[0.08] text-white/38')}>
-                        {formatTime(segment.start).slice(0, 5)}
-                      </span>
-                    </div>
-                    {onUpdateTranscriptSegment ? (
-                      <button
-                        type="button"
-                        onClick={(e) => handleStartEdit(segment, e)}
-                        title="Edit transcript text"
-                        className="opacity-0 transition-opacity group-hover:opacity-100 p-1 rounded hover:bg-white/10 text-white/50 hover:text-white"
-                      >
-                        <Edit3 className="size-3" />
-                      </button>
-                    ) : null}
-                  </div>
-                </div>
-              )
-            })}{visibleSegments.length === 0 ? <p className="text-sm text-white/42">No matching transcript lines.</p> : null}</div>
+              })}
+              {visibleSegments.length === 0 ? (
+                <p className="text-sm text-white/42">No matching transcript lines.</p>
+              ) : null}
+            </div>
           </div>
         </aside>
 
@@ -475,7 +615,7 @@ export function MotionEditWorkspace({
         <aside className="hidden w-[72px] shrink-0 border-l border-white/8 bg-black/28 lg:flex lg:flex-col lg:items-center lg:gap-2 lg:pt-3">{TOOLS.map(({ id, label, icon: Icon }) => <button key={id} type="button" onClick={() => selectTool(id)} className={cn('group flex min-h-12 w-full flex-col items-center gap-1 border-l-2 px-1 py-1.5 text-[9px] font-medium transition-colors', activeTool === id ? 'border-[#98f237] text-white' : 'border-transparent text-white/46 hover:text-white/82')}><span className={cn('grid size-7 place-items-center rounded-md transition-colors', activeTool === id ? 'bg-[#98f237]/12 text-[#b4fb60]' : 'text-white/65 group-hover:bg-white/[0.06]')}><Icon className="size-3.5" /></span>{label}</button>)}<div className="mt-auto mb-3 text-[8px] uppercase tracking-[0.12em] text-white/28">{activeTool}</div></aside>
       </div>
 
-      {showTimeline ? <section className="relative shrink-0 border-t border-white/12 bg-[#070809]/95" style={{ height: timelineHeight }} aria-label="Video timeline">{timelineResizeHandle}<div className="flex h-11 items-center justify-between border-b border-white/8 px-3 sm:px-5"><div className="flex items-center gap-1.5 sm:gap-3"><span className="text-xs font-medium text-white/86">Timeline</span><button type="button" onClick={() => setShowTimeline(false)} className="grid size-8 place-items-center rounded-md border border-white/10 bg-white/[0.035] text-white/62 transition-all hover:border-white/20 hover:bg-white/[0.08] hover:text-white" aria-label="Collapse timeline" title="Collapse timeline"><PanelBottomClose className="size-3.5" /></button><button type="button" onClick={() => setCropEnabled((value) => !value)} className={cn('grid size-8 place-items-center rounded border transition-colors', cropEnabled ? 'border-[#98f237]/35 bg-[#98f237]/10 text-[#b4fb60]' : 'border-white/10 text-white/56 hover:text-white')} aria-label="Toggle crop frame"><Crop className="size-3.5" /></button><button type="button" onClick={onTogglePlayback} disabled={previewKind !== 'video' || !previewUrl} className="grid size-8 place-items-center text-white/82 disabled:opacity-35" aria-label={previewPlaying ? 'Pause timeline' : 'Play timeline'}>{previewPlaying ? <Pause className="size-4 fill-current" /> : <Play className="size-4 fill-current" />}</button><button type="button" onClick={() => onPreviewMutedChange(!previewMuted)} disabled={previewKind !== 'video' || !previewUrl} className={cn('grid size-8 place-items-center transition-colors disabled:opacity-35', previewMuted ? 'text-white/42' : 'text-[#b4fb60]')} aria-label={previewMuted ? 'Unmute preview' : 'Mute preview'}><Volume2 className="size-3.5" /></button><span className="hidden font-mono text-xs tabular-nums text-white/78 sm:inline">{currentTimeLabel} <span className="mx-1 text-white/28">/</span> {durationLabel}</span></div><label className="flex items-center gap-2 text-white/52"><ZoomOut className="size-3.5" /><span className="sr-only">Timeline zoom</span><input aria-label="Timeline zoom" type="range" min="0.7" max="2.4" step="0.1" value={zoom} onChange={(event) => setZoom(Number(event.target.value))} className="h-1 w-16 accent-[#98f237] sm:w-20" /><ZoomIn className="size-3.5" /></label></div><div className="flex min-h-0"><div className="hidden w-24 shrink-0 border-r border-white/8 pt-8 text-right text-[10px] text-white/40 sm:block"><div className="pr-3">Video</div><div className="mt-7 pr-3">Audio</div><div className="mt-6 pr-3">Captions</div><div className="mt-6 pr-3">Text</div></div><div ref={timelineRef} onPointerDown={startTimelineDrag} onPointerMove={moveTimelineDrag} onPointerUp={endTimelineDrag} onPointerCancel={endTimelineDrag} className={cn('premium-scroll-hide relative min-w-0 flex-1 touch-none select-none overflow-x-auto overflow-y-hidden px-3 pt-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#98f237]/60', timelineDragging ? 'cursor-grabbing' : 'cursor-grab')} role="slider" aria-label="Timeline. Drag to scroll, click to seek." aria-valuemin={0} aria-valuemax={effectiveDuration} aria-valuenow={currentTimeSec} tabIndex={0} onKeyDown={(event) => { if (event.key === 'ArrowLeft') { event.preventDefault(); onSeek(Math.max(0, currentTimeSec - 1)) } if (event.key === 'ArrowRight') { event.preventDefault(); onSeek(Math.min(effectiveDuration, currentTimeSec + 1)) } if (event.key === 'Home') { event.preventDefault(); onSeek(0) } if (event.key === 'End') { event.preventDefault(); onSeek(effectiveDuration) } }}><TimelineTracks zoom={zoom} effectiveDuration={effectiveDuration} sourceLabel={sourceLabel ?? projectTitle} transcriptSegments={transcriptSegments} captionsVisible={captionsVisible} currentTime={currentTimeSec} textPlacements={textPlacements} /><div className="pointer-events-none absolute bottom-0 top-0 z-10 border-l border-white shadow-[0_0_12px_rgba(255,255,255,.75)]" style={{ left: `calc(${playheadPercent * zoom}% + 0.75rem)` }}><span className="absolute -left-1.5 -top-1 size-3 rotate-45 bg-white" /></div></div></div></section> : <div className="relative h-10 shrink-0 border-t border-white/10 bg-[#070809]">{timelineResizeHandle}<button type="button" onClick={() => setShowTimeline(true)} className="group flex h-full w-full items-center justify-center gap-2 text-xs text-white/58 transition-colors hover:bg-white/[0.025] hover:text-white"><PanelBottomOpen className="size-3.5 transition-transform group-hover:-translate-y-0.5" /> Show timeline</button></div>}
+      {showTimeline ? <section className="relative shrink-0 border-t border-white/12 bg-[#070809]/95" style={{ height: timelineHeight }} aria-label="Video timeline">{timelineResizeHandle}<div className="flex h-11 items-center justify-between border-b border-white/8 px-3 sm:px-5"><div className="flex items-center gap-1.5 sm:gap-3"><span className="text-xs font-medium text-white/86">Timeline</span><button type="button" onClick={() => setShowTimeline(false)} className="grid size-8 place-items-center rounded-md border border-white/10 bg-white/[0.035] text-white/62 transition-all hover:border-white/20 hover:bg-white/[0.08] hover:text-white" aria-label="Collapse timeline" title="Collapse timeline"><PanelBottomClose className="size-3.5" /></button><button type="button" onClick={() => setCropEnabled((value) => !value)} className={cn('grid size-8 place-items-center rounded border transition-colors', cropEnabled ? 'border-[#98f237]/35 bg-[#98f237]/10 text-[#b4fb60]' : 'border-white/10 text-white/56 hover:text-white')} aria-label="Toggle crop frame"><Crop className="size-3.5" /></button><button type="button" onClick={onTogglePlayback} disabled={previewKind !== 'video' || !previewUrl} className="grid size-8 place-items-center text-white/82 disabled:opacity-35" aria-label={previewPlaying ? 'Pause timeline' : 'Play timeline'}>{previewPlaying ? <Pause className="size-4 fill-current" /> : <Play className="size-4 fill-current" />}</button><button type="button" onClick={() => onPreviewMutedChange(!previewMuted)} disabled={previewKind !== 'video' || !previewUrl} className={cn('grid size-8 place-items-center transition-colors disabled:opacity-35', previewMuted ? 'text-white/42' : 'text-[#b4fb60]')} aria-label={previewMuted ? 'Unmute preview' : 'Mute preview'}><Volume2 className="size-3.5" /></button><span className="hidden font-mono text-xs tabular-nums text-white/78 sm:inline">{currentTimeLabel} <span className="mx-1 text-white/28">/</span> {durationLabel}</span></div><label className="flex items-center gap-2 text-white/52"><ZoomOut className="size-3.5" /><span className="sr-only">Timeline zoom</span><input aria-label="Timeline zoom" type="range" min="0.7" max="2.4" step="0.1" value={zoom} onChange={(event) => setZoom(Number(event.target.value))} className="h-1 w-16 accent-[#98f237] sm:w-20" /><ZoomIn className="size-3.5" /></label></div><div className="flex min-h-0"><div className="hidden w-24 shrink-0 border-r border-white/8 pt-8 text-right text-[10px] text-white/40 sm:block"><div className="pr-3">Video</div><div className="mt-7 pr-3">Audio</div><div className="mt-6 pr-3">Captions</div><div className="mt-6 pr-3">Text</div></div><div ref={timelineRef} onPointerDown={startTimelineDrag} onPointerMove={moveTimelineDrag} onPointerUp={endTimelineDrag} onPointerCancel={endTimelineDrag} className={cn('premium-scroll-hide relative min-w-0 flex-1 touch-none select-none overflow-x-auto overflow-y-hidden px-3 pt-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#98f237]/60', timelineDragging ? 'cursor-grabbing' : 'cursor-grab')} role="slider" aria-label="Timeline. Drag to scroll, click to seek." aria-valuemin={0} aria-valuemax={effectiveDuration} aria-valuenow={currentTimeSec} tabIndex={0} onKeyDown={(event) => { if (event.key === 'ArrowLeft') { event.preventDefault(); onSeek(Math.max(0, currentTimeSec - 1)) } if (event.key === 'ArrowRight') { event.preventDefault(); onSeek(Math.min(effectiveDuration, currentTimeSec + 1)) } if (event.key === 'Home') { event.preventDefault(); onSeek(0) } if (event.key === 'End') { event.preventDefault(); onSeek(effectiveDuration) } }}><TimelineTracks zoom={zoom} effectiveDuration={effectiveDuration} sourceLabel={sourceLabel ?? projectTitle} transcriptSegments={resolvedSegments} captionsVisible={captionsVisible} currentTime={currentTimeSec} textPlacements={textPlacements} /><div className="pointer-events-none absolute bottom-0 top-0 z-10 border-l border-white shadow-[0_0_12px_rgba(255,255,255,.75)]" style={{ left: `calc(${playheadPercent * zoom}% + 0.75rem)` }}><span className="absolute -left-1.5 -top-1 size-3 rotate-45 bg-white" /></div></div></div></section> : <div className="relative h-10 shrink-0 border-t border-white/10 bg-[#070809]">{timelineResizeHandle}<button type="button" onClick={() => setShowTimeline(true)} className="group flex h-full w-full items-center justify-center gap-2 text-xs text-white/58 transition-colors hover:bg-white/[0.025] hover:text-white"><PanelBottomOpen className="size-3.5 transition-transform group-hover:-translate-y-0.5" /> Show timeline</button></div>}
     </section>
   )
 }

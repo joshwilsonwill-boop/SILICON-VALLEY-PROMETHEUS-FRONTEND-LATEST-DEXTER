@@ -176,3 +176,23 @@ export async function getStoredSourceAssetFile(assetId: string) {
 
   return restoreStoredSourceAssetFile(record)
 }
+
+export function saveProjectTranscript(key: string, segments: any[]): void {
+  if (typeof window === 'undefined' || !key) return
+  try {
+    localStorage.setItem(`prometheus_transcript_${key}`, JSON.stringify(segments))
+  } catch {}
+}
+
+export function getProjectTranscript(key: string): any[] | null {
+  if (typeof window === 'undefined' || !key) return null
+  try {
+    const raw = localStorage.getItem(`prometheus_transcript_${key}`)
+    if (raw) {
+      const parsed = JSON.parse(raw)
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed
+    }
+  } catch {}
+  return null
+}
+

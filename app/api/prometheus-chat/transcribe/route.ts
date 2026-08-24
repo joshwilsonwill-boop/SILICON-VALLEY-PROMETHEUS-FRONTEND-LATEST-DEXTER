@@ -1,4 +1,5 @@
 import "server-only";
+import { assemblyTranscriptToSegments } from "@/lib/r2/assembly-transcript";
 
 export const runtime = "nodejs";
 
@@ -69,7 +70,7 @@ async function transcribeWithOpenAI(audioFile: File, apiKey: string): Promise<st
   return (data.text || "").trim();
 }
 
-async function transcribeWithAssemblyAI(audioFile: File, apiKey: string): Promise<{ text?: string; transcriptId?: string }> {
+async function transcribeWithAssemblyAI(audioFile: File, apiKey: string): Promise<{ text?: string; transcriptId?: string; segments?: any[] }> {
   const audioBuffer = Buffer.from(await audioFile.arrayBuffer());
   const uploadResponse = await fetch(`${ASSEMBLYAI_API_URL}/upload`, {
     method: "POST",
@@ -112,16 +113,17 @@ async function transcribeWithAssemblyAI(audioFile: File, apiKey: string): Promis
 
   const { id } = (await transcriptResponse.json()) as { id: string };
 
-  for (let attempt = 0; attempt < 5; attempt += 1) {
+  for (let attempt = 0; attempt < 8; attempt += 1) {
     await new Promise((resolve) => setTimeout(resolve, 1_000));
     const pollResponse = await fetch(`${ASSEMBLYAI_API_URL}/transcript/${id}`, {
       headers: { "Authorization": apiKey },
       signal: AbortSignal.timeout(8_000),
     });
     if (!pollResponse.ok) break;
-    const transcript = (await pollResponse.json()) as { status: string; text?: string; error?: string };
+    const transcript = (await pollResponse.json()) as Record<string, unknown> & { status: string; text?: string; error?: string };
     if (transcript.status === "completed") {
-      return { text: transcript.text ?? "" };
+      const segments = assemblyTranscriptToSegments(transcript);
+      return { text: transcript.text ?? "", segments };
     }
     if (transcript.status === "error") {
       throw new Error(transcript.error ?? "AssemblyAI transcription failed.");
@@ -171,7 +173,7 @@ export async function POST(request: Request) {
       try {
         const result = await transcribeWithAssemblyAI(audioFile, assemblyKey);
         if (result.text !== undefined) {
-          return Response.json({ text: result.text });
+          return Response.json({ text: result.text, segments: result.segments ?? [] });
         }
         if (result.transcriptId) {
           return Response.json({ status: "processing", transcriptId: result.transcriptId });
@@ -220,9 +222,10 @@ export async function GET(request: Request) {
     if (!pollResponse.ok) {
       return Response.json({ error: "Polling failed." }, { status: 502 });
     }
-    const transcript = (await pollResponse.json()) as { status: string; text?: string; error?: string };
+    const transcript = (await pollResponse.json()) as Record<string, unknown> & { status: string; text?: string; error?: string };
     if (transcript.status === "completed") {
-      return Response.json({ text: transcript.text ?? "" });
+      const segments = assemblyTranscriptToSegments(transcript);
+      return Response.json({ text: transcript.text ?? "", segments });
     }
     if (transcript.status === "error") {
       return Response.json({ error: transcript.error ?? "Transcription failed." }, { status: 502 });
