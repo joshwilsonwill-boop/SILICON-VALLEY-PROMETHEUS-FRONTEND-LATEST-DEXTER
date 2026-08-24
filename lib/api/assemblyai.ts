@@ -37,11 +37,10 @@ export async function startAssemblyAITranscription(options: AssemblyAITranscript
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      ...options,
-      speaker_labels: options.speaker_labels ?? true,
+      audio_url: options.audio_url,
+      speaker_labels: options.speaker_labels ?? false,
       punctuate: options.punctuate ?? true,
       format_text: options.format_text ?? true,
-      speech_models: options.speech_models ?? ["universal-3-pro", "universal-2"],
     }),
   })
 

@@ -122,8 +122,6 @@ async function transcribeWithAssemblyAI(audioFile: File, apiKey: string): Promis
       speaker_labels: false,
       punctuate: true,
       format_text: true,
-      speech_models: ["universal-3-5-pro", "universal-2"],
-      language_detection: true,
     }),
     signal: AbortSignal.timeout(20_000),
   });
