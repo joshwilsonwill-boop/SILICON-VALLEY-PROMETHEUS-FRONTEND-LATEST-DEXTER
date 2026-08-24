@@ -6551,6 +6551,15 @@ function OriginalEditorPage() {
         }
       }
 
+      // 1. Instantly hydrate from local cache if available to prevent any loading flash or blank screen
+      const cachedProject = projects.get(projectId)
+      if (cachedProject && active) {
+        setProject(cachedProject)
+        setProjectLoadError(null)
+        setIsProjectLoading(false)
+      }
+
+      // 2. Fetch latest project state from API
       try {
         const res = await fetch(`/api/projects/${projectId}`)
         if (res.ok) {
@@ -6560,18 +6569,22 @@ function OriginalEditorPage() {
             setProjectLoadError(null)
             setIsProjectLoading(false)
             upsertProject(apiProject)
-          } else if (active && !projects.get(projectId)) {
-            setProjectLoadError('This project could not be found.')
-            setIsProjectLoading(false)
+            return
           }
-        } else if (active && !projects.get(projectId)) {
-          setProjectLoadError('This project could not be found.')
-          setIsProjectLoading(false)
         }
       } catch (err) {
-        console.error('Failed to fetch project from API:', err)
-        if (active && !projects.get(projectId)) {
-          setProjectLoadError('This project could not be loaded right now.')
+        console.warn('[editor] Failed to fetch project from API:', err)
+      }
+
+      // 3. Fallback: check if local project exists or create fallback if missing
+      if (active) {
+        const fallback = projects.get(projectId)
+        if (fallback) {
+          setProject(fallback)
+          setProjectLoadError(null)
+          setIsProjectLoading(false)
+        } else {
+          setProjectLoadError('This project could not be found.')
           setIsProjectLoading(false)
         }
       }

@@ -24,7 +24,9 @@ import { CreateProjectModal } from '@/components/projects/create-project-modal'
 import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { useProjectsList } from '@/hooks/use-projects-list'
 import { rememberCurrentPathForEditorReturn } from '@/lib/editor-navigation'
+import { upsertProject } from '@/lib/mock'
 import type { ProjectCardStatus, ProjectListItem } from '@/lib/projects/types'
+import type { Project } from '@/lib/types'
 
 type FilterKey = 'all' | ProjectCardStatus
 type SortKey = 'updated' | 'created' | 'title'
@@ -96,12 +98,20 @@ function ProjectTile({
 
   return (
     <article
-      className="group relative aspect-[4/5] min-h-[248px] overflow-hidden border border-white/45 bg-black shadow-[0_18px_45px_-28px_rgba(0,0,0,0.92)] transition-[transform,background-color,border-color,box-shadow] duration-500 ease-[cubic-bezier(.16,1,.3,1)] hover:-translate-y-1 hover:border-white hover:bg-white hover:shadow-[0_30px_58px_-28px_rgba(0,0,0,1)] focus-within:border-white focus-within:bg-white"
+      onClick={(event) => {
+        const target = event.target as HTMLElement | null
+        if (target?.closest('button[data-menu-action]')) return
+        onOpen()
+      }}
+      className="group relative aspect-[4/5] min-h-[248px] cursor-pointer overflow-hidden border border-white/45 bg-black shadow-[0_18px_45px_-28px_rgba(0,0,0,0.92)] transition-[transform,background-color,border-color,box-shadow] duration-500 ease-[cubic-bezier(.16,1,.3,1)] hover:-translate-y-1 hover:border-white hover:bg-white hover:shadow-[0_30px_58px_-28px_rgba(0,0,0,1)] focus-within:border-white focus-within:bg-white"
       style={{ animationDelay: `${Math.min(index * 45, 360)}ms` }}
     >
       <button
         type="button"
-        onClick={onOpen}
+        onClick={(event) => {
+          event.stopPropagation()
+          onOpen()
+        }}
         className="absolute inset-0 z-0 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white"
         aria-label={`Open ${project.title}`}
       />
@@ -121,9 +131,13 @@ function ProjectTile({
         <div className="pointer-events-auto relative">
           <button
             type="button"
+            data-menu-action="trigger"
             aria-label={`Project actions for ${project.title}`}
             aria-expanded={menuOpen}
-            onClick={() => setMenuOpen((open) => !open)}
+            onClick={(event) => {
+              event.stopPropagation()
+              setMenuOpen((open) => !open)
+            }}
             className="grid size-9 place-items-center border border-white/55 bg-white text-black transition-[background-color,border-color,color,transform] duration-300 hover:scale-105 hover:border-black hover:bg-black hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white group-hover:border-black/60"
           >
             <MoreHorizontal className="size-4" />
@@ -132,7 +146,12 @@ function ProjectTile({
             <div className="absolute right-0 top-11 z-30 min-w-40 border border-black bg-white p-1.5 text-black shadow-2xl">
               <button
                 type="button"
-                onClick={() => { setMenuOpen(false); onDuplicate() }}
+                data-menu-action="duplicate"
+                onClick={(event) => {
+                  event.stopPropagation()
+                  setMenuOpen(false)
+                  onDuplicate()
+                }}
                 disabled={isDuplicating}
                 className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-black/75 transition hover:bg-black hover:text-white disabled:opacity-50"
               >
@@ -140,7 +159,12 @@ function ProjectTile({
               </button>
               <button
                 type="button"
-                onClick={() => { setMenuOpen(false); onDelete() }}
+                data-menu-action="delete"
+                onClick={(event) => {
+                  event.stopPropagation()
+                  setMenuOpen(false)
+                  onDelete()
+                }}
                 disabled={isDeleting}
                 className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-black/75 transition hover:bg-black hover:text-white disabled:opacity-50"
               >
@@ -151,9 +175,17 @@ function ProjectTile({
         </div>
       </div>
 
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 p-4">
+      <div className="absolute inset-x-0 bottom-0 z-10 p-4">
         <div className="mb-3 h-px w-full bg-white/45 transition-colors duration-500 group-hover:bg-black/45 group-focus-within:bg-black/45" />
-        <p className="mb-1 line-clamp-2 text-lg font-semibold leading-[1.05] tracking-[-0.04em] text-white transition-[color,transform] duration-500 group-hover:translate-x-1 group-hover:text-black group-focus-within:translate-x-1 group-focus-within:text-black">{project.title}</p>
+        <p
+          onClick={(event) => {
+            event.stopPropagation()
+            onOpen()
+          }}
+          className="mb-1 line-clamp-2 text-lg font-semibold leading-[1.05] tracking-[-0.04em] text-white transition-[color,transform] duration-500 group-hover:translate-x-1 group-hover:text-black group-focus-within:translate-x-1 group-focus-within:text-black"
+        >
+          {project.title}
+        </p>
         <div className="flex items-center justify-between gap-3 text-[10px] font-medium uppercase tracking-[0.14em] text-white/64 transition-colors duration-500 group-hover:text-black/65 group-focus-within:text-black/65">
           <span className="truncate">{compactDate(project.updatedAt)}</span>
           <span className="shrink-0">{project.width && project.height ? `${project.width}×${project.height}` : 'Project'}</span>
@@ -175,6 +207,22 @@ export function ProjectsPageEditorial() {
 
   const openProject = React.useCallback((project: ProjectListItem) => {
     rememberCurrentPathForEditorReturn()
+    const now = new Date().toISOString()
+    const mappedStatus = (
+      project.status === 'completed' ? 'ready' :
+      project.status === 'rendering' ? 'processing' :
+      'draft'
+    ) as Project['status']
+
+    const projectRecord: Project = {
+      id: project.id,
+      title: project.title,
+      status: mappedStatus,
+      createdAt: project.createdAt || now,
+      updatedAt: project.updatedAt || now,
+      thumbnailUrl: project.thumbnailUrl ?? undefined,
+    }
+    upsertProject(projectRecord)
     router.push(`/editor/${project.id}`)
   }, [router])
 
@@ -187,7 +235,11 @@ export function ProjectsPageEditorial() {
     return sortProjects(matching, sortKey)
   }, [filter, projects, query, sortKey])
 
-  const countFor = React.useCallback((key: FilterKey) => key === 'all' ? projects.length : projects.filter((project) => project.status === key).length, [projects])
+  const countFor = React.useCallback(
+    (key: FilterKey) =>
+      key === 'all' ? projects.length : projects.filter((project) => project.status === key).length,
+    [projects]
+  )
 
   const handleDelete = React.useCallback(async (project: ProjectListItem) => {
     if (!window.confirm(`Delete “${project.title}”? This cannot be undone.`)) return false

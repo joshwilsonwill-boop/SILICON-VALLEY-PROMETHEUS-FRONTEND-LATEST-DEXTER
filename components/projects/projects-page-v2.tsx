@@ -22,6 +22,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { rememberCurrentPathForEditorReturn } from '@/lib/editor-navigation'
+import { upsertProject } from '@/lib/mock'
 import { PrometheusShell } from '@/components/prometheus-shell'
 import { useProjectsList } from '@/hooks/use-projects-list'
 import type { ProjectListItem } from '@/lib/projects/types'
@@ -268,7 +270,21 @@ export function ProjectsPageV2() {
                     <ProjectCard
                       project={project}
                       featured={index === 0}
-                      onEdit={(id) => router.push(`/editor/${id}`)}
+                      onEdit={(id) => {
+                        rememberCurrentPathForEditorReturn()
+                        const target = projects.find((p) => p.id === id)
+                        if (target) {
+                          upsertProject({
+                            id: target.id,
+                            title: target.title,
+                            status: (target.status === 'completed' ? 'ready' : target.status === 'rendering' ? 'processing' : 'draft') as any,
+                            createdAt: target.createdAt || new Date().toISOString(),
+                            updatedAt: target.updatedAt || new Date().toISOString(),
+                            thumbnailUrl: target.thumbnailUrl ?? undefined,
+                          })
+                        }
+                        router.push(`/editor/${id}`)
+                      }}
                       onDuplicate={handleDuplicate}
                       onDelete={(id) => {
                         const target = projects.find((project) => project.id === id) ?? null

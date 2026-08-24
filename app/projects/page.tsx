@@ -452,9 +452,13 @@ function OriginalProjectsPage() {
   const openEditor = React.useCallback(
     (projectId: string, task?: string) => {
       rememberCurrentPathForEditorReturn()
+      const target = projects.find((p) => p.id === projectId)
+      if (target) {
+        upsertProject(target)
+      }
       router.push(task ? `/editor/${projectId}?task=${task}` : `/editor/${projectId}`)
     },
-    [router],
+    [projects, router],
   )
 
   const openProjectBody = React.useCallback(
@@ -1108,13 +1112,10 @@ function ProjectCard({
             ) : (
               <button
                 type="button"
-                onClick={(event) => {
-                  event.stopPropagation()
-                  onRenameStart(project)
-                }}
-                className="min-w-0 touch-manipulation truncate text-left text-lg font-semibold text-white"
-                title="Click to rename"
-                aria-label={`Rename ${project.title}`}
+                onClick={() => onBodyClick(project)}
+                className="min-w-0 touch-manipulation truncate text-left text-lg font-semibold text-white transition-colors hover:text-[#d3ad75]"
+                title="Open project in editor"
+                aria-label={`Open ${project.title}`}
               >
                 {project.title}
               </button>
