@@ -80,13 +80,15 @@ assert.match(desktopSource, /layout="responsive"/);
 assert.match(desktopSource, /<ChatSuggestions[\s\S]*suggestionsHidden && "invisible pointer-events-none"/,
   "desktop must reserve suggestion layout space while generation hides the controls");
 assert.match(desktopSource, /setDraft\(suggestion\)[\s\S]*inputRef\.current\?\.focus\(\)/);
-assert.doesNotMatch(
-  desktopSource.slice(
-    desktopSource.indexOf("const handleSuggestionSelect"),
-    desktopSource.indexOf("const scrollToLatest"),
-  ),
-  /sendMessage|onSend/,
+const desktopSuggestionHandler = desktopSource.slice(
+  desktopSource.indexOf("const handleSuggestionSelect"),
+  desktopSource.indexOf("const scrollToLatest"),
 );
+assert.match(desktopSuggestionHandler, /turnSuggestions\?\.includes\(suggestion\)/);
+assert.match(desktopSuggestionHandler, /persistentChat\.sendMessage\(suggestion\)/,
+  "assistant-provided decision controls must send the selected answer immediately");
+assert.match(desktopSuggestionHandler, /setDraft\(suggestion\)[\s\S]*inputRef\.current\?\.focus\(\)/,
+  "generic starter prompts must remain editable drafts");
 
 assert.match(mobileSource, /workspaceTab=\{workspaceTab\}/);
 assert.match(mobileSource, /hasProject=\{Boolean\(projectId\)\}/);

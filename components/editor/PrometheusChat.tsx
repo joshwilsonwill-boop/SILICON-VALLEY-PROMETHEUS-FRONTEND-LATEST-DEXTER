@@ -18,7 +18,7 @@ import { ChatCarousel } from './chat-carousel'
 import { ElegistChatGreeting } from './elegist-chat-greeting'
 import { ChatSuggestions } from './ai-chat-suggestions'
 import { PrometheusChatHistoryDrawer } from './prometheus-chat-history-drawer'
-import { AIChatStreamingText } from './ai-chat-streaming-text'
+import { PrometheusChatMarkdown } from './prometheus-chat-markdown'
 import { PrometheusChatActivity } from './prometheus-chat-activity'
 import { PrometheusChatContextBrief } from './prometheus-chat-context-brief'
 import { PrometheusChatLoadingSkeleton } from './prometheus-chat-loading-skeleton'
@@ -199,10 +199,14 @@ export function PrometheusChat({
 
   const handleSuggestionSelect = React.useCallback(
     (suggestion: string) => {
+      if (turnSuggestions?.includes(suggestion)) {
+        void persistentChat.sendMessage(suggestion)
+        return
+      }
       setDraft(suggestion)
       inputRef.current?.focus()
     },
-    [setDraft],
+    [persistentChat, setDraft, turnSuggestions],
   )
 
   const scrollToLatest = React.useCallback((behavior: ScrollBehavior = 'auto') => {
@@ -600,19 +604,18 @@ function PrometheusMessageBubble({
 
         <div
           className={cn(
-            'whitespace-pre-wrap text-[15px] leading-7',
+            'text-[15px] leading-7',
             isUser
-              ? 'rounded-2xl rounded-br-md border border-white/10 bg-white/[0.055] px-5 py-3.5 text-white/90'
+              ? 'whitespace-pre-wrap rounded-2xl rounded-br-md border border-white/10 bg-white/[0.055] px-5 py-3.5 text-white/90'
               : 'text-white/78',
           )}
         >
           {isUser ? (
             message.content
           ) : (
-            <AIChatStreamingText
-              text={message.content}
+            <PrometheusChatMarkdown
+              content={message.content}
               isComplete={messageComplete}
-              live={live}
               onComplete={onStreamingComplete}
               onProgress={onStreamingProgress}
             />

@@ -40,7 +40,7 @@ assert.match(assetsRoute, /transcriptDispatch/)
 assert.doesNotMatch(assetsRoute, /dispatchModalSourceAnalysis/)
 
 const editorPage = read('app/editor/[id]/page.tsx')
-assert.match(editorPage, /api\/assets\/\$\{project!\.sourceAssetId\}\/transcript/)
+assert.match(editorPage, /api\/assets\/\$\{sourceAssetId\}\/transcript/)
 assert.match(editorPage, /transcript\/sync/)
 assert.match(editorPage, /method: 'PATCH'/)
 assert.doesNotMatch(editorPage, /Fallback recovery for Dan Martell/)

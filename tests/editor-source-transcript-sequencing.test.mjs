@@ -17,8 +17,10 @@ assert.doesNotMatch(
   'Preview readiness must not automatically request a transcript.',
 )
 
-// The durable asset commit is the single place that starts the transcript job.
+// The durable asset commit schedules the transcript job after its response so
+// provider latency can never hold the completed upload handoff open.
 assert.match(assetCommitRoute, /let transcriptDispatch/)
+assert.match(assetCommitRoute, /after\(async \(\) =>/)
 assert.match(assetCommitRoute, /await startSourceAssetTranscription\(/)
 
 // Motion uses the same project picker and receives the project transcript.

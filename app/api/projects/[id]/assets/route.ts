@@ -1,5 +1,5 @@
 import { DeleteObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3'
-import { NextResponse } from 'next/server'
+import { after, NextResponse } from 'next/server'
 
 import { sourceControlPlaneErrorResponse } from '@/lib/api/source-control-plane-errors'
 import { ProjectService } from '@/lib/projects/service'
@@ -123,14 +123,15 @@ export async function POST(
     // the asset is already durable, so a later /transcript call can start it.
     let transcriptDispatch: {status: string; transcriptJobId?: string} | null = null
     if (committed?.asset?.id && String(committed.asset.mime_type).startsWith('video/')) {
-      try {
-        transcriptDispatch = await startSourceAssetTranscription({
-          assetId: committed.asset.id,
-          supabase,
-        })
-      } catch (error) {
-        console.error('[api/projects/[id]/assets] transcript dispatch failed:', error)
-      }
+      const committedAssetId = committed.asset.id
+      transcriptDispatch = { status: 'scheduled' }
+      after(async () => {
+        try {
+          await startSourceAssetTranscription({ assetId: committedAssetId, supabase })
+        } catch (error) {
+          console.error('[api/projects/[id]/assets] transcript dispatch failed:', error)
+        }
+      })
     }
 
     return NextResponse.json({...committed, analysisDispatch, transcriptDispatch})

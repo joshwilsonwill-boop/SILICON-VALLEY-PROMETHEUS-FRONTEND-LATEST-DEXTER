@@ -86,6 +86,7 @@ export interface MotionEditWorkspaceProps {
   onUpdateTranscriptSegment?: (segmentId: string, nextText: string) => void
   onRequestTranscribe?: () => void
   isTranscribing?: boolean
+  transcriptError?: string | null
   isSourceUploading?: boolean
   videoMetadata?: VideoMetadataInfo
   onTogglePlayback: () => void
@@ -164,7 +165,7 @@ export function MotionEditWorkspace({
   projectTitle, previewUrl, previewKind, hasPreviewMedia, sourceLabel, previewAspectRatio, fitMode,
   onFitModeChange, objectFit, mediaTransformStyle, currentTimeLabel, durationLabel, currentTimeSec,
   durationSec, previewPlaying, previewMuted, onPreviewMutedChange, videoRef, transcriptSegments,
-  onUpdateTranscriptSegment, onRequestTranscribe, isTranscribing = false, isSourceUploading = false, videoMetadata,
+  onUpdateTranscriptSegment, onRequestTranscribe, isTranscribing = false, transcriptError = null, isSourceUploading = false, videoMetadata,
   onTogglePlayback, onPickSource, onSourceDrop, onSourceDragOver, onSourceDragLeave, isSourceDragOver = false,
   textPlacements, onSeek, onVideoLoadedMetadata, onVideoLoadedData, onVideoCanPlay,
   onVideoTimeUpdate, onVideoEnded, onVideoPlay, onVideoPause, onVideoError, onImageLoaded, onApplyPrompt,
@@ -473,6 +474,26 @@ export function MotionEditWorkspace({
           ) : null}
 
           <div ref={transcriptRef} className="premium-scroll-hide min-h-0 flex-1 overflow-y-auto p-4">
+            {transcriptError && !isTranscribing ? (
+              <div className="mb-4 rounded-md border border-amber-300/25 bg-amber-300/[0.07] p-3 text-xs" role="alert">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-white">Transcript paused</p>
+                    <p className="mt-1 leading-5 text-white/58">{transcriptError}</p>
+                  </div>
+                  {onRequestTranscribe ? (
+                    <button
+                      type="button"
+                      onClick={onRequestTranscribe}
+                      className="shrink-0 rounded-md border border-white/12 px-2.5 py-1.5 font-medium text-white/76 transition-colors hover:bg-white/8 hover:text-white"
+                    >
+                      Retry
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+            ) : null}
+
             {isTranscribing ? (
               <div className="mb-4 rounded-lg border border-[#98f237]/30 bg-[#98f237]/10 p-3.5 text-xs shadow-[0_0_20px_rgba(152,242,55,0.15)]">
                 <div className="flex items-center gap-2 text-[#b4fb60]">

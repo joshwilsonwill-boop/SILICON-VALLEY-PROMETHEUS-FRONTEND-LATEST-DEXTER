@@ -61,13 +61,28 @@ export async function GET(
       return NextResponse.json({ error: 'Asset not found' }, { status: 404 })
     }
 
-    if (asset.transcript_status === 'queued' || asset.transcript_status === 'transcribing') {
-      return NextResponse.json({ status: 'transcribing' })
+    const savedSegments = normalizeSegments(asset.transcript_segments)
+    if (savedSegments) {
+      if (asset.transcript_status !== 'completed') {
+        await supabase
+          .from('source_assets')
+          .update({
+            transcript_status: 'completed',
+            transcript_completed_at: asset.transcript_completed_at || new Date().toISOString(),
+            transcript_error: null,
+          })
+          .eq('id', assetId)
+          .eq('user_id', user.id)
+      }
+      return NextResponse.json({ status: 'completed', segments: savedSegments })
     }
 
-    const savedSegments = normalizeSegments(asset.transcript_segments)
-    if (asset.transcript_status === 'completed' && savedSegments) {
-      return NextResponse.json({ status: 'completed', segments: savedSegments })
+    if (asset.transcript_status === 'failed') {
+      return NextResponse.json({ status: 'failed', error: asset.transcript_error || 'Transcription failed.' })
+    }
+
+    if (asset.transcript_status === 'queued' || asset.transcript_status === 'transcribing') {
+      return NextResponse.json({ status: 'transcribing' })
     }
 
     if (asset.transcript_status === 'completed' && asset.transcript_r2_key) {
@@ -113,8 +128,12 @@ export async function PATCH(
     const { error } = await supabase
       .from('source_assets')
       .update({
+        transcript_status: 'completed',
         transcript_segments: segments,
         transcript_text: segments.map((segment) => segment.text).join(' ').slice(0, 500),
+        transcript_completed_at: new Date().toISOString(),
+        transcript_synced_at: new Date().toISOString(),
+        transcript_error: null,
       })
       .eq('id', assetId)
       .eq('user_id', user.id)

@@ -29,6 +29,7 @@ import {
   type PrometheusKnowledgeMatch,
 } from "@/lib/prometheus-assistant/retrieval";
 import { createLocalPrometheusFallback } from "@/lib/prometheus-assistant/local-chat-fallback";
+import { buildChatFollowUpSuggestions } from "@/lib/prometheus-assistant/chat-follow-ups";
 import {
   collectActionDrafts,
   executePrometheusTool,
@@ -45,6 +46,7 @@ import { createClient } from "@/lib/supabase/server";
 export const runtime = "nodejs";
 
 const DEFAULT_GROQ_MODEL = "openai/gpt-oss-20b";
+const MAX_COMPLETION_PASSES = 3;
 
 type StreamRequest = {
   message?: unknown;
@@ -177,6 +179,60 @@ export async function POST(request: Request) {
               { role: "user", content: message },
             ] as const;
 
+            const streamCompleteAnswer = async ({
+              messages,
+              selectedModel,
+              temperature,
+            }: {
+              messages: unknown[];
+              selectedModel: string;
+              temperature: number;
+            }) => {
+              const originalMessages = [...messages];
+              let continuationMessages = originalMessages;
+
+              for (let pass = 0; pass < MAX_COMPLETION_PASSES; pass += 1) {
+                const completion = await groq.chat.completions.create(
+                  {
+                    model: selectedModel,
+                    messages: continuationMessages as never,
+                    temperature,
+                    max_tokens: maxTokens,
+                    stream: true,
+                  },
+                  { signal: request.signal },
+                );
+
+                let finishReason: string | null = null;
+                let passContent = "";
+                for await (const chunk of completion) {
+                  const choice = chunk.choices[0];
+                  finishReason = choice?.finish_reason ?? finishReason;
+                  const content = choice?.delta?.content ?? "";
+                  if (!content) continue;
+                  passContent += content;
+                  reply += content;
+                  send({ type: "delta", content });
+                }
+
+                if (finishReason !== "length") return;
+                if (!passContent.trim()) throw new Error("Prometheus response reached its token limit without producing more content.");
+                if (pass === MAX_COMPLETION_PASSES - 1) {
+                  throw new Error("Prometheus could not complete the response within the continuation limit.");
+                }
+
+                sendThought("Completing the remaining plan...");
+                continuationMessages = [
+                  ...originalMessages,
+                  { role: "assistant", content: reply },
+                  {
+                    role: "user",
+                    content: "Continue exactly where the prior response stopped. Do not repeat any heading, row, or sentence. Complete all open Markdown structures and end with the requested next-step choices.",
+                  },
+                ];
+              }
+            };
+
             let streamed = false;
 
             if (toolsEnabled) {
@@ -250,10 +306,7 @@ export async function POST(request: Request) {
 
                   sendThought("Composing final answer with tool results...");
 
-                  const followup = await groq.chat.completions.create(
-                    {
-                      model,
-                      messages: [
+                  const followupMessages = [
                         ...groqMessages,
                         {
                           role: "assistant",
@@ -265,22 +318,11 @@ export async function POST(request: Request) {
                           tool_call_id: toolCall.id,
                           content: JSON.stringify(toolCall.output),
                         })),
-                      ] as never,
-                      temperature: 0.38,
-                      max_tokens: maxTokens,
-                      stream: true,
-                    },
-                    { signal: request.signal },
-                  );
+                      ];
 
                   send({ type: "status", message: "Drafting your answer" });
                   streamed = true;
-                  for await (const chunk of followup) {
-                    const content = chunk.choices[0]?.delta?.content ?? "";
-                    if (!content) continue;
-                    reply += content;
-                    send({ type: "delta", content });
-                  }
+                  await streamCompleteAnswer({ messages: followupMessages, selectedModel: model, temperature: 0.38 });
                 }
               } catch (error) {
                 if (isToolUseFailed(error)) {
@@ -308,23 +350,11 @@ export async function POST(request: Request) {
               for (let attempt = 0; attempt < modelsToTry.length; attempt += 1) {
                 const attemptModel = modelsToTry[attempt];
                 try {
-                  const completion = await groq.chat.completions.create(
-                    {
-                      model: attemptModel,
-                      messages: [...groqMessages],
-                      temperature: intent.kind === "conversation" ? 0.52 : 0.38,
-                      max_tokens: maxTokens,
-                      stream: true,
-                    },
-                    { signal: request.signal },
-                  );
-
-                  for await (const chunk of completion) {
-                    const content = chunk.choices[0]?.delta?.content ?? "";
-                    if (!content) continue;
-                    reply += content;
-                    send({ type: "delta", content });
-                  }
+                  await streamCompleteAnswer({
+                    messages: [...groqMessages],
+                    selectedModel: attemptModel,
+                    temperature: intent.kind === "conversation" ? 0.52 : 0.38,
+                  });
                   completionFailed = false;
                   break;
                 } catch (error) {
@@ -373,8 +403,9 @@ export async function POST(request: Request) {
         const actionDrafts = collectActionDrafts(toolCalls);
         const frames = toolCalls.length ? toFramePayload(frameReferences, toolCalls) : [];
         const editorialRecommendations = projectContext?.editorialAnalysis?.recommendations ?? [];
+        const followUpSuggestions = buildChatFollowUpSuggestions(message, reply);
         const persisted = await persistAssistantReply(sessionId, reply, clientMessageId, streamJobs);
-        if (knowledge.length || toolCalls.length || actionDrafts.length || frames.length || streamJobs.length || projectContext?.editorialAnalysis || projectContext?.transcript?.text) {
+        if (knowledge.length || toolCalls.length || actionDrafts.length || frames.length || streamJobs.length || followUpSuggestions.length || projectContext?.editorialAnalysis || projectContext?.transcript?.text) {
           send({
             type: "metadata",
             sources: [
@@ -399,7 +430,9 @@ export async function POST(request: Request) {
             toolCalls,
             actionDrafts,
             jobs: streamJobs,
-            suggestions: editorialRecommendations.length > 0 
+            suggestions: followUpSuggestions.length > 0
+              ? followUpSuggestions
+              : editorialRecommendations.length > 0
               ? editorialRecommendations.slice(0, 3).map((rec) => `Try: ${rec.title}`)
               : undefined,
             carousel: editorialRecommendations.length > 0
@@ -625,7 +658,9 @@ function buildStreamSystemPrompt({
     "You are Prometheus — the elite, authoritative AI creative intelligence operating within Prometheus Studio. Speak with quiet mastery, extreme clarity, and absolute technical precision, analogous to JARVIS for post-production and editorial engineering.",
     intentInstruction,
     "Deliver immediate, high-value insight first. Maintain an effortless, authoritative tone. Never expose underlying LLM providers, internal APIs, tool execution mechanics, or system errors to the user.",
-    "Use clean, refined markdown and structured guidance. Do not state an editor action occurred until it has been explicitly approved and confirmed.",
+    "Use valid GitHub-flavored Markdown. When a comparison or plan has repeated fields, use a complete Markdown table with a header and separator row. Never emit a table as escaped or plain pipe-delimited text. Do not state an editor action occurred until it has been explicitly approved and confirmed.",
+    "Ground every editorial plan in the supplied project metadata, duration, transcript, analysis, playhead, and frame references. Explicitly label missing evidence instead of inventing scene details. Vary the plan with the actual footage and request; never reuse a generic fixed plan.",
+    "When the plan needs a user decision, end with one concise question and 2-4 explicit choices so the interface can present them as actionable controls.",
     "When the user's question is unrelated to video editing (e.g., general knowledge, casual conversation), answer naturally and concisely without forcing video-editing advice. If the user asks about a specific editing style or person you don't have knowledge of, be honest and offer to work with the video's existing material to find a comparable approach.",
     toolsEnabled
       ? "Execute available tools decisively. For editor navigation, transport, or layout shifts (seek, play/pause, fit, workspace), call draft_editor_actions with machine-readable actions immediately. For media-mutating changes (trim, split, captions, style, render), use kind \"propose\" to present a clear execution plan. Cite specific video frames using reference_video_frames whenever temporal precision is needed."
@@ -650,9 +685,9 @@ function buildStreamSystemPrompt({
 
 function normalizeMaxTokens(value: unknown) {
   const verbosity = cleanText(value).toLowerCase();
-  if (verbosity === "deep" || verbosity === "long") return 900;
-  if (verbosity === "brief") return 360;
-  return 620;
+  if (verbosity === "deep" || verbosity === "long") return 2_000;
+  if (verbosity === "brief") return 700;
+  return 1_400;
 }
 
 async function persistAssistantReply(
