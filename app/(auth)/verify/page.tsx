@@ -5,7 +5,7 @@ import { Suspense } from 'react'
 
 export default function VerifyPage() {
   return (
-    <AuthShell title="Check your email" subtitle="Confirm your address to unlock the workspace.">
+    <AuthShell title="Verify your email" subtitle="Enter the 6-digit code we sent you to unlock the workspace.">
       <Suspense fallback={<LoadingAnimation message="Loading verification..." />}>
         <VerifyForm />
       </Suspense>
