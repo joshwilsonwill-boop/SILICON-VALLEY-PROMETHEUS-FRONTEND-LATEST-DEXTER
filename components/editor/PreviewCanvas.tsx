@@ -3,7 +3,6 @@
 import * as React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { AlertCircle, Film, Play, Pause, Maximize2 } from 'lucide-react'
-import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { CinematicPreviewRuntime } from '@/components/editor/cinematic-preview-runtime'
 import { ViralClipSplitPreview } from '@/components/editor/viral-clip-split-preview'
 import { PreviewGenerationState } from '@/components/editor/preview-generation-state'
@@ -173,11 +172,6 @@ export function PreviewCanvas({
               }}
             >
               <div className="relative h-full w-full">
-                <BriefPipelineProgress
-                  status={job?.transcriptStatus}
-                  steps={job?.previewProgressSteps}
-                />
-
                 {hasSourceAsset && hasPreviewMedia && !clipModeActive ? (
                   <motion.div
                     initial={{ opacity: 0, y: 6 }}
@@ -196,6 +190,10 @@ export function PreviewCanvas({
 
                 {hasPreviewMedia ? (
                   <>
+                    <BriefPipelineProgress
+                      status={job?.transcriptStatus}
+                      steps={job?.previewProgressSteps}
+                    />
                     <CinematicPreviewRuntime
                       animationPlan={previewOverlayPlan}
                       currentTimeMs={previewCurrentTimeSec * 1000}
@@ -365,7 +363,7 @@ export function PreviewCanvas({
                     <AlertCircle className="size-4 text-rose-400" />
                   </motion.span>
                 ) : (
-                  <InlineLoadingAnimation size={16} label={inlinePreviewStatusLabel ?? 'Preparing preview'} />
+                  <span className="size-2 rounded-full bg-[#9ff6e3] animate-pulse" />
                 )}
                 {isInlinePreviewStatusExpanded && inlinePreviewStatusLabel && (
                   <span>{inlinePreviewStatusLabel}</span>
@@ -395,10 +393,6 @@ function BriefPipelineProgress({
 
   return (
     <div className="absolute inset-x-4 bottom-4 z-30 flex flex-col items-center gap-3 px-4">
-      <InlineLoadingAnimation
-        size={32}
-        label={isTranscribing ? 'Transcribing source video' : 'Analyzing cinematic brief'}
-      />
       {statusLabel ? (
         <div className="rounded-full border border-white/10 bg-black/48 px-3 py-1.5 text-[11px] font-medium text-white/70 shadow-[0_18px_30px_-22px_rgba(0,0,0,0.95)] backdrop-blur-md">
           {statusLabel}
