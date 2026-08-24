@@ -2,6 +2,7 @@
 
 import * as React from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
+import { useRouter } from 'next/navigation'
 import {
   ArrowUpRight,
   ChevronDown,
@@ -20,9 +21,9 @@ import {
 import { toast } from 'sonner'
 
 import { CreateProjectModal } from '@/components/projects/create-project-modal'
-import { ProjectPreviewDrawer } from '@/components/projects/project-preview-drawer'
 import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { useProjectsList } from '@/hooks/use-projects-list'
+import { rememberCurrentPathForEditorReturn } from '@/lib/editor-navigation'
 import type { ProjectCardStatus, ProjectListItem } from '@/lib/projects/types'
 
 type FilterKey = 'all' | ProjectCardStatus
@@ -163,18 +164,19 @@ function ProjectTile({
 }
 
 export function ProjectsPageEditorial() {
+  const router = useRouter()
   const prefersReducedMotion = useReducedMotion()
   const [query, setQuery] = React.useState('')
   const [filter, setFilter] = React.useState<FilterKey>('all')
   const [sortKey, setSortKey] = React.useState<SortKey>('updated')
   const [isCreateOpen, setIsCreateOpen] = React.useState(false)
   const [isControlsOpen, setIsControlsOpen] = React.useState(false)
-  const [previewProject, setPreviewProject] = React.useState<ProjectListItem | null>(null)
   const { projects, isLoading, error, refetch, deleteProject, duplicateProject, isDeleting, isDuplicating } = useProjectsList()
 
   const openProject = React.useCallback((project: ProjectListItem) => {
-    setPreviewProject(project)
-  }, [])
+    rememberCurrentPathForEditorReturn()
+    router.push(`/editor/${project.id}`)
+  }, [router])
 
   const visibleProjects = React.useMemo(() => {
     const cleanedQuery = query.trim().toLocaleLowerCase()
@@ -385,7 +387,6 @@ export function ProjectsPageEditorial() {
         )}
       </section>
       <CreateProjectModal open={isCreateOpen} onClose={() => setIsCreateOpen(false)} />
-      <ProjectPreviewDrawer project={previewProject} onClose={() => setPreviewProject(null)} />
     </main>
   )
 }
