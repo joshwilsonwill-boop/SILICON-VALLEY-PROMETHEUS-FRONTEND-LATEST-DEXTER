@@ -6515,6 +6515,42 @@ function OriginalEditorPage() {
     let active = true
     setIsProjectLoading(true)
     const fetchProject = async () => {
+      if (projectId === '__new__') {
+        try {
+          const createRes = await fetch('/api/projects', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title: 'Untitled Project' }),
+          })
+          if (createRes.ok) {
+            const data = await createRes.json()
+            if (data?.project?.id) {
+              upsertProject(data.project)
+              if (active) {
+                router.replace(`/editor/${data.project.id}${requestedWorkspaceTab ? `?tab=${requestedWorkspaceTab}` : ''}`)
+                return
+              }
+            }
+          }
+        } catch (e) {
+          console.warn('[editor] Failed to auto-provision project on __new__:', e)
+        }
+        const fallbackId = `proj_${Date.now()}`
+        const now = new Date().toISOString()
+        const fallbackProject: Project = {
+          id: fallbackId,
+          title: 'Untitled Project',
+          status: 'draft',
+          createdAt: now,
+          updatedAt: now,
+        }
+        upsertProject(fallbackProject)
+        if (active) {
+          router.replace(`/editor/${fallbackId}${requestedWorkspaceTab ? `?tab=${requestedWorkspaceTab}` : ''}`)
+          return
+        }
+      }
+
       try {
         const res = await fetch(`/api/projects/${projectId}`)
         if (res.ok) {
@@ -6542,7 +6578,7 @@ function OriginalEditorPage() {
     }
     fetchProject()
     return () => { active = false }
-  }, [projectId])
+  }, [projectId, requestedWorkspaceTab, router])
 
   React.useEffect(() => {
     const savedTrackId = readLocalStorageJSON<string | null>(selectedEditorMusicStorageKey(projectId))

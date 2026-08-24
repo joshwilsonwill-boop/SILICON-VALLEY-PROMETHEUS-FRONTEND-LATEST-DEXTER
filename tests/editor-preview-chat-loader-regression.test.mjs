@@ -25,7 +25,8 @@ function run() {
   assert.match(ringRenderer, /RING_SEGMENTS = 72/)
 
   const sourceStagePlaceholder = read('components/editor/source-stage-placeholder.tsx')
-  assert.match(sourceStagePlaceholder, /!isLoading \? \(/)
+  assert.match(sourceStagePlaceholder, /SourceAddGlyph/)
+  assert.equal(sourceStagePlaceholder.includes('InlineLoadingAnimation'), false)
   assert.equal(sourceStagePlaceholder.includes("isLoading && 'opacity-28'"), false)
   assert.equal(sourceStagePlaceholder.includes('MinimalTypographicLoader'), false)
   assert.equal(sourceStagePlaceholder.includes('prometheus-infinity-loader'), false)

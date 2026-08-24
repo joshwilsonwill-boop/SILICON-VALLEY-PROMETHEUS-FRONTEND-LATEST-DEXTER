@@ -178,9 +178,9 @@ async function run() {
     false,
   );
   assert.match(sourceStagePlaceholder, /aria-busy=\{isLoading\}/);
-  assert.match(
-    sourceStagePlaceholder,
-    /pointer-events-none absolute inset-0 z-0 bg-transparent/,
+  assert.equal(
+    sourceStagePlaceholder.includes("InlineLoadingAnimation"),
+    false,
   );
   assert.equal(sourceStagePlaceholder.includes("bg-[#07070a]"), false);
 
@@ -236,8 +236,7 @@ async function run() {
   const loadingAnimation = read("components/loading-animation/LoadingAnimation.tsx");
   const ringRenderer = read("components/loading-animation/RingRenderer.ts");
   assert.match(loadingAnimation, /CanvasLoadingAnimation/);
-  assert.match(loadingAnimation, /return null/);
-  assert.doesNotMatch(loadingAnimation, /<canvas|<video|requestAnimationFrame/);
+  assert.match(loadingAnimation, /CinematicLogoLoader/);
   assert.match(ringRenderer, /RING_SEGMENTS = 72/);
   assert.match(ringRenderer, /PALETTE/);
 
