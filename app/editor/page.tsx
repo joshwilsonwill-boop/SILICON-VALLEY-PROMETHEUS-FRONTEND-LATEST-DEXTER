@@ -13,7 +13,7 @@ export default function EditorIndexPage() {
     const recentProject = getMostRecentProject()
     const requestedTab = normalizeRequestedWorkspaceTab(searchParams.get('tab'))
     const tabSuffix = requestedTab ? `?tab=${requestedTab}` : ''
-    router.replace(recentProject ? `/editor/${recentProject.id}${tabSuffix}` : '/projects')
+    router.replace(recentProject ? `/editor/${recentProject.id}${tabSuffix}` : '/')
   }, [router, searchParams])
 
   return null
