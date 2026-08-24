@@ -86,6 +86,7 @@ export interface MotionEditWorkspaceProps {
   onUpdateTranscriptSegment?: (segmentId: string, nextText: string) => void
   onRequestTranscribe?: () => void
   isTranscribing?: boolean
+  isSourceUploading?: boolean
   videoMetadata?: VideoMetadataInfo
   onTogglePlayback: () => void
   onPickSource: () => void
@@ -163,7 +164,7 @@ export function MotionEditWorkspace({
   projectTitle, previewUrl, previewKind, hasPreviewMedia, sourceLabel, previewAspectRatio, fitMode,
   onFitModeChange, objectFit, mediaTransformStyle, currentTimeLabel, durationLabel, currentTimeSec,
   durationSec, previewPlaying, previewMuted, onPreviewMutedChange, videoRef, transcriptSegments,
-  onUpdateTranscriptSegment, onRequestTranscribe, isTranscribing = false, videoMetadata,
+  onUpdateTranscriptSegment, onRequestTranscribe, isTranscribing = false, isSourceUploading = false, videoMetadata,
   onTogglePlayback, onPickSource, onSourceDrop, onSourceDragOver, onSourceDragLeave, isSourceDragOver = false,
   textPlacements, onSeek, onVideoLoadedMetadata, onVideoLoadedData, onVideoCanPlay,
   onVideoTimeUpdate, onVideoEnded, onVideoPlay, onVideoPause, onVideoError, onImageLoaded, onApplyPrompt,
@@ -389,11 +390,11 @@ export function MotionEditWorkspace({
               <button
                 type="button"
                 onClick={onRequestTranscribe}
-                disabled={isTranscribing}
+                disabled={isTranscribing || isSourceUploading}
                 className="inline-flex items-center gap-1 rounded bg-white/[0.08] px-2 py-1 text-[10px] text-white/70 hover:bg-white/[0.14] hover:text-white disabled:opacity-40"
-                title="Transcribe source video with Prometheus AI"
+                title={isSourceUploading ? 'Source media is saving' : 'Transcribe source video with Prometheus AI'}
               >
-                {isTranscribing ? <Loader2 className="size-3 animate-spin text-[#98f237]" /> : <RefreshCw className="size-3" />}
+                {isTranscribing || isSourceUploading ? <Loader2 className="size-3 animate-spin text-[#98f237]" /> : <RefreshCw className="size-3" />}
                 <span>Sync</span>
               </button>
             ) : null}
@@ -500,6 +501,7 @@ export function MotionEditWorkspace({
                 <button
                   type="button"
                   onClick={onRequestTranscribe}
+                  disabled={isSourceUploading}
                   className="inline-flex min-h-8 items-center gap-1.5 rounded-md border border-[#98f237]/30 bg-[#98f237]/10 px-2.5 py-1.5 text-xs font-medium text-[#b4fb60] transition-colors hover:bg-[#98f237]/20"
                 >
                   <Sparkles className="size-3.5" /> Transcribe

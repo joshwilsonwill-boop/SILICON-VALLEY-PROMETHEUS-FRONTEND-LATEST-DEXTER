@@ -6329,6 +6329,8 @@ function OriginalEditorPage() {
   const [isPreviewLoadingVisible, setIsPreviewLoadingVisible] = React.useState(false)
   const [isPreviewMuted, setIsPreviewMuted] = React.useState(true)
   const [isInlineSourceDragOver, setIsInlineSourceDragOver] = React.useState(false)
+  const [isSourceUploadPending, setIsSourceUploadPending] = React.useState(false)
+  const [transcriptRefreshToken, setTranscriptRefreshToken] = React.useState(0)
   const [previewFramePreset, setPreviewFramePreset] = React.useState<PreviewFramePreset>('source')
   const [bottomMode, setBottomMode] = React.useState<BottomMode>('Original')
   const [activeWorkspaceTab, setActiveWorkspaceTab] = React.useState<HeaderNavMode>(
@@ -6437,6 +6439,7 @@ function OriginalEditorPage() {
   const previewPlaybackCommandRef = React.useRef(0)
   const previewToggleCooldownRef = React.useRef<number | null>(null)
   const sourceFileInputRef = React.useRef<HTMLInputElement | null>(null)
+  const pendingSourceUploadAssetIdRef = React.useRef<string | null>(null)
   const [chatComposerPortal, setChatComposerPortal] = React.useState<HTMLDivElement | null>(null)
   const [composerAutomationRequest, setComposerAutomationRequest] = React.useState<ComposerAutomationRequest | null>(null)
   const inspectorViewportRef = React.useRef<HTMLDivElement | null>(null)
@@ -6885,7 +6888,7 @@ function OriginalEditorPage() {
       active = false
       if (intervalId !== null) window.clearInterval(intervalId)
     }
-  }, [project?.sourceAssetId])
+  }, [project?.sourceAssetId, transcriptRefreshToken])
 
   React.useEffect(() => {
     let active = true
@@ -7174,7 +7177,11 @@ function OriginalEditorPage() {
   const requestAssemblyAITranscription = React.useCallback(async (retry = false) => {
     const sourceAssetId = project?.sourceAssetId
     if (!sourceAssetId) {
-      toast.error('Upload and save a video before requesting a transcript.')
+      toast.info('Choose a source video to create a transcript.')
+      return
+    }
+    if (isSourceUploadPending) {
+      toast.info('Source media is still saving. Transcription starts automatically once it is ready.')
       return
     }
     if (!retry && transcriptStartAttemptedRef.current === sourceAssetId) return
@@ -7254,12 +7261,7 @@ function OriginalEditorPage() {
       setIsTranscribingVideo(false)
       toast.error(err instanceof Error ? err.message : 'Prometheus could not start the transcript.')
     }
-  }, [previewKind, previewUrl, project?.sourceAssetId, sourceAssetLabel])
-
-  React.useEffect(() => {
-    if (!previewUrl || previewKind !== 'video' || job?.artifacts?.transcript?.length) return
-    void requestAssemblyAITranscription()
-  }, [job?.artifacts?.transcript, previewKind, previewUrl, requestAssemblyAITranscription])
+  }, [isSourceUploadPending, previewKind, previewUrl, project?.sourceAssetId, sourceAssetLabel])
 
   const persistTranscriptSegments = React.useCallback((segments: TranscriptSegment[]) => {
     if (!project?.sourceAssetId) return
@@ -8135,7 +8137,7 @@ function OriginalEditorPage() {
       projectId: string
       sourceProfile: Project['sourceProfile'] | null
     }) => {
-      if (!input.projectId || uploadedSourceAssetIdsRef.current.has(input.assetId)) return
+      if (!input.projectId || uploadedSourceAssetIdsRef.current.has(input.assetId)) return false
       uploadedSourceAssetIdsRef.current.add(input.assetId)
 
       try {
@@ -8178,13 +8180,15 @@ function OriginalEditorPage() {
 
         // A newer pick may have replaced this source while uploading; newest pick wins.
         const currentProject = projects.get(input.projectId)
-        if (currentProject?.sourceAssetId !== input.assetId) return
+        if (currentProject?.sourceAssetId !== input.assetId) return false
 
         const nextProject = projects.update(input.projectId, { sourceAssetId: uploadAsset.id })
         if (nextProject) setProject(nextProject)
+        return true
       } catch (error) {
         uploadedSourceAssetIdsRef.current.delete(input.assetId)
         console.warn('[editor] Background source upload to R2 failed:', error)
+        return false
       }
     },
     [],
@@ -8230,15 +8234,32 @@ function OriginalEditorPage() {
         })
 
         if (nextProject) setProject(nextProject)
+        setJob((current) => current ? {
+          ...current,
+          artifacts: { ...current.artifacts, transcript: [] },
+          transcriptStatus: 'queued',
+          transcriptText: '',
+        } : current)
 
-        // Fire-and-forget durable backup: upload the re-picked source to R2 and
-        // register it as a project asset so it can be recovered after hard
-        // navigation. Never awaited and never surfaced to the editor flow.
+        pendingSourceUploadAssetIdRef.current = stagedSource.assetId
+        setIsSourceUploadPending(true)
+
+        // The local preview is ready before the project asset exists in R2.
+        // Keep transcription gated until this commit makes that asset durable.
         void uploadSourceAssetToCloud({
           assetId: stagedSource.assetId,
           file,
           projectId: project.id,
           sourceProfile: stagedSource.sourceProfile,
+        }).then((committed) => {
+          if (pendingSourceUploadAssetIdRef.current !== stagedSource.assetId) return
+          pendingSourceUploadAssetIdRef.current = null
+          setIsSourceUploadPending(false)
+          if (committed) {
+            setTranscriptRefreshToken((current) => current + 1)
+          } else {
+            toast.error('The replacement source could not be saved. Please try again.')
+          }
         })
 
         setPreviewPlaying(false)
@@ -8570,6 +8591,7 @@ function OriginalEditorPage() {
                     onUpdateTranscriptSegment={handleUpdateTranscriptSegment}
                     onRequestTranscribe={() => void requestAssemblyAITranscription(true)}
                     isTranscribing={isTranscribingVideo}
+                    isSourceUploading={isSourceUploadPending}
                     videoMetadata={videoMetadata}
                     onSeek={handlePreviewSeekSeconds}
                     onVideoLoadedMetadata={handlePreviewMetadataLoaded}
