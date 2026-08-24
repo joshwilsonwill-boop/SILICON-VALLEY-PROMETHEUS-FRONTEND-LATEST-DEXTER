@@ -6311,6 +6311,7 @@ function OriginalEditorPage() {
 
   const [project, setProject] = React.useState<Project | null>(null)
   const [projectLoadError, setProjectLoadError] = React.useState<string | null>(null)
+  const [isProjectLoading, setIsProjectLoading] = React.useState(true)
   const [job, setJob] = React.useState<ProcessingJob | null>(null)
   const [saveStatus, setSaveStatus] = React.useState<'saved' | 'saving' | 'error'>('saved')
   const [fitMode, setFitMode] = React.useState<PreviewFitMode>('fill')
@@ -6512,6 +6513,7 @@ function OriginalEditorPage() {
 
   React.useEffect(() => {
     let active = true
+    setIsProjectLoading(true)
     const fetchProject = async () => {
       try {
         const res = await fetch(`/api/projects/${projectId}`)
@@ -6520,17 +6522,21 @@ function OriginalEditorPage() {
           if (active && apiProject) {
             setProject(apiProject)
             setProjectLoadError(null)
+            setIsProjectLoading(false)
             upsertProject(apiProject)
           } else if (active && !projects.get(projectId)) {
             setProjectLoadError('This project could not be found.')
+            setIsProjectLoading(false)
           }
         } else if (active && !projects.get(projectId)) {
           setProjectLoadError('This project could not be found.')
+          setIsProjectLoading(false)
         }
       } catch (err) {
         console.error('Failed to fetch project from API:', err)
         if (active && !projects.get(projectId)) {
           setProjectLoadError('This project could not be loaded right now.')
+          setIsProjectLoading(false)
         }
       }
     }
@@ -6604,7 +6610,10 @@ function OriginalEditorPage() {
       // Only ever replace the project with a real record. A null lookup during
       // the API handoff (or a localStorage miss) must not clobber a project we
       // already loaded, which previously dropped the editor to the empty state.
-      if (nextProject) setProject(nextProject)
+      if (nextProject) {
+        setProject(nextProject)
+        setIsProjectLoading(false)
+      }
       setJob(nextJob)
       if (nextJob?.status === 'completed' && intervalId !== null) {
         window.clearInterval(intervalId)
@@ -8080,7 +8089,15 @@ function OriginalEditorPage() {
     }
   }, [isDeferredChromeReady, isMobile])
 
-  if (projectLoadError && !project) {
+  if (isProjectLoading && !project) {
+    return (
+      <div className="flex h-full min-h-[70vh] w-full flex-col items-center justify-center gap-5 bg-black px-6 text-center text-white">
+        <InlineLoadingAnimation size={64} label="Loading your project" />
+      </div>
+    )
+  }
+
+  if (!project) {
     return (
       <div className="flex h-full min-h-[70vh] w-full flex-col items-center justify-center gap-5 bg-black px-6 text-center text-white">
         <div className="grid size-14 place-items-center rounded-full border border-white/15 bg-white/[0.04]">
@@ -8089,7 +8106,7 @@ function OriginalEditorPage() {
         <div>
           <h1 className="text-xl font-semibold text-white">Project not found</h1>
           <p className="mt-2 max-w-md text-sm leading-6 text-white/55">
-            {projectLoadError} It may have been moved, deleted, or is still syncing.
+            {projectLoadError ?? 'This project could not be found.'} It may have been moved, deleted, or is still syncing.
           </p>
         </div>
         <button
