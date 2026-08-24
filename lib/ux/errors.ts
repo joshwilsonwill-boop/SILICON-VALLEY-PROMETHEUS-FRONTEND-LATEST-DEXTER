@@ -43,6 +43,7 @@ const CANONICAL_MESSAGES = new Set([
   DATABASE_ERROR,
   'We could not create the account. Check the details and try again.',
   'Choose a stronger password with an uppercase letter, a lowercase letter, a number, and a special character.',
+  'You have made too many attempts in a short time. Wait about an hour, then try again.',
   'We could not sign you in. Check the details and try again.',
   'The identity provider handoff did not complete. Try again in a moment.',
   'We could not complete the password reset. Request a fresh link and try again.',
@@ -118,6 +119,15 @@ export function normalizeUxError(error: unknown, context: UxErrorContext = 'gene
     normalized.includes('password should contain at least one character of each')
   ) {
     return 'Choose a stronger password with an uppercase letter, a lowercase letter, a number, and a special character.'
+  }
+
+  if (
+    normalized.includes('rate limit') ||
+    normalized.includes('rate_limit') ||
+    normalized.includes('over_email_send_rate_limit') ||
+    normalized.includes('over_request_rate_limit')
+  ) {
+    return 'You have made too many attempts in a short time. Wait about an hour, then try again.'
   }
 
   if (
