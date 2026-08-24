@@ -588,6 +588,24 @@ function validateStudioUpload(file: File) {
     return null;
 }
 
+function describeStudioUploadFailure(error: unknown, stage: string) {
+    const message = error instanceof Error ? error.message.trim() : "";
+
+    if (stage === "R2_MULTIPART_UPLOAD" && /network error|http 403/i.test(message)) {
+        return "The browser could not upload this R2 part. Confirm the bucket CORS policy allows this site origin and exposes the ETag response header, then retry.";
+    }
+
+    if (message.includes("Missing readable ETag")) {
+        return "The video reached storage, but the bucket CORS policy does not expose its ETag. Add ETag to the bucket's exposed response headers, then retry.";
+    }
+
+    if (message) {
+        return `Upload stopped during ${stage.replaceAll("_", " ").toLowerCase()}: ${message}`;
+    }
+
+    return normalizeUxError(error, "upload");
+}
+
 function describeMultipartUploadProgress(progress: MultipartUploadProgress, fileName: string) {
     const partLabel = progress.totalParts > 1
         ? `Part ${Math.max(1, progress.currentPart)} of ${progress.totalParts}`
@@ -2016,14 +2034,13 @@ export function VideoUploadInterface() {
                 return false;
             }
 
-            const userMessage = normalizeUxError(error, "upload");
             console.error(`[UploadFailure] Stage: ${currentStage}, Error:`, error);
             logUploadEvent('error', { stage: currentStage, error: errorMessage });
             setUploadStatus('error');
             setUploadErrorDetail(errorMessage);
             setUploadPartLabel(null);
             toast.error('Upload handoff paused', {
-                description: userMessage,
+                description: describeStudioUploadFailure(error, currentStage),
             });
 
             setEditorLaunchOverlay(null);

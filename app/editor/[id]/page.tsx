@@ -127,7 +127,7 @@ import {
 import { analyzeMusicIntent } from '@/lib/music-intent'
 import { queuePreviewRevisionRequest } from '@/lib/editorial-frame/mock-preview-api'
 import { getSessionSourcePreview, setSessionSourcePreview } from '@/lib/source-preview-session'
-import { createSourceAssetObjectUrl, getStoredSourceAssetFile, getLatestStoredSourceAssetRecord, restoreStoredSourceAssetFile } from '@/lib/source-asset-store'
+import { createSourceAssetObjectUrl, getStoredSourceAssetFile } from '@/lib/source-asset-store'
 import { uploadProjectSourceMultipart } from '@/lib/r2/multipart-client'
 import { STYLE_TEMPLATES, type StyleTemplate } from '@/lib/styles/style-templates'
 import { toast } from 'sonner'
@@ -6800,22 +6800,9 @@ function OriginalEditorPage() {
         return
       }
 
-      // 4. If project has no video yet, check for latest stored local asset
-      if (!project?.sourceAssetId) {
-        try {
-          const latestStored = await getLatestStoredSourceAssetRecord()
-          if (latestStored && active) {
-            const localUrl = URL.createObjectURL(restoreStoredSourceAssetFile(latestStored))
-            nextObjectUrl = localUrl
-            setPersistedPreviewUrl(localUrl)
-            setIsPreviewMediaReady(true)
-            setProject((curr) => curr ? { ...curr, sourceAssetId: latestStored.id } : curr)
-            return
-          }
-        } catch (fallbackErr) {
-          console.warn('[editor] Fallback to latest stored asset error:', fallbackErr)
-        }
-      }
+      // A project with no source stays empty. Looking up the latest local asset
+      // here made one project's media appear in another project, then vanish
+      // whenever the project store synchronized its real empty state.
     }
 
     void recoverPersistedSource()
