@@ -102,15 +102,47 @@ async function readStoredSourceAssetRecord(assetId: string) {
   return getInMemorySourceAssetStore()?.get(assetId) ?? null
 }
 
-function restoreStoredSourceAssetFile(record: StoredSourceAssetRecord) {
+export function restoreStoredSourceAssetFile(record: StoredSourceAssetRecord) {
   return new File([record.file], record.name, {
     type: record.type || record.file.type || 'application/octet-stream',
     lastModified: record.lastModified,
   })
 }
 
-export async function persistSourceAsset(file: File) {
-  const assetId = createAssetId()
+export async function getLatestStoredSourceAssetRecord(): Promise<StoredSourceAssetRecord | null> {
+  try {
+    const persistedRecord = await withSourceAssetStore<StoredSourceAssetRecord | null>('readonly', (store, resolve) => {
+      const request = store.openCursor(null, 'prev')
+      request.onsuccess = () => {
+        const cursor = request.result
+        if (cursor) {
+          resolve(cursor.value as StoredSourceAssetRecord)
+        } else {
+          resolve(null)
+        }
+      }
+      request.onerror = () => resolve(null)
+    })
+
+    if (persistedRecord) {
+      getInMemorySourceAssetStore()?.set(persistedRecord.id, persistedRecord)
+      return persistedRecord
+    }
+  } catch {
+    // Fallback to in-memory store
+  }
+
+  const memoryStore = getInMemorySourceAssetStore()
+  if (memoryStore && memoryStore.size > 0) {
+    const values = Array.from(memoryStore.values())
+    return values[values.length - 1] ?? null
+  }
+
+  return null
+}
+
+export async function persistSourceAsset(file: File, customAssetId?: string | null) {
+  const assetId = customAssetId && customAssetId.trim().length > 0 ? customAssetId.trim() : createAssetId()
   const record: StoredSourceAssetRecord = {
     id: assetId,
     file,

@@ -99,6 +99,21 @@ export const ProjectService = {
       console.error('[ProjectService] getProject Supabase error:', error.message, error.details)
       throw error
     }
+
+    if (!data.source_asset_id) {
+      const { data: latestAsset } = await supabase
+        .from('source_assets')
+        .select('id')
+        .eq('project_id', id)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      if (latestAsset?.id) {
+        data.source_asset_id = latestAsset.id
+      }
+    }
+
     return mapProjectFromDb(data)
   },
 

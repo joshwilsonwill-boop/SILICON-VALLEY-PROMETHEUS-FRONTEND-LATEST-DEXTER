@@ -127,7 +127,7 @@ import {
 import { analyzeMusicIntent } from '@/lib/music-intent'
 import { queuePreviewRevisionRequest } from '@/lib/editorial-frame/mock-preview-api'
 import { getSessionSourcePreview, setSessionSourcePreview } from '@/lib/source-preview-session'
-import { createSourceAssetObjectUrl, getStoredSourceAssetFile } from '@/lib/source-asset-store'
+import { createSourceAssetObjectUrl, getStoredSourceAssetFile, getLatestStoredSourceAssetRecord, restoreStoredSourceAssetFile } from '@/lib/source-asset-store'
 import { uploadProjectSourceMultipart } from '@/lib/r2/multipart-client'
 import { STYLE_TEMPLATES, type StyleTemplate } from '@/lib/styles/style-templates'
 import { toast } from 'sonner'
@@ -6737,10 +6737,11 @@ function OriginalEditorPage() {
     setPersistedPreviewUrl(null)
 
     const recoverPersistedSource = async () => {
-      // 1. Try local IndexedDB asset store if sourceAssetId is present
-      if (project?.sourceAssetId) {
+      // 1. Try local IndexedDB asset store with sourceAssetId or projectId
+      const candidateKeys = [project?.sourceAssetId, projectId].filter(Boolean) as string[]
+      for (const assetKey of candidateKeys) {
         try {
-          const localUrl = await createSourceAssetObjectUrl(project.sourceAssetId)
+          const localUrl = await createSourceAssetObjectUrl(assetKey)
           if (!active) {
             if (localUrl) URL.revokeObjectURL(localUrl)
             return
@@ -6750,10 +6751,11 @@ function OriginalEditorPage() {
             nextObjectUrl = localUrl
             debugEditorPreview('restored-local-preview-url', {
               projectId,
-              sourceAssetId: project.sourceAssetId,
+              assetKey,
               localUrl,
             })
             setPersistedPreviewUrl(localUrl)
+            setIsPreviewMediaReady(true)
             return
           }
         } catch (localErr) {
@@ -6777,6 +6779,7 @@ function OriginalEditorPage() {
               cloudUrl,
             })
             setPersistedPreviewUrl(cloudUrl)
+            setIsPreviewMediaReady(true)
             if (data.asset?.id && !project?.sourceAssetId) {
               setProject((curr) => curr ? { ...curr, sourceAssetId: data.asset.id } : curr)
             }
@@ -6790,6 +6793,25 @@ function OriginalEditorPage() {
       // 3. Fallback to thumbnailUrl if present
       if (active && project?.thumbnailUrl) {
         setPersistedPreviewUrl(project.thumbnailUrl)
+        setIsPreviewMediaReady(true)
+        return
+      }
+
+      // 4. If project has no video yet, check for latest stored local asset
+      if (!project?.sourceAssetId) {
+        try {
+          const latestStored = await getLatestStoredSourceAssetRecord()
+          if (latestStored && active) {
+            const localUrl = URL.createObjectURL(restoreStoredSourceAssetFile(latestStored))
+            nextObjectUrl = localUrl
+            setPersistedPreviewUrl(localUrl)
+            setIsPreviewMediaReady(true)
+            setProject((curr) => curr ? { ...curr, sourceAssetId: latestStored.id } : curr)
+            return
+          }
+        } catch (fallbackErr) {
+          console.warn('[editor] Fallback to latest stored asset error:', fallbackErr)
+        }
       }
     }
 

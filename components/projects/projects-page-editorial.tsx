@@ -24,7 +24,7 @@ import { CreateProjectModal } from '@/components/projects/create-project-modal'
 import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { useProjectsList } from '@/hooks/use-projects-list'
 import { rememberCurrentPathForEditorReturn } from '@/lib/editor-navigation'
-import { upsertProject } from '@/lib/mock'
+import { getProject, upsertProject } from '@/lib/mock'
 import type { ProjectCardStatus, ProjectListItem } from '@/lib/projects/types'
 import type { Project } from '@/lib/types'
 
@@ -214,13 +214,19 @@ export function ProjectsPageEditorial() {
       'draft'
     ) as Project['status']
 
+    const existing = getProject(project.id)
     const projectRecord: Project = {
+      ...(existing || {}),
       id: project.id,
       title: project.title,
       status: mappedStatus,
-      createdAt: project.createdAt || now,
-      updatedAt: project.updatedAt || now,
-      thumbnailUrl: project.thumbnailUrl ?? undefined,
+      createdAt: project.createdAt || existing?.createdAt || now,
+      updatedAt: project.updatedAt || existing?.updatedAt || now,
+      thumbnailUrl: project.thumbnailUrl ?? existing?.thumbnailUrl ?? undefined,
+      sourceAssetId: existing?.sourceAssetId ?? undefined,
+      sourceProfile: existing?.sourceProfile ?? undefined,
+      editorState: existing?.editorState ?? undefined,
+      previewKind: existing?.previewKind ?? 'video',
     }
     upsertProject(projectRecord)
     router.push(`/editor/${project.id}`)

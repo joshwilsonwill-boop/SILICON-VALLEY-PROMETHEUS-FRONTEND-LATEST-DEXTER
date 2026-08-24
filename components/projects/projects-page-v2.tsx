@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { rememberCurrentPathForEditorReturn } from '@/lib/editor-navigation'
-import { upsertProject } from '@/lib/mock'
+import { getProject, upsertProject } from '@/lib/mock'
 import { PrometheusShell } from '@/components/prometheus-shell'
 import { useProjectsList } from '@/hooks/use-projects-list'
 import type { ProjectListItem } from '@/lib/projects/types'
@@ -273,14 +273,20 @@ export function ProjectsPageV2() {
                       onEdit={(id) => {
                         rememberCurrentPathForEditorReturn()
                         const target = projects.find((p) => p.id === id)
+                        const existing = getProject(id)
                         if (target) {
                           upsertProject({
+                            ...(existing || {}),
                             id: target.id,
                             title: target.title,
                             status: (target.status === 'completed' ? 'ready' : target.status === 'rendering' ? 'processing' : 'draft') as any,
-                            createdAt: target.createdAt || new Date().toISOString(),
-                            updatedAt: target.updatedAt || new Date().toISOString(),
-                            thumbnailUrl: target.thumbnailUrl ?? undefined,
+                            createdAt: target.createdAt || existing?.createdAt || new Date().toISOString(),
+                            updatedAt: target.updatedAt || existing?.updatedAt || new Date().toISOString(),
+                            thumbnailUrl: target.thumbnailUrl ?? existing?.thumbnailUrl ?? undefined,
+                            sourceAssetId: existing?.sourceAssetId ?? undefined,
+                            sourceProfile: existing?.sourceProfile ?? undefined,
+                            editorState: existing?.editorState ?? undefined,
+                            previewKind: existing?.previewKind ?? 'video',
                           })
                         }
                         router.push(`/editor/${id}`)
