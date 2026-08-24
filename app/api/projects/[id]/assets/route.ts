@@ -20,15 +20,41 @@ export async function GET(
 
     const project = await ProjectService.getProject(projectId)
     if (!project) return NextResponse.json({ error: 'Project not found' }, { status: 404 })
-    if (!project.sourceAssetId) return NextResponse.json({ error: 'Project has no source asset' }, { status: 404 })
 
-    const { data: asset, error } = await supabase.from('source_assets').select('*')
-      .eq('id', project.sourceAssetId).eq('project_id', projectId).eq('user_id', user.id).single()
-    if (error || !asset) return NextResponse.json({ error: 'Source asset record not found' }, { status: 404 })
-    if (!asset.storage_path) return NextResponse.json({ error: 'Asset storage path is missing' }, { status: 500 })
-    const bucket = asset.storage_bucket || process.env.R2_BUCKET_SOURCES || 'prometheus-sources'
-    const sourceUrl = await getPresignedGetUrl(bucket, asset.storage_path)
-    return NextResponse.json({ asset, source: { url: sourceUrl, expiresIn: 3600 } })
+    let asset: any = null
+    if (project.sourceAssetId) {
+      const { data, error } = await supabase
+        .from('source_assets')
+        .select('*')
+        .eq('id', project.sourceAssetId)
+        .eq('user_id', user.id)
+        .maybeSingle()
+      if (data && !error) asset = data
+    }
+
+    if (!asset) {
+      const { data, error } = await supabase
+        .from('source_assets')
+        .select('*')
+        .eq('project_id', projectId)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      if (data && !error) asset = data
+    }
+
+    if (asset && asset.storage_path) {
+      const bucket = asset.storage_bucket || process.env.R2_BUCKET_SOURCES || 'prometheus-sources'
+      const sourceUrl = await getPresignedGetUrl(bucket, asset.storage_path)
+      return NextResponse.json({ success: true, asset, source: { url: sourceUrl, expiresIn: 3600 } })
+    }
+
+    if (project.thumbnailUrl) {
+      return NextResponse.json({ success: true, source: { url: project.thumbnailUrl, expiresIn: 3600 } })
+    }
+
+    return NextResponse.json({ error: 'Source asset record not found' }, { status: 404 })
   } catch (err) {
     console.error('[api/projects/[id]/assets] GET error:', err)
     return NextResponse.json({ error: err instanceof Error ? err.message : 'Failed to recover source asset' }, { status: 500 })

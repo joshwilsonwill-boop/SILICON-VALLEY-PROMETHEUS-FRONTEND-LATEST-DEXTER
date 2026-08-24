@@ -6453,8 +6453,14 @@ function OriginalEditorPage() {
     handoffPreview?.sourceKey === projectPreviewSourceKey ? handoffPreview : null
   const stableProjectPreviewUrl =
     handoffPreviewForCurrentSource?.url
-    ?? (project?.sourceAssetId ? persistedPreviewUrl ?? project?.thumbnailUrl ?? null : project?.thumbnailUrl ?? null)
-  const stableProjectPreviewKind = (handoffPreviewForCurrentSource?.kind ?? project?.previewKind ?? null) as PreviewMediaKind | null
+    ?? persistedPreviewUrl
+    ?? project?.thumbnailUrl
+    ?? null
+  const stableProjectPreviewKind = (
+    handoffPreviewForCurrentSource?.kind
+    ?? project?.previewKind
+    ?? (stableProjectPreviewUrl && (stableProjectPreviewUrl.endsWith('.png') || stableProjectPreviewUrl.endsWith('.jpg') || stableProjectPreviewUrl.endsWith('.jpeg') || stableProjectPreviewUrl.endsWith('.webp')) ? 'image' : 'video')
+  ) as PreviewMediaKind | null
   const {
     visiblePreviewUrl: sourceStageVisiblePreviewUrl,
     previewKind: stagedPreviewKind,
@@ -6731,64 +6737,59 @@ function OriginalEditorPage() {
     setPersistedPreviewUrl(null)
 
     const recoverPersistedSource = async () => {
-      if (!project?.sourceAssetId) return
+      // 1. Try local IndexedDB asset store if sourceAssetId is present
+      if (project?.sourceAssetId) {
+        try {
+          const localUrl = await createSourceAssetObjectUrl(project.sourceAssetId)
+          if (!active) {
+            if (localUrl) URL.revokeObjectURL(localUrl)
+            return
+          }
 
+          if (localUrl) {
+            nextObjectUrl = localUrl
+            debugEditorPreview('restored-local-preview-url', {
+              projectId,
+              sourceAssetId: project.sourceAssetId,
+              localUrl,
+            })
+            setPersistedPreviewUrl(localUrl)
+            return
+          }
+        } catch (localErr) {
+          console.warn('[editor] Local asset recovery error:', localErr)
+        }
+      }
+
+      // 2. Query cloud asset service for the project
       try {
-        const localUrl = await createSourceAssetObjectUrl(project.sourceAssetId)
-
-        if (!active) {
-          if (localUrl) URL.revokeObjectURL(localUrl)
-          return
-        }
-
-        if (localUrl) {
-          nextObjectUrl = localUrl
-          debugEditorPreview('restored-local-preview-url', {
-            projectId,
-            sourceAssetId: project.sourceAssetId,
-            localUrl,
-          })
-          setPersistedPreviewUrl(localUrl)
-          return
-        }
-
-        // Local recovery failed, try cloud recovery
-        debugEditorPreview('local-recovery-failed-trying-cloud', {
-          projectId,
-          sourceAssetId: project.sourceAssetId,
-        })
-
         const res = await fetch(`/api/projects/${projectId}/assets`)
-        if (!res.ok) throw new Error('Cloud recovery failed')
+        if (res.ok) {
+          const data = await res.json()
+          const cloudUrl = data.source?.url
 
-        const data = await res.json()
-        const cloudUrl = data.source?.url
+          if (!active) return
 
-        if (!active) return
-
-        if (cloudUrl) {
-          debugEditorPreview('restored-cloud-preview-url', {
-            projectId,
-            sourceAssetId: project.sourceAssetId,
-            cloudUrl,
-          })
-          setPersistedPreviewUrl(cloudUrl)
-        } else {
-          throw new Error('No cloud URL returned')
+          if (cloudUrl) {
+            debugEditorPreview('restored-cloud-preview-url', {
+              projectId,
+              sourceAssetId: project?.sourceAssetId ?? data.asset?.id,
+              cloudUrl,
+            })
+            setPersistedPreviewUrl(cloudUrl)
+            if (data.asset?.id && !project?.sourceAssetId) {
+              setProject((curr) => curr ? { ...curr, sourceAssetId: data.asset.id } : curr)
+            }
+            return
+          }
         }
-      } catch (err) {
-        if (!active) return
-        console.error('Source recovery failed:', err)
-        debugEditorPreview('source-recovery-failed', {
-          projectId,
-          sourceAssetId: project.sourceAssetId,
-          error: err instanceof Error ? err.message : String(err),
-        })
-        setPersistedPreviewUrl(null)
-        // If we have an asset ID but can't find it locally or in the cloud, it's an error
-        if (project?.sourceAssetId) {
-          setIsPreviewMediaReady(false) // Force stop loading
-        }
+      } catch (cloudErr) {
+        console.warn('[editor] Cloud asset recovery error:', cloudErr)
+      }
+
+      // 3. Fallback to thumbnailUrl if present
+      if (active && project?.thumbnailUrl) {
+        setPersistedPreviewUrl(project.thumbnailUrl)
       }
     }
 
@@ -6800,7 +6801,7 @@ function OriginalEditorPage() {
         URL.revokeObjectURL(nextObjectUrl)
       }
     }
-  }, [project?.sourceAssetId, projectId])
+  }, [project?.sourceAssetId, project?.thumbnailUrl, projectId])
 
   // Fetch the AssemblyAI transcript from R2 once it's available, separate from
   // the MAUL source-analysis polling. The first completed response populates
