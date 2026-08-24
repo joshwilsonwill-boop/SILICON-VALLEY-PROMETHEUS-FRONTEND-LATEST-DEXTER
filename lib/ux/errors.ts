@@ -42,6 +42,7 @@ const CANONICAL_MESSAGES = new Set([
   'This is taking longer than expected. Prometheus is still watching the job and will reconnect automatically.',
   DATABASE_ERROR,
   'We could not create the account. Check the details and try again.',
+  'Choose a stronger password with an uppercase letter, a lowercase letter, a number, and a special character.',
   'We could not sign you in. Check the details and try again.',
   'The identity provider handoff did not complete. Try again in a moment.',
   'We could not complete the password reset. Request a fresh link and try again.',
@@ -110,6 +111,13 @@ export function normalizeUxError(error: unknown, context: UxErrorContext = 'gene
     normalized.includes('invalid email or password')
   ) {
     return 'The email or password does not match our records. Check the details and try again.'
+  }
+
+  if (
+    normalized.includes('weak_password') ||
+    normalized.includes('password should contain at least one character of each')
+  ) {
+    return 'Choose a stronger password with an uppercase letter, a lowercase letter, a number, and a special character.'
   }
 
   if (

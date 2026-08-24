@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input'
 import { SocialAuthButtons } from '@/components/auth/SocialAuthButtons'
 import { useAuthInteraction, type AuthActiveField } from '@/components/auth/auth-interaction'
 import { markPendingVerificationEmailSent, writePendingVerificationEmail } from '@/lib/auth/pending-verification'
+import { getPasswordPolicyError } from '@/lib/auth/password'
 import { normalizeNextPath } from '@/lib/auth/redirect'
 import { normalizeUxError } from '@/lib/ux/errors'
 import { markOnboardingPending } from '@/lib/onboarding'
@@ -65,7 +66,8 @@ export function SignupForm({ compact = false }: SignupFormProps) {
     const next: typeof errors = {}
     if (!compact && !name.trim()) next.name = 'Full name is required.'
     if (!email.trim() || !isValidEmail(email)) next.email = 'Enter a valid email.'
-    if (!password || password.length < 8) next.password = 'Password must be at least 8 characters.'
+    const passwordError = getPasswordPolicyError(password)
+    if (passwordError) next.password = passwordError
     if (confirmPassword !== password) next.confirmPassword = 'Passwords must match.'
     setErrors(next)
     return Object.keys(next).length === 0

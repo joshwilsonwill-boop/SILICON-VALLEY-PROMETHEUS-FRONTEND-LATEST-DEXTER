@@ -9,6 +9,7 @@ import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { createClient } from '@/lib/supabase/client'
+import { getPasswordPolicyError } from '@/lib/auth/password'
 import { normalizeUxError } from '@/lib/ux/errors'
 
 export function ResetPasswordForm() {
@@ -25,8 +26,9 @@ export function ResetPasswordForm() {
         setServerError(null)
         setSuccess(false)
 
-        if (!password || password.length < 8) {
-          setServerError('Password must be at least 8 characters.')
+        const pwError = getPasswordPolicyError(password)
+        if (pwError) {
+          setServerError(pwError)
           return
         }
 

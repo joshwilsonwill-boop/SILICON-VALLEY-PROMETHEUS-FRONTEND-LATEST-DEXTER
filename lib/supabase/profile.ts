@@ -17,6 +17,24 @@ function metadataValue(metadata: Record<string, unknown>, key: string) {
   return typeof value === 'string' && value.trim() ? value.trim() : null
 }
 
+function usernameBaseFromEmail(email: string | null | undefined, userId: string): string {
+  const cleaned = (email ?? '').split('@')[0]?.toLowerCase().replace(/[^a-z0-9_.-]/g, '') ?? ''
+  if (cleaned) return cleaned
+  return `user_${userId.replace(/-/g, '').slice(0, 8) || 'x'}`
+}
+
+async function resolveUniqueUsername(supabase: SupabaseClient, base: string): Promise<string> {
+  let candidate = base
+  let attempt = 1
+  while (attempt < 100) {
+    const { data: clash } = await supabase.from('profiles').select('id').eq('username', candidate).maybeSingle()
+    if (!clash) return candidate
+    candidate = `${base}_${attempt}`
+    attempt += 1
+  }
+  return candidate
+}
+
 /**
  * Idempotent profile bootstrap. Runs with the signed-in user's session, so
  * RLS must allow `insert ... with check (auth.uid() = id)` on public.profiles.
@@ -56,6 +74,7 @@ export async function ensureProfile(supabase: SupabaseClient): Promise<ServerPro
     ?? metadataValue(metadata, 'username')
     ?? user.email?.split('@')[0]
     ?? 'user'
+  const username = await resolveUniqueUsername(supabase, usernameBaseFromEmail(user.email, user.id))
 
   const { data: created, error: createError } = await supabase
     .from('profiles')
@@ -63,7 +82,7 @@ export async function ensureProfile(supabase: SupabaseClient): Promise<ServerPro
       {
         id: user.id,
         email: user.email ?? null,
-        username: fallbackName,
+        username,
         display_name: fallbackName,
         avatar_url: metadataValue(metadata, 'avatar_url') ?? metadataValue(metadata, 'picture'),
       },

@@ -59,6 +59,22 @@ test('normalizeUxError reports RLS rejections as a database problem, not a dropp
     assert.ok(message.startsWith(EMAIL_TAKEN_PREFIX))
   })
 
+  await t.test('weak-password rejections get the password policy hint, not the generic fallback', () => {
+    const raw = 'Password should contain at least one character of each: abcdefghijklmnopqrstuvwxyz, ABCDEFGHIJKLMNOPQRSTUVWXYZ, 0123456789, !@#$%^&*()_+-=[]{};\':"|<>?,./`~.'
+    const message = normalizeUxError(new Error(raw), 'signup')
+    assert.equal(
+      message,
+      'Choose a stronger password with an uppercase letter, a lowercase letter, a number, and a special character.',
+    )
+    assert.ok(!message.includes('could not create the account'))
+  })
+
+  await t.test('weak_password pass-through stays stable on double normalization', () => {
+    const once = normalizeUxError(new Error('Password should contain at least one character of each'), 'signup')
+    const twice = normalizeUxError(once, 'signup')
+    assert.equal(twice, once)
+  })
+
   await t.test('non-database "does not exist" errors are not claimed as database faults', () => {
     const message = normalizeUxError(new Error('File does not exist'), 'upload')
     assert.notEqual(message, DB_HONEST)
