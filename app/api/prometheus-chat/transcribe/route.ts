@@ -135,7 +135,7 @@ async function transcribeWithAssemblyAI(audioFile: File, apiKey: string): Promis
 
   const { id } = (await transcriptResponse.json()) as { id: string };
 
-  for (let attempt = 0; attempt < 8; attempt += 1) {
+  for (let attempt = 0; attempt < 15; attempt += 1) {
     await new Promise((resolve) => setTimeout(resolve, 1_000));
     const pollResponse = await fetch(`${ASSEMBLYAI_API_URL}/transcript/${id}`, {
       headers: { "Authorization": apiKey },

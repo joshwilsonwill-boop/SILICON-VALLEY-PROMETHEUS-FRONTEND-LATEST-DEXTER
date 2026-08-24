@@ -6856,6 +6856,11 @@ function OriginalEditorPage() {
               transcriptText: segments.map((s) => s.text).join(' '),
             }
           })
+          saveProjectTranscript(projectId, segments)
+          if (project?.sourceAssetId) {
+            saveProjectTranscript(project.sourceAssetId, segments)
+          }
+          setIsTranscribingVideo(false)
           return
         }
 
@@ -7219,7 +7224,7 @@ function OriginalEditorPage() {
           body: formData,
         })
         if (response.ok) {
-          const data = (await response.json()) as { text?: string; segments?: TranscriptSegment[] }
+          const data = (await response.json()) as { text?: string; segments?: TranscriptSegment[]; status?: string; transcriptId?: string }
           if (data.segments && data.segments.length > 0) {
             setJob((current) => {
               if (!current) return current
@@ -7237,6 +7242,37 @@ function OriginalEditorPage() {
             toast.success('Prometheus AI transcription ready')
             setIsTranscribingVideo(false)
             return
+          }
+
+          // If transcription is processing asynchronously, poll GET /api/prometheus-chat/transcribe
+          if (data.transcriptId) {
+            const transcriptId = data.transcriptId
+            for (let attempt = 0; attempt < 30; attempt += 1) {
+              await new Promise((resolve) => setTimeout(resolve, 1500))
+              try {
+                const pollRes = await fetch(`/api/prometheus-chat/transcribe?transcriptId=${transcriptId}`)
+                if (!pollRes.ok) continue
+                const pollData = (await pollRes.json()) as { status?: string; text?: string; segments?: TranscriptSegment[] }
+                if (pollData.segments && pollData.segments.length > 0) {
+                  setJob((current) => {
+                    if (!current) return current
+                    return {
+                      ...current,
+                      artifacts: { ...current.artifacts, transcript: pollData.segments! },
+                      transcriptStatus: 'completed',
+                      transcriptText: pollData.text || pollData.segments!.map((s) => s.text).join(' '),
+                    }
+                  })
+                  saveProjectTranscript(projectId, pollData.segments)
+                  if (project?.sourceAssetId) {
+                    saveProjectTranscript(project.sourceAssetId, pollData.segments)
+                  }
+                  toast.success('Prometheus AI transcription ready')
+                  setIsTranscribingVideo(false)
+                  return
+                }
+              } catch {}
+            }
           }
         }
       }
