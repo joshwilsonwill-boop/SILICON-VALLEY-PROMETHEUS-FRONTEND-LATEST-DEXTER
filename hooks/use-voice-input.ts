@@ -4,6 +4,11 @@ import { useCallback, useRef, useState } from "react";
 
 export type VoiceInputState = "idle" | "recording" | "transcribing" | "error";
 
+interface IWindowWithSpeech extends Window {
+  SpeechRecognition?: any;
+  webkitSpeechRecognition?: any;
+}
+
 export function useVoiceInput({
   onTranscript,
 }: {
@@ -17,9 +22,19 @@ export function useVoiceInput({
   const activeRef = useRef(false);
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
+  const recognitionRef = useRef<any>(null);
+  const recognizedTextRef = useRef<string>("");
 
   const cleanup = useCallback(() => {
     activeRef.current = false;
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch {
+        // Ignore recognition stop errors
+      }
+      recognitionRef.current = null;
+    }
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
       try {
         mediaRecorderRef.current.stop();
@@ -38,6 +53,13 @@ export function useVoiceInput({
 
   const stop = useCallback(() => {
     if (!activeRef.current) return;
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch {
+        // Ignore
+      }
+    }
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
       mediaRecorderRef.current.stop();
     } else {
@@ -50,6 +72,7 @@ export function useVoiceInput({
     if (activeRef.current) return;
     setError(null);
     setState("recording");
+    recognizedTextRef.current = "";
 
     try {
       if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
@@ -66,6 +89,36 @@ export function useVoiceInput({
       streamRef.current = stream;
       activeRef.current = true;
       chunksRef.current = [];
+
+      // 1. Initialize local browser SpeechRecognition for instant transcription
+      if (typeof window !== "undefined") {
+        const speechWindow = window as IWindowWithSpeech;
+        const SpeechClass = speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition;
+        if (SpeechClass) {
+          try {
+            const recognition = new SpeechClass();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = "en-US";
+            recognition.onresult = (event: any) => {
+              let finalTranscript = "";
+              for (let i = 0; i < event.results.length; ++i) {
+                finalTranscript += event.results[i][0].transcript;
+              }
+              if (finalTranscript.trim()) {
+                recognizedTextRef.current = finalTranscript.trim();
+              }
+            };
+            recognition.onerror = () => {
+              // Ignore recognition error and fallback to server-side recording
+            };
+            recognition.start();
+            recognitionRef.current = recognition;
+          } catch {
+            // SpeechRecognition initiation optional
+          }
+        }
+      }
 
       const AudioContextConstructor =
         window.AudioContext ?? (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
@@ -105,21 +158,80 @@ export function useVoiceInput({
             return;
           }
           setState("transcribing");
+
+          // Check if local speech recognition already got the text
+          const localSpeechText = recognizedTextRef.current?.trim();
+
           try {
             const formData = new FormData();
             const extension = MimeType.includes("mp4") ? "m4a" : "webm";
             formData.append("audio", blob, `voice-${Date.now()}.${extension}`);
+            
             const response = await fetch("/api/prometheus-chat/transcribe", {
               method: "POST",
               body: formData,
             });
-            const payload = await response.json().catch(() => null) as { text?: string; error?: string } | null;
-            if (!response.ok || !payload?.text?.trim()) {
-              throw new Error(payload?.error || "Transcription failed.");
+
+            const payload = (await response.json().catch(() => null)) as {
+              text?: string;
+              error?: string;
+              status?: string;
+              transcriptId?: string;
+            } | null;
+
+            if (response.ok && payload?.text?.trim()) {
+              onTranscript(payload.text.trim());
+              setState("idle");
+              return;
             }
-            onTranscript(payload.text.trim());
-            setState("idle");
+
+            // Handle async polling if AssemblyAI returned status "processing"
+            if (response.ok && payload?.status === "processing" && payload.transcriptId) {
+              const transcriptId = payload.transcriptId;
+              let polledText: string | null = null;
+
+              for (let i = 0; i < 10; i += 1) {
+                await new Promise((r) => setTimeout(r, 1000));
+                const pollRes = await fetch(`/api/prometheus-chat/transcribe?transcriptId=${transcriptId}`);
+                if (pollRes.ok) {
+                  const pollData = (await pollRes.json().catch(() => null)) as {
+                    status?: string;
+                    text?: string;
+                    error?: string;
+                  } | null;
+
+                  if (pollData?.text?.trim()) {
+                    polledText = pollData.text.trim();
+                    break;
+                  }
+                  if (pollData?.status === "error") {
+                    throw new Error(pollData.error || "Transcription failed.");
+                  }
+                }
+              }
+
+              if (polledText) {
+                onTranscript(polledText);
+                setState("idle");
+                return;
+              }
+            }
+
+            // If server failed but we have local browser speech recognition result
+            if (localSpeechText) {
+              onTranscript(localSpeechText);
+              setState("idle");
+              return;
+            }
+
+            throw new Error(payload?.error || "Transcription failed.");
           } catch (transcribeError) {
+            if (localSpeechText) {
+              onTranscript(localSpeechText);
+              setState("idle");
+              return;
+            }
+
             const raw = transcribeError instanceof Error ? transcribeError.message : "Transcription failed.";
             const message = /failed to fetch|networkerror|load failed|aborted/i.test(raw)
               ? "Could not reach the transcription service. Check your connection and try again."
@@ -140,8 +252,6 @@ export function useVoiceInput({
     }
   }, [cleanup, onTranscript]);
 
-  // Reads the live mic amplitude as 0..1 using the shared analyser. Returns
-  // null when not recording. Safe to call from a requestAnimationFrame loop.
   const getLevel = useCallback((): number | null => {
     const analyser = analyserRef.current;
     if (!analyser || !activeRef.current) return null;
