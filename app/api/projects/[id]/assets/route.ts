@@ -129,6 +129,23 @@ export async function POST(
         try {
           await startSourceAssetTranscription({ assetId: committedAssetId, supabase })
         } catch (error) {
+          const message = error instanceof Error ? error.message : 'Transcription could not be started.'
+          // Persist the failure so the editor surfaces a real message instead of
+          // an infinite "transcribing" spinner when the background dispatch dies.
+          // Only write when nothing else has started, so a frontend-launched job
+          // that raced past the failed dispatch is never overwritten.
+          try {
+            await supabase
+              .from('source_assets')
+              .update({
+                transcript_status: 'failed',
+                transcript_error: message,
+              })
+              .eq('id', committedAssetId)
+              .or('transcript_status.is.null,transcript_status.eq.idle')
+          } catch (persistError) {
+            console.error('[api/projects/[id]/assets] transcript failure persistence error:', persistError)
+          }
           console.error('[api/projects/[id]/assets] transcript dispatch failed:', error)
         }
       })

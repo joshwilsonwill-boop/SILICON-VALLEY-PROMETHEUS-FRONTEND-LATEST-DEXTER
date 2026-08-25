@@ -912,8 +912,9 @@ const SHOULD_PREFETCH_EDITOR_SUPPORT_ROUTES = process.env.NODE_ENV === 'producti
 
 const MUSIC_RECOMMENDATION_LIMIT = 8
 const EDITOR_REQUEST_TIMEOUT_MS = 25_000
-const TRANSCRIPT_SYNC_FAILURES_BEFORE_FALLBACK = 1
-const TRANSCRIPT_PROVIDER_MAX_WAIT_MS = 5 * 60 * 1000
+const TRANSCRIPT_SYNC_FAILURES_BEFORE_FALLBACK = 3
+const TRANSCRIPT_PROVIDER_MAX_WAIT_MS = 30 * 60 * 1000
+const TRANSCRIPT_START_BACKOFF_MS = 30 * 1000
 
 const CHAT_COMPOSER_FONT_STYLE = {
   fontFamily: '"SF Pro Text","SF Pro Display",-apple-system,BlinkMacSystemFont,"Segoe UI","Helvetica Neue",Arial,sans-serif',
@@ -7098,9 +7099,10 @@ function OriginalEditorPage() {
     [job?.artifacts.transcript],
   )
 
-  const [isTranscribingVideo, setIsTranscribingVideo] = React.useState(false)
+const [isTranscribingVideo, setIsTranscribingVideo] = React.useState(false)
   const [transcriptError, setTranscriptError] = React.useState<string | null>(null)
   const transcriptStartAttemptedRef = React.useRef<string | null>(null)
+  const transcriptLastStartAttemptAtRef = React.useRef(0)
 
   const runFallbackTranscription = React.useCallback(async (sourceAssetId: string) => {
     // Source video bytes already live in R2. Restart the provider job with a
@@ -7116,19 +7118,23 @@ function OriginalEditorPage() {
     setTranscriptRefreshToken((current) => current + 1)
   }, [])
 
-  const requestAssemblyAITranscription = React.useCallback(async (retry = false, requestedAssetId?: string) => {
+const requestAssemblyAITranscription = React.useCallback(async (retry = false, requestedAssetId?: string): Promise<boolean> => {
     const sourceAssetId = requestedAssetId ?? project?.sourceAssetId
     if (!sourceAssetId) {
       toast.info('Choose a source video to create a transcript.')
-      return
+      return false
     }
     if (isSourceUploadPending) {
       toast.info('Source media is still saving. Transcription starts automatically once it is ready.')
-      return
+      return false
     }
-    if (!retry && transcriptStartAttemptedRef.current === sourceAssetId) return
+
+    const now = Date.now()
+    const withinBackoff = !retry && now - transcriptLastStartAttemptAtRef.current < TRANSCRIPT_START_BACKOFF_MS
+    if (!retry && (transcriptStartAttemptedRef.current === sourceAssetId || withinBackoff)) return false
 
     transcriptStartAttemptedRef.current = sourceAssetId
+    transcriptLastStartAttemptAtRef.current = now
     setTranscriptError(null)
     setIsTranscribingVideo(true)
     try {
@@ -7139,7 +7145,7 @@ function OriginalEditorPage() {
       })
       if (response.ok) {
         setTranscriptRefreshToken((current) => current + 1)
-        return
+        return true
       }
 
       const primaryError = (await response.json().catch(() => null)) as { error?: string } | null
@@ -7147,12 +7153,15 @@ function OriginalEditorPage() {
         throw new Error(primaryError?.error || 'The saved video could not be prepared for transcription.')
       }
       await runFallbackTranscription(sourceAssetId)
+      return true
     } catch (err) {
       console.warn('[Prometheus AI] Transcription request failed:', err)
+      transcriptStartAttemptedRef.current = null
       setIsTranscribingVideo(false)
       const message = err instanceof Error ? err.message : 'Prometheus could not start the transcript.'
       setTranscriptError(message)
-      toast.error(message)
+      if (retry) toast.error(message)
+      return false
     }
   }, [isSourceUploadPending, previewKind, previewUrl, project?.sourceAssetId, runFallbackTranscription])
 
@@ -7200,8 +7209,8 @@ function OriginalEditorPage() {
         }
 
         if (body?.status === 'idle') {
-          setIsTranscribingVideo(true)
-          await requestAssemblyAITranscription(false, sourceAssetId)
+          const started = await requestAssemblyAITranscription(false, sourceAssetId)
+          if (!started) setIsTranscribingVideo(false)
           return
         }
 

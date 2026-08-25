@@ -5,8 +5,8 @@
  */
 
 const ASSEMBLYAI_API_URL = 'https://api.assemblyai.com/v2'
-const ASSEMBLYAI_START_TIMEOUT_MS = 8_000
-const ASSEMBLYAI_STATUS_TIMEOUT_MS = 6_000
+const ASSEMBLYAI_START_TIMEOUT_MS = 30_000
+const ASSEMBLYAI_STATUS_TIMEOUT_MS = 20_000
 
 export interface AssemblyAITranscriptionOptions {
   audio_url: string
