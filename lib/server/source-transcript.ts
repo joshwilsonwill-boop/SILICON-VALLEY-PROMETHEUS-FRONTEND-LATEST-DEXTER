@@ -55,7 +55,7 @@ export async function startSourceAssetTranscription({
     speaker_labels: false,
     punctuate: true,
     format_text: true,
-    speech_models: ['universal-2'],
+    speech_models: ['universal-3-5-pro'],
   })
 
   if (!started.id) return null
