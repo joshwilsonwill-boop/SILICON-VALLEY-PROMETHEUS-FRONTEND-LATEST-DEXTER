@@ -9,8 +9,12 @@ export async function POST(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let assetId = 'unknown'
+  let stage = 'resolve_request'
   try {
-    const { id: assetId } = await params
+    const { id } = await params
+    assetId = id
+    stage = 'authenticate'
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
@@ -19,6 +23,7 @@ export async function POST(
     }
 
     // 1. Fetch asset record
+    stage = 'load_asset'
     const { data: asset, error: assetError } = await supabase
       .from('source_assets')
       .select('*')
@@ -40,12 +45,14 @@ export async function POST(
     }
 
     // 2. Poll AssemblyAI
+    stage = 'poll_assemblyai'
     const assemblyResponse = await getAssemblyAITranscriptionStatus(asset.transcript_job_id)
 
     if (assemblyResponse.status === 'queued' || assemblyResponse.status === 'processing') {
       // Update DB if it moved from queued to transcribing
       const nextStatus = assemblyResponse.status === 'processing' ? 'transcribing' : 'queued'
       if (asset.transcript_status !== nextStatus) {
+        stage = 'update_inflight_status'
         await supabase
           .from('source_assets')
           .update({ transcript_status: nextStatus })
@@ -59,9 +66,11 @@ export async function POST(
       const bucket = process.env.R2_BUCKET_SOURCES || 'prometheus-sources'
       const r2Key = R2Keys.transcript(user.id, asset.project_id, assetId)
       
+      stage = 'upload_transcript_to_r2'
       await uploadTranscriptToR2(bucket, r2Key, assemblyResponse)
 
       // 4. Update Supabase
+      stage = 'persist_transcript'
       const { error: updateError } = await supabase
         .from('source_assets')
         .update({
@@ -82,6 +91,7 @@ export async function POST(
     }
 
     if (assemblyResponse.status === 'error') {
+      stage = 'persist_provider_error'
       await supabase
         .from('source_assets')
         .update({
@@ -96,9 +106,10 @@ export async function POST(
     return NextResponse.json({ status: asset.transcript_status })
 
   } catch (err) {
-    console.error('[api/assets/[id]/transcript/sync] POST error:', err)
+    const error = err instanceof Error ? err.message : 'Failed to sync transcript'
+    console.error('[api/assets/[id]/transcript/sync] POST error:', { assetId, stage, error, err })
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'Failed to sync transcript' },
+      { error, stage },
       { status: 500 }
     )
   }
