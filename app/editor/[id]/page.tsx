@@ -7258,8 +7258,12 @@ function OriginalEditorPage() {
         } else if (body?.status === 'transcribing' || body?.status === 'queued') {
           setIsTranscribingVideo(true)
           const transcriptStartedAt = body.startedAt ? Date.parse(body.startedAt) : NaN
-          if (Number.isFinite(transcriptStartedAt) && Date.now() - transcriptStartedAt >= TRANSCRIPT_PROVIDER_MAX_WAIT_MS) {
-            setTranscriptError('The transcription provider did not finish. Restarting it with a fresh source URL.')
+          if (!Number.isFinite(transcriptStartedAt) || Date.now() - transcriptStartedAt >= TRANSCRIPT_PROVIDER_MAX_WAIT_MS) {
+            setTranscriptError(
+              Number.isFinite(transcriptStartedAt)
+                ? 'The transcription provider did not finish. Restarting it with a fresh source URL.'
+                : 'This transcript has no valid start time. Restarting it with a fresh source URL.',
+            )
             await requestAssemblyAITranscription(true, sourceAssetId)
             return
           }

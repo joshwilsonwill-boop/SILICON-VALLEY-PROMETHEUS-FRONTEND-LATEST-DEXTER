@@ -16,6 +16,7 @@ assert.match(transcriptRoute, /force: restart/)
 assert.match(transcriptRoute, /startedAt: asset\.transcript_started_at/)
 assert.match(editor, /TRANSCRIPT_PROVIDER_MAX_WAIT_MS/)
 assert.match(editor, /Date\.now\(\) - transcriptStartedAt >= TRANSCRIPT_PROVIDER_MAX_WAIT_MS/)
+assert.match(editor, /!Number\.isFinite\(transcriptStartedAt\)/)
 assert.match(editor, /restart=1/)
 
 console.log('stalled transcript jobs restart with a fresh signed source URL')
