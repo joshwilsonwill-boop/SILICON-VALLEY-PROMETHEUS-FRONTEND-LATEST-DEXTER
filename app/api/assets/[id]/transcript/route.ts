@@ -82,7 +82,7 @@ export async function GET(
     }
 
     if (asset.transcript_status === 'queued' || asset.transcript_status === 'transcribing') {
-      return NextResponse.json({ status: 'transcribing' })
+      return NextResponse.json({ status: 'transcribing', startedAt: asset.transcript_started_at })
     }
 
     if (asset.transcript_status === 'completed' && asset.transcript_r2_key) {
@@ -154,11 +154,12 @@ export async function PATCH(
  * on the chat system or any editor step.
  */
 export async function POST(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id: assetId } = await params
+    const restart = new URL(req.url).searchParams.get('restart') === '1'
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
@@ -181,7 +182,7 @@ export async function POST(
       return NextResponse.json({ error: 'Only video assets can be transcribed' }, { status: 400 })
     }
 
-    const started = await startSourceAssetTranscription({ assetId, supabase })
+    const started = await startSourceAssetTranscription({ assetId, supabase, force: restart })
 
     if (!started) {
       const tooLong =

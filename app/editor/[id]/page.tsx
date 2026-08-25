@@ -913,6 +913,7 @@ const SHOULD_PREFETCH_EDITOR_SUPPORT_ROUTES = process.env.NODE_ENV === 'producti
 const MUSIC_RECOMMENDATION_LIMIT = 8
 const EDITOR_REQUEST_TIMEOUT_MS = 25_000
 const TRANSCRIPT_SYNC_FAILURES_BEFORE_FALLBACK = 1
+const TRANSCRIPT_PROVIDER_MAX_WAIT_MS = 5 * 60 * 1000
 
 const CHAT_COMPOSER_FONT_STYLE = {
   fontFamily: '"SF Pro Text","SF Pro Display",-apple-system,BlinkMacSystemFont,"Segoe UI","Helvetica Neue",Arial,sans-serif',
@@ -7180,12 +7181,12 @@ function OriginalEditorPage() {
     setTranscriptError(null)
     setIsTranscribingVideo(true)
     try {
-      const response = await fetch(`/api/assets/${sourceAssetId}/transcript`, {
+      const response = await fetch(`/api/assets/${sourceAssetId}/transcript${retry ? '?restart=1' : ''}`, {
         method: 'POST',
         cache: 'no-store',
         signal: AbortSignal.timeout(12_000),
       })
-      if (response.ok && !retry) {
+      if (response.ok) {
         setTranscriptRefreshToken((current) => current + 1)
         return
       }
@@ -7237,7 +7238,7 @@ function OriginalEditorPage() {
           cache: 'no-store',
           signal: AbortSignal.timeout(12_000),
         })
-        const body = (await response.json().catch(() => null)) as {status?: string; segments?: TranscriptSegment[]; error?: string} | null
+        const body = (await response.json().catch(() => null)) as {status?: string; segments?: TranscriptSegment[]; error?: string; startedAt?: string | null} | null
         if (!response.ok) throw new Error(body?.error || 'Transcript status could not be loaded.')
         if (!active) return
 
@@ -7256,6 +7257,12 @@ function OriginalEditorPage() {
           syncFailures = TRANSCRIPT_SYNC_FAILURES_BEFORE_FALLBACK
         } else if (body?.status === 'transcribing' || body?.status === 'queued') {
           setIsTranscribingVideo(true)
+          const transcriptStartedAt = body.startedAt ? Date.parse(body.startedAt) : NaN
+          if (Number.isFinite(transcriptStartedAt) && Date.now() - transcriptStartedAt >= TRANSCRIPT_PROVIDER_MAX_WAIT_MS) {
+            setTranscriptError('The transcription provider did not finish. Restarting it with a fresh source URL.')
+            await requestAssemblyAITranscription(true, sourceAssetId)
+            return
+          }
           const syncResponse = await fetch(`/api/assets/${sourceAssetId}/transcript/sync`, {
             method: 'POST',
             cache: 'no-store',

@@ -19,9 +19,11 @@ export const MAX_AUTO_TRANSCRIPT_DURATION_MS = 40 * 60 * 1000
 export async function startSourceAssetTranscription({
   assetId,
   supabase,
+  force = false,
 }: {
   assetId: string
   supabase: SupabaseClient
+  force?: boolean
 }) {
   const { data: asset, error } = await supabase
     .from('source_assets')
@@ -37,7 +39,7 @@ export async function startSourceAssetTranscription({
     return { status: 'completed', transcriptJobId: asset.transcript_job_id }
   }
 
-  if ((asset.transcript_status === 'queued' || asset.transcript_status === 'transcribing') && asset.transcript_job_id) {
+  if (!force && (asset.transcript_status === 'queued' || asset.transcript_status === 'transcribing') && asset.transcript_job_id) {
     return { status: asset.transcript_status, transcriptJobId: asset.transcript_job_id }
   }
 
