@@ -314,12 +314,7 @@ export function PreviewCanvas({
           {/* Floating Controls Overlay */}
           <AnimatePresence>
             {hasPreviewMedia && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 20 }}
-                className="absolute inset-x-0 bottom-6 z-30 flex items-center justify-center px-6"
-              >
+              <div className="pointer-events-none absolute inset-x-0 bottom-6 z-30 flex translate-y-2 items-center justify-center px-6 opacity-0 transition-[opacity,transform] duration-200 ease-out group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:translate-y-0 group-focus-within:opacity-100">
                 <div className="glass-panel flex items-center gap-4 rounded-full bg-void/60 px-2 py-2 backdrop-blur-2xl">
                   <div className="flex items-center gap-3 px-3 py-1">
                     <span className="font-mono text-[11px] font-medium tracking-wide text-white/80">
@@ -343,7 +338,7 @@ export function PreviewCanvas({
                     <Maximize2 className="size-4" />
                   </button>
                 </div>
-              </motion.div>
+              </div>
             )}
           </AnimatePresence>
 

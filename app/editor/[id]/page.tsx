@@ -56,7 +56,7 @@ import { LuxuryVignette } from '@/components/editor/luxury-vignette'
 import { EditorNewProjectUploadDialog } from '@/components/editor/editor-new-project-upload-dialog'
 import { EditorHeader } from '@/components/editor/EditorHeader'
 import { PreviewCanvas } from '@/components/editor/PreviewCanvas'
-import { EditorialTimelinePanel } from '@/components/editor/editorial-timeline-panel'
+import { EditorialTimelinePanel, EditorialTranscript } from '@/components/editor/editorial-timeline-panel'
 import { MobileVideoPlayer } from '@/app/editor/components/mobile-video-player'
 import { stopEditorMedia } from '@/app/editor/stores/audio-store'
 import { setEditorSourceStatus, setEditorSourceUrl } from '@/lib/editor/source-status-store'
@@ -8078,6 +8078,13 @@ function OriginalEditorPage() {
 
                 {activeWorkspaceTab === 'Editor' && (
                   <>
+                    <div className="grid w-full min-h-0 gap-4 lg:grid-cols-[minmax(15rem,20rem)_minmax(0,1fr)] lg:items-stretch">
+                    <EditorialTranscript
+                      segments={buildEditorialTranscript(job)}
+                      currentTimeSec={previewCurrentTimeSec}
+                      onSeek={handlePreviewSeekSeconds}
+                    />
+
                     <PreviewCanvas
                       projectId={projectId}
                       project={project}
@@ -8134,6 +8141,7 @@ function OriginalEditorPage() {
                       onInlineSourceDragLeave={handleInlineSourceDragLeave}
                       onInlineSourceDrop={handleInlineSourceDrop}
                     />
+                    </div>
 
                     <EditorialTimelinePanel
                       segments={buildEditorialTranscript(job)}
