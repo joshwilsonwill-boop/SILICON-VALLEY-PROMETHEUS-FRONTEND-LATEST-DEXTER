@@ -52,7 +52,7 @@ export interface SourceProfile {
 }
 
 export type LeftTabKey = 'chat' | 'edit' | 'design' | 'assets'
-export type HeaderNavMode = 'Editor' | 'Music' | 'Motion'
+export type HeaderNavMode = 'Editor' | 'Music'
 export type PreviewFitMode = 'fill' | 'fit'
 export type BottomMode = 'Original' | 'Music' | 'Timeline'
 export type PreviewFramePreset = OutputProfile

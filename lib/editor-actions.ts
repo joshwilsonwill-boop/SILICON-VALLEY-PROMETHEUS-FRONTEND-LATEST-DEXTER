@@ -10,7 +10,7 @@
 
 export type PreviewControlCommand = 'play' | 'pause' | 'mute' | 'unmute'
 export type EditorFitMode = 'fill' | 'fit'
-export type EditorWorkspaceTab = 'Editor' | 'Music' | 'Motion'
+export type EditorWorkspaceTab = 'Editor' | 'Music'
 
 export type EditorActionDraft =
   | { kind: 'seek'; timeSec: number; summary: string }
@@ -31,7 +31,7 @@ export const EDITOR_ACTION_KINDS: readonly EditorActionKind[] = [
 
 const PREVIEW_COMMANDS: readonly PreviewControlCommand[] = ['play', 'pause', 'mute', 'unmute']
 const FIT_MODES: readonly EditorFitMode[] = ['fill', 'fit']
-const WORKSPACE_TABS: readonly EditorWorkspaceTab[] = ['Editor', 'Music', 'Motion']
+const WORKSPACE_TABS: readonly EditorWorkspaceTab[] = ['Editor', 'Music']
 
 const MAX_ACTIONS_PER_DRAFT = 6
 

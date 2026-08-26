@@ -47,8 +47,6 @@ import { applyEditorActionDrafts, type EditorActionContext, type EditorActionDra
 import type { AIChatContextProvider, AIChatLiveContext } from '@/hooks/use-ai-chat'
 import { ChatStyleSelector } from '@/components/editor/chat-style-selector'
 import { MusicTabPanel } from '@/components/editor/music-tab-panel'
-import { MotionPropertyCanvas } from '@/components/editor/motion-property-canvas'
-import { MotionEditWorkspace } from '@/components/editor/motion-edit-workspace'
 import { IterationModal } from '@/components/editor/IterationModal'
 import { ContinueBanner } from '@/components/editor/ContinueBanner'
 import gsap from 'gsap'
@@ -58,7 +56,7 @@ import { LuxuryVignette } from '@/components/editor/luxury-vignette'
 import { EditorNewProjectUploadDialog } from '@/components/editor/editor-new-project-upload-dialog'
 import { EditorHeader } from '@/components/editor/EditorHeader'
 import { PreviewCanvas } from '@/components/editor/PreviewCanvas'
-import { TimelinePanel } from '@/components/editor/TimelinePanel'
+import { EditorialTimelinePanel } from '@/components/editor/editorial-timeline-panel'
 import { MobileVideoPlayer } from '@/app/editor/components/mobile-video-player'
 import { stopEditorMedia } from '@/app/editor/stores/audio-store'
 import { setEditorSourceStatus, setEditorSourceUrl } from '@/lib/editor/source-status-store'
@@ -163,12 +161,12 @@ import { CommandBubble } from "@/components/editor/CommandBubble";
 import { ExportDrawer } from "@/components/editor/ExportDrawer";
 import { CircularToast } from "@/components/editor/CircularToast";
 
-type HeaderNavMode = 'Editor' | 'Music' | 'Motion'
+type HeaderNavMode = 'Editor' | 'Music'
 type PreviewMediaKind = 'video' | 'image'
 type PreviewFitMode = 'fill' | 'fit'
 type BottomMode = 'Original' | 'Music' | 'Timeline'
 type PreviewFramePreset = OutputProfile
-type MobileEditorTabKey = 'status' | 'music' | 'motion' | 'chat' | 'versions' | 'export'
+type MobileEditorTabKey = 'status' | 'music' | 'chat' | 'versions' | 'export'
 type MobileExportQuality = 'draft' | 'standard' | 'max'
 type MobileExportFormat = 'mp4' | 'mov'
 type SessionPreviewState = {
@@ -826,7 +824,6 @@ function toPrometheusChatMessages(entries: ChatEntry[]): PrometheusChatMessage[]
 const WORKSPACE_TABS: Array<{ key: HeaderNavMode; label: string; icon: React.ComponentType<{ className?: string }> }> = [
   { key: 'Editor', label: 'Editor', icon: Film },
   { key: 'Music', label: 'Music', icon: Music4 },
-  { key: 'Motion', label: 'Motion', icon: Sparkles },
 ]
 
 function normalizeWorkspaceTabParam(value: string | null): HeaderNavMode | null {
@@ -834,14 +831,13 @@ function normalizeWorkspaceTabParam(value: string | null): HeaderNavMode | null 
   const normalized = value.trim().toLowerCase()
   if (normalized === 'editor') return 'Editor'
   if (normalized === 'music') return 'Music'
-  if (normalized === 'motion') return 'Motion'
+  if (normalized === 'motion') return 'Editor'
   return null
 }
 
 const MOBILE_EDITOR_TABS: Array<{ key: MobileEditorTabKey; label: string; icon: React.ComponentType<{ className?: string }> }> = [
   { key: 'status', label: 'Status', icon: Activity },
   { key: 'music', label: 'Music', icon: Music4 },
-  { key: 'motion', label: 'Motion', icon: Sparkles },
   { key: 'chat', label: 'Chat', icon: MessageSquare },
   { key: 'versions', label: 'Versions', icon: GitBranch },
   { key: 'export', label: 'Export', icon: Download },
@@ -1643,6 +1639,15 @@ function buildViralClipQuickActionPrompt({
 function buildProvidedTranscript(job: ProcessingJob | null) {
   const transcript = buildTimedTranscriptWords(job?.artifacts.transcript ?? [])
   return transcript.length > 0 ? transcript : null
+}
+
+function buildEditorialTranscript(job: ProcessingJob | null) {
+  return (job?.artifacts.transcript ?? []).map((segment) => ({
+    id: segment.id,
+    start: Math.max(0, segment.startMs / 1000),
+    end: Math.max(segment.startMs / 1000, segment.endMs / 1000),
+    text: segment.text,
+  }))
 }
 
 function buildVideoMusicContext({
@@ -5937,40 +5942,6 @@ function MobileEditorView({
             />
           </div>
         )
-      case 'motion':
-        return (
-          <div className="relative h-full min-h-0">
-            <MotionPropertyCanvas
-              projectTitle={projectTitle}
-              previewUrl={previewUrl}
-              previewKind={previewKind}
-              hasPreviewMedia={hasPreviewMedia}
-              sourceLabel={sourceLabel}
-              objectFit={objectFit}
-              mediaTransformStyle={mediaTransformStyle}
-              currentTimeLabel={currentTimeLabel}
-              durationLabel={durationLabel}
-              currentTimeSec={currentTimeSec}
-              durationSec={durationSec}
-              previewPlaying={previewPlaying}
-              previewMuted={previewMuted}
-              videoRef={motionVideoRef}
-              onTogglePlayback={onTogglePlayback}
-              onPickSource={onOpenUploadNewProject}
-              onSeek={onSeekPreview}
-              onVideoLoadedMetadata={onVideoLoadedMetadata}
-              onVideoLoadedData={onVideoLoadedData}
-              onVideoCanPlay={onVideoCanPlay}
-              onVideoTimeUpdate={onVideoTimeUpdate}
-              onVideoEnded={onVideoEnded}
-              onVideoPlay={onVideoPlay}
-              onVideoPause={onVideoPause}
-              onVideoError={onVideoError}
-              onImageLoaded={onImageLoaded}
-              onApplyPrompt={onApplyMotionPrompt}
-            />
-          </div>
-        )
       case 'chat':
         return (
           <div className="mobile-chat-panel relative h-full min-h-0 overflow-hidden rounded-[24px] border border-white/8 bg-[#101116]">
@@ -8047,17 +8018,13 @@ function OriginalEditorPage() {
         <main
           className={cn(
             'relative z-20 mx-auto flex min-h-0 w-full flex-1 flex-col overflow-y-auto overflow-x-hidden lg:overflow-hidden',
-            activeWorkspaceTab === 'Motion'
-              ? 'max-w-none px-0 py-0 pb-0 lg:px-0 lg:pb-0'
-              : 'max-w-[1580px] px-3 py-3 pb-24 lg:pb-4 lg:px-5 xl:px-6',
+            'max-w-[1580px] px-3 py-3 pb-24 lg:pb-4 lg:px-5 xl:px-6',
           )}
         >
           <div
             className={cn(
               'grid min-h-0 w-full items-stretch gap-[clamp(0.75rem,1vw,1rem)] lg:h-full lg:overflow-hidden lg:grid-rows-[minmax(0,1fr)]',
-              activeWorkspaceTab === 'Motion'
-                ? 'gap-0 lg:grid-cols-[minmax(0,1fr)]'
-                : 'lg:grid-cols-[minmax(0,1fr)]',
+              'lg:grid-cols-[minmax(0,1fr)]',
             )}
           >
             <section
@@ -8071,7 +8038,7 @@ function OriginalEditorPage() {
                 initial="hidden"
                 whileInView="visible"
                 viewport={{ once: false, amount: 0.45 }}
-                className={cn('shrink-0 bg-black px-4 py-3', activeWorkspaceTab === 'Motion' && 'hidden')}
+                className="shrink-0 bg-black px-4 py-3"
               >
                 <div className="flex justify-end">
                   <div className="inline-flex items-center gap-2 text-white/48">
@@ -8094,9 +8061,7 @@ function OriginalEditorPage() {
               <div
                 className={cn(
                   'flex min-h-0 flex-1 flex-col',
-                  activeWorkspaceTab === 'Motion'
-                    ? 'overflow-hidden px-0 py-0'
-                    : activeWorkspaceTab === 'Music'
+                  activeWorkspaceTab === 'Music'
                       ? 'overflow-hidden px-4 py-4'
                     : 'overflow-y-auto overscroll-contain bg-black py-3',
                   activeWorkspaceTab === 'Editor' && 'px-4 gap-6 justify-center',
@@ -8108,42 +8073,6 @@ function OriginalEditorPage() {
                     projectTitle={project?.title ?? 'Untitled Project'}
                     selectedTrackId={selectedEditorMusicTrackId}
                     onSelectTrack={handleEditorMusicTrackSelect}
-                  />
-                ) : null}
-
-                {activeWorkspaceTab === 'Motion' ? (
-                  <MotionEditWorkspace
-                    projectTitle={project?.title ?? 'Untitled Project'}
-                    previewUrl={previewUrl}
-                    previewKind={previewKind}
-                    hasPreviewMedia={hasPreviewMedia}
-                    sourceLabel={sourceAssetLabel ?? project?.title ?? 'Source video'}
-                    previewAspectRatio={resolvedPreviewAspectRatio}
-                    fitMode={fitMode}
-                    onFitModeChange={setFitMode}
-                    objectFit={fitMode === 'fill' ? 'cover' : 'contain'}
-                    mediaTransformStyle={shouldUseLegacySessionPreviewSurface ? undefined : previewFrameTransformStyle}
-                    currentTimeLabel={transportCurrentTime}
-                    durationLabel={transportTime}
-                    currentTimeSec={previewCurrentTimeSec}
-                    durationSec={transportDurationSec}
-                    previewPlaying={previewPlaying}
-                    previewMuted={isPreviewMuted}
-                    onPreviewMutedChange={setIsPreviewMuted}
-                    videoRef={previewVideoRef}
-                    onTogglePlayback={togglePreviewPlayback}
-                    onPickSource={openInlineSourcePicker}
-                    onSeek={handlePreviewSeekSeconds}
-                    onVideoLoadedMetadata={handlePreviewMetadataLoaded}
-                    onVideoLoadedData={handlePreviewVideoReady}
-                    onVideoCanPlay={handlePreviewVideoReady}
-                    onVideoTimeUpdate={handlePreviewTimeUpdate}
-                    onVideoEnded={handlePreviewEnded}
-                    onVideoPlay={handlePreviewVideoPlay}
-                    onVideoPause={handlePreviewVideoPause}
-                    onVideoError={handlePreviewVideoError}
-                    onImageLoaded={handlePreviewImageLoaded}
-                    onApplyPrompt={handleMotionCanvasPrompt}
                   />
                 ) : null}
 
@@ -8206,21 +8135,19 @@ function OriginalEditorPage() {
                       onInlineSourceDrop={handleInlineSourceDrop}
                     />
 
-                    <TimelinePanel
-                      activeWorkspaceTab={activeWorkspaceTab}
+                    <EditorialTimelinePanel
+                      segments={buildEditorialTranscript(job)}
+                      currentTimeSec={previewCurrentTimeSec}
+                      durationSec={transportDurationSec}
+                      currentTimeLabel={transportCurrentTime}
+                      durationLabel={transportTime}
+                      previewPlaying={previewPlaying}
+                      previewMuted={isPreviewMuted}
                       previewKind={previewKind}
                       previewUrl={previewUrl}
-                      previewPlaying={previewPlaying}
-                      transportCurrentTime={transportCurrentTime}
-                      transportTime={transportTime}
-                      transportProgress={transportProgress}
-                      isPreviewMuted={isPreviewMuted}
-                      project={project}
-                      bottomMode={bottomMode}
                       onTogglePlayback={togglePreviewPlayback}
-                      onSeek={handlePreviewSeek}
                       onToggleMute={() => setIsPreviewMuted((prev) => !prev)}
-                      onSetBottomMode={setBottomMode}
+                      onSeek={handlePreviewSeekSeconds}
                     />
                   </>
                 )}
