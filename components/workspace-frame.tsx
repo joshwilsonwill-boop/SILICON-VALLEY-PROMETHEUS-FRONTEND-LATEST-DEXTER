@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic'
 import { usePathname } from 'next/navigation'
 
 import { DashboardSidebar } from '@/components/dashboard-sidebar'
+import { MortyVoiceExperience } from '@/components/morty/morty-voice-experience'
 import { useDeferredEnhancementsReady } from '@/hooks/use-deferred-enhancements-ready'
 
 const IsoLevelWarp = dynamic(() => import('@/components/ui/isometric-wave-grid-background'), {
@@ -50,6 +51,7 @@ export function WorkspaceFrame({ children }: { children: React.ReactNode }) {
           {children}
         </div>
       </div>
+      <MortyVoiceExperience />
     </div>
   )
 }

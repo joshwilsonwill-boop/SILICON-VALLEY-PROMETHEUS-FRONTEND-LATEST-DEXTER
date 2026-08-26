@@ -1,19 +1,15 @@
 import type { HermesAgentIdentity, HermesGender } from './types'
 
 /**
- * Hermes — the Gemini-backed Prometheus voice agent.
+ * Morty — the Gemini-backed Prometheus voice agent.
  *
- * Name story: Hermes (Ἑρμῆς) is the Greek god of messengers, eloquence,
- * transitions, and the relay of tasks between realms. He is the god who *talks
- * across boundaries* — the perfect archetype for an agent whose whole job is
- * back-and-forth voice conversation, recalling context, and handing a request
- * off to a render pipeline. One word, instantly recognizable, and (deliberately
- * the author's choice) male, matching the god of travel and commerce.
+ * The internal Hermes id remains stable so existing integrations and stored
+ * memory continue to resolve while the product-facing persona is Morty.
  */
 
 export const HERMES_IDENTITY: HermesAgentIdentity = {
   id: 'hermes',
-  name: 'Hermes',
+  name: 'Morty',
   gender: 'male',
   tagline: 'Your Prometheus voice agent — it talks, remembers, and routes the task.',
   brand: 'Prometheus',

@@ -1,10 +1,12 @@
 import { DeleteObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3'
 import { NextResponse } from 'next/server'
 
+import { isLongFormSource } from '@/lib/api/long-form-qualifier'
 import { sourceControlPlaneErrorResponse } from '@/lib/api/source-control-plane-errors'
 import { ProjectService } from '@/lib/projects/service'
 import { getPresignedGetUrl } from '@/lib/r2/presigned-url'
 import { r2Client } from '@/lib/r2/client'
+import { dispatchMiniRunRender } from '@/lib/server/mini-run-dispatch'
 import { dispatchModalSourceAnalysis } from '@/lib/server/modal-source-analysis'
 import { createClient } from '@/lib/supabase/server'
 
@@ -115,7 +117,49 @@ export async function POST(
       }
     }
 
-    return NextResponse.json({...committed, analysisDispatch})
+    // Prometheus Mini-Runs: automatically reduce a long-form source to short
+    // form. This is strictly additive and non-blocking — the commit is already
+    // durable, so a failed dispatch is logged and can be re-dispatched later.
+    let miniRunDispatch: {jobId: string; pipelineJobId: string; status: string} | null = null
+    const committedAsset = committed?.asset as
+      | {id?: string; mime_type?: string; storage_path?: string; storage_bucket?: string}
+      | undefined
+    const durationMs = Number.isFinite(Number(body.durationMs)) ? Number(body.durationMs) : undefined
+    const width = Number.isFinite(Number(body.width)) ? Number(body.width) : undefined
+    const height = Number.isFinite(Number(body.height)) ? Number(body.height) : undefined
+
+    const shouldAutoMiniRun =
+      Boolean(process.env.MINI_RUN_BACKEND_URL)
+      && process.env.MINI_RUN_AUTO_DISPATCH !== 'false'
+      && Boolean(committedAsset?.storage_path)
+      && String(committedAsset?.mime_type ?? '').startsWith('video/')
+      && isLongFormSource({durationMs, width, height})
+
+    if (shouldAutoMiniRun) {
+      try {
+        miniRunDispatch = await dispatchMiniRunRender({
+          request: {
+            projectId,
+            sourceAssetId: committedAsset?.id ?? '',
+            bucket: committedAsset?.storage_bucket || process.env.R2_BUCKET_SOURCES || 'prometheus-sources',
+            storagePath: committedAsset?.storage_path ?? '',
+            mimeType: String(committedAsset?.mime_type ?? ''),
+            durationMs,
+            width,
+            height,
+          },
+          env: {
+            MINI_RUN_BACKEND_URL: process.env.MINI_RUN_BACKEND_URL,
+            MODAL_PROXY_KEY: process.env.MODAL_PROXY_KEY,
+            MODAL_PROXY_SECRET: process.env.MODAL_PROXY_SECRET,
+          },
+        })
+      } catch (error) {
+        console.error('[api/projects/[id]/assets] mini-run render dispatch failed:', error)
+      }
+    }
+
+    return NextResponse.json({...committed, analysisDispatch, miniRunDispatch})
   } catch (err) {
     console.error('[api/projects/[id]/assets] POST error:', err)
     return NextResponse.json({
