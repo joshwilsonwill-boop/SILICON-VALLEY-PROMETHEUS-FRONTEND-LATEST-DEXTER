@@ -20,7 +20,6 @@ import { PrometheusChatHistoryDrawer } from './prometheus-chat-history-drawer'
 import { AIChatStreamingText } from './ai-chat-streaming-text'
 import { PrometheusChatActivity } from './prometheus-chat-activity'
 import { PrometheusChatMedia } from './prometheus-chat-media'
-import { ActiveChatEngagement } from './active-chat-engagement'
 
 export type PrometheusChatMessage = {
   id: string
@@ -388,20 +387,6 @@ export function PrometheusChat({
               suggestionsHidden && "invisible pointer-events-none",
             )}
           />
-          <AnimatePresence initial={false}>
-            {!suggestionsHidden ? (
-              <ActiveChatEngagement
-                draft={composedDraft}
-                workspaceTab={workspaceTab}
-                hasProject={Boolean(projectId)}
-                onSelect={(prompt) => {
-                  setDraft(prompt)
-                  inputRef.current?.focus()
-                }}
-                className="mx-[-1.25rem] mb-3 md:mx-[-2.5rem]"
-              />
-            ) : null}
-          </AnimatePresence>
           <form
             className="mx-auto flex min-h-14 w-full max-w-3xl items-center gap-3 rounded-2xl border border-white/10 bg-black px-5 py-3 transition-colors focus-within:border-white/22"
             onSubmit={(event) => {
@@ -475,6 +460,7 @@ function PrometheusMessageBubble({
 }) {
   const isUser = message.role === 'user'
   const isThinking = message.status === 'thinking'
+  const [showThoughts, setShowThoughts] = React.useState(false)
 
   if (isThinking) {
     return <p className="font-elegist text-sm text-white/38" role="status">Thinking…</p>
@@ -488,7 +474,6 @@ function PrometheusMessageBubble({
   const frames = isUser ? [] : (message.frames ?? []).filter((frame) => frame.thumbnailUrl)
 
   const thoughts = message.thoughts ?? []
-  const [showThoughts, setShowThoughts] = React.useState(false)
 
   return (
     <article className={cn('flex w-full', isUser ? 'justify-end' : 'justify-start')}>

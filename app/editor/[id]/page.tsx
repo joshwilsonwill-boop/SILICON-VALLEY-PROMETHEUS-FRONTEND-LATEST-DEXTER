@@ -8133,6 +8133,7 @@ function OriginalEditorPage() {
                       onPreviewVideoPause={handlePreviewVideoPause}
                       onPreviewVideoError={handlePreviewVideoError}
                       onTogglePreviewPlayback={togglePreviewPlayback}
+                      onSeekPreview={handlePreviewSeekSeconds}
                       onSetIsPreviewBriefGenerating={setIsPreviewBriefGenerating}
                       onSetShowPreviewFeedback={setShowPreviewFeedback}
                       onSetInlinePreviewStatusHovered={setInlinePreviewStatusHovered}
