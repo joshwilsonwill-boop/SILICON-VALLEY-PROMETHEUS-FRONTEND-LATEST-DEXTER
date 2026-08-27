@@ -117,6 +117,7 @@ import { buildRevealVariants } from '@/lib/motion'
 import { useTextareaResize } from '@/hooks/use-textarea-resize'
 import { buildCinematicAnimationPlan } from '@/lib/cinematic/animation-planner'
 import { cn } from '@/lib/utils'
+import { extractImageFilesFromClipboard } from '@/lib/editor/chat-attachment'
 import { SELECTED_EDITOR_MUSIC_EVENT, type SelectedEditorMusicEventDetail } from '@/lib/editor-music-selection'
 import { upsertProject } from '@/lib/mock'
 import { projects } from '@/lib/projects'
@@ -3109,7 +3110,7 @@ function FloatingChatComposer({
   attachments?: ChatAttachment[]
   activeStyleTemplate?: StyleTemplate | null
   onSelectStyleTemplate?: (template: StyleTemplate) => void
-  onAttachImages?: (files: FileList | null) => void
+  onAttachImages?: (files: FileList | File[] | null) => void
   onRemoveAttachment?: (id: string) => void
   chatContextProvider?: AIChatContextProvider
   onApplyChatActions?: (drafts: EditorActionDraft[], messageId: string) => void
@@ -3138,6 +3139,13 @@ function FloatingChatComposer({
   const expandedThreadEndRef = React.useRef<HTMLDivElement | null>(null)
   const attachmentInputRef = React.useRef<HTMLInputElement | null>(null)
   const isThreadOpen = isOpen || threadOpen
+  const handleChatPaste = React.useCallback((event: React.ClipboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const imageFiles = extractImageFilesFromClipboard(event.clipboardData)
+    if (imageFiles.length > 0) {
+      event.preventDefault()
+      onAttachImages?.(imageFiles)
+    }
+  }, [onAttachImages])
   const frameAssist = useFrameTargeting({ projectId, draft, caretIndex })
   const draftMirrorAnalysis = React.useMemo(() => parseFrameReference(draft, draft.length), [draft])
   const visibleThreadEntries = React.useMemo(
@@ -3663,6 +3671,9 @@ function FloatingChatComposer({
                     await handleComposerSubmit()
                   }}
                   onAttachImage={() => attachmentInputRef.current?.click()}
+                  onPaste={handleChatPaste}
+                  attachments={attachments}
+                  onRemoveAttachment={onRemoveAttachment}
                   contextProvider={chatContextProvider}
                   onApplyActions={onApplyChatActions}
                   onSeekToSec={onChatSeekToSec}
@@ -3807,6 +3818,7 @@ function FloatingChatComposer({
                     onKeyUp={() => updateCaretTarget()}
                     onSelect={() => updateCaretTarget()}
                     onKeyDown={handleComposerKeyDown}
+                    onPaste={handleChatPaste}
                     className={cn(
                       'relative z-10 max-h-[calc(1.35em*4)] w-full resize-none overflow-y-auto bg-transparent px-0 py-0 text-[20px] italic leading-[1.35] tracking-[0.01em] text-transparent outline-none',
                     )}
@@ -4279,7 +4291,7 @@ const ChatWorkspacePanel = React.memo(function ChatWorkspacePanel({
     })
   }, [])
 
-  const addPendingChatAttachments = React.useCallback((files: FileList | null) => {
+  const addPendingChatAttachments = React.useCallback((files: FileList | File[] | null) => {
     const nextFiles = Array.from(files ?? []).filter((file) => file.type.startsWith('image/')).slice(0, 4)
     if (!nextFiles.length) return
 

@@ -49,6 +49,14 @@ export type PrometheusChatHistoryItem = {
   active?: boolean
 }
 
+type PrometheusChatAttachment = {
+  id: string
+  name: string
+  type: string
+  dataUrl?: string
+  url?: string
+}
+
 export const demoMessages: PrometheusChatMessage[] = [
   {
     id: 'demo-user',
@@ -80,6 +88,9 @@ export function PrometheusChat({
   draft,
   onDraftChange,
   onClose,
+  onPaste,
+  attachments = [],
+  onRemoveAttachment,
   className,
   projectId = null,
   contextProvider,
@@ -95,6 +106,9 @@ export function PrometheusChat({
   draft?: string
   onDraftChange?: (value: string) => void
   onAttachImage?: () => void
+  onPaste?: (event: React.ClipboardEvent<HTMLInputElement>) => void
+  attachments?: PrometheusChatAttachment[]
+  onRemoveAttachment?: (id: string) => void
   onAttachVideo?: () => void
   onClose?: () => void
   className?: string
@@ -149,6 +163,7 @@ export function PrometheusChat({
   const renderedMessages = usesPersistentChat ? persistedMessages : messages
   const composedDraft = usesPersistentChat ? persistentChat.draft : draft ?? internalDraft
   const hasDraft = composedDraft.trim().length > 0
+  const hasAttachments = attachments.length > 0
   const showingThinking = usesPersistentChat
     ? Boolean(persistentChat.isSending || persistentChat.isAwaitingResponse || persistentChat.streamStatus)
     : thinking || renderedMessages.some((message) => message.status === 'thinking')
@@ -250,19 +265,24 @@ export function PrometheusChat({
 
   const handleSend = React.useCallback(async () => {
     const message = composedDraft.trim()
-    if (!message) return
+    if (!message && !hasAttachments) return
 
     pinnedToBottomRef.current = true
     setShowJumpToLatest(false)
 
-    if (usesPersistentChat) {
+    if (usesPersistentChat && !hasAttachments) {
       await persistentChat.sendMessage(message)
+      return
+    }
+
+    if (hasAttachments) {
+      await onSend(message)
       return
     }
 
     if (!onDraftChange) setInternalDraft('')
     await onSend(message)
-  }, [composedDraft, onDraftChange, onSend, persistentChat, usesPersistentChat])
+  }, [composedDraft, hasAttachments, onDraftChange, onSend, persistentChat, usesPersistentChat])
 
   const closeHistory = React.useCallback(() => {
     setHistoryOpen(false)
@@ -440,6 +460,31 @@ export function PrometheusChat({
               />
             ) : null}
           </AnimatePresence>
+          {attachments.length > 0 ? (
+            <div className="mx-auto mb-2 flex w-full max-w-3xl gap-2 overflow-x-auto">
+              {attachments.map((attachment) => {
+                const previewUrl = attachment.dataUrl || attachment.url
+                return (
+                  <div key={attachment.id} className="group relative shrink-0 overflow-hidden rounded-xl border border-white/10 bg-white/[0.035]">
+                    {previewUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={previewUrl} alt={attachment.name} className="h-12 w-16 object-cover" />
+                    ) : null}
+                    {onRemoveAttachment ? (
+                      <button
+                        type="button"
+                        aria-label={`Remove ${attachment.name}`}
+                        onClick={() => onRemoveAttachment(attachment.id)}
+                        className="absolute right-0.5 top-0.5 grid size-5 place-items-center rounded-full bg-black/70 text-white/80"
+                      >
+                        <X className="size-3" />
+                      </button>
+                    ) : null}
+                  </div>
+                )
+              })}
+            </div>
+          ) : null}
           <form
             className="mx-auto flex min-h-14 w-full max-w-3xl items-center gap-3 rounded-2xl border border-white/10 bg-black px-5 py-3 transition-colors focus-within:border-white/22"
             onSubmit={(event) => {
@@ -451,6 +496,7 @@ export function PrometheusChat({
               ref={inputRef}
               value={composedDraft}
               onChange={(event) => setDraft(event.target.value)}
+              onPaste={onPaste}
               placeholder={voice.state === 'recording' ? 'Listening…' : 'Ask Prometheus…'}
               aria-label="Message Prometheus"
               className="min-w-0 flex-1 border-none bg-transparent text-[15px] leading-6 text-white/88 outline-none placeholder:text-white/30"
@@ -482,7 +528,7 @@ export function PrometheusChat({
             </button>
             <button
               type="submit"
-              disabled={!hasDraft}
+              disabled={!hasDraft && !hasAttachments}
               className="grid size-8 shrink-0 place-items-center rounded-full text-white/70 transition-colors hover:bg-white/[0.06] hover:text-white disabled:pointer-events-none disabled:opacity-20"
               aria-label="Send message"
             >

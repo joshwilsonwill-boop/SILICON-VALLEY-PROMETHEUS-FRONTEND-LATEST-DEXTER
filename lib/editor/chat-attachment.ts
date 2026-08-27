@@ -6,6 +6,14 @@ export type AttachmentValidation =
   | { kind: ChatAttachmentKind; valid: true }
   | { kind?: ChatAttachmentKind; message: string; valid: false }
 
+export function extractImageFilesFromClipboard(data: DataTransfer): File[] {
+  return Array.from(data.items)
+    .filter((item) => item.kind === 'file' && item.type.startsWith('image/'))
+    .map((item) => item.getAsFile())
+    .filter((file): file is File => Boolean(file))
+    .slice(0, 4)
+}
+
 export function describeAttachment(
   file: Pick<File, 'name' | 'size' | 'type'>,
 ): AttachmentValidation {
