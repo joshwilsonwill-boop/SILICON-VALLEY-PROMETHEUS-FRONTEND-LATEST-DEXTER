@@ -41,3 +41,10 @@ env.local
 # Local render proofs / generated test media
 .tmp/
 .env.local.backup
+
+# Credentials / secrets — never commit
+Allcredd.txt
+all_cred.txt
+
+# Agent session state
+.superpowers/
