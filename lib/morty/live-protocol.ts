@@ -62,8 +62,14 @@ function asText(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value : null
 }
 
-function appendTranscript(existing: string, incoming: string) {
-  return `${existing}${incoming}`.replace(/\s+/g, ' ').trim()
+/**
+ * Gemini Live transcription events carry the cumulative partial transcript so
+ * far, not incremental deltas. Each incoming `text` therefore *replaces* the
+ * previous partial (normalized whitespace) instead of being appended to it —
+ * appending duplicated the text and made the rail look laggy/garbled.
+ */
+function replaceTranscript(_existing: string, incoming: string) {
+  return incoming.replace(/\s+/g, ' ').trim()
 }
 
 function normalizeToolCalls(value: unknown): MortyLiveToolCall[] {
@@ -149,9 +155,9 @@ export function mortyLiveReducer(state: MortyLiveState, action: MortyLiveAction)
     case 'provider_event':
       switch (action.event.type) {
         case 'input_transcript':
-          return { ...state, phase: 'listening', liveUserTranscript: appendTranscript(state.liveUserTranscript, action.event.text) }
+          return { ...state, phase: 'listening', liveUserTranscript: replaceTranscript(state.liveUserTranscript, action.event.text) }
         case 'output_transcript':
-          return { ...state, phase: 'speaking', liveAssistantTranscript: appendTranscript(state.liveAssistantTranscript, action.event.text) }
+          return { ...state, phase: 'speaking', liveAssistantTranscript: replaceTranscript(state.liveAssistantTranscript, action.event.text) }
         case 'interrupted':
           return { ...state, phase: 'listening', scheduledOutput: false, interrupted: true }
         case 'turn_complete':

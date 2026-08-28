@@ -7,16 +7,19 @@ import {
   parseGeminiLiveMessage,
 } from '../live-protocol'
 
-test('appends partial live transcripts in arrival order', () => {
+test('replaces partial live transcripts with the cumulative text on each event', () => {
   const first = mortyLiveReducer(initialMortyLiveState, {
     type: 'provider_event',
     event: parseGeminiLiveMessage({ serverContent: { inputTranscription: { text: 'make the' } } }),
   })
+  // Gemini Live sends the *full* partial transcript so far on each event —
+  // the later value must replace, not append to, the earlier one.
   const second = mortyLiveReducer(first, {
     type: 'provider_event',
-    event: parseGeminiLiveMessage({ serverContent: { inputTranscription: { text: ' hook sharper' } } }),
+    event: parseGeminiLiveMessage({ serverContent: { inputTranscription: { text: 'make the hook sharper' } } }),
   })
 
+  assert.equal(first.liveUserTranscript, 'make the')
   assert.equal(second.liveUserTranscript, 'make the hook sharper')
 })
 
