@@ -38,12 +38,44 @@ export async function GET(_request: Request, {params}: {params: Promise<{id: str
     if (error) return NextResponse.json({error: error.message}, {status: 500})
     snapshot = data?.payload ?? null
   }
+
+  // Fallback: If snapshot is not present but direct AssemblyAI transcription completed
+  if (!snapshot) {
+    const { data: projectRow } = await supabase
+      .from('projects')
+      .select('source_profile')
+      .eq('id', projectId)
+      .single()
+
+    const transcriptSegments = projectRow?.source_profile?.transcript
+    if (Array.isArray(transcriptSegments) && transcriptSegments.length > 0) {
+      const mergedWords = transcriptSegments.flatMap((seg: any) =>
+        (seg.text || '')
+          .split(' ')
+          .map((word: string, wIdx: number) => ({
+            text: word,
+            start_ms: (seg.startMs || 0) + wIdx * 200,
+            end_ms: Math.min(seg.endMs || ((seg.startMs || 0) + (wIdx + 1) * 200), (seg.startMs || 0) + (wIdx + 1) * 200),
+          }))
+      )
+      snapshot = {
+        transcript: {
+          mergedWords,
+          segments: transcriptSegments,
+        },
+      }
+    }
+  }
+
+  const effectiveStatus = snapshot ? 'completed' : ingestion.status
+  const effectiveProgress = snapshot ? 100 : ingestion.progress
+
   return NextResponse.json({
     jobId: ingestion.durable_job_id,
     sourceAssetId: ingestion.source_asset_id,
-    status: ingestion.status,
+    status: effectiveStatus,
     stage: ingestion.stage,
-    progress: ingestion.progress,
+    progress: effectiveProgress,
     error: ingestion.error_message,
     snapshot,
   })
