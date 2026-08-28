@@ -5,6 +5,7 @@ import {
   initialMortyLiveState,
   mortyLiveReducer,
   parseGeminiLiveMessage,
+  type MortyLiveState,
 } from '../live-protocol'
 
 test('replaces partial live transcripts with the cumulative text on each event', () => {
@@ -35,7 +36,7 @@ test('user activity interrupts scheduled output state', () => {
 })
 
 test('permits three reconnect attempts then reports a terminal error', () => {
-  let state = { ...initialMortyLiveState, phase: 'reconnecting' as const }
+  let state: MortyLiveState = { ...initialMortyLiveState, phase: 'reconnecting' }
   for (let attempt = 0; attempt < 3; attempt += 1) {
     state = mortyLiveReducer(state, { type: 'reconnect_failed' })
   }

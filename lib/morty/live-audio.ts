@@ -25,7 +25,7 @@ export function float32ToPcm16(samples: Float32Array): Int16Array {
   return pcm
 }
 
-export function pcm16LeToFloat32(bytes: ArrayBufferLike): Float32Array {
+export function pcm16LeToFloat32(bytes: ArrayBufferLike): Float32Array<ArrayBuffer> {
   const view = new DataView(bytes)
   const samples = new Float32Array(Math.floor(view.byteLength / 2))
   for (let index = 0; index < samples.length; index += 1) samples[index] = view.getInt16(index * 2, true) / 32768
