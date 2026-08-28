@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getAssemblyAITranscriptionStatus } from '@/lib/api/assemblyai'
 import { uploadTranscriptToR2 } from '@/lib/r2/upload-transcript'
 import { R2Keys } from '@/lib/r2/keys'
+import { normalizeAssemblyAITranscript } from '@/lib/server/direct-transcription'
 
 export async function POST(
   req: Request,
@@ -54,13 +55,16 @@ export async function POST(
     }
 
     if (assemblyResponse.status === 'completed') {
-      // 3. Normalize and save to R2
+      // 3. Normalize segments and save to R2
       const bucket = process.env.R2_BUCKET_SOURCES || 'prometheus-sources'
       const r2Key = R2Keys.transcript(user.id, asset.project_id, assetId)
+      const segments = normalizeAssemblyAITranscript(assemblyResponse)
       
-      await uploadTranscriptToR2(bucket, r2Key, assemblyResponse)
+      await uploadTranscriptToR2(bucket, r2Key, assemblyResponse).catch((err) => {
+        console.warn('[TranscriptSync] R2 upload warning:', err)
+      })
 
-      // 4. Update Supabase
+      // 4. Update source_assets
       const { error: updateError } = await supabase
         .from('source_assets')
         .update({
@@ -69,14 +73,67 @@ export async function POST(
           transcript_completed_at: new Date().toISOString(),
           transcript_synced_at: new Date().toISOString(),
           transcript_error: null,
-          // Store a tiny preview if useful, otherwise leave null
-          transcript_text: assemblyResponse.text?.slice(0, 500) || null
+          transcript_text: assemblyResponse.text || null,
         })
         .eq('id', assetId)
 
       if (updateError) throw updateError
 
-      return NextResponse.json({ status: 'completed', r2Key })
+      // 5. Update durable_jobs with artifacts.transcript for the editor
+      const { data: jobRows } = await supabase
+        .from('durable_jobs')
+        .select('id, artifacts')
+        .eq('project_id', asset.project_id)
+        .eq('user_id', user.id)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+
+      if (jobRows && jobRows.length > 0) {
+        const targetJob = jobRows[0]
+        const currentArtifacts = (targetJob.artifacts && typeof targetJob.artifacts === 'object')
+          ? targetJob.artifacts
+          : {}
+
+        await supabase
+          .from('durable_jobs')
+          .update({
+            status: 'completed',
+            progress: 100,
+            transcript_status: 'completed',
+            transcript_text: assemblyResponse.text || null,
+            artifacts: {
+              ...currentArtifacts,
+              transcript: segments,
+            },
+          })
+          .eq('id', targetJob.id)
+      }
+
+      // 6. Update project source_profile
+      const { data: projectRow } = await supabase
+        .from('projects')
+        .select('source_profile')
+        .eq('id', asset.project_id)
+        .eq('user_id', user.id)
+        .single()
+
+      if (projectRow) {
+        const currentProfile = (projectRow.source_profile && typeof projectRow.source_profile === 'object')
+          ? projectRow.source_profile
+          : {}
+
+        await supabase
+          .from('projects')
+          .update({
+            source_profile: {
+              ...currentProfile,
+              transcript: segments,
+            },
+          })
+          .eq('id', asset.project_id)
+      }
+
+      return NextResponse.json({ status: 'completed', r2Key, segmentsCount: segments.length })
     }
 
     if (assemblyResponse.status === 'error') {

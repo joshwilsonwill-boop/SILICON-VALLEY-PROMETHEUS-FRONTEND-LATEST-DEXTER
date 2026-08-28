@@ -14,11 +14,32 @@ export interface AssemblyAITranscriptionOptions {
   speech_models?: string[]
 }
 
+export interface AssemblyAIWord {
+  text: string
+  start: number
+  end: number
+  confidence: number
+  speaker?: string | null
+}
+
+export interface AssemblyAIUtterance {
+  text: string
+  start: number
+  end: number
+  confidence: number
+  speaker: string
+  words: AssemblyAIWord[]
+}
+
 export interface AssemblyAITranscriptionResponse {
   id: string
   status: 'queued' | 'processing' | 'completed' | 'error'
   text?: string
   error?: string
+  words?: AssemblyAIWord[]
+  utterances?: AssemblyAIUtterance[]
+  audio_duration?: number
+  confidence?: number
 }
 
 /**

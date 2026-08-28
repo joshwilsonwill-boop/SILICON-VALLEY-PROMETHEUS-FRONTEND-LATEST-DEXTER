@@ -8,6 +8,7 @@ import { getPresignedGetUrl } from '@/lib/r2/presigned-url'
 import { r2Client } from '@/lib/r2/client'
 import { dispatchMiniRunRender } from '@/lib/server/mini-run-dispatch'
 import { dispatchModalSourceAnalysis } from '@/lib/server/modal-source-analysis'
+import { startDirectTranscription } from '@/lib/server/direct-transcription'
 import { createClient } from '@/lib/supabase/server'
 
 export async function GET(
@@ -92,11 +93,33 @@ export async function POST(
       return sourceControlPlaneErrorResponse(commitError, 'SOURCE_COMMIT_FAILED', 'Failed to commit source revision.')
     }
 
+    let directTranscriptionDispatch: { transcriptJobId: string; status: string } | null = null
+    if (
+      committed?.asset?.id
+      && String(committed.asset.mime_type).startsWith('video/')
+      && session.object_key
+    ) {
+      try {
+        const sourceUrl = await getPresignedGetUrl(session.bucket, session.object_key)
+        directTranscriptionDispatch = await startDirectTranscription({
+          userId: user.id,
+          projectId,
+          assetId: committed.asset.id,
+          jobId: committed.job?.id,
+          sourceUrl,
+          bucket: session.bucket,
+        })
+      } catch (transcribeError) {
+        console.error('[api/projects/[id]/assets] Direct AssemblyAI transcription dispatch failed:', transcribeError)
+      }
+    }
+
     let analysisDispatch: {callId: string; status: string} | null = null
     if (
       committed?.job?.id
       && committed?.asset?.id
       && String(committed.asset.mime_type).startsWith('video/')
+      && process.env.PROMETHEUS_BACKEND_URL
     ) {
       try {
         analysisDispatch = await dispatchModalSourceAnalysis({
@@ -159,7 +182,7 @@ export async function POST(
       }
     }
 
-    return NextResponse.json({...committed, analysisDispatch, miniRunDispatch})
+    return NextResponse.json({...committed, directTranscriptionDispatch, analysisDispatch, miniRunDispatch})
   } catch (err) {
     console.error('[api/projects/[id]/assets] POST error:', err)
     return NextResponse.json({
