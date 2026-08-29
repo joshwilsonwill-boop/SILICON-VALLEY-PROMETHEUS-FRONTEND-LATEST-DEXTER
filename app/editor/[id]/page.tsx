@@ -85,8 +85,8 @@ import { useProjectFinalOutput } from '@/hooks/use-project-final-output'
 import { useViralClipJob } from '@/hooks/use-viral-clip-job'
 import { buildTimedTranscriptWords } from '@/lib/editor/modal-viral-clip-workflow'
 import { buildMotionTranscriptSegments } from '@/lib/editor/motion-transcript'
-import { applyTranscriptToProcessingJob } from '@/lib/editor/transcript-delivery'
-import { resolveProjectForSourceUpload } from '@/lib/editor/source-upload-project'
+import { applyTranscriptToProcessingJob, deliverTranscriptToJob } from '@/lib/editor/transcript-delivery'
+import { resolveProjectForSourceUpload, retainHydratedProject } from '@/lib/editor/source-upload-project'
 import { clearPendingEditorNavigation, getRememberedEditorReturnPath } from '@/lib/editor-navigation'
 import { useFrameTargeting } from '@/hooks/use-frame-targeting'
 import { parseFrameReference } from '@/lib/editorial-frame/parse-frame-reference'
@@ -6466,6 +6466,11 @@ function OriginalEditorPage() {
   const previewPlaybackIntentRef = React.useRef<'playing' | 'paused'>('paused')
   const previewPlaybackCommandRef = React.useRef(0)
   const previewToggleCooldownRef = React.useRef<number | null>(null)
+  const pendingTranscriptRef = React.useRef<{
+    sourceAssetId: string
+    segments: TranscriptSegment[]
+    text: string
+  } | null>(null)
   const sourceFileInputRef = React.useRef<HTMLInputElement | null>(null)
   const [chatComposerPortal, setChatComposerPortal] = React.useState<HTMLDivElement | null>(null)
   const [composerAutomationRequest, setComposerAutomationRequest] = React.useState<ComposerAutomationRequest | null>(null)
@@ -6686,9 +6691,24 @@ function OriginalEditorPage() {
       const nextJob = projects.getJob(projectId)
       const nextProject = projects.get(projectId)
 
-      setProject(nextProject)
-      setJob(nextJob)
-      if (nextJob?.status === 'completed' && intervalId !== null) {
+      setProject((currentProject) => retainHydratedProject(currentProject, nextProject))
+
+      let displayedJob = nextJob
+      const pendingTranscript = pendingTranscriptRef.current
+      if (nextJob && pendingTranscript) {
+        const delivered = deliverTranscriptToJob(
+          nextJob,
+          pendingTranscript.segments,
+          pendingTranscript.text,
+        )
+        if (delivered.job) {
+          projects.upsertJob(delivered.job)
+          pendingTranscriptRef.current = null
+          displayedJob = delivered.job
+        }
+      }
+      setJob(displayedJob)
+      if (displayedJob?.status === 'completed' && intervalId !== null) {
         window.clearInterval(intervalId)
         intervalId = null
       }
@@ -6760,6 +6780,8 @@ function OriginalEditorPage() {
     const sourceAssetId = project?.sourceAssetId
     if (!sourceAssetId) return
 
+    pendingTranscriptRef.current = null
+
     let active = true
     let intervalId: number | null = null
     let restartRequested = false
@@ -6797,14 +6819,23 @@ function OriginalEditorPage() {
         if (payload.status === 'completed') {
           if (Array.isArray(payload.segments) && payload.segments.length > 0) {
             const existing = projects.getJob(projectId)
-            if (!existing) return
-            const nextJob = applyTranscriptToProcessingJob(
+            const transcriptText = payload.transcriptText || payload.segments.map((segment) => segment.text).join(' ')
+            const delivered = deliverTranscriptToJob(
               existing,
               payload.segments,
-              payload.transcriptText || payload.segments.map((segment) => segment.text).join(' '),
+              transcriptText,
             )
-            projects.upsertJob(nextJob)
-            setJob(nextJob)
+            if (delivered.job) {
+              projects.upsertJob(delivered.job)
+              setJob(delivered.job)
+            } else if (delivered.transcript) {
+              pendingTranscriptRef.current = {
+                sourceAssetId,
+                segments: [...delivered.transcript.segments],
+                text: delivered.transcript.text,
+              }
+              return
+            }
           }
           stopPolling()
         }

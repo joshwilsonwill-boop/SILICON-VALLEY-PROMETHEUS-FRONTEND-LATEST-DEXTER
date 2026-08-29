@@ -5,7 +5,10 @@ import {
   buildTranscriptResultMetadata,
   buildTranscriptSourceProfile,
 } from '@/lib/server/transcript-persistence'
-import { applyTranscriptToProcessingJob } from '@/lib/editor/transcript-delivery'
+import {
+  applyTranscriptToProcessingJob,
+  deliverTranscriptToJob,
+} from '@/lib/editor/transcript-delivery'
 import type { ProcessingJob } from '@/lib/types'
 import { normalizeSourceProfile } from '@/lib/media/source-profile'
 
@@ -87,6 +90,31 @@ test('completed transcript hydrates a processing job without dropping unrelated 
     transcriptStatus: 'completed',
     transcriptText: 'Ship the real fix.',
   })
+})
+
+test('buffers a completed transcript until the processing job is available', () => {
+  const pending = deliverTranscriptToJob(null, segments, 'Ship the real fix.')
+  assert.deepEqual(pending, {
+    job: null,
+    transcript: { segments, text: 'Ship the real fix.' },
+  })
+
+  const job: ProcessingJob = {
+    id: 'job-2',
+    projectId: 'project-1',
+    status: 'running',
+    createdAt: '2026-08-29T00:00:00.000Z',
+    startedAt: '2026-08-29T00:00:00.000Z',
+    steps: [],
+    input: { prompt: '', sources: [] },
+    artifacts: { scenes: [], transcript: [], highlights: [], brollSuggestions: [] },
+    transcriptStatus: 'transcribing',
+  }
+
+  const delivered = deliverTranscriptToJob(job, pending.transcript.segments, pending.transcript.text)
+  assert.equal(delivered.transcript, null)
+  assert.equal(delivered.job?.transcriptStatus, 'completed')
+  assert.deepEqual(delivered.job?.artifacts.transcript, segments)
 })
 
 test('null metadata inputs still produce a complete editor contract', () => {
