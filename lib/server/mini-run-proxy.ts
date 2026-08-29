@@ -67,6 +67,7 @@ export function isAllowedMiniRunRequest(method: string, pathSegments: string[]) 
   if (normalizedMethod === 'POST' && path === 'api/pipeline/video_chunker') return true
   if (normalizedMethod === 'POST' && path === 'api/pipeline/matte') return true
   if (normalizedMethod === 'POST' && path === 'api/pipeline/render') return true
+  if (normalizedMethod === 'GET' && pathSegments[0] === 'media' && pathSegments.length > 1) return true
   if (
     normalizedMethod === 'GET' &&
     /^api\/pipeline\/job\/[A-Za-z0-9._~-]+$/.test(path)
