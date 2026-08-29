@@ -18,6 +18,7 @@ test('receipt service always filters by user and current source', () => {
   assert.match(source, /\.eq\('user_id', input\.userId\)/)
   assert.match(source, /\.eq\('source_asset_id', input\.sourceAssetId\)/)
   assert.match(source, /\.order\('created_at', \{ ascending: false \}\)/)
+  assert.match(source, /updateProjectRenderReceipt[\s\S]*\.eq\('user_id', userId\)/)
 })
 
 test('both dispatch routes persist project render receipts', () => {

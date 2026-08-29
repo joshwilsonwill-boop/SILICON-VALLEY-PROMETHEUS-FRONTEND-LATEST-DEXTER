@@ -18,6 +18,7 @@ test('processing state announces that the final render is in progress without sh
   )
 
   assert.match(markup, /data-final-output-state="processing"/)
+  assert.match(markup, /data-final-output-edge="true"/)
   assert.match(markup, /Rendering final/)
   assert.doesNotMatch(markup, /role="tablist"/)
 })

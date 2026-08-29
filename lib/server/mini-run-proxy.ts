@@ -96,7 +96,7 @@ export async function buildMiniRunRequest({
     'Modal-Key': config.proxyKey,
     'Modal-Secret': config.proxySecret,
   })
-  for (const name of ['accept', 'content-type']) {
+  for (const name of ['accept', 'content-type', 'range']) {
     const value = request.headers.get(name)
     if (value) headers.set(name, value)
   }

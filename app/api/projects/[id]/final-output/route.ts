@@ -77,7 +77,7 @@ export async function GET(
       || reconciled.r2Key !== receipt.r2Key
       || reconciled.errorMessage !== receipt.errorMessage
     const finalOutput = hasChanged
-      ? await updateProjectRenderReceipt(supabase, receipt.id, {
+      ? await updateProjectRenderReceipt(supabase, receipt.id, user.id, {
           status: reconciled.status,
           outputUrl: reconciled.outputUrl,
           r2Key: reconciled.r2Key,

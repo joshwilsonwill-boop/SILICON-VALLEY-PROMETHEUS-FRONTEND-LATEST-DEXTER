@@ -59,4 +59,5 @@ test('the Mini-Run proxy exposes only safe media reads', () => {
   const source = readFileSync('lib/server/mini-run-proxy.ts', 'utf8')
   assert.match(source, /normalizedMethod === 'GET' && pathSegments\[0\] === 'media'/)
   assert.match(source, /hasSafeSegments/)
+  assert.match(source, /\['accept', 'content-type', 'range'\]/)
 })

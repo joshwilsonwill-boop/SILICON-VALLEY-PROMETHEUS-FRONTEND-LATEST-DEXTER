@@ -88,12 +88,14 @@ export async function getLatestEligibleRenderReceipt(
 export async function updateProjectRenderReceipt(
   client: SupabaseLike,
   id: string,
+  userId: string,
   patch: ProjectRenderReceiptPatch,
 ): Promise<ProjectFinalOutput> {
   const { data, error } = await client
     .from('project_render_receipts')
     .update(dbPatch(patch))
     .eq('id', id)
+    .eq('user_id', userId)
     .select()
     .single()
 

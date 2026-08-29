@@ -40,6 +40,24 @@ export function FinalOutputControls({
       data-final-output-state={lifecycle}
       data-final-output-reveal-id={revealId ?? undefined}
     >
+      {lifecycle === 'processing' || lifecycle === 'queued' ? (
+        <motion.span
+          data-final-output-edge="true"
+          aria-hidden="true"
+          animate={shouldReduceMotion
+            ? { opacity: 0.42 }
+            : {
+                opacity: [0.22, 0.68, 0.22],
+                boxShadow: [
+                  'inset 0 0 0 rgba(165,243,252,0)',
+                  'inset 0 0 22px rgba(165,243,252,0.09)',
+                  'inset 0 0 0 rgba(165,243,252,0)',
+                ],
+              }}
+          transition={shouldReduceMotion ? { duration: 0 } : { duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+          className="absolute inset-1 border border-cyan-100/25"
+        />
+      ) : null}
       <AnimatePresence initial={false}>
         {showSelector ? (
           <motion.div
