@@ -49,6 +49,7 @@ export interface SourceProfile {
   processingClass: ProcessingClass
   supported: boolean
   warnings: string[]
+  transcript?: TranscriptSegment[]
 }
 
 export type LeftTabKey = 'chat' | 'edit' | 'design' | 'assets'

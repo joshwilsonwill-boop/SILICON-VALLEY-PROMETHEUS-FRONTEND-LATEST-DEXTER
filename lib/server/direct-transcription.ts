@@ -1,11 +1,14 @@
 import { createClient } from '@/lib/supabase/server'
 import {
   startAssemblyAITranscription,
-  getAssemblyAITranscriptionStatus,
   type AssemblyAITranscriptionResponse,
 } from '@/lib/api/assemblyai'
 import { uploadTranscriptToR2 } from '@/lib/r2/upload-transcript'
 import { R2Keys } from '@/lib/r2/keys'
+import {
+  buildTranscriptResultMetadata,
+  buildTranscriptSourceProfile,
+} from '@/lib/server/transcript-persistence'
 import type { TranscriptSegment } from '@/lib/types'
 
 type AssemblyAIWord = {
@@ -78,12 +81,13 @@ export interface DispatchTranscriptionParams {
 }
 
 /**
- * Dispatches a direct AssemblyAI transcription job and kicks off the background poller.
+ * Dispatches a direct AssemblyAI transcription job. Completion is finalized by
+ * an authenticated status request so it does not depend on request-process life.
  */
 export async function startDirectTranscription(
   params: DispatchTranscriptionParams
 ): Promise<{ transcriptJobId: string; status: string }> {
-  const { userId, projectId, assetId, jobId, sourceUrl, bucket } = params
+  const { projectId, assetId, sourceUrl } = params
 
   console.log(`[DirectTranscription] Submitting AssemblyAI job for project=${projectId}, asset=${assetId}...`)
   const assemblyJob = await startAssemblyAITranscription({
@@ -95,166 +99,122 @@ export async function startDirectTranscription(
 
   const supabase = await createClient()
 
-  // 1. Update source_assets with the active transcript job ID
-  await supabase
+  const { error: assetUpdateError } = await supabase
     .from('source_assets')
     .update({
       transcript_job_id: assemblyJob.id,
       transcript_status: 'transcribing',
+      transcript_provider: 'assemblyai',
+      transcript_started_at: new Date().toISOString(),
+      transcript_error: null,
     })
     .eq('id', assetId)
 
-  // 2. Update durable_jobs if jobId provided
-  if (jobId) {
-    await supabase
-      .from('durable_jobs')
-      .update({
-        transcript_job_id: assemblyJob.id,
-        transcript_status: 'transcribing',
-      })
-      .eq('id', jobId)
+  if (assetUpdateError) {
+    throw new Error(`Failed to persist AssemblyAI job: ${assetUpdateError.message}`)
   }
-
-  // 3. Kick off async polling loop in background (non-blocking)
-  runDirectTranscriptionBackground({
-    userId,
-    projectId,
-    assetId,
-    jobId,
-    transcriptJobId: assemblyJob.id,
-    bucket: bucket || process.env.R2_BUCKET_SOURCES || 'prometheus-sources',
-  }).catch((err) => {
-    console.error(`[DirectTranscription] Background error for asset=${assetId}:`, err)
-  })
 
   return { transcriptJobId: assemblyJob.id, status: assemblyJob.status }
 }
 
-/**
- * Background polling loop that resolves the transcript from AssemblyAI,
- * uploads the artifacts to R2, and commits them to Supabase durable_jobs and projects.
- */
-export async function runDirectTranscriptionBackground(params: {
+export async function persistCompletedTranscript(params: {
   userId: string
   projectId: string
   assetId: string
-  jobId?: string
-  transcriptJobId: string
   bucket: string
-}): Promise<void> {
-  const { userId, projectId, assetId, jobId, transcriptJobId, bucket } = params
+  response: AssemblyAITranscriptionResponse
+}): Promise<{ r2Key: string; segments: TranscriptSegment[]; transcriptText: string }> {
+  const { userId, projectId, assetId, bucket, response } = params
   const supabase = await createClient()
+  const segments = normalizeAssemblyAITranscript(response)
+  const transcriptText = response.text?.trim() || segments.map((segment) => segment.text).join(' ')
+  const r2Key = R2Keys.transcript(userId, projectId, assetId)
 
-  const MAX_ATTEMPTS = 60 // 60 attempts * 2s = 120s max
-  let attempts = 0
+  await uploadTranscriptToR2(bucket, r2Key, response).catch((error) => {
+    console.warn('[DirectTranscription] R2 upload warning:', error)
+  })
 
-  while (attempts < MAX_ATTEMPTS) {
-    await new Promise((resolve) => setTimeout(resolve, 2000))
-    attempts++
+  const { error: assetUpdateError } = await supabase
+    .from('source_assets')
+    .update({
+      transcript_status: 'completed',
+      transcript_r2_key: r2Key,
+      transcript_completed_at: new Date().toISOString(),
+      transcript_synced_at: new Date().toISOString(),
+      transcript_text: transcriptText,
+      transcript_error: null,
+    })
+    .eq('id', assetId)
+    .eq('user_id', userId)
 
-    try {
-      const statusRes = await getAssemblyAITranscriptionStatus(transcriptJobId)
+  if (assetUpdateError) {
+    throw new Error(`Failed to persist source transcript: ${assetUpdateError.message}`)
+  }
 
-      if (statusRes.status === 'completed') {
-        console.log(`[DirectTranscription] AssemblyAI job=${transcriptJobId} completed in attempt ${attempts}!`)
-        const segments = normalizeAssemblyAITranscript(statusRes)
+  const { data: ingestion, error: ingestionError } = await supabase
+    .from('source_ingestions')
+    .select('durable_job_id')
+    .eq('source_asset_id', assetId)
+    .eq('user_id', userId)
+    .maybeSingle()
 
-        // 1. Upload to Cloudflare R2
-        const r2Key = R2Keys.transcript(userId, projectId, assetId)
-        await uploadTranscriptToR2(bucket, r2Key, statusRes).catch((err) => {
-          console.warn('[DirectTranscription] R2 upload warning:', err)
-        })
+  if (ingestionError) {
+    throw new Error(`Failed to resolve transcript job: ${ingestionError.message}`)
+  }
 
-        // 2. Update source_assets
-        await supabase
-          .from('source_assets')
-          .update({
-            transcript_status: 'completed',
-            transcript_r2_key: r2Key,
-            transcript_completed_at: new Date().toISOString(),
-            transcript_synced_at: new Date().toISOString(),
-            transcript_text: statusRes.text || '',
-            transcript_error: null,
-          })
-          .eq('id', assetId)
+  const durableJobId = ingestion?.durable_job_id || assetId
+  const { data: currentJob, error: jobReadError } = await supabase
+    .from('durable_jobs')
+    .select('id, result_metadata')
+    .eq('id', durableJobId)
+    .eq('project_id', projectId)
+    .eq('user_id', userId)
+    .maybeSingle()
 
-        // 3. Update durable_jobs
-        if (jobId) {
-          const { data: currentJob } = await supabase
-            .from('durable_jobs')
-            .select('artifacts')
-            .eq('id', jobId)
-            .single()
+  if (jobReadError) {
+    throw new Error(`Failed to read transcript job metadata: ${jobReadError.message}`)
+  }
 
-          const currentArtifacts = (currentJob?.artifacts && typeof currentJob.artifacts === 'object')
-            ? currentJob.artifacts
-            : {}
+  if (currentJob) {
+    const { error: jobUpdateError } = await supabase
+      .from('durable_jobs')
+      .update({
+        result_metadata: buildTranscriptResultMetadata(
+          currentJob.result_metadata,
+          segments,
+          transcriptText,
+        ),
+      })
+      .eq('id', currentJob.id)
+      .eq('user_id', userId)
 
-          await supabase
-            .from('durable_jobs')
-            .update({
-              status: 'completed',
-              progress: 100,
-              transcript_status: 'completed',
-              transcript_text: statusRes.text || '',
-              artifacts: {
-                ...currentArtifacts,
-                transcript: segments,
-              },
-            })
-            .eq('id', jobId)
-        }
-
-        // 4. Update project source_profile
-        const { data: projectData } = await supabase
-          .from('projects')
-          .select('source_profile')
-          .eq('id', projectId)
-          .single()
-
-        const currentProfile = (projectData?.source_profile && typeof projectData.source_profile === 'object')
-          ? projectData.source_profile
-          : {}
-
-        await supabase
-          .from('projects')
-          .update({
-            source_profile: {
-              ...currentProfile,
-              transcript: segments,
-            },
-          })
-          .eq('id', projectId)
-
-        console.log(`[DirectTranscription] Successfully persisted ${segments.length} transcript segments for project=${projectId}.`)
-        return
-      }
-
-      if (statusRes.status === 'error') {
-        console.error(`[DirectTranscription] AssemblyAI job=${transcriptJobId} failed:`, statusRes.error)
-        await supabase
-          .from('source_assets')
-          .update({
-            transcript_status: 'failed',
-            transcript_error: statusRes.error || 'AssemblyAI transcription failed',
-          })
-          .eq('id', assetId)
-
-        if (jobId) {
-          await supabase
-            .from('durable_jobs')
-            .update({
-              transcript_status: 'failed',
-              status: 'failed',
-            })
-            .eq('id', jobId)
-        }
-        return
-      }
-    } catch (pollErr) {
-      console.warn(`[DirectTranscription] Polling attempt ${attempts} warning:`, pollErr)
+    if (jobUpdateError) {
+      throw new Error(`Failed to persist transcript job metadata: ${jobUpdateError.message}`)
     }
   }
 
-  console.warn(`[DirectTranscription] Polling timed out for transcriptJobId=${transcriptJobId}`)
+  const { data: project, error: projectReadError } = await supabase
+    .from('projects')
+    .select('source_profile')
+    .eq('id', projectId)
+    .eq('user_id', userId)
+    .single()
+
+  if (projectReadError) {
+    throw new Error(`Failed to read transcript project: ${projectReadError.message}`)
+  }
+
+  const { error: projectUpdateError } = await supabase
+    .from('projects')
+    .update({
+      source_profile: buildTranscriptSourceProfile(project.source_profile, segments),
+    })
+    .eq('id', projectId)
+    .eq('user_id', userId)
+
+  if (projectUpdateError) {
+    throw new Error(`Failed to persist transcript project profile: ${projectUpdateError.message}`)
+  }
+
+  return { r2Key, segments, transcriptText }
 }

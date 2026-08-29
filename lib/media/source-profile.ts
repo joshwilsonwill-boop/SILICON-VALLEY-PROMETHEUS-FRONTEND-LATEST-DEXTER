@@ -219,7 +219,26 @@ export function normalizeSourceProfile(profile: unknown): SourceProfile | undefi
   const inspection = normalizeSourceInspection((profile as { inspection?: unknown }).inspection)
   if (!inspection) return undefined
 
-  return classifySourceProfile(inspection)
+  const normalized = classifySourceProfile(inspection)
+  const transcript = (profile as { transcript?: unknown }).transcript
+  if (!Array.isArray(transcript)) return normalized
+
+  const validTranscript = transcript.filter((segment): segment is {
+    id: string
+    startMs: number
+    endMs: number
+    text: string
+    speaker?: string
+  } => {
+    if (!segment || typeof segment !== 'object') return false
+    const candidate = segment as Record<string, unknown>
+    return typeof candidate.id === 'string'
+      && Number.isFinite(candidate.startMs)
+      && Number.isFinite(candidate.endMs)
+      && typeof candidate.text === 'string'
+  })
+
+  return validTranscript.length > 0 ? { ...normalized, transcript: validTranscript } : normalized
 }
 
 async function inspectVideoFile(file: File): Promise<SourceInspection> {

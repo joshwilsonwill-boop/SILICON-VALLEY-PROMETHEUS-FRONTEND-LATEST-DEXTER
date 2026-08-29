@@ -3,11 +3,9 @@ import { createClient } from '@/lib/supabase/server'
 import { getPresignedGetUrl } from '@/lib/r2/presigned-url'
 import {
   startDirectTranscription,
-  normalizeAssemblyAITranscript,
+  persistCompletedTranscript,
 } from '@/lib/server/direct-transcription'
 import { getAssemblyAITranscriptionStatus } from '@/lib/api/assemblyai'
-import { uploadTranscriptToR2 } from '@/lib/r2/upload-transcript'
-import { R2Keys } from '@/lib/r2/keys'
 
 export async function POST(req: NextRequest) {
   try {
@@ -95,7 +93,9 @@ export async function GET(req: NextRequest) {
 
     const asset = assets[0]
 
-    // If completed and we have transcript text / status
+    // Return already-persisted segments without calling the provider again.
+    // If a previous completion only updated source_assets, fall through and
+    // repair the missing editor payload from the AssemblyAI job.
     if (asset.transcript_status === 'completed') {
       const { data: projectRow } = await supabase
         .from('projects')
@@ -104,11 +104,42 @@ export async function GET(req: NextRequest) {
         .single()
 
       const segments = projectRow?.source_profile?.transcript || []
-      return NextResponse.json({
-        status: 'completed',
-        transcriptText: asset.transcript_text,
-        segments,
-      })
+      if (Array.isArray(segments) && segments.length > 0) {
+        return NextResponse.json({
+          status: 'completed',
+          transcriptText: asset.transcript_text,
+          segments,
+        })
+      }
+
+      // Repair legacy completions that stored only transcript_text on the asset.
+      // This keeps existing uploads visible without requiring a provider job id.
+      if (
+        !asset.transcript_job_id &&
+        typeof asset.transcript_text === 'string' &&
+        asset.transcript_text.trim()
+      ) {
+        const bucket = asset.storage_bucket || process.env.R2_BUCKET_SOURCES || 'prometheus-sources'
+        const persisted = await persistCompletedTranscript({
+          userId: user.id,
+          projectId: asset.project_id,
+          assetId: asset.id,
+          bucket,
+          response: {
+            id: `legacy-${asset.id}`,
+            status: 'completed',
+            text: asset.transcript_text,
+            audio_duration:
+              typeof asset.duration_ms === 'number' ? asset.duration_ms / 1000 : undefined,
+          },
+        })
+
+        return NextResponse.json({
+          status: 'completed',
+          transcriptText: persisted.transcriptText,
+          segments: persisted.segments,
+        })
+      }
     }
 
     // If transcribing and has job id, check AssemblyAI live
@@ -116,34 +147,33 @@ export async function GET(req: NextRequest) {
       const statusRes = await getAssemblyAITranscriptionStatus(asset.transcript_job_id)
 
       if (statusRes.status === 'completed') {
-        const segments = normalizeAssemblyAITranscript(statusRes)
         const bucket = asset.storage_bucket || process.env.R2_BUCKET_SOURCES || 'prometheus-sources'
-        const r2Key = R2Keys.transcript(user.id, asset.project_id, asset.id)
-
-        await uploadTranscriptToR2(bucket, r2Key, statusRes).catch(() => undefined)
-
-        await supabase
-          .from('source_assets')
-          .update({
-            transcript_status: 'completed',
-            transcript_r2_key: r2Key,
-            transcript_completed_at: new Date().toISOString(),
-            transcript_text: statusRes.text || '',
-          })
-          .eq('id', asset.id)
-
-        await supabase
-          .from('projects')
-          .update({
-            source_profile: { transcript: segments },
-          })
-          .eq('id', asset.project_id)
+        const persisted = await persistCompletedTranscript({
+          userId: user.id,
+          projectId: asset.project_id,
+          assetId: asset.id,
+          bucket,
+          response: statusRes,
+        })
 
         return NextResponse.json({
           status: 'completed',
-          transcriptText: statusRes.text,
-          segments,
+          transcriptText: persisted.transcriptText,
+          segments: persisted.segments,
         })
+      }
+
+      if (statusRes.status === 'error') {
+        const { error: failureUpdateError } = await supabase
+          .from('source_assets')
+          .update({
+            transcript_status: 'failed',
+            transcript_error: statusRes.error || 'AssemblyAI transcription failed',
+          })
+          .eq('id', asset.id)
+          .eq('user_id', user.id)
+
+        if (failureUpdateError) throw failureUpdateError
       }
 
       return NextResponse.json({

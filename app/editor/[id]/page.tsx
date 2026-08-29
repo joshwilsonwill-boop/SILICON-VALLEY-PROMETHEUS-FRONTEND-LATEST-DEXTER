@@ -83,6 +83,7 @@ import { useSourceStage } from '@/hooks/use-source-stage'
 import { useViralClipJob } from '@/hooks/use-viral-clip-job'
 import { buildTimedTranscriptWords } from '@/lib/editor/modal-viral-clip-workflow'
 import { buildMotionTranscriptSegments } from '@/lib/editor/motion-transcript'
+import { applyTranscriptToProcessingJob } from '@/lib/editor/transcript-delivery'
 import { clearPendingEditorNavigation, getRememberedEditorReturnPath } from '@/lib/editor-navigation'
 import { useFrameTargeting } from '@/hooks/use-frame-targeting'
 import { parseFrameReference } from '@/lib/editorial-frame/parse-frame-reference'
@@ -153,6 +154,7 @@ import type {
   MusicVideoContext,
   ProcessingJob,
   Project,
+  TranscriptSegment,
   OutputProfile,
   StagedMusicTrack,
   ViralClipSelectedClip,
@@ -6621,11 +6623,19 @@ function OriginalEditorPage() {
         if (!active) return
 
         const existing = projects.getJob(projectId)
-        const nextJob = buildProcessingJobFromSourceAnalysis({
+        const analysisJob = buildProcessingJobFromSourceAnalysis({
           projectId,
           response: analysis,
           input: existing?.input ?? {prompt: '', sources: []},
         })
+        const nextJob =
+          analysisJob.artifacts.transcript.length === 0 && existing?.artifacts.transcript.length
+            ? applyTranscriptToProcessingJob(
+                analysisJob,
+                existing.artifacts.transcript,
+                existing.transcriptText || existing.artifacts.transcript.map((segment) => segment.text).join(' '),
+              )
+            : analysisJob
         projects.upsertJob(nextJob)
         setJob(nextJob)
 
@@ -6647,6 +6657,76 @@ function OriginalEditorPage() {
     return () => {
       active = false
       if (intervalId !== null) window.clearInterval(intervalId)
+    }
+  }, [project?.sourceAssetId, projectId])
+
+  React.useEffect(() => {
+    const sourceAssetId = project?.sourceAssetId
+    if (!sourceAssetId) return
+
+    let active = true
+    let intervalId: number | null = null
+    let restartRequested = false
+
+    const stopPolling = () => {
+      if (intervalId !== null) {
+        window.clearInterval(intervalId)
+        intervalId = null
+      }
+    }
+
+    const syncTranscript = async () => {
+      try {
+        const params = new URLSearchParams({ assetId: sourceAssetId, projectId })
+        const response = await fetch(`/api/transcribe?${params.toString()}`, { cache: 'no-store' })
+        if (!response.ok) return
+
+        const payload = await response.json() as {
+          status?: string
+          transcriptText?: string
+          segments?: TranscriptSegment[]
+        }
+        if (!active) return
+
+        if (payload.status === 'idle' && !restartRequested) {
+          restartRequested = true
+          await fetch('/api/transcribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ projectId, assetId: sourceAssetId }),
+          })
+          return
+        }
+
+        if (payload.status === 'completed') {
+          if (Array.isArray(payload.segments) && payload.segments.length > 0) {
+            const existing = projects.getJob(projectId)
+            if (!existing) return
+            const nextJob = applyTranscriptToProcessingJob(
+              existing,
+              payload.segments,
+              payload.transcriptText || payload.segments.map((segment) => segment.text).join(' '),
+            )
+            projects.upsertJob(nextJob)
+            setJob(nextJob)
+          }
+          stopPolling()
+        }
+
+        if (payload.status === 'failed' || payload.status === 'error') {
+          stopPolling()
+        }
+      } catch (error) {
+        console.warn('[editor] transcript sync failed', error)
+      }
+    }
+
+    void syncTranscript()
+    intervalId = window.setInterval(() => void syncTranscript(), 2_500)
+
+    return () => {
+      active = false
+      stopPolling()
     }
   }, [project?.sourceAssetId, projectId])
 
