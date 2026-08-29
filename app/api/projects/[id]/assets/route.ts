@@ -7,6 +7,7 @@ import { ProjectService } from '@/lib/projects/service'
 import { getPresignedGetUrl } from '@/lib/r2/presigned-url'
 import { r2Client } from '@/lib/r2/client'
 import { dispatchMiniRunRender } from '@/lib/server/mini-run-dispatch'
+import { recordProjectRenderDispatch } from '@/lib/server/project-render-receipts'
 import { dispatchModalSourceAnalysis } from '@/lib/server/modal-source-analysis'
 import { startDirectTranscription } from '@/lib/server/direct-transcription'
 import { createClient } from '@/lib/supabase/server'
@@ -160,7 +161,7 @@ export async function POST(
 
     if (shouldAutoMiniRun) {
       try {
-        miniRunDispatch = await dispatchMiniRunRender({
+        const dispatched = await dispatchMiniRunRender({
           request: {
             projectId,
             sourceAssetId: committedAsset?.id ?? '',
@@ -177,6 +178,15 @@ export async function POST(
             MODAL_PROXY_SECRET: process.env.MODAL_PROXY_SECRET,
           },
         })
+        await recordProjectRenderDispatch(supabase, {
+          projectId,
+          sourceAssetId: committedAsset?.id ?? '',
+          userId: user.id,
+          jobId: dispatched.jobId,
+          pipelineJobId: dispatched.pipelineJobId || null,
+          status: dispatched.status,
+        })
+        miniRunDispatch = dispatched
       } catch (error) {
         console.error('[api/projects/[id]/assets] mini-run render dispatch failed:', error)
       }

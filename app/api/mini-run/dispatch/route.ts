@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 
 import { ProjectService } from '@/lib/projects/service'
 import { buildMiniRunSourceUrl } from '@/lib/server/mini-run-dispatch'
+import { recordProjectRenderDispatch } from '@/lib/server/project-render-receipts'
 import { resolveMiniRunConfig } from '@/lib/server/mini-run-proxy'
 import { createClient } from '@/lib/supabase/server'
 
@@ -174,6 +175,14 @@ export async function POST(req: Request) {
     }
 
     const dispatchedJobId = typeof upstream.jobId === 'string' ? upstream.jobId : jobId
+    await recordProjectRenderDispatch(supabase, {
+      projectId,
+      sourceAssetId: sourceAssetId,
+      userId: user.id,
+      jobId: dispatchedJobId,
+      pipelineJobId: typeof upstream.pipelineJobId === 'string' ? upstream.pipelineJobId : null,
+      status: typeof upstream.status === 'string' ? upstream.status : 'queued',
+    })
     return NextResponse.json({
       jobId: dispatchedJobId,
       pipelineJobId: typeof upstream.pipelineJobId === 'string' ? upstream.pipelineJobId : '',
@@ -187,4 +196,3 @@ export async function POST(req: Request) {
     )
   }
 }
-
