@@ -86,6 +86,7 @@ import { useViralClipJob } from '@/hooks/use-viral-clip-job'
 import { buildTimedTranscriptWords } from '@/lib/editor/modal-viral-clip-workflow'
 import { buildMotionTranscriptSegments } from '@/lib/editor/motion-transcript'
 import { applyTranscriptToProcessingJob } from '@/lib/editor/transcript-delivery'
+import { resolveProjectForSourceUpload } from '@/lib/editor/source-upload-project'
 import { clearPendingEditorNavigation, getRememberedEditorReturnPath } from '@/lib/editor-navigation'
 import { useFrameTargeting } from '@/hooks/use-frame-targeting'
 import { parseFrameReference } from '@/lib/editorial-frame/parse-frame-reference'
@@ -8096,9 +8097,30 @@ function OriginalEditorPage() {
       const file = files[0]
       if (!file) return
 
-      if (!project) {
+      const uploadProject = await resolveProjectForSourceUpload({
+        project,
+        projectId,
+        fetchProject: async (requestedProjectId) => {
+          try {
+            const response = await fetch(`/api/projects/${requestedProjectId}`, { cache: 'no-store' })
+            if (!response.ok) return null
+            const payload = await response.json() as { project?: Project | null }
+            return payload.project ?? null
+          } catch (error) {
+            console.warn('[editor] Project hydration for source upload failed:', error)
+            return null
+          }
+        },
+      })
+
+      if (!uploadProject) {
         toast.error('The project is still loading. Please try again in a moment.')
         return
+      }
+
+      if (!project) {
+        upsertProject(uploadProject)
+        setProject(uploadProject)
       }
 
       try {
@@ -8123,11 +8145,11 @@ function OriginalEditorPage() {
           })
         }
 
-        const nextProject = projects.update(project.id, {
+        const nextProject = projects.update(uploadProject.id, {
           sourceAssetId: stagedSource.assetId,
           previewKind: stagedSource.previewKind ?? 'video',
           thumbnailUrl: '',
-          sourceProfile: stagedSource.sourceProfile ?? project.sourceProfile,
+          sourceProfile: stagedSource.sourceProfile ?? uploadProject.sourceProfile,
         })
 
         if (nextProject) setProject(nextProject)
@@ -8138,7 +8160,7 @@ function OriginalEditorPage() {
         void uploadSourceAssetToCloud({
           assetId: stagedSource.assetId,
           file,
-          projectId: project.id,
+          projectId: uploadProject.id,
           sourceProfile: stagedSource.sourceProfile,
         })
 
