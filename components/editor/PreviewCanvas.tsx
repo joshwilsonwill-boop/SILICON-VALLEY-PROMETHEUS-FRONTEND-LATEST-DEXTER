@@ -9,7 +9,9 @@ import { ViralClipSplitPreview } from '@/components/editor/viral-clip-split-prev
 import { PreviewGenerationState } from '@/components/editor/preview-generation-state'
 import { PreviewFeedbackShell } from '@/components/editor/preview-feedback-shell'
 import { SourceStagePlaceholder } from '@/components/editor/source-stage-placeholder'
+import { FinalOutputControls } from '@/components/editor/final-output-controls'
 import { cn } from '@/lib/utils'
+import type { FinalOutputLifecycle, FinalOutputView } from '@/lib/final-output'
 import type {
   Project,
   ProcessingJob,
@@ -37,6 +39,11 @@ export interface PreviewCanvasProps {
   viralClipSplitAnimationKey: number
   previewUrl: string
   previewKind: PreviewMediaKind
+  finalOutputLifecycle: FinalOutputLifecycle
+  finalOutputView: FinalOutputView
+  hasPlayableFinalOutput: boolean
+  finalOutputRevealId: string | null
+  finalOutputError: string | null
   previewPlaying: boolean
   shouldUseLegacySessionPreviewSurface: boolean
   previewFrameTransformStyle: React.CSSProperties | undefined
@@ -67,6 +74,7 @@ export interface PreviewCanvasProps {
   onPreviewVideoPlay: () => void
   onPreviewVideoPause: () => void
   onPreviewVideoError: () => void
+  onSelectFinalOutputView: (view: FinalOutputView) => void
   onTogglePreviewPlayback: () => void
   onSetIsPreviewBriefGenerating: (visible: boolean) => void
   onSetShowPreviewFeedback: (show: boolean) => void
@@ -94,6 +102,11 @@ export function PreviewCanvas({
   viralClipSplitAnimationKey,
   previewUrl,
   previewKind,
+  finalOutputLifecycle,
+  finalOutputView,
+  hasPlayableFinalOutput,
+  finalOutputRevealId,
+  finalOutputError,
   previewPlaying,
   shouldUseLegacySessionPreviewSurface,
   previewFrameTransformStyle,
@@ -124,6 +137,7 @@ export function PreviewCanvas({
   onPreviewVideoPlay,
   onPreviewVideoPause,
   onPreviewVideoError,
+  onSelectFinalOutputView,
   onTogglePreviewPlayback,
   onSetIsPreviewBriefGenerating,
   onSetShowPreviewFeedback,
@@ -173,6 +187,14 @@ export function PreviewCanvas({
               }}
             >
               <div className="relative h-full w-full">
+                <FinalOutputControls
+                  lifecycle={finalOutputLifecycle}
+                  view={finalOutputView}
+                  hasFinal={hasPlayableFinalOutput}
+                  revealId={finalOutputRevealId}
+                  error={finalOutputError}
+                  onSelect={onSelectFinalOutputView}
+                />
                 <BriefPipelineProgress
                   status={job?.transcriptStatus}
                   steps={job?.previewProgressSteps}

@@ -58,6 +58,7 @@ import { LuxuryVignette } from '@/components/editor/luxury-vignette'
 import { EditorNewProjectUploadDialog } from '@/components/editor/editor-new-project-upload-dialog'
 import { EditorHeader } from '@/components/editor/EditorHeader'
 import { PreviewCanvas } from '@/components/editor/PreviewCanvas'
+import { FinalOutputControls } from '@/components/editor/final-output-controls'
 import { TimelinePanel } from '@/components/editor/TimelinePanel'
 import { MobileVideoPlayer } from '@/app/editor/components/mobile-video-player'
 import { stopEditorMedia } from '@/app/editor/stores/audio-store'
@@ -80,6 +81,7 @@ const FrameComposerDraftMirror = safeDynamic(() => import('@/components/editor/f
 import { ViralClipTrigger } from '@/components/editor/viral-clip-trigger'
 import { dispatchCompletionEvent } from '@/components/editor/completion-event'
 import { useSourceStage } from '@/hooks/use-source-stage'
+import { useProjectFinalOutput } from '@/hooks/use-project-final-output'
 import { useViralClipJob } from '@/hooks/use-viral-clip-job'
 import { buildTimedTranscriptWords } from '@/lib/editor/modal-viral-clip-workflow'
 import { buildMotionTranscriptSegments } from '@/lib/editor/motion-transcript'
@@ -118,6 +120,12 @@ import { buildRevealVariants } from '@/lib/motion'
 import { useTextareaResize } from '@/hooks/use-textarea-resize'
 import { buildCinematicAnimationPlan } from '@/lib/cinematic/animation-planner'
 import { cn } from '@/lib/utils'
+import {
+  isFinalOutputEligible,
+  resolveActivePreview,
+  type FinalOutputLifecycle,
+  type FinalOutputView,
+} from '@/lib/final-output'
 import { extractImageFilesFromClipboard } from '@/lib/editor/chat-attachment'
 import { SELECTED_EDITOR_MUSIC_EVENT, type SelectedEditorMusicEventDetail } from '@/lib/editor-music-selection'
 import { upsertProject } from '@/lib/mock'
@@ -5873,6 +5881,11 @@ type MobileEditorViewProps = {
   sourceMetrics: ReturnType<typeof formatSourceProfileMetric> | null
   previewUrl: string
   previewKind: PreviewMediaKind
+  finalOutputLifecycle: FinalOutputLifecycle
+  finalOutputView: FinalOutputView
+  hasPlayableFinalOutput: boolean
+  finalOutputRevealId: string | null
+  finalOutputError: string | null
   hasPreviewMedia: boolean
   sourceLabel: string
   objectFit: 'cover' | 'contain'
@@ -5908,6 +5921,7 @@ type MobileEditorViewProps = {
   onVideoPause: React.ReactEventHandler<HTMLVideoElement>
   onVideoError: React.ReactEventHandler<HTMLVideoElement>
   onImageLoaded: React.ReactEventHandler<HTMLImageElement>
+  onSelectFinalOutputView: (view: FinalOutputView) => void
   onApplyMotionPrompt: (prompt: string) => void
   onSelectMusicTrack: (track: MusicRecommendation) => void
   onEditRequest: (request: { prompt: string; styleTemplate: StyleTemplate }) => void
@@ -5930,6 +5944,11 @@ function MobileEditorView({
   sourceMetrics,
   previewUrl,
   previewKind,
+  finalOutputLifecycle,
+  finalOutputView,
+  hasPlayableFinalOutput,
+  finalOutputRevealId,
+  finalOutputError,
   hasPreviewMedia,
   sourceLabel,
   objectFit,
@@ -5964,6 +5983,7 @@ function MobileEditorView({
   onVideoPause,
   onVideoError,
   onImageLoaded,
+  onSelectFinalOutputView,
   onApplyMotionPrompt,
   onSelectMusicTrack,
   onEditRequest,
@@ -6257,6 +6277,14 @@ function MobileEditorView({
         <main className="flex min-h-0 flex-1 flex-col">
           <section className="shrink-0 py-3">
             <div className="relative aspect-video max-h-[40vh] w-full overflow-hidden bg-black">
+              <FinalOutputControls
+                lifecycle={finalOutputLifecycle}
+                view={finalOutputView}
+                hasFinal={hasPlayableFinalOutput}
+                revealId={finalOutputRevealId}
+                error={finalOutputError}
+                onSelect={onSelectFinalOutputView}
+              />
               {hasPreviewMedia && previewKind === 'video' ? (
                 <MobileVideoPlayer
                   src={previewUrl}
@@ -6338,6 +6366,11 @@ function OriginalEditorPage() {
   const [tempTitle, setTempTitle] = React.useState('')
   const titleInputRef = React.useRef<HTMLInputElement | null>(null)
   const [latestExport, setLatestExport] = React.useState<ProjectExport | null>(null)
+  const [finalOutputView, setFinalOutputView] = React.useState<FinalOutputView>('original')
+  const [playableFinalUrl, setPlayableFinalUrl] = React.useState<string | null>(null)
+  const [finalOutputRevealId, setFinalOutputRevealId] = React.useState<string | null>(null)
+  const [finalOutputMediaError, setFinalOutputMediaError] = React.useState<string | null>(null)
+  const promotedFinalOutputRef = React.useRef<string | null>(null)
 
   React.useEffect(() => {
     if (!requestedWorkspaceTab) return
@@ -6445,6 +6478,14 @@ function OriginalEditorPage() {
   const inlinePreviewStatusTimeoutRef = React.useRef<number | null>(null)
   const inlinePreviewStatusHasShownRef = React.useRef(false)
   const projectPreviewSourceKey = project?.sourceAssetId ?? projectId
+  const {
+    finalOutput,
+    lifecycle: finalOutputLifecycle,
+    error: finalOutputStatusError,
+  } = useProjectFinalOutput({
+    projectId,
+    sourceAssetId: project?.sourceAssetId ?? null,
+  })
   const handoffPreviewForCurrentSource =
     handoffPreview?.sourceKey === projectPreviewSourceKey ? handoffPreview : null
   const stableProjectPreviewUrl =
@@ -6461,6 +6502,60 @@ function OriginalEditorPage() {
     currentPreviewUrl: stableProjectPreviewUrl,
     currentPreviewKind: stableProjectPreviewKind,
   })
+
+  const eligibleFinalOutput = isFinalOutputEligible(finalOutput, project?.sourceAssetId)
+    ? finalOutput
+    : null
+
+  React.useEffect(() => {
+    if (!eligibleFinalOutput?.outputUrl) {
+      setPlayableFinalUrl(null)
+      setFinalOutputView('original')
+      setFinalOutputRevealId(null)
+      setFinalOutputMediaError(null)
+      promotedFinalOutputRef.current = null
+      return
+    }
+
+    let cancelled = false
+    const finalVideo = document.createElement('video')
+    finalVideo.preload = 'auto'
+    finalVideo.muted = true
+    finalVideo.playsInline = true
+
+    const promoteFinalOutput = () => {
+      if (cancelled) return
+      setPlayableFinalUrl(eligibleFinalOutput.outputUrl)
+      setFinalOutputMediaError(null)
+      if (promotedFinalOutputRef.current !== eligibleFinalOutput.id) {
+        promotedFinalOutputRef.current = eligibleFinalOutput.id
+        setFinalOutputView('final')
+        setFinalOutputRevealId(eligibleFinalOutput.id)
+      }
+    }
+
+    const handleFinalVideoError = () => {
+      if (cancelled) return
+      setPlayableFinalUrl(null)
+      setFinalOutputView('original')
+      setFinalOutputMediaError('Final output could not be loaded in this browser.')
+    }
+
+    finalVideo.addEventListener('loadeddata', promoteFinalOutput)
+    finalVideo.addEventListener('canplay', promoteFinalOutput)
+    finalVideo.addEventListener('error', handleFinalVideoError)
+    finalVideo.src = eligibleFinalOutput.outputUrl
+    finalVideo.load()
+
+    return () => {
+      cancelled = true
+      finalVideo.removeEventListener('loadeddata', promoteFinalOutput)
+      finalVideo.removeEventListener('canplay', promoteFinalOutput)
+      finalVideo.removeEventListener('error', handleFinalVideoError)
+      finalVideo.removeAttribute('src')
+      finalVideo.load()
+    }
+  }, [eligibleFinalOutput?.id, eligibleFinalOutput?.outputUrl])
   const viralClipJob = useViralClipJob({
     projectId,
     videoId: project?.sourceAssetId ?? null,
@@ -6963,10 +7058,34 @@ function OriginalEditorPage() {
   const transportProgress = transportDurationSec > 0 ? (previewCurrentTimeSec / transportDurationSec) * 100 : 0
   const transportCurrentTime = msToTime(previewCurrentTimeSec * 1000)
   const transportTime = msToTime(transportDurationSec * 1000)
-  const previewUrl = sourceStageVisiblePreviewUrl ?? stableProjectPreviewUrl ?? ''
-  const previewKind = incomingPreviewKind
+  const originalPreview = sourceStageVisiblePreviewUrl || stableProjectPreviewUrl
+    ? {
+        url: sourceStageVisiblePreviewUrl ?? stableProjectPreviewUrl!,
+        kind: incomingPreviewKind,
+      }
+    : null
+  const finalPreview = playableFinalUrl
+    ? { url: playableFinalUrl, kind: 'video' as const }
+    : null
+  const activePreview = resolveActivePreview({
+    view: finalOutputView,
+    original: originalPreview,
+    final: finalPreview,
+    finalPlayable: Boolean(finalPreview),
+  })
+  const previewUrl = activePreview?.url ?? ''
+  const previewKind = activePreview?.kind ?? incomingPreviewKind
   const shouldUseLegacySessionPreviewSurface = handoffPreviewForCurrentSource?.url === previewUrl && previewKind === 'video'
   const hasPreviewMedia = Boolean(previewUrl)
+  const finalOutputError = finalOutputMediaError ?? finalOutputStatusError ?? eligibleFinalOutput?.errorMessage ?? null
+  const finalOutputDisplayLifecycle: FinalOutputLifecycle = finalOutputMediaError
+    ? 'failed'
+    : finalOutputLifecycle === 'completed' && eligibleFinalOutput && !playableFinalUrl
+      ? 'processing'
+      : finalOutputLifecycle
+  const previewSourceLabel = finalOutputView === 'final' && playableFinalUrl
+    ? 'Final output'
+    : sourceAssetLabel ?? project?.title ?? 'Source video'
   const isSourceStageActivelyLoading =
     sourceStagePhase === 'staging_local_preview' || sourceStagePhase === 'persisting'
   const clipModeActive = previewFramePreset === '9:16'
@@ -7815,6 +7934,16 @@ function OriginalEditorPage() {
     setPreviewPlaying(false)
   }, [])
 
+  const handleFinalOutputViewSelect = React.useCallback((nextView: FinalOutputView) => {
+    if (nextView === 'final' && !playableFinalUrl) return
+    previewPlaybackIntentRef.current = 'paused'
+    previewPlaybackCommandRef.current += 1
+    previewVideoRef.current?.pause()
+    setPreviewPlaying(false)
+    setPreviewCurrentTimeSec(0)
+    setFinalOutputView(nextView)
+  }, [playableFinalUrl])
+
   // Live editor context handed to the Prometheus chat on every send.
   // Kept in a ref so the memoized chat panel does not re-render per playhead tick.
   const chatLiveStateRef = React.useRef<AIChatLiveContext>({
@@ -8114,8 +8243,13 @@ function OriginalEditorPage() {
           sourceMetrics={sourceMetrics}
           previewUrl={previewUrl}
           previewKind={previewKind}
+          finalOutputLifecycle={finalOutputDisplayLifecycle}
+          finalOutputView={finalOutputView}
+          hasPlayableFinalOutput={Boolean(playableFinalUrl)}
+          finalOutputRevealId={finalOutputRevealId}
+          finalOutputError={finalOutputError}
           hasPreviewMedia={hasPreviewMedia}
-          sourceLabel={sourceAssetLabel ?? project?.title ?? 'Source video'}
+          sourceLabel={previewSourceLabel}
           objectFit={fitMode === 'fill' ? 'cover' : 'contain'}
           mediaTransformStyle={shouldUseLegacySessionPreviewSurface ? undefined : previewFrameTransformStyle}
           currentTimeLabel={transportCurrentTime}
@@ -8147,6 +8281,7 @@ function OriginalEditorPage() {
           onVideoPause={handlePreviewVideoPause}
           onVideoError={handlePreviewVideoError}
           onImageLoaded={handlePreviewImageLoaded}
+          onSelectFinalOutputView={handleFinalOutputViewSelect}
           onApplyMotionPrompt={handleMotionCanvasPrompt}
           onBack={handleMobileBackNavigation}
           onOpenUploadNewProject={() => setIsNewProjectUploadOpen(true)}
@@ -8287,7 +8422,7 @@ function OriginalEditorPage() {
                     previewUrl={previewUrl}
                     previewKind={previewKind}
                     hasPreviewMedia={hasPreviewMedia}
-                    sourceLabel={sourceAssetLabel ?? project?.title ?? 'Source video'}
+                    sourceLabel={previewSourceLabel}
                     previewAspectRatio={resolvedPreviewAspectRatio}
                     fitMode={fitMode}
                     onFitModeChange={setFitMode}
@@ -8332,7 +8467,7 @@ function OriginalEditorPage() {
                       hasSourceAsset={hasSourceAsset}
                       hasPreviewMedia={hasPreviewMedia}
                       clipModeActive={clipModeActive}
-                      sourceAssetLabel={sourceAssetLabel}
+                      sourceAssetLabel={previewSourceLabel}
                       previewOverlayPlan={previewOverlayPlan}
                       previewCurrentTimeSec={previewCurrentTimeSec}
                       transportCurrentTime={transportCurrentTime}
@@ -8341,6 +8476,11 @@ function OriginalEditorPage() {
                       viralClipSplitAnimationKey={viralClipSplitAnimationKey}
                       previewUrl={previewUrl}
                       previewKind={previewKind}
+                      finalOutputLifecycle={finalOutputDisplayLifecycle}
+                      finalOutputView={finalOutputView}
+                      hasPlayableFinalOutput={Boolean(playableFinalUrl)}
+                      finalOutputRevealId={finalOutputRevealId}
+                      finalOutputError={finalOutputError}
                       previewPlaying={previewPlaying}
                       shouldUseLegacySessionPreviewSurface={shouldUseLegacySessionPreviewSurface}
                       previewFrameTransformStyle={previewFrameTransformStyle}
@@ -8371,6 +8511,7 @@ function OriginalEditorPage() {
                       onPreviewVideoPlay={handlePreviewVideoPlay}
                       onPreviewVideoPause={handlePreviewVideoPause}
                       onPreviewVideoError={handlePreviewVideoError}
+                      onSelectFinalOutputView={handleFinalOutputViewSelect}
                       onTogglePreviewPlayback={togglePreviewPlayback}
                       onSetIsPreviewBriefGenerating={setIsPreviewBriefGenerating}
                       onSetShowPreviewFeedback={setShowPreviewFeedback}
