@@ -7,17 +7,24 @@ import {
   Crop,
   Download,
   Filter,
+  Film,
   Frame,
   GripHorizontal,
+  GripVertical,
   Grid2X2,
   Maximize2,
+  Music2,
   Pause,
   PanelBottomClose,
   PanelBottomOpen,
   Play,
   Plus,
   Search,
+  Scissors,
+  Settings2,
   Sparkles,
+  Subtitles,
+  Type,
   Upload,
   Volume2,
   Wand2,
@@ -26,6 +33,17 @@ import {
 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
+import {
+  buildMotionSnapPoints,
+  buildMotionTimelineItems,
+  moveMotionTimelineItem,
+  splitMotionTimelineItem,
+  trimMotionTimelineItem,
+  type MotionTimelineAnimation,
+  type MotionTimelineColor,
+  type MotionTimelineItem,
+  type MotionTimelineRegion,
+} from '@/lib/timeline/motion-timeline'
 
 type PreviewMediaKind = 'video' | 'image'
 type MotionToolId = 'enhance' | 'captions' | 'media' | 'layout'
@@ -116,6 +134,30 @@ const MAX_TIMELINE_HEIGHT_ARIA = 1000
 const TIMELINE_REVEAL_THRESHOLD = 8
 const TIMELINE_COLLAPSE_THRESHOLD = 84
 const TIMELINE_RESIZE_STEP = 16
+const TIMELINE_PIXELS_PER_SECOND = 54
+
+type TimelineInteractionMode = 'move' | 'trim-start' | 'trim-end'
+type TimelineInteraction = {
+  pointerId: number
+  itemId: string
+  mode: TimelineInteractionMode
+  startX: number
+  original: MotionTimelineItem
+  snapPoints: ReturnType<typeof buildMotionSnapPoints>
+  captureTarget: HTMLElement | null
+}
+
+function timelineTimeToPixels(time: number, zoom: number) {
+  return Math.max(0, time) * TIMELINE_PIXELS_PER_SECOND * zoom
+}
+
+function timelineRegionClass(region: MotionTimelineRegion | undefined) {
+  return region === 'top'
+    ? 'top-8'
+    : region === 'bottom'
+      ? 'bottom-16'
+      : 'top-1/2 -translate-y-1/2'
+}
 
 function formatTime(seconds: number) {
   const safe = Math.max(0, seconds)
@@ -125,7 +167,7 @@ function formatTime(seconds: number) {
   return `${minutes.toString().padStart(2, '0')}:${remaining.toString().padStart(2, '0')}.${centiseconds.toString().padStart(2, '0')}`
 }
 
-function isActiveSegment(segment: MotionTranscriptSegment, time: number) {
+function isActiveSegment(segment: Pick<MotionTranscriptSegment, 'start' | 'end'>, time: number) {
   return time >= segment.start && time < segment.end
 }
 
@@ -158,16 +200,19 @@ export function MotionEditWorkspace({
   const [treatment, setTreatment] = React.useState<PreviewTreatment>('clean')
   const [transcriptQuery, setTranscriptQuery] = React.useState('')
   const [activeOnly, setActiveOnly] = React.useState(false)
+  const [timelineItems, setTimelineItems] = React.useState<MotionTimelineItem[]>([])
+  const [selectedTimelineItemId, setSelectedTimelineItemId] = React.useState<string | null>(null)
   const workspaceRef = React.useRef<HTMLElement>(null)
   const transcriptRef = React.useRef<HTMLDivElement>(null)
   const timelineRef = React.useRef<HTMLDivElement>(null)
   const timelineDragRef = React.useRef<{ pointerId: number; startX: number; startScrollLeft: number; moved: boolean } | null>(null)
+  const timelineItemInteractionRef = React.useRef<TimelineInteraction | null>(null)
+  const timelineSeedSignatureRef = React.useRef('')
   const timelineResizeRef = React.useRef<{ pointerId: number; startY: number; startHeight: number; rawHeight: number } | null>(null)
   const [timelineDragging, setTimelineDragging] = React.useState(false)
   const [timelineResizing, setTimelineResizing] = React.useState(false)
 
   const effectiveDuration = durationSec > 0 ? durationSec : Math.max(60, ...transcriptSegments.map((segment) => segment.end))
-  const playheadPercent = Math.min(100, Math.max(0, (currentTimeSec / effectiveDuration) * 100))
   const activeSegment = transcriptSegments.find((segment) => isActiveSegment(segment, currentTimeSec))
   const safeAspectRatio = Number.isFinite(previewAspectRatio) && previewAspectRatio > 0 ? previewAspectRatio : 16 / 9
   const visibleSegments = transcriptSegments.filter((segment) => {
@@ -175,6 +220,31 @@ export function MotionEditWorkspace({
     return matchesQuery && (!activeOnly || isActiveSegment(segment, currentTimeSec))
   })
   const activeTreatment = TREATMENTS.find((item) => item.id === treatment) ?? TREATMENTS[0]
+  const timelineSeedSignature = React.useMemo(() => JSON.stringify({
+    duration: effectiveDuration,
+    sourceLabel: sourceLabel ?? projectTitle,
+    transcriptSegments,
+    textPlacements: textPlacements ?? null,
+  }), [effectiveDuration, projectTitle, sourceLabel, textPlacements, transcriptSegments])
+  const timelineWidth = Math.max(720, timelineTimeToPixels(effectiveDuration, zoom))
+  const selectedTimelineItem = timelineItems.find((item) => item.id === selectedTimelineItemId) ?? null
+  const canSplitSelectedTimelineItem = Boolean(selectedTimelineItem
+    && currentTimeSec > selectedTimelineItem.start
+    && currentTimeSec < selectedTimelineItem.end)
+  const activeTextItem = timelineItems.find((item) => item.track === 'text' && isActiveSegment(item, currentTimeSec)) ?? null
+
+  React.useEffect(() => {
+    if (timelineSeedSignatureRef.current === timelineSeedSignature) return
+    const nextItems = buildMotionTimelineItems({
+      duration: effectiveDuration,
+      sourceLabel: sourceLabel ?? projectTitle,
+      transcriptSegments,
+      textPlacements,
+    })
+    setTimelineItems(nextItems)
+    setSelectedTimelineItemId((current) => current && nextItems.some((item) => item.id === current) ? current : null)
+    timelineSeedSignatureRef.current = timelineSeedSignature
+  }, [effectiveDuration, projectTitle, sourceLabel, textPlacements, timelineSeedSignature, transcriptSegments])
 
   React.useEffect(() => {
     const root = transcriptRef.current
@@ -185,9 +255,9 @@ export function MotionEditWorkspace({
     const timeline = timelineRef.current
     if (!timeline) return
     const bounds = timeline.getBoundingClientRect()
-    const contentX = clientX - bounds.left + timeline.scrollLeft
-    onSeek(Math.min(1, Math.max(0, contentX / timeline.scrollWidth)) * effectiveDuration)
-  }, [effectiveDuration, onSeek])
+    const contentX = Math.max(0, clientX - bounds.left + timeline.scrollLeft - 12)
+    onSeek(Math.min(1, contentX / timelineWidth) * effectiveDuration)
+  }, [effectiveDuration, onSeek, timelineWidth])
 
   const startTimelineDrag = (event: React.PointerEvent<HTMLDivElement>) => {
     const timeline = timelineRef.current
@@ -214,6 +284,85 @@ export function MotionEditWorkspace({
     if (timeline.hasPointerCapture(event.pointerId)) timeline.releasePointerCapture(event.pointerId)
     timelineDragRef.current = null
     setTimelineDragging(false)
+  }
+
+  const selectTimelineItem = React.useCallback((item: MotionTimelineItem) => {
+    setSelectedTimelineItemId(item.id)
+    onSeek(Math.min(effectiveDuration, Math.max(0, item.start)))
+  }, [effectiveDuration, onSeek])
+
+  const startTimelineItemInteraction = (event: React.PointerEvent<HTMLElement>, item: MotionTimelineItem, mode: TimelineInteractionMode) => {
+    event.preventDefault()
+    event.stopPropagation()
+    selectTimelineItem(item)
+    const captureTarget = event.currentTarget.closest<HTMLElement>('[data-motion-timeline-item]')
+    captureTarget?.setPointerCapture(event.pointerId)
+    timelineItemInteractionRef.current = {
+      pointerId: event.pointerId,
+      itemId: item.id,
+      mode,
+      startX: event.clientX,
+      original: item,
+      snapPoints: buildMotionSnapPoints(timelineItems, currentTimeSec, effectiveDuration, item.id),
+      captureTarget,
+    }
+  }
+
+  const moveTimelineItemInteraction = (event: React.PointerEvent<HTMLElement>) => {
+    const interaction = timelineItemInteractionRef.current
+    if (!interaction || interaction.pointerId !== event.pointerId) return
+    event.preventDefault()
+    event.stopPropagation()
+    const deltaSeconds = (event.clientX - interaction.startX) / (TIMELINE_PIXELS_PER_SECOND * zoom)
+    const options = { duration: effectiveDuration, snapPoints: interaction.snapPoints, zoomScale: zoom }
+    const nextItem = interaction.mode === 'move'
+      ? moveMotionTimelineItem(interaction.original, deltaSeconds, options)
+      : trimMotionTimelineItem(interaction.original, interaction.mode === 'trim-start' ? 'start' : 'end', deltaSeconds, options)
+    setTimelineItems((items) => items.map((item) => item.id === interaction.itemId ? nextItem : item))
+  }
+
+  const endTimelineItemInteraction = (event: React.PointerEvent<HTMLElement>) => {
+    const interaction = timelineItemInteractionRef.current
+    if (!interaction || interaction.pointerId !== event.pointerId) return
+    event.preventDefault()
+    event.stopPropagation()
+    if (interaction.captureTarget?.hasPointerCapture(event.pointerId)) interaction.captureTarget.releasePointerCapture(event.pointerId)
+    timelineItemInteractionRef.current = null
+  }
+
+  const updateTimelineItem = React.useCallback((id: string, patch: Partial<MotionTimelineItem>) => {
+    setTimelineItems((items) => items.map((item) => item.id === id ? { ...item, ...patch } : item))
+  }, [])
+
+  const updateTimelineItemTiming = React.useCallback((id: string, edge: 'start' | 'end', value: number) => {
+    setTimelineItems((items) => items.map((item) => {
+      if (item.id !== id || !Number.isFinite(value)) return item
+      const next = trimMotionTimelineItem(item, edge, value - item[edge], { duration: effectiveDuration })
+      return next
+    }))
+  }, [effectiveDuration])
+
+  const splitSelectedTimelineItem = React.useCallback(() => {
+    if (!selectedTimelineItem || currentTimeSec <= selectedTimelineItem.start || currentTimeSec >= selectedTimelineItem.end) return
+    const splitItems = splitMotionTimelineItem(selectedTimelineItem, currentTimeSec)
+    if (splitItems.length < 2) return
+    setTimelineItems((items) => items.flatMap((item) => item.id === selectedTimelineItem.id ? splitItems : [item]))
+    setSelectedTimelineItemId(splitItems[1].id)
+  }, [currentTimeSec, selectedTimelineItem])
+
+  const handleTimelineItemKeyDown = (event: React.KeyboardEvent<HTMLDivElement>, item: MotionTimelineItem) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault()
+      selectTimelineItem(item)
+      return
+    }
+    const step = event.shiftKey ? 1 : 0.1
+    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return
+    event.preventDefault()
+    const delta = event.key === 'ArrowLeft' ? -step : step
+    setTimelineItems((items) => items.map((current) => current.id === item.id
+      ? moveMotionTimelineItem(current, delta, { duration: effectiveDuration })
+      : current))
   }
 
   const getMaximumTimelineHeight = React.useCallback(() => {
@@ -324,6 +473,34 @@ export function MotionEditWorkspace({
     <button type="button" onClick={onPickSource} className="absolute inset-0 grid place-items-center bg-[radial-gradient(circle_at_center,rgba(152,242,55,0.1),transparent_38%)] text-sm text-white/66 transition-colors hover:text-white"><span className="inline-flex items-center gap-2 rounded-md border border-white/12 bg-black/45 px-4 py-2.5"><Upload className="size-4" /> Choose source media</span></button>
   )
 
+  const timelinePanel = showTimeline ? <section className="relative flex shrink-0 flex-col border-t border-white/12 bg-[#070809]/95" style={{ height: timelineHeight }} aria-label="Video timeline">
+    {timelineResizeHandle}
+    <div className="flex min-h-11 shrink-0 items-center justify-between gap-3 border-b border-white/8 px-3 sm:px-5">
+      <div className="flex min-w-0 items-center gap-1.5 sm:gap-3">
+        <span className="text-xs font-medium text-white/86">Timeline</span>
+        <button type="button" onClick={() => setShowTimeline(false)} className="grid size-8 place-items-center rounded-md border border-white/10 bg-white/[0.035] text-white/62 transition-all hover:border-white/20 hover:bg-white/[0.08] hover:text-white" aria-label="Collapse timeline" title="Collapse timeline"><PanelBottomClose className="size-3.5" /></button>
+        <button type="button" onClick={() => setCropEnabled((value) => !value)} className={cn('grid size-8 place-items-center rounded border transition-colors', cropEnabled ? 'border-[#98f237]/35 bg-[#98f237]/10 text-[#b4fb60]' : 'border-white/10 text-white/56 hover:text-white')} aria-label="Toggle crop frame"><Crop className="size-3.5" /></button>
+        <button type="button" onClick={onTogglePlayback} disabled={previewKind !== 'video' || !previewUrl} className="grid size-8 place-items-center text-white/82 disabled:opacity-35" aria-label={previewPlaying ? 'Pause timeline' : 'Play timeline'}>{previewPlaying ? <Pause className="size-4 fill-current" /> : <Play className="size-4 fill-current" />}</button>
+        <button type="button" onClick={() => onPreviewMutedChange(!previewMuted)} disabled={previewKind !== 'video' || !previewUrl} className={cn('grid size-8 place-items-center transition-colors disabled:opacity-35', previewMuted ? 'text-white/42' : 'text-[#b4fb60]')} aria-label={previewMuted ? 'Unmute preview' : 'Mute preview'}><Volume2 className="size-3.5" /></button>
+        <button type="button" onClick={splitSelectedTimelineItem} disabled={!canSplitSelectedTimelineItem} className="grid size-8 place-items-center rounded border border-white/10 text-white/55 transition-colors hover:border-[#98f237]/35 hover:text-[#b4fb60] disabled:cursor-not-allowed disabled:opacity-30" aria-label="Split selected block at playhead" title="Split selected block at playhead"><Scissors className="size-3.5" /></button>
+        {selectedTimelineItem ? <span className="hidden max-w-40 truncate text-[10px] text-[#b4fb60] sm:inline">{selectedTimelineItem.label}</span> : null}
+        <span className="hidden font-mono text-xs tabular-nums text-white/78 md:inline">{currentTimeLabel} <span className="mx-1 text-white/28">/</span> {durationLabel}</span>
+      </div>
+      <label className="flex shrink-0 items-center gap-2 text-white/52"><ZoomOut className="size-3.5" /><span className="sr-only">Timeline zoom</span><input aria-label="Timeline zoom" type="range" min="0.7" max="2.4" step="0.1" value={zoom} onChange={(event) => setZoom(Number(event.target.value))} className="h-1 w-16 accent-[#98f237] sm:w-20" /><ZoomIn className="size-3.5" /></label>
+    </div>
+    <div className="flex min-h-0 flex-1">
+      <div className="hidden w-24 shrink-0 border-r border-white/8 pt-8 text-right text-[10px] text-white/40 sm:block"><div className="pr-3">Video</div><div className="mt-7 pr-3">Audio</div><div className="mt-6 pr-3">Captions</div><div className="mt-6 pr-3">Text</div></div>
+      <div ref={timelineRef} onPointerDown={startTimelineDrag} onPointerMove={moveTimelineDrag} onPointerUp={endTimelineDrag} onPointerCancel={endTimelineDrag} className={cn('premium-scroll-hide relative min-w-0 flex-1 touch-none select-none overflow-auto px-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#98f237]/60', timelineDragging ? 'cursor-grabbing' : 'cursor-grab')} role="slider" aria-label="Motion timeline. Drag blocks to move, drag edges to trim, and click to seek." aria-valuemin={0} aria-valuemax={effectiveDuration} aria-valuenow={currentTimeSec} tabIndex={0} onKeyDown={(event) => { if (event.key === 'ArrowLeft') { event.preventDefault(); onSeek(Math.max(0, currentTimeSec - 1)) } if (event.key === 'ArrowRight') { event.preventDefault(); onSeek(Math.min(effectiveDuration, currentTimeSec + 1)) } if (event.key === 'Home') { event.preventDefault(); onSeek(0) } if (event.key === 'End') { event.preventDefault(); onSeek(effectiveDuration) } }}>
+        <div className="relative min-h-[124px] px-3 pt-4" style={{ width: timelineWidth + 24 }}>
+          <TimelineTracks timelineWidth={timelineWidth} effectiveDuration={effectiveDuration} items={timelineItems} currentTime={currentTimeSec} selectedItemId={selectedTimelineItemId} onSelect={selectTimelineItem} onStartInteraction={startTimelineItemInteraction} onMoveInteraction={moveTimelineItemInteraction} onEndInteraction={endTimelineItemInteraction} onKeyDown={handleTimelineItemKeyDown} />
+          <div className="pointer-events-none absolute bottom-0 top-0 z-20 border-l border-white shadow-[0_0_12px_rgba(255,255,255,.75)]" style={{ left: 12 + timelineTimeToPixels(currentTimeSec, zoom) }}><span className="absolute -left-1.5 -top-1 size-3 rotate-45 bg-white" /></div>
+        </div>
+      </div>
+      {selectedTimelineItem ? <aside className="hidden w-64 shrink-0 overflow-y-auto border-l border-white/8 bg-black/20 xl:block"><TimelineProperties item={selectedTimelineItem} duration={effectiveDuration} onUpdate={updateTimelineItem} onUpdateTiming={updateTimelineItemTiming} /></aside> : null}
+    </div>
+    {selectedTimelineItem ? <div className="border-t border-white/8 px-3 py-1 xl:hidden"><TimelineProperties item={selectedTimelineItem} duration={effectiveDuration} onUpdate={updateTimelineItem} onUpdateTiming={updateTimelineItemTiming} compact /></div> : null}
+  </section> : <div className="relative h-10 shrink-0 border-t border-white/10 bg-[#070809]">{timelineResizeHandle}<button type="button" onClick={() => setShowTimeline(true)} className="group flex h-full w-full items-center justify-center gap-2 text-xs text-white/58 transition-colors hover:bg-white/[0.025] hover:text-white"><PanelBottomOpen className="size-3.5 transition-transform group-hover:-translate-y-0.5" /> Show timeline</button></div>
+
   return (
     <section ref={workspaceRef} data-motion-chamber className="relative flex h-full min-h-0 flex-col overflow-hidden bg-[radial-gradient(ellipse_at_50%_42%,#080808_0%,#000_68%)] text-white" aria-label="Motion editing workspace" onDragOver={onSourceDragOver} onDragLeave={onSourceDragLeave} onDrop={onSourceDrop}>
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.035)_0_1px,transparent_1.2px)] bg-[length:7px_7px] opacity-[0.24]" aria-hidden="true" />
@@ -368,7 +545,8 @@ export function MotionEditWorkspace({
                 <div className="relative h-full w-full overflow-hidden border border-white/18 bg-black shadow-[0_28px_80px_rgba(0,0,0,0.56)]">
                   {renderMedia()}
                   <div className="pointer-events-none absolute left-3 top-3 inline-flex max-w-[calc(100%-1.5rem)] items-center gap-2 rounded bg-black/60 px-2.5 py-1.5 text-[10px] text-white/72 backdrop-blur-sm"><Frame className="size-3 shrink-0 text-[#98f237]" /><span className="truncate">{sourceLabel ?? 'Source video'}</span></div>
-                  {captionsVisible && activeSegment ? <div className="pointer-events-none absolute inset-x-[10%] bottom-8 text-center text-[clamp(.7rem,1.7vw,1.2rem)] font-semibold leading-snug text-white [text-shadow:0_2px_12px_rgba(0,0,0,1)]">{activeSegment.text}</div> : null}
+                  {captionsVisible && activeSegment ? <button type="button" onClick={() => { const item = timelineItems.find((candidate) => candidate.id === `caption-${activeSegment.id}`); if (item) selectTimelineItem(item) }} className={cn('absolute inset-x-[10%] bottom-8 z-10 text-center text-[clamp(.7rem,1.7vw,1.2rem)] font-semibold leading-snug text-white [text-shadow:0_2px_12px_rgba(0,0,0,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#b4fb60]', selectedTimelineItemId === `caption-${activeSegment.id}` && 'text-[#b4fb60]')}>{activeSegment.text}</button> : null}
+                  {activeTextItem ? <button type="button" onClick={() => selectTimelineItem(activeTextItem)} className={cn('absolute inset-x-[12%] z-10 truncate px-3 text-center text-[clamp(.75rem,2vw,1.4rem)] font-semibold [text-shadow:0_2px_12px_rgba(0,0,0,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#b4fb60]', timelineRegionClass(activeTextItem.region), activeTextItem.color === 'white' ? 'text-white' : activeTextItem.color === 'cyan' ? 'text-cyan-200' : 'text-[#b4fb60]', selectedTimelineItemId === activeTextItem.id && 'underline decoration-[#b4fb60] decoration-2 underline-offset-4')}>{activeTextItem.text ?? activeTextItem.label}</button> : null}
                   <button type="button" onClick={onTogglePlayback} disabled={previewKind !== 'video' || !previewUrl} className="absolute bottom-3 left-3 grid size-10 place-items-center rounded-full border border-white/12 bg-black/60 text-white backdrop-blur-sm transition-colors hover:bg-black/82 disabled:cursor-not-allowed disabled:opacity-35" aria-label={previewPlaying ? 'Pause preview' : 'Play preview'}>{previewPlaying ? <Pause className="size-4 fill-current" /> : <Play className="ml-0.5 size-4 fill-current" />}</button>
                 </div>
                 {cropEnabled ? <CropFrame rect={cropRect} onChange={setCropRect} /> : null}
@@ -380,7 +558,7 @@ export function MotionEditWorkspace({
         <aside className="hidden w-[72px] shrink-0 border-l border-white/8 bg-black/28 lg:flex lg:flex-col lg:items-center lg:gap-2 lg:pt-3">{TOOLS.map(({ id, label, icon: Icon }) => <button key={id} type="button" onClick={() => selectTool(id)} className={cn('group flex min-h-12 w-full flex-col items-center gap-1 border-l-2 px-1 py-1.5 text-[9px] font-medium transition-colors', activeTool === id ? 'border-[#98f237] text-white' : 'border-transparent text-white/46 hover:text-white/82')}><span className={cn('grid size-7 place-items-center rounded-md transition-colors', activeTool === id ? 'bg-[#98f237]/12 text-[#b4fb60]' : 'text-white/65 group-hover:bg-white/[0.06]')}><Icon className="size-3.5" /></span>{label}</button>)}<div className="mt-auto mb-3 text-[8px] uppercase tracking-[0.12em] text-white/28">{activeTool}</div></aside>
       </div>
 
-      {showTimeline ? <section className="relative shrink-0 border-t border-white/12 bg-[#070809]/95" style={{ height: timelineHeight }} aria-label="Video timeline">{timelineResizeHandle}<div className="flex h-11 items-center justify-between border-b border-white/8 px-3 sm:px-5"><div className="flex items-center gap-1.5 sm:gap-3"><span className="text-xs font-medium text-white/86">Timeline</span><button type="button" onClick={() => setShowTimeline(false)} className="grid size-8 place-items-center rounded-md border border-white/10 bg-white/[0.035] text-white/62 transition-all hover:border-white/20 hover:bg-white/[0.08] hover:text-white" aria-label="Collapse timeline" title="Collapse timeline"><PanelBottomClose className="size-3.5" /></button><button type="button" onClick={() => setCropEnabled((value) => !value)} className={cn('grid size-8 place-items-center rounded border transition-colors', cropEnabled ? 'border-[#98f237]/35 bg-[#98f237]/10 text-[#b4fb60]' : 'border-white/10 text-white/56 hover:text-white')} aria-label="Toggle crop frame"><Crop className="size-3.5" /></button><button type="button" onClick={onTogglePlayback} disabled={previewKind !== 'video' || !previewUrl} className="grid size-8 place-items-center text-white/82 disabled:opacity-35" aria-label={previewPlaying ? 'Pause timeline' : 'Play timeline'}>{previewPlaying ? <Pause className="size-4 fill-current" /> : <Play className="size-4 fill-current" />}</button><button type="button" onClick={() => onPreviewMutedChange(!previewMuted)} disabled={previewKind !== 'video' || !previewUrl} className={cn('grid size-8 place-items-center transition-colors disabled:opacity-35', previewMuted ? 'text-white/42' : 'text-[#b4fb60]')} aria-label={previewMuted ? 'Unmute preview' : 'Mute preview'}><Volume2 className="size-3.5" /></button><span className="hidden font-mono text-xs tabular-nums text-white/78 sm:inline">{currentTimeLabel} <span className="mx-1 text-white/28">/</span> {durationLabel}</span></div><label className="flex items-center gap-2 text-white/52"><ZoomOut className="size-3.5" /><span className="sr-only">Timeline zoom</span><input aria-label="Timeline zoom" type="range" min="0.7" max="2.4" step="0.1" value={zoom} onChange={(event) => setZoom(Number(event.target.value))} className="h-1 w-16 accent-[#98f237] sm:w-20" /><ZoomIn className="size-3.5" /></label></div><div className="flex min-h-0"><div className="hidden w-24 shrink-0 border-r border-white/8 pt-8 text-right text-[10px] text-white/40 sm:block"><div className="pr-3">Video</div><div className="mt-7 pr-3">Audio</div><div className="mt-6 pr-3">Captions</div><div className="mt-6 pr-3">Text</div></div><div ref={timelineRef} onPointerDown={startTimelineDrag} onPointerMove={moveTimelineDrag} onPointerUp={endTimelineDrag} onPointerCancel={endTimelineDrag} className={cn('premium-scroll-hide relative min-w-0 flex-1 touch-none select-none overflow-x-auto overflow-y-hidden px-3 pt-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#98f237]/60', timelineDragging ? 'cursor-grabbing' : 'cursor-grab')} role="slider" aria-label="Timeline. Drag to scroll, click to seek." aria-valuemin={0} aria-valuemax={effectiveDuration} aria-valuenow={currentTimeSec} tabIndex={0} onKeyDown={(event) => { if (event.key === 'ArrowLeft') { event.preventDefault(); onSeek(Math.max(0, currentTimeSec - 1)) } if (event.key === 'ArrowRight') { event.preventDefault(); onSeek(Math.min(effectiveDuration, currentTimeSec + 1)) } if (event.key === 'Home') { event.preventDefault(); onSeek(0) } if (event.key === 'End') { event.preventDefault(); onSeek(effectiveDuration) } }}><TimelineTracks zoom={zoom} effectiveDuration={effectiveDuration} sourceLabel={sourceLabel ?? projectTitle} transcriptSegments={transcriptSegments} captionsVisible={captionsVisible} currentTime={currentTimeSec} textPlacements={textPlacements} /><div className="pointer-events-none absolute bottom-0 top-0 z-10 border-l border-white shadow-[0_0_12px_rgba(255,255,255,.75)]" style={{ left: `calc(${playheadPercent * zoom}% + 0.75rem)` }}><span className="absolute -left-1.5 -top-1 size-3 rotate-45 bg-white" /></div></div></div></section> : <div className="relative h-10 shrink-0 border-t border-white/10 bg-[#070809]">{timelineResizeHandle}<button type="button" onClick={() => setShowTimeline(true)} className="group flex h-full w-full items-center justify-center gap-2 text-xs text-white/58 transition-colors hover:bg-white/[0.025] hover:text-white"><PanelBottomOpen className="size-3.5 transition-transform group-hover:-translate-y-0.5" /> Show timeline</button></div>}
+      {timelinePanel}
     </section>
   )
 }
@@ -450,15 +628,141 @@ function ToolPanel({ activeTool, treatment, captionsVisible, cropEnabled, fitMod
   return <div className="mt-2 border-t border-white/8 pt-2">{content}</div>
 }
 
-function TimelineTracks({ zoom, effectiveDuration, sourceLabel, transcriptSegments, captionsVisible, currentTime, textPlacements }: { zoom: number; effectiveDuration: number; sourceLabel: string; transcriptSegments: MotionTranscriptSegment[]; captionsVisible: boolean; currentTime: number; textPlacements?: MotionTextPlacement[] }) {
-  const width = `${zoom * 100}%`
-  const activeSegment = transcriptSegments.find((segment) => isActiveSegment(segment, currentTime))
-  const resolvedTextPlacements = textPlacements ?? transcriptSegments.slice(0, 3).map((segment, index) => ({
-    id: `text-${segment.id}`,
-    start: segment.start,
-    end: segment.end,
-    text: segment.text.split(' ').slice(0, 4).join(' '),
-    region: index === 1 ? 'bottom' : index === 2 ? 'top' : 'center',
-  } as MotionTextPlacement))
-  return <><div className="relative h-5 border-b border-white/10" style={{ width, minWidth: '100%' }}>{Array.from({ length: 8 }).map((_, index) => <span key={index} className="absolute top-0 h-2 border-l border-white/28 text-[10px] text-white/42" style={{ left: `${(index / 7) * 100}%` }}><span className="absolute left-1 top-2 whitespace-nowrap">{formatTime((effectiveDuration * index) / 7).slice(0, 5)}</span></span>)}</div><div className="relative mt-2 h-11 overflow-hidden rounded border border-white/14 bg-[linear-gradient(120deg,#6b4332_0%,#d99768_13%,#5c3427_21%,#d89b71_34%,#273d48_53%,#bd825d_68%,#5b3728_82%,#d99c6d_100%)]" style={{ width, minWidth: '100%' }}><div className="absolute inset-0 bg-[repeating-linear-gradient(90deg,transparent_0,transparent_36px,rgba(0,0,0,.46)_37px,transparent_39px)]" />{activeSegment ? <div className="absolute inset-y-0 border-x border-white/30 bg-white/[0.07]" style={{ left: `${(activeSegment.start / effectiveDuration) * 100}%`, width: `${Math.max(1.5, ((activeSegment.end - activeSegment.start) / effectiveDuration) * 100)}%` }} /> : null}<span className="absolute bottom-1 left-2 max-w-[calc(100%-1rem)] truncate rounded bg-black/62 px-1.5 py-0.5 text-[9px] text-white/82">{sourceLabel}</span></div><div className="relative mt-2 h-8 overflow-hidden rounded bg-white/[0.08]" style={{ width, minWidth: '100%' }}><div className="absolute inset-0 opacity-70 [background-image:linear-gradient(90deg,transparent_0%,rgba(255,255,255,.7)_1%,transparent_2%,transparent_5%,rgba(255,255,255,.4)_6%,transparent_8%)] [background-size:42px_100%]" />{transcriptSegments.length > 0 ? transcriptSegments.map((segment, index) => { const centerPct = (((segment.start + segment.end) / 2) / effectiveDuration) * 100; const energy = 30 + ((segment.text.length + index * 3) % 7) * 8; return <span key={segment.id} className={cn('absolute bottom-1 w-[3px] -translate-x-1/2 rounded-full transition-colors duration-150', isActiveSegment(segment, currentTime) ? 'bg-[#b4fb60] shadow-[0_0_8px_rgba(180,251,96,.6)]' : 'bg-white/42')} style={{ left: `${centerPct}%`, height: `${energy}%` }} /> }) : null}</div>{captionsVisible ? <div className="relative mt-2 h-7 overflow-hidden" style={{ width, minWidth: '100%' }}>{transcriptSegments.map((segment) => <span key={segment.id} className={cn('absolute top-1 truncate rounded px-1.5 py-1 text-[9px] transition-colors', isActiveSegment(segment, currentTime) ? 'bg-[#98f237]/38 text-white' : 'bg-[#98f237]/18 text-white/72')} style={{ left: `${(segment.start / effectiveDuration) * 100}%`, width: `${Math.max(8, ((segment.end - segment.start) / effectiveDuration) * 100)}%` }}>{segment.text.split(' ').slice(0, 3).join(' ')}</span>)}</div> : null}<div className="relative mt-2 h-7 overflow-hidden rounded bg-white/[0.035]" style={{ width, minWidth: '100%' }}>{resolvedTextPlacements.map((placement) => <button type="button" key={placement.id} className="absolute top-1 truncate rounded border border-dashed border-[#98f237]/40 bg-[#98f237]/8 px-1.5 py-1 text-left text-[9px] text-white/70 transition-colors hover:border-[#98f237] hover:bg-[#98f237]/15 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#98f237]/60" style={{ left: `${(placement.start / effectiveDuration) * 100}%`, width: `${Math.max(10, ((placement.end - placement.start) / effectiveDuration) * 100)}%` }} title={`Text placement (${placement.region ?? 'center'}) from ${formatTime(placement.start)}`}>{placement.text}</button>)}</div></>
+type TimelineTracksProps = {
+  timelineWidth: number
+  effectiveDuration: number
+  items: MotionTimelineItem[]
+  currentTime: number
+  selectedItemId: string | null
+  onSelect: (item: MotionTimelineItem) => void
+  onStartInteraction: (event: React.PointerEvent<HTMLElement>, item: MotionTimelineItem, mode: TimelineInteractionMode) => void
+  onMoveInteraction: (event: React.PointerEvent<HTMLElement>) => void
+  onEndInteraction: (event: React.PointerEvent<HTMLElement>) => void
+  onKeyDown: (event: React.KeyboardEvent<HTMLDivElement>, item: MotionTimelineItem) => void
+}
+
+function TimelineTracks({
+  timelineWidth,
+  effectiveDuration,
+  items,
+  currentTime,
+  selectedItemId,
+  onSelect,
+  onStartInteraction,
+  onMoveInteraction,
+  onEndInteraction,
+  onKeyDown,
+}: TimelineTracksProps) {
+  const tracks: { id: MotionTimelineItem['track']; label: string; icon: typeof Film; className: string }[] = [
+    { id: 'video', label: 'Video', icon: Film, className: 'border-white/14 bg-[linear-gradient(120deg,#6b4332_0%,#d99768_13%,#5c3427_21%,#d89b71_34%,#273d48_53%,#bd825d_68%,#5b3728_82%,#d99c6d_100%)]' },
+    { id: 'audio', label: 'Audio', icon: Music2, className: 'bg-white/[0.08]' },
+    { id: 'captions', label: 'Captions', icon: Subtitles, className: 'bg-[#98f237]/[0.08]' },
+    { id: 'text', label: 'Text', icon: Type, className: 'bg-[#98f237]/[0.04]' },
+  ]
+  return <>
+    <div className="relative h-5 border-b border-white/10" style={{ width: timelineWidth }}>
+      {Array.from({ length: 9 }).map((_, index) => {
+        const time = effectiveDuration * index / 8
+        return <span key={index} className="absolute top-0 h-2 border-l border-white/28 text-[10px] text-white/42" style={{ left: (time / effectiveDuration) * timelineWidth }}>
+          <span className="absolute left-1 top-2 whitespace-nowrap">{formatTime(time).slice(0, 5)}</span>
+        </span>
+      })}
+    </div>
+    {tracks.map(({ id, label, icon: Icon, className }) => {
+      const laneItems = items.filter((item) => item.track === id)
+      return <div key={id} className={cn('relative mt-2 h-8 overflow-hidden rounded', className)} style={{ width: timelineWidth }}>
+        {id === 'audio' ? <div className="absolute inset-0 opacity-70 [background-image:linear-gradient(90deg,transparent_0%,rgba(255,255,255,.7)_1%,transparent_2%,transparent_5%,rgba(255,255,255,.4)_6%,transparent_8%)] [background-size:42px_100%]" /> : null}
+        {id === 'video' ? <div className="absolute inset-0 bg-[repeating-linear-gradient(90deg,transparent_0,transparent_36px,rgba(0,0,0,.46)_37px,transparent_39px)]" /> : null}
+        {laneItems.map((item) => <TimelineBlock key={item.id} item={item} effectiveDuration={effectiveDuration} selected={selectedItemId === item.id} active={isActiveSegment(item, currentTime)} onSelect={onSelect} onStartInteraction={onStartInteraction} onMoveInteraction={onMoveInteraction} onEndInteraction={onEndInteraction} onKeyDown={onKeyDown} />)}
+        {laneItems.length === 0 ? <span className="absolute left-2 top-1.5 inline-flex items-center gap-1 text-[9px] text-white/22"><Icon className="size-3" />{label}</span> : null}
+      </div>
+    })}
+  </>
+}
+
+function TimelineBlock({
+  item,
+  effectiveDuration,
+  selected,
+  active,
+  onSelect,
+  onStartInteraction,
+  onMoveInteraction,
+  onEndInteraction,
+  onKeyDown,
+}: {
+  item: MotionTimelineItem
+  effectiveDuration: number
+  selected: boolean
+  active: boolean
+  onSelect: (item: MotionTimelineItem) => void
+  onStartInteraction: TimelineTracksProps['onStartInteraction']
+  onMoveInteraction: TimelineTracksProps['onMoveInteraction']
+  onEndInteraction: TimelineTracksProps['onEndInteraction']
+  onKeyDown: TimelineTracksProps['onKeyDown']
+}) {
+  const tone = item.track === 'video'
+    ? 'bg-black/22 text-white'
+    : item.track === 'audio'
+      ? 'bg-white/[0.16] text-white'
+      : item.track === 'captions'
+        ? 'bg-[#98f237]/35 text-white'
+        : item.color === 'cyan'
+          ? 'bg-cyan-300/22 text-cyan-100'
+          : item.color === 'white'
+            ? 'bg-white/18 text-white'
+            : 'bg-[#98f237]/18 text-[#d7ffae]'
+  const left = (item.start / effectiveDuration) * 100
+  const width = Math.max(0.8, ((item.end - item.start) / effectiveDuration) * 100)
+  return <div
+    data-motion-timeline-item
+    role="button"
+    tabIndex={0}
+    aria-label={item.label + '. ' + formatTime(item.start) + ' to ' + formatTime(item.end) + '. Drag to move.'}
+    className={cn('absolute inset-y-1 overflow-hidden rounded border px-1.5 text-left text-[9px] transition-[border-color,background-color,box-shadow] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#b4fb60]/75', tone, selected ? 'z-10 border-[#b4fb60] shadow-[0_0_0_1px_rgba(180,251,96,.65),0_0_12px_rgba(180,251,96,.18)]' : active ? 'border-white/65' : 'border-white/15')}
+    style={{ left: left + '%', width: width + '%', minWidth: 22, cursor: 'grab' }}
+    onPointerDown={(event) => onStartInteraction(event, item, 'move')}
+    onPointerMove={onMoveInteraction}
+    onPointerUp={onEndInteraction}
+    onPointerCancel={onEndInteraction}
+    onKeyDown={(event) => onKeyDown(event, item)}
+    onClick={() => onSelect(item)}
+  >
+    {item.track === 'video' ? <span className="pointer-events-none absolute inset-y-0 left-1 flex items-center"><Film className="size-3 text-[#ffd0a5]/75" /></span> : null}
+    {item.track === 'audio' ? <span className="pointer-events-none absolute inset-y-0 left-1 flex items-center"><Music2 className="size-3 text-white/65" /></span> : null}
+    {item.track === 'captions' ? <span className="pointer-events-none absolute inset-y-0 left-1 flex items-center"><Subtitles className="size-3 text-white/80" /></span> : null}
+    {item.track === 'text' ? <span className="pointer-events-none absolute inset-y-0 left-1 flex items-center"><Type className="size-3 text-[#b4fb60]/80" /></span> : null}
+    <span className="pointer-events-none block truncate pl-3">{item.label}</span>
+    <button type="button" aria-label={'Trim start of ' + item.label} title="Trim start" className="absolute inset-y-0 left-0 z-20 w-2 cursor-ew-resize border-r border-white/45 bg-white/10 opacity-0 transition-opacity hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#b4fb60]" onPointerDown={(event) => onStartInteraction(event, item, 'trim-start')}><span className="sr-only">Trim start</span></button>
+    <button type="button" aria-label={'Trim end of ' + item.label} title="Trim end" className="absolute inset-y-0 right-0 z-20 w-2 cursor-ew-resize border-l border-white/45 bg-white/10 opacity-0 transition-opacity hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#b4fb60]" onPointerDown={(event) => onStartInteraction(event, item, 'trim-end')}><span className="sr-only">Trim end</span></button>
+  </div>
+}
+
+function TimelineProperties({
+  item,
+  duration,
+  onUpdate,
+  onUpdateTiming,
+  compact = false,
+}: {
+  item: MotionTimelineItem
+  duration: number
+  onUpdate: (id: string, patch: Partial<MotionTimelineItem>) => void
+  onUpdateTiming: (id: string, edge: 'start' | 'end', value: number) => void
+  compact?: boolean
+}) {
+  const inputClass = 'h-7 w-full rounded border border-white/10 bg-black/30 px-1.5 text-[10px] text-white outline-none focus:border-[#98f237]/55'
+  return <div className={cn('space-y-2 p-3', compact && 'flex flex-wrap items-center gap-2 space-y-0')}>
+    <div className="flex items-center gap-2 text-[10px]"><GripVertical className="size-3 text-[#b4fb60]" /><span className="text-white/80">Selected block</span><span className="ml-auto text-white/35">{item.track}</span></div>
+    <div className="grid grid-cols-2 gap-1.5">
+      <label className="text-[9px] text-white/42">Start<input aria-label="Block start time" className={inputClass} type="number" min={0} max={duration} step={0.1} value={item.start.toFixed(2)} onChange={(event) => onUpdateTiming(item.id, 'start', Number(event.target.value))} /></label>
+      <label className="text-[9px] text-white/42">End<input aria-label="Block end time" className={inputClass} type="number" min={0} max={duration} step={0.1} value={item.end.toFixed(2)} onChange={(event) => onUpdateTiming(item.id, 'end', Number(event.target.value))} /></label>
+    </div>
+    {item.kind === 'text' || item.kind === 'caption' ? <label className="block text-[9px] text-white/42">Text<input aria-label="Block text" className={inputClass} value={item.text ?? item.label} onChange={(event) => onUpdate(item.id, { text: event.target.value, label: event.target.value })} /></label> : null}
+    {item.kind === 'text' ? <div className="grid grid-cols-3 gap-1.5">
+      <label className="text-[9px] text-white/42">Region<select aria-label="Text region" className={inputClass} value={item.region ?? 'center'} onChange={(event) => onUpdate(item.id, { region: event.target.value as MotionTimelineRegion })}><option value="top">Top</option><option value="center">Center</option><option value="bottom">Bottom</option></select></label>
+      <label className="text-[9px] text-white/42">Color<select aria-label="Text color" className={inputClass} value={item.color ?? 'lime'} onChange={(event) => onUpdate(item.id, { color: event.target.value as MotionTimelineColor })}><option value="lime">Lime</option><option value="white">White</option><option value="cyan">Cyan</option></select></label>
+      <label className="text-[9px] text-white/42">Motion<select aria-label="Text animation" className={inputClass} value={item.animation ?? 'pop'} onChange={(event) => onUpdate(item.id, { animation: event.target.value as MotionTimelineAnimation })}><option value="fade">Fade</option><option value="pop">Pop</option><option value="slide">Slide</option></select></label>
+    </div> : null}
+  </div>
 }
