@@ -915,6 +915,7 @@ const EDITOR_REQUEST_TIMEOUT_MS = 25_000
 const TRANSCRIPT_SYNC_FAILURES_BEFORE_FALLBACK = 3
 const TRANSCRIPT_PROVIDER_MAX_WAIT_MS = 30 * 60 * 1000
 const TRANSCRIPT_START_BACKOFF_MS = 30 * 1000
+const MAX_TRANSCRIPT_AUTO_RESTARTS = 1
 
 const CHAT_COMPOSER_FONT_STYLE = {
   fontFamily: '"SF Pro Text","SF Pro Display",-apple-system,BlinkMacSystemFont,"Segoe UI","Helvetica Neue",Arial,sans-serif',
@@ -3042,6 +3043,12 @@ function CurvedThreadPill({
 
 function FloatingChatComposer({
   projectId,
+  previewUrl = null,
+  previewKind = 'video',
+  sourceLabel = 'Source video',
+  transcriptStatus = 'idle',
+  transcriptError = null,
+  transcriptSegments = [],
   draft,
   onDraftChange,
   onSubmit,
@@ -3082,6 +3089,12 @@ function FloatingChatComposer({
   focusPulse = 0,
 }: {
   projectId: string
+  previewUrl?: string | null
+  previewKind?: PreviewMediaKind
+  sourceLabel?: string
+  transcriptStatus?: string
+  transcriptError?: string | null
+  transcriptSegments?: TranscriptSegment[]
   draft: string
   onDraftChange: (value: string) => void
   onSubmit: (submission: FrameAssistSubmission) => void | Promise<void>
@@ -3122,6 +3135,7 @@ function FloatingChatComposer({
   focusPulse?: number
 }) {
   const isMobile = useMediaQuery('(max-width: 767px)')
+  const [showSourceVideo, setShowSourceVideo] = React.useState(true)
   const responsivePlaceholderText = 'Ask about editing, color, sound...'
   const composerId = React.useId()
   const hasDraft = draft.trim().length > 0
@@ -3611,6 +3625,19 @@ function FloatingChatComposer({
         whileHover={!isThreadOpen && !reduceMotion ? { y: -2, scale: 1.025 } : undefined}
         whileTap={!isThreadOpen && !reduceMotion ? { scale: 0.96 } : undefined}
       >
+        {isThreadOpen ? (
+          <button
+            type="button"
+            data-editorial-chat-video-toggle
+            aria-label={showSourceVideo ? 'Hide source video alongside chat' : 'Show source video alongside chat'}
+            aria-pressed={showSourceVideo}
+            onClick={() => setShowSourceVideo((current) => !current)}
+            className="absolute right-16 top-3 z-40 hidden max-w-[calc(100%-8rem)] items-center gap-2 rounded-full border border-white/10 bg-black/72 px-3 py-2 text-left text-[11px] text-white/62 shadow-[0_12px_30px_rgba(0,0,0,0.34)] backdrop-blur-xl transition-colors hover:border-white/20 hover:text-white md:inline-flex"
+          >
+            <span className="size-1.5 shrink-0 rounded-full bg-[#7ff2d4]" />
+            <span className="truncate underline decoration-white/25 underline-offset-4">{sourceLabel}</span>
+          </button>
+        ) : null}
         <AnimatePresence initial={false}>
           {focusPulse > 0 && isThreadOpen && !reduceMotion ? (
             <motion.div
@@ -3665,33 +3692,85 @@ function FloatingChatComposer({
             {isThreadOpen ? (
               <motion.div
                 key="thread-prometheus-chat"
-                className="relative h-full min-h-0"
+                data-editorial-chat-workspace="split"
+                layout
+                className={cn(
+                  'relative grid h-full min-h-0 bg-black md:grid-cols-[minmax(0,1fr)]',
+                  showSourceVideo && previewUrl && !isMobile && 'md:grid-cols-[minmax(18rem,0.82fr)_minmax(0,1.18fr)]',
+                )}
                 variants={chatInteriorVariants}
                 initial={reduceMotion ? false : 'hidden'}
                 animate={reduceMotion ? undefined : 'visible'}
                 exit={reduceMotion ? undefined : 'exit'}
               >
-                <PrometheusChat
-                  projectId={projectId}
-                  title="Current Chat"
-                  messages={editorOverlayMessages}
-                  draft={draft}
-                  onDraftChange={onDraftChange}
-                  thinking={loading}
-                  onSend={async () => {
-                    await handleComposerSubmit()
-                  }}
-                  onAttachImage={() => attachmentInputRef.current?.click()}
-                  contextProvider={chatContextProvider}
-                  onApplyActions={onApplyChatActions}
-                  onSeekToSec={onChatSeekToSec}
-                  workspaceTab={workspaceTab}
-                  className="min-h-full"
-                  onClose={() => {
-                    onThreadOpenChange(false)
-                    onOpenChange(false)
-                  }}
-                />
+                {showSourceVideo && previewUrl ? (
+                  <motion.aside
+                    layout
+                    initial={reduceMotion ? false : { opacity: 0, x: -18, filter: 'blur(8px)' }}
+                    animate={reduceMotion ? undefined : { opacity: 1, x: 0, filter: 'blur(0px)' }}
+                    exit={reduceMotion ? undefined : { opacity: 0, x: -12, filter: 'blur(6px)' }}
+                    transition={{ duration: reduceMotion ? 0 : 0.32, ease: [0.22, 1, 0.36, 1] }}
+                    className="relative hidden min-h-0 overflow-hidden border-r border-white/10 bg-[#050505] md:flex md:flex-col"
+                  >
+                    <div className="flex shrink-0 items-center justify-between gap-3 border-b border-white/[0.07] px-5 py-4">
+                      <div className="min-w-0">
+                        <p className="text-[10px] uppercase tracking-[0.18em] text-white/35">Live source</p>
+                        <p className="mt-1 truncate text-sm text-white/84">{sourceLabel}</p>
+                      </div>
+                      <span className="size-2 shrink-0 rounded-full bg-[#7ff2d4] shadow-[0_0_14px_rgba(127,242,212,0.64)]" />
+                    </div>
+                    <div className="relative flex min-h-0 flex-1 items-center justify-center p-5">
+                      <div className="relative w-full max-w-[38rem] overflow-hidden rounded-lg border border-white/10 bg-black shadow-[0_28px_70px_rgba(0,0,0,0.52)]">
+                        {previewKind === 'image' ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={previewUrl} alt={sourceLabel} className="aspect-video h-full w-full object-contain" />
+                        ) : (
+                          <video src={previewUrl} controls playsInline preload="metadata" className="aspect-video h-full w-full bg-black object-contain" />
+                        )}
+                      </div>
+                    </div>
+                    <div className="max-h-44 shrink-0 overflow-y-auto border-t border-white/[0.07] px-5 py-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-[10px] uppercase tracking-[0.18em] text-white/35">Transcript</p>
+                        <span className="text-[10px] uppercase tracking-[0.12em] text-white/32">{transcriptStatus}</span>
+                      </div>
+                      {transcriptError ? <p className="mt-2 text-xs leading-5 text-rose-200/75">{transcriptError}</p> : null}
+                      {!transcriptError && transcriptSegments.length > 0 ? (
+                        <div className="mt-2 space-y-1.5">
+                          {transcriptSegments.slice(0, 8).map((segment) => (
+                            <button key={segment.id} type="button" onClick={() => onChatSeekToSec?.(segment.startMs / 1000)} className="block w-full rounded-md px-2 py-1 text-left text-xs leading-5 text-white/58 transition-colors hover:bg-white/[0.05] hover:text-white">
+                              <span className="mr-2 font-mono text-[10px] text-[#7ff2d4]/65">{Math.floor(segment.startMs / 1000)}s</span>
+                              {segment.text}
+                            </button>
+                          ))}
+                        </div>
+                      ) : !transcriptError ? <p className="mt-2 text-xs leading-5 text-white/38">{transcriptStatus === 'completed' ? 'Transcript finished without readable lines.' : 'Transcript will appear here as AssemblyAI processes the source.'}</p> : null}
+                    </div>
+                  </motion.aside>
+                ) : null}
+                <div className="relative min-h-0 min-w-0">
+                  <PrometheusChat
+                    projectId={projectId}
+                    title="Current Chat"
+                    messages={editorOverlayMessages}
+                    draft={draft}
+                    onDraftChange={onDraftChange}
+                    thinking={loading}
+                    onSend={async () => {
+                      await handleComposerSubmit()
+                    }}
+                    onAttachImage={() => attachmentInputRef.current?.click()}
+                    contextProvider={chatContextProvider}
+                    onApplyActions={onApplyChatActions}
+                    onSeekToSec={onChatSeekToSec}
+                    workspaceTab={workspaceTab}
+                    className="min-h-full"
+                    onClose={() => {
+                      onThreadOpenChange(false)
+                      onOpenChange(false)
+                    }}
+                  />
+                </div>
               </motion.div>
             ) : isOpen ? (
               <motion.div
@@ -3903,6 +3982,12 @@ function FloatingChatComposer({
 const ChatWorkspacePanel = React.memo(function ChatWorkspacePanel({
   projectId,
   projectTitle,
+  previewUrl = null,
+  previewKind = 'video',
+  sourceLabel = 'Source video',
+  transcriptStatus = 'idle',
+  transcriptError = null,
+  transcriptSegments = [],
   initialPrompt,
   initialSources,
   videoContext,
@@ -3919,6 +4004,12 @@ const ChatWorkspacePanel = React.memo(function ChatWorkspacePanel({
 }: {
   projectId: string
   projectTitle: string
+  previewUrl?: string | null
+  previewKind?: PreviewMediaKind
+  sourceLabel?: string
+  transcriptStatus?: string
+  transcriptError?: string | null
+  transcriptSegments?: TranscriptSegment[]
   initialPrompt: string
   initialSources: string[]
   videoContext: MusicVideoContext
@@ -5821,6 +5912,12 @@ const ChatWorkspacePanel = React.memo(function ChatWorkspacePanel({
               <>
                 <FloatingChatComposer
                   projectId={projectId}
+                  previewUrl={previewUrl}
+                  previewKind={previewKind}
+                  sourceLabel={sourceLabel}
+                  transcriptStatus={transcriptStatus}
+                  transcriptError={transcriptError}
+                  transcriptSegments={transcriptSegments}
                   chatContextProvider={chatContextProvider}
                   onApplyChatActions={onApplyChatActions}
                   onChatSeekToSec={onChatSeekToSec}
@@ -7103,6 +7200,7 @@ const [isTranscribingVideo, setIsTranscribingVideo] = React.useState(false)
   const [transcriptError, setTranscriptError] = React.useState<string | null>(null)
   const transcriptStartAttemptedRef = React.useRef<string | null>(null)
   const transcriptLastStartAttemptAtRef = React.useRef(0)
+  const transcriptAutoRestartsRef = React.useRef(0)
 
   const runFallbackTranscription = React.useCallback(async (sourceAssetId: string) => {
     // Source video bytes already live in R2. Restart the provider job with a
@@ -7135,6 +7233,7 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
 
     transcriptStartAttemptedRef.current = sourceAssetId
     transcriptLastStartAttemptAtRef.current = now
+    if (retry) transcriptAutoRestartsRef.current = 0
     setTranscriptError(null)
     setIsTranscribingVideo(true)
     try {
@@ -7173,6 +7272,7 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
     let active = true
     let inFlight = false
     let completed = false
+    let gaveUp = false
     let intervalId: number | null = null
     let syncFailures = 0
 
@@ -7190,8 +7290,35 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
       setIsTranscribingVideo(false)
     }
 
+    // Stop auto-recovery and surface the real provider error instead of looping
+    // forever. The budget persists across effect re-runs (a restart bumps
+    // transcriptRefreshToken, which otherwise would reset every counter).
+    const giveUp = (message: string) => {
+      if (gaveUp) return
+      gaveUp = true
+      if (intervalId !== null) window.clearInterval(intervalId)
+      intervalId = null
+      setTranscriptError(message)
+      setIsTranscribingVideo(false)
+    }
+
+    const attemptRestart = async (message: string) => {
+      if (gaveUp) return
+      if (transcriptAutoRestartsRef.current >= MAX_TRANSCRIPT_AUTO_RESTARTS) {
+        giveUp(message)
+        return
+      }
+      transcriptAutoRestartsRef.current += 1
+      setTranscriptError(message)
+      try {
+        await runFallbackTranscription(sourceAssetId)
+      } catch (fallbackError) {
+        giveUp(fallbackError instanceof Error ? fallbackError.message : message)
+      }
+    }
+
     const pollTranscript = async () => {
-      if (completed || !active || inFlight) return
+      if (completed || gaveUp || !active || inFlight) return
       inFlight = true
       try {
         const response = await fetch(`/api/assets/${sourceAssetId}/transcript`, {
@@ -7215,17 +7342,19 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
         }
 
         if (body?.status === 'failed') {
-          syncFailures = TRANSCRIPT_SYNC_FAILURES_BEFORE_FALLBACK
-        } else if (body?.status === 'transcribing' || body?.status === 'queued') {
+          await attemptRestart(failureMessage || 'Transcription failed.')
+          return
+        }
+
+        if (body?.status === 'transcribing' || body?.status === 'queued') {
           setIsTranscribingVideo(true)
           const transcriptStartedAt = body.startedAt ? Date.parse(body.startedAt) : NaN
           if (!Number.isFinite(transcriptStartedAt) || Date.now() - transcriptStartedAt >= TRANSCRIPT_PROVIDER_MAX_WAIT_MS) {
-            setTranscriptError(
+            await attemptRestart(
               Number.isFinite(transcriptStartedAt)
-                ? 'The transcription provider did not finish. Restarting it with a fresh source URL.'
-                : 'This transcript has no valid start time. Restarting it with a fresh source URL.',
+                ? 'The transcription provider did not finish.'
+                : 'This transcript has no valid start time.',
             )
-            await requestAssemblyAITranscription(true, sourceAssetId)
             return
           }
           const syncResponse = await fetch(`/api/assets/${sourceAssetId}/transcript/sync`, {
@@ -7238,27 +7367,16 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
             failureMessage = syncBody?.error || failureMessage
             syncFailures += 1
             if (syncFailures < TRANSCRIPT_SYNC_FAILURES_BEFORE_FALLBACK) return
-          } else {
-            syncFailures = 0
+            await attemptRestart(failureMessage || 'AssemblyAI could not finish this transcript.')
             return
           }
-        } else {
+          syncFailures = 0
           return
         }
-
-        setTranscriptError(failureMessage || 'AssemblyAI could not finish this transcript. Restarting it with a fresh source URL.')
-        await runFallbackTranscription(sourceAssetId)
       } catch (error) {
         syncFailures += 1
         if (!active || syncFailures < TRANSCRIPT_SYNC_FAILURES_BEFORE_FALLBACK) return
-        try {
-          setTranscriptError('AssemblyAI is unavailable. Restarting it with a fresh source URL.')
-          await runFallbackTranscription(sourceAssetId)
-        } catch (fallbackError) {
-          if (!active) return
-          setIsTranscribingVideo(false)
-          setTranscriptError(fallbackError instanceof Error ? fallbackError.message : error instanceof Error ? error.message : 'Transcription failed.')
-        }
+        await attemptRestart(error instanceof Error ? error.message : 'AssemblyAI is unavailable.')
       } finally {
         inFlight = false
       }
@@ -8763,6 +8881,12 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
           key={`desktop-chat-${projectId}`}
           projectId={projectId}
           projectTitle={project?.title ?? 'Untitled Project'}
+          previewUrl={previewUrl}
+          previewKind={previewKind}
+          sourceLabel={sourceAssetLabel ?? project?.title ?? 'Source video'}
+          transcriptStatus={job?.transcriptStatus ?? 'idle'}
+          transcriptError={transcriptError}
+          transcriptSegments={job?.artifacts.transcript ?? []}
           initialPrompt={promptText}
           initialSources={sourceList}
           videoContext={videoContext}

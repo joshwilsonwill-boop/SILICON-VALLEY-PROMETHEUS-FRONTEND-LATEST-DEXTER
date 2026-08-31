@@ -315,7 +315,7 @@ export function PreviewCanvas({
               <div
                 className="pointer-events-none absolute inset-x-0 bottom-6 z-30 flex translate-y-2 items-center justify-center px-6 opacity-0 transition-all duration-300 ease-out group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100"
               >
-                <div className="glass-panel flex items-center gap-4 rounded-full bg-void/60 px-2 py-2 backdrop-blur-2xl">
+                <div className="flex items-center gap-4 rounded-full bg-void/60 border border-white/10 px-2 py-2 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
                   <div className="flex items-center gap-3 px-3 py-1">
                     <span className="font-mono text-[11px] font-medium tracking-wide text-white/80">
                       {transportCurrentTime}

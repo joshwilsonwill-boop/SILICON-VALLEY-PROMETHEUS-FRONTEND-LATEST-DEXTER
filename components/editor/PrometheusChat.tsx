@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import { AnimatePresence } from 'framer-motion'
-import { ArrowDown, ArrowUp, Brain, ChevronDown, LoaderCircle, Mic, X } from 'lucide-react'
+import { ArrowDown, ArrowUp, Brain, ChevronDown, LoaderCircle, Mic, Volume2, X } from 'lucide-react'
 
 import { useAuth } from '@/components/auth/auth-provider'
 import { useAIChat, type AIChatContextProvider, type AIChatFrameReference, type CarouselItem } from '@/hooks/use-ai-chat'
@@ -112,11 +112,14 @@ export function PrometheusChat({
   const [internalDraft, setInternalDraft] = React.useState('')
   const [showJumpToLatest, setShowJumpToLatest] = React.useState(false)
   const [historyOpen, setHistoryOpen] = React.useState(false)
+  const [voiceMode, setVoiceMode] = React.useState(false)
+  const [speakingMessageId, setSpeakingMessageId] = React.useState<string | null>(null)
   const [actionOutcomes, setActionOutcomes] = React.useState<Record<string, 'applied' | 'dismissed'>>({})
   const historyButtonRef = React.useRef<HTMLButtonElement | null>(null)
   const inputRef = React.useRef<HTMLInputElement | null>(null)
   const scrollViewportRef = React.useRef<HTMLDivElement | null>(null)
   const pinnedToBottomRef = React.useRef(true)
+  const spokenMessageIdsRef = React.useRef(new Set<string>())
 
   const persistedMessages = React.useMemo<PrometheusChatMessage[]>(
     () => persistentChat.messages.map((message) => ({
@@ -158,6 +161,37 @@ export function PrometheusChat({
   const videoContext = persistentChat.videoContext
   const isVideoContextLoading = persistentChat.isVideoContextLoading
   const videoPresent = videoContext?.status === 'video' || Boolean(videoContext?.video)
+
+  const stopSpokenReply = React.useCallback(() => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel()
+    }
+    setSpeakingMessageId(null)
+  }, [])
+
+  const latestSpeakableMessage = React.useMemo(
+    () => [...renderedMessages].reverse().find((message) =>
+      message.role === 'assistant' && (message.isComplete ?? true) && message.content.trim().length > 0,
+    ) ?? null,
+    [renderedMessages],
+  )
+
+  React.useEffect(() => {
+    if (!voiceMode || !latestSpeakableMessage || typeof window === 'undefined' || !('speechSynthesis' in window)) return
+    if (spokenMessageIdsRef.current.has(latestSpeakableMessage.id)) return
+
+    spokenMessageIdsRef.current.add(latestSpeakableMessage.id)
+    const utterance = new SpeechSynthesisUtterance(latestSpeakableMessage.content)
+    utterance.rate = 1.02
+    utterance.pitch = 1
+    utterance.onstart = () => setSpeakingMessageId(latestSpeakableMessage.id)
+    utterance.onend = () => setSpeakingMessageId(null)
+    utterance.onerror = () => setSpeakingMessageId(null)
+    window.speechSynthesis.cancel()
+    window.speechSynthesis.speak(utterance)
+  }, [latestSpeakableMessage, voiceMode])
+
+  React.useEffect(() => stopSpokenReply, [stopSpokenReply])
 
   const setDraft = React.useCallback(
     (value: string) => {
@@ -260,6 +294,7 @@ export function PrometheusChat({
 
     pinnedToBottomRef.current = true
     setShowJumpToLatest(false)
+    stopSpokenReply()
 
     if (usesPersistentChat) {
       await persistentChat.sendMessage(message)
@@ -268,7 +303,7 @@ export function PrometheusChat({
 
     if (!onDraftChange) setInternalDraft('')
     await onSend(message)
-  }, [composedDraft, onDraftChange, onSend, persistentChat, usesPersistentChat])
+  }, [composedDraft, onDraftChange, onSend, persistentChat, stopSpokenReply, usesPersistentChat])
 
   const closeHistory = React.useCallback(() => {
     setHistoryOpen(false)
@@ -472,6 +507,7 @@ export function PrometheusChat({
                     if (voice.state === 'transcribing') {
                       voice.stop()
                     } else {
+                      stopSpokenReply()
                       void voice.start()
                     }
                   }}
@@ -486,6 +522,22 @@ export function PrometheusChat({
                   ) : (
                     <Mic className="size-4" strokeWidth={1.5} />
                   )}
+                </button>
+                <button
+                  type="button"
+                  data-chat-voice-mode
+                  aria-label={voiceMode ? 'Disable spoken replies' : 'Enable spoken replies'}
+                  aria-pressed={voiceMode}
+                  onClick={() => {
+                    if (voiceMode) stopSpokenReply()
+                    setVoiceMode((current) => !current)
+                  }}
+                  className={cn(
+                    'grid size-8 shrink-0 place-items-center rounded-full transition-colors hover:bg-white/[0.06] hover:text-white disabled:pointer-events-none disabled:opacity-20',
+                    voiceMode || speakingMessageId ? 'bg-[#7ff2d4]/10 text-[#bffef0]' : 'text-white/45',
+                  )}
+                >
+                  <Volume2 className="size-4" strokeWidth={1.5} />
                 </button>
                 <button
                   type="submit"

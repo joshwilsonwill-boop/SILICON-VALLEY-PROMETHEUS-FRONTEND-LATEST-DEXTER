@@ -1,4 +1,5 @@
 import "server-only";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { assemblyTranscriptToSegments } from "@/lib/r2/assembly-transcript";
 
 export const runtime = "nodejs";
@@ -6,6 +7,15 @@ export const runtime = "nodejs";
 const ASSEMBLYAI_API_URL = "https://api.assemblyai.com/v2";
 const GROQ_AUDIO_URL = "https://api.groq.com/openai/v1/audio/transcriptions";
 const OPENAI_AUDIO_URL = "https://api.openai.com/v1/audio/transcriptions";
+
+function getGeminiKey() {
+  const key = (
+    process.env.GEMINI_API_KEY ||
+    process.env.GOOGLE_GENERATIVE_AI_API_KEY ||
+    process.env.GOOGLE_API_KEY
+  )?.trim();
+  return key || null;
+}
 
 function getAssemblyAiKey() {
   const key = process.env.ASSEMBLYAI_API_KEY?.trim();
@@ -20,6 +30,28 @@ function getGroqKey() {
 function getOpenAiKey() {
   const key = process.env.OPENAI_API_KEY?.trim();
   return key || null;
+}
+
+async function transcribeWithGemini(audioFile: File, apiKey: string): Promise<{ text: string }> {
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+  const audioBuffer = Buffer.from(await audioFile.arrayBuffer());
+  const mimeType = audioFile.type || "audio/webm";
+
+  const result = await model.generateContent([
+    {
+      inlineData: {
+        data: audioBuffer.toString("base64"),
+        mimeType: mimeType.includes("mp4") ? "audio/mp4" : "audio/webm",
+      },
+    },
+    {
+      text: "Transcribe the spoken audio accurately. Output only the verbatim transcript text without any introductory commentary or formatting.",
+    },
+  ]);
+
+  const text = result.response.text().trim();
+  return { text };
 }
 
 async function transcribeWithGroq(audioFile: File, apiKey: string): Promise<{ text: string; segments?: any[] }> {
@@ -154,13 +186,14 @@ async function transcribeWithAssemblyAI(audioFile: File, apiKey: string): Promis
 }
 
 export async function POST(request: Request) {
+  const geminiKey = getGeminiKey();
   const assemblyKey = getAssemblyAiKey();
   const groqKey = getGroqKey();
   const openAiKey = getOpenAiKey();
 
-  if (!assemblyKey && !groqKey && !openAiKey) {
+  if (!geminiKey && !assemblyKey && !groqKey && !openAiKey) {
     return Response.json(
-      { error: "No transcription API key (AssemblyAI, Groq, or OpenAI) is configured on the server." },
+      { error: "No transcription API key (Gemini, Groq, AssemblyAI, or OpenAI) is configured on the server." },
       { status: 503 }
     );
   }
@@ -176,7 +209,19 @@ export async function POST(request: Request) {
       return Response.json({ error: "Audio is too short to transcribe." }, { status: 400 });
     }
 
-    // 1. Groq Whisper (lightning-fast, ~300ms)
+    // 1. Gemini 2.0 Flash (lightning-fast native multimodal transcription)
+    if (geminiKey) {
+      try {
+        const geminiResult = await transcribeWithGemini(audioFile, geminiKey);
+        if (geminiResult.text) {
+          return Response.json({ text: geminiResult.text, segments: [] });
+        }
+      } catch (geminiErr) {
+        console.warn("[transcribe] Gemini audio transcription failed, falling back:", geminiErr);
+      }
+    }
+
+    // 2. Groq Whisper (fast fallback)
     if (groqKey) {
       try {
         const groqResult = await transcribeWithGroq(audioFile, groqKey);

@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { randomUUID } from 'node:crypto'
 
 import { startAssemblyAITranscription } from '@/lib/api/assemblyai'
 import { getPresignedGetUrl } from '@/lib/r2/presigned-url'
@@ -49,16 +50,50 @@ export async function startSourceAssetTranscription({
 
   if (!asset.storage_bucket || !asset.storage_path) return null
 
-  const sourceUrl = await getPresignedGetUrl(asset.storage_bucket, asset.storage_path)
-  const started = await startAssemblyAITranscription({
-    audio_url: sourceUrl,
-    speaker_labels: false,
-    punctuate: true,
-    format_text: true,
-    speech_models: ['universal-3-5-pro'],
+  // Claim the row before contacting AssemblyAI. Upload completion and the
+  // editor can both request transcription; only one caller may win this
+  // compare-and-set claim for the asset.
+  const claimToken = `claim:${randomUUID()}`
+  const { data: claim, error: claimError } = await supabase.rpc('maul_claim_source_asset_transcription', {
+    p_asset_id: assetId,
+    p_claim_token: claimToken,
+    p_force: force,
   })
+  if (claimError) throw claimError
+  const claimed = claim && typeof claim === 'object' ? claim as { claimed?: boolean; status?: string; transcriptJobId?: string } : null
+  if (!claimed?.claimed) {
+    return {
+      status: claimed?.status ?? asset.transcript_status ?? 'queued',
+      transcriptJobId: claimed?.transcriptJobId ?? asset.transcript_job_id,
+    }
+  }
 
-  if (!started.id) return null
+  let started: Awaited<ReturnType<typeof startAssemblyAITranscription>>
+  try {
+    const sourceUrl = await getPresignedGetUrl(asset.storage_bucket, asset.storage_path)
+    started = await startAssemblyAITranscription({
+      audio_url: sourceUrl,
+      speaker_labels: false,
+      punctuate: true,
+      format_text: true,
+      speech_models: ['universal-3-5-pro'],
+    })
+  } catch (error) {
+    await supabase
+      .from('source_assets')
+      .update({
+        transcript_status: 'failed',
+        transcript_error: error instanceof Error ? error.message : 'AssemblyAI dispatch failed.',
+      })
+      .eq('id', assetId)
+      .eq('transcript_job_id', claimToken)
+    throw error
+  }
+
+  if (!started.id) {
+    await supabase.from('source_assets').update({ transcript_status: 'failed', transcript_error: 'AssemblyAI did not return a job ID.' }).eq('id', assetId).eq('transcript_job_id', claimToken)
+    return null
+  }
 
   const { error: updateError } = await supabase
     .from('source_assets')
@@ -70,8 +105,19 @@ export async function startSourceAssetTranscription({
       transcript_error: null,
     })
     .eq('id', assetId)
+    .eq('transcript_job_id', claimToken)
 
-  if (updateError) return null
+  if (updateError) {
+    await supabase
+      .from('source_assets')
+      .update({
+        transcript_status: 'failed',
+        transcript_error: updateError.message || 'Failed to save the AssemblyAI job ID.',
+      })
+      .eq('id', assetId)
+      .eq('transcript_job_id', claimToken)
+    return null
+  }
 
   return { status: 'queued', transcriptJobId: started.id }
 }

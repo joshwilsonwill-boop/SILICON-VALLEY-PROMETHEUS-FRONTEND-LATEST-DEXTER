@@ -91,6 +91,18 @@ export async function GET(
       if (raw) {
         const parsed = JSON.parse(raw) as Record<string, unknown>
         const segments = assemblyTranscriptToSegments(parsed)
+        if (segments.length === 0) {
+          const providerText = typeof parsed.text === 'string' ? parsed.text.trim() : ''
+          const errorMessage = providerText
+            ? 'AssemblyAI completed without timed transcript data. Please retry transcription.'
+            : 'AssemblyAI completed without transcript text. Please retry transcription.'
+          await supabase
+            .from('source_assets')
+            .update({ transcript_status: 'failed', transcript_error: errorMessage, transcript_synced_at: new Date().toISOString() })
+            .eq('id', assetId)
+            .eq('user_id', user.id)
+          return NextResponse.json({ status: 'failed', error: errorMessage }, { status: 422 })
+        }
         await supabase
           .from('source_assets')
           .update({ transcript_segments: segments })

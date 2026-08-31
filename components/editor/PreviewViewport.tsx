@@ -101,13 +101,13 @@ export const PreviewViewport: React.FC<{ src?: string }> = ({ src: srcProp }) =>
 
       {/* Top Right Actions */}
       <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-        <button className="p-2 rounded-lg glass-panel bg-void/40 border-white/10 hover:bg-white/5 transition-colors">
+        <button className="p-2 rounded-lg bg-void/40 border border-white/10 hover:bg-white/5 transition-colors">
           <Maximize2 className="size-4 text-white/60" />
         </button>
       </div>
 
       {/* Bottom Floating Controls */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-6 px-6 py-3 glass-panel bg-void/60 backdrop-blur-2xl border-white/10 rounded-full opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0">
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-6 px-6 py-3 bg-void/60 backdrop-blur-2xl border border-white/10 rounded-full opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0">
         <div className="flex flex-col items-end">
           <span className="font-mono text-[11px] text-white tracking-widest leading-none">
             {formatTimecode(currentTime)}

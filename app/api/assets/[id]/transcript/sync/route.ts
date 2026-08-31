@@ -62,6 +62,20 @@ export async function POST(
     }
 
     if (assemblyResponse.status === 'completed') {
+      const segments = assemblyTranscriptToSegments(assemblyResponse as unknown as Record<string, unknown>)
+      if (segments.length === 0) {
+        const providerText = typeof assemblyResponse.text === 'string' ? assemblyResponse.text.trim() : ''
+        const errorMessage = providerText
+          ? 'AssemblyAI completed without timed transcript data. Please retry transcription.'
+          : 'AssemblyAI completed without transcript text. Please retry transcription.'
+        stage = 'persist_empty_provider_result'
+        await supabase
+          .from('source_assets')
+          .update({ transcript_status: 'failed', transcript_error: errorMessage, transcript_synced_at: new Date().toISOString() })
+          .eq('id', assetId)
+          .eq('transcript_job_id', asset.transcript_job_id)
+        return NextResponse.json({ status: 'failed', error: errorMessage }, { status: 422 })
+      }
       // 3. Normalize and save to R2
       const bucket = process.env.R2_BUCKET_SOURCES || 'prometheus-sources'
       const r2Key = R2Keys.transcript(user.id, asset.project_id, assetId)
@@ -79,7 +93,7 @@ export async function POST(
           transcript_completed_at: new Date().toISOString(),
           transcript_synced_at: new Date().toISOString(),
           transcript_error: null,
-          transcript_segments: assemblyTranscriptToSegments(assemblyResponse as unknown as Record<string, unknown>),
+          transcript_segments: segments,
           // Store a tiny preview if useful, otherwise leave null
           transcript_text: assemblyResponse.text?.slice(0, 500) || null
         })
