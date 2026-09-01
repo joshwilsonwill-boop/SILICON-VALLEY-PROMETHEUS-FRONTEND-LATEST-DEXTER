@@ -7347,6 +7347,8 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
         projects.upsertJob(next)
         return next
       })
+      if (intervalId !== null) window.clearInterval(intervalId)
+      intervalId = null
       setTranscriptError(null)
       setIsTranscribingVideo(false)
     }
