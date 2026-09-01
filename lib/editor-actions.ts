@@ -17,6 +17,8 @@ export type EditorActionDraft =
   | { kind: 'preview_control'; command: PreviewControlCommand; summary: string }
   | { kind: 'set_fit_mode'; mode: EditorFitMode; summary: string }
   | { kind: 'switch_tab'; tab: EditorWorkspaceTab; summary: string }
+  | { kind: 'open_thumbnail_studio'; summary: string }
+  | { kind: 'open_master_review'; summary: string }
   | { kind: 'propose'; description: string; summary: string }
 
 export type EditorActionKind = EditorActionDraft['kind']
@@ -26,6 +28,8 @@ export const EDITOR_ACTION_KINDS: readonly EditorActionKind[] = [
   'preview_control',
   'set_fit_mode',
   'switch_tab',
+  'open_thumbnail_studio',
+  'open_master_review',
   'propose',
 ]
 
@@ -93,6 +97,16 @@ export function parseEditorActionDraft(input: unknown): EditorActionDraft | null
       if (!tab) return null
       return { kind: 'switch_tab', tab, summary: cleanSummary(record.summary, `Open the ${tab} workspace`) }
     }
+    case 'open_thumbnail_studio':
+      return {
+        kind: 'open_thumbnail_studio',
+        summary: cleanSummary(record.summary, 'Open Thumbnail Studio'),
+      }
+    case 'open_master_review':
+      return {
+        kind: 'open_master_review',
+        summary: cleanSummary(record.summary, 'Open Master Video Review'),
+      }
     case 'propose': {
       const description =
         typeof record.description === 'string' && record.description.trim().length > 0
@@ -134,6 +148,8 @@ export interface EditorActionContext {
   unmute?: () => void
   setFitMode?: (mode: EditorFitMode) => void
   setWorkspaceTab?: (tab: EditorWorkspaceTab) => void
+  openThumbnailStudio?: () => void
+  openMasterReview?: () => void
   /** Used to clamp seek targets when known. */
   durationSec?: number
 }
@@ -179,6 +195,16 @@ export function applyEditorAction(action: EditorActionDraft, ctx: EditorActionCo
     case 'switch_tab': {
       if (!ctx.setWorkspaceTab) return { applied: false, message: 'Workspace switching is unavailable right now.' }
       ctx.setWorkspaceTab(action.tab)
+      return { applied: true, message: action.summary }
+    }
+    case 'open_thumbnail_studio': {
+      if (!ctx.openThumbnailStudio) return { applied: false, message: 'Thumbnail Studio is unavailable right now.' }
+      ctx.openThumbnailStudio()
+      return { applied: true, message: action.summary }
+    }
+    case 'open_master_review': {
+      if (!ctx.openMasterReview) return { applied: false, message: 'Master Video Review is unavailable right now.' }
+      ctx.openMasterReview()
       return { applied: true, message: action.summary }
     }
     case 'propose':

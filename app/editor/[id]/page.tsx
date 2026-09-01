@@ -8373,6 +8373,8 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
     unmute: () => setIsPreviewMuted(false),
     setFitMode,
     setWorkspaceTab: setActiveWorkspaceTab,
+    openThumbnailStudio: () => setIsThumbnailStudioOpen(true),
+    openMasterReview: () => setIsMasterReviewOpen(true),
   }), [transportDurationSec, handlePreviewSeekSeconds, startPreviewPlayback, pausePreviewPlayback])
 
   const handleApplyChatActions = React.useCallback((drafts: EditorActionDraft[]) => {

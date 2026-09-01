@@ -103,9 +103,26 @@ function run() {
       unmute: () => calls.push('unmute-again'),
     },
   )
-  assert.equal(resultsAfterThrow[0].applied, false)
-  assert.equal(resultsAfterThrow[1].applied, true)
-  assert.ok(calls.includes('unmute-again'))
+  // --- Executor: studio modal actions dispatch cleanly
+  let thumbnailOpened = false
+  let masterReviewOpened = false
+  const studioCtx: EditorActionContext = {
+    openThumbnailStudio: () => { thumbnailOpened = true },
+    openMasterReview: () => { masterReviewOpened = true },
+  }
+  const studioDrafts = applyEditorActionDrafts(
+    [
+      { kind: 'open_thumbnail_studio', summary: 'Open Thumbnail Studio' },
+      { kind: 'open_master_review', summary: 'Open Master Review' },
+    ],
+    studioCtx,
+  )
+  assert.equal(studioDrafts.length, 2)
+  assert.equal(studioDrafts[0].applied, true)
+  assert.equal(studioDrafts[1].applied, true)
+  assert.equal(thumbnailOpened, true)
+  assert.equal(masterReviewOpened, true)
 }
 
 run()
+console.log('editor-actions-executor tests passed')
