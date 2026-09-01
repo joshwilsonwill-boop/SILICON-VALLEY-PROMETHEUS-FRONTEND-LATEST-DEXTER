@@ -21,6 +21,8 @@ import {
   Play,
   Plus,
   RefreshCw,
+  RotateCcw,
+  Scissors,
   Search,
   Sparkles,
   Upload,
@@ -38,12 +40,21 @@ type MotionToolId = 'enhance' | 'captions' | 'media' | 'layout'
 type PreviewTreatment = 'clean' | 'contrast' | 'warm' | 'mono'
 type CropRect = { left: number; top: number; width: number; height: number }
 
+export type MotionTranscriptWord = {
+  text: string
+  start: number
+  end: number
+  isCut?: boolean
+}
+
 export type MotionTranscriptSegment = {
   id: string
   start: number
   end: number
   text: string
   emphasis?: string[]
+  isCut?: boolean
+  words?: MotionTranscriptWord[]
 }
 
 export type MotionTextPlacement = {
@@ -84,6 +95,9 @@ export interface MotionEditWorkspaceProps {
   videoRef: React.Ref<HTMLVideoElement>
   transcriptSegments?: MotionTranscriptSegment[]
   onUpdateTranscriptSegment?: (segmentId: string, nextText: string) => void
+  onToggleCutSegment?: (segmentId: string) => void
+  onToggleCutWord?: (segmentId: string, wordIndex: number) => void
+  cutRanges?: { start: number; end: number }[]
   onRequestTranscribe?: () => void
   isTranscribing?: boolean
   transcriptError?: string | null
@@ -150,22 +164,81 @@ function isActiveSegment(segment: MotionTranscriptSegment, time: number) {
   return time >= segment.start && time < segment.end
 }
 
-function HighlightedTranscript({ segment, active }: { segment: MotionTranscriptSegment; active: boolean }) {
-  const words = segment.text.split(/(\s+)/)
+function HighlightedTranscript({
+  segment,
+  active,
+  onToggleCutWord,
+}: {
+  segment: MotionTranscriptSegment
+  active: boolean
+  onToggleCutWord?: (wordIndex: number, e: React.MouseEvent) => void
+}) {
   const emphasis = segment.emphasis ?? []
+  const isSegmentCut = Boolean(segment.isCut)
 
-  return <span>{words.map((word, index) => {
-    const normalized = word.trim().replace(/[.,!?]/g, '').toLowerCase()
-    const emphasized = emphasis.some((item) => item.toLowerCase().includes(normalized) && normalized.length > 2)
-    return <span key={`${word}-${index}`} className={cn(emphasized && active ? 'text-[#b4fb60]' : active ? 'text-white' : 'text-white/52')}>{word}</span>
-  })}</span>
+  if (segment.words && segment.words.length > 0) {
+    return (
+      <span className={cn('inline-flex flex-wrap items-center gap-x-1 gap-y-0.5', isSegmentCut && 'opacity-55')}>
+        {segment.words.map((w, index) => {
+          const isWordCut = isSegmentCut || Boolean(w.isCut)
+          const normalized = w.text.trim().replace(/[.,!?]/g, '').toLowerCase()
+          const emphasized = emphasis.some((item) => item.toLowerCase().includes(normalized) && normalized.length > 2)
+
+          return (
+            <span
+              key={`${w.text}-${index}`}
+              onClick={(e) => {
+                if (onToggleCutWord) {
+                  e.stopPropagation()
+                  onToggleCutWord(index, e)
+                }
+              }}
+              title={isWordCut ? 'Word cut from video (click to restore)' : 'Click to cut this word from the video'}
+              className={cn(
+                'relative inline-block rounded px-1 py-0.5 transition-all text-[15px]',
+                isWordCut
+                  ? 'line-through text-red-400/60 bg-red-950/30 decoration-red-400/80 decoration-2 cursor-pointer hover:text-red-300 hover:bg-red-900/40'
+                  : emphasized && active
+                    ? 'text-[#b4fb60] font-semibold bg-[#98f237]/10'
+                    : active
+                      ? 'text-white'
+                      : 'text-white/70 hover:text-white hover:bg-white/5 cursor-pointer',
+              )}
+            >
+              {w.text}
+            </span>
+          )
+        })}
+      </span>
+    )
+  }
+
+  const words = segment.text.split(/(\s+)/)
+  return (
+    <span className={cn(isSegmentCut && 'line-through text-red-400/60 decoration-red-400/80')}>
+      {words.map((word, index) => {
+        const normalized = word.trim().replace(/[.,!?]/g, '').toLowerCase()
+        const emphasized = emphasis.some((item) => item.toLowerCase().includes(normalized) && normalized.length > 2)
+        return (
+          <span
+            key={`${word}-${index}`}
+            className={cn(
+              emphasized && active ? 'text-[#b4fb60]' : active ? 'text-white' : 'text-white/52',
+            )}
+          >
+            {word}
+          </span>
+        )
+      })}
+    </span>
+  )
 }
 
 export function MotionEditWorkspace({
   projectTitle, previewUrl, previewKind, hasPreviewMedia, sourceLabel, previewAspectRatio, fitMode,
   onFitModeChange, objectFit, mediaTransformStyle, currentTimeLabel, durationLabel, currentTimeSec,
   durationSec, previewPlaying, previewMuted, onPreviewMutedChange, videoRef, transcriptSegments,
-  onUpdateTranscriptSegment, onRequestTranscribe, isTranscribing = false, transcriptError = null, isSourceUploading = false, videoMetadata,
+  onUpdateTranscriptSegment, onToggleCutSegment, onToggleCutWord, cutRanges, onRequestTranscribe, isTranscribing = false, transcriptError = null, isSourceUploading = false, videoMetadata,
   onTogglePlayback, onPickSource, onSourceDrop, onSourceDragOver, onSourceDragLeave, isSourceDragOver = false,
   textPlacements, onSeek, onVideoLoadedMetadata, onVideoLoadedData, onVideoCanPlay,
   onVideoTimeUpdate, onVideoEnded, onVideoPlay, onVideoPause, onVideoError, onImageLoaded, onApplyPrompt,
@@ -203,6 +276,59 @@ export function MotionEditWorkspace({
     return matchesQuery && (!activeOnly || isActiveSegment(segment, currentTimeSec))
   })
   const activeTreatment = TREATMENTS.find((item) => item.id === treatment) ?? TREATMENTS[0]
+
+  const effectiveCutRanges = React.useMemo(() => {
+    if (cutRanges && cutRanges.length > 0) return cutRanges
+    const ranges: { start: number; end: number }[] = []
+    for (const segment of resolvedSegments) {
+      if (segment.isCut) {
+        ranges.push({ start: segment.start, end: segment.end })
+      } else if (segment.words && segment.words.length > 0) {
+        for (const word of segment.words) {
+          if (word.isCut) {
+            ranges.push({ start: word.start, end: word.end })
+          }
+        }
+      }
+    }
+    if (ranges.length <= 1) return ranges
+    ranges.sort((a, b) => a.start - b.start)
+    const merged: { start: number; end: number }[] = [ranges[0]!]
+    for (let i = 1; i < ranges.length; i++) {
+      const prev = merged[merged.length - 1]!
+      const curr = ranges[i]!
+      if (curr.start <= prev.end + 0.05) {
+        prev.end = Math.max(prev.end, curr.end)
+      } else {
+        merged.push(curr)
+      }
+    }
+    return merged
+  }, [cutRanges, resolvedSegments])
+
+  const totalCutSeconds = React.useMemo(() => {
+    return effectiveCutRanges.reduce((sum, r) => sum + (r.end - r.start), 0)
+  }, [effectiveCutRanges])
+
+  React.useEffect(() => {
+    if (!previewPlaying || effectiveCutRanges.length === 0) return
+    let animId: number
+    const checkSkip = () => {
+      const video = (videoRef as React.RefObject<HTMLVideoElement>)?.current
+      if (video && !video.paused) {
+        const ct = video.currentTime
+        for (const range of effectiveCutRanges) {
+          if (ct >= range.start - 0.04 && ct < range.end - 0.02) {
+            video.currentTime = range.end + 0.01
+            break
+          }
+        }
+      }
+      animId = requestAnimationFrame(checkSkip)
+    }
+    animId = requestAnimationFrame(checkSkip)
+    return () => cancelAnimationFrame(animId)
+  }, [effectiveCutRanges, previewPlaying, videoRef])
 
   React.useEffect(() => {
     const root = transcriptRef.current
@@ -387,6 +513,11 @@ export function MotionEditWorkspace({
           <div className="flex min-h-14 shrink-0 items-center gap-2 border-b border-white/8 px-4">
             <span className="text-sm font-medium">Transcript</span>
             <span className="rounded bg-[#98f237]/15 px-1.5 py-0.5 text-[10px] font-medium text-[#b4fb60]">Prometheus AI</span>
+            {totalCutSeconds > 0 ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-red-500/15 border border-red-500/30 px-1.5 py-0.5 text-[9px] font-medium text-red-400" title="Video duration trimmed via transcript cuts">
+                <Scissors className="size-2.5" /> -{totalCutSeconds.toFixed(1)}s
+              </span>
+            ) : null}
             {onRequestTranscribe ? (
               <button
                 type="button"
@@ -621,21 +752,48 @@ export function MotionEditWorkspace({
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1">
-                        <HighlightedTranscript segment={segment} active={active} />
+                        <HighlightedTranscript
+                          segment={segment}
+                          active={active}
+                          onToggleCutWord={onToggleCutWord ? (wIdx, e) => {
+                            e.stopPropagation()
+                            onToggleCutWord(segment.id, wIdx)
+                          } : undefined}
+                        />
                         <span className={cn('ml-2 inline-flex translate-y-[-1px] rounded px-1.5 py-0.5 text-[10px] tabular-nums leading-none', active ? 'bg-[#98f237]/16 font-semibold text-[#b4fb60]' : 'bg-white/[0.08] text-white/38')}>
                           {formatTime(segment.start).slice(0, 5)}
                         </span>
                       </div>
-                      {onUpdateTranscriptSegment ? (
-                        <button
-                          type="button"
-                          onClick={(e) => handleStartEdit(segment, e)}
-                          title="Edit transcript text"
-                          className="opacity-0 transition-opacity group-hover:opacity-100 p-1 rounded hover:bg-white/10 text-white/50 hover:text-white"
-                        >
-                          <Edit3 className="size-3" />
-                        </button>
-                      ) : null}
+                      <div className="flex items-center gap-1">
+                        {onToggleCutSegment ? (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              onToggleCutSegment(segment.id)
+                            }}
+                            title={segment.isCut ? 'Restore sentence to video' : 'Cut sentence from video'}
+                            className={cn(
+                              'rounded p-1 transition-all',
+                              segment.isCut
+                                ? 'text-[#98f237] hover:bg-[#98f237]/20 opacity-100'
+                                : 'text-white/35 hover:text-red-400 hover:bg-red-500/10 opacity-0 group-hover:opacity-100',
+                            )}
+                          >
+                            {segment.isCut ? <RotateCcw className="size-3.5" /> : <Scissors className="size-3.5" />}
+                          </button>
+                        ) : null}
+                        {onUpdateTranscriptSegment ? (
+                          <button
+                            type="button"
+                            onClick={(e) => handleStartEdit(segment, e)}
+                            title="Edit transcript text"
+                            className="opacity-0 transition-opacity group-hover:opacity-100 p-1 rounded hover:bg-white/10 text-white/50 hover:text-white"
+                          >
+                            <Edit3 className="size-3" />
+                          </button>
+                        ) : null}
+                      </div>
                     </div>
                   </div>
                 )
@@ -675,7 +833,7 @@ export function MotionEditWorkspace({
         <aside className="hidden w-[72px] shrink-0 border-l border-white/8 bg-black/28 lg:flex lg:flex-col lg:items-center lg:gap-2 lg:pt-3">{TOOLS.map(({ id, label, icon: Icon }) => <button key={id} type="button" onClick={() => selectTool(id)} className={cn('group flex min-h-12 w-full flex-col items-center gap-1 border-l-2 px-1 py-1.5 text-[9px] font-medium transition-colors', activeTool === id ? 'border-[#98f237] text-white' : 'border-transparent text-white/46 hover:text-white/82')}><span className={cn('grid size-7 place-items-center rounded-md transition-colors', activeTool === id ? 'bg-[#98f237]/12 text-[#b4fb60]' : 'text-white/65 group-hover:bg-white/[0.06]')}><Icon className="size-3.5" /></span>{label}</button>)}<div className="mt-auto mb-3 text-[8px] uppercase tracking-[0.12em] text-white/28">{activeTool}</div></aside>
       </div>
 
-      {showTimeline ? <section className="relative shrink-0 border-t border-white/12 bg-[#070809]/95" style={{ height: timelineHeight }} aria-label="Video timeline">{timelineResizeHandle}<div className="flex h-11 items-center justify-between border-b border-white/8 px-3 sm:px-5"><div className="flex items-center gap-1.5 sm:gap-3"><span className="text-xs font-medium text-white/86">Timeline</span><button type="button" onClick={() => setShowTimeline(false)} className="grid size-8 place-items-center rounded-md border border-white/10 bg-white/[0.035] text-white/62 transition-all hover:border-white/20 hover:bg-white/[0.08] hover:text-white" aria-label="Collapse timeline" title="Collapse timeline"><PanelBottomClose className="size-3.5" /></button><button type="button" onClick={() => setCropEnabled((value) => !value)} className={cn('grid size-8 place-items-center rounded border transition-colors', cropEnabled ? 'border-[#98f237]/35 bg-[#98f237]/10 text-[#b4fb60]' : 'border-white/10 text-white/56 hover:text-white')} aria-label="Toggle crop frame"><Crop className="size-3.5" /></button><button type="button" onClick={onTogglePlayback} disabled={previewKind !== 'video' || !previewUrl} className="grid size-8 place-items-center text-white/82 disabled:opacity-35" aria-label={previewPlaying ? 'Pause timeline' : 'Play timeline'}>{previewPlaying ? <Pause className="size-4 fill-current" /> : <Play className="size-4 fill-current" />}</button><button type="button" onClick={() => onPreviewMutedChange(!previewMuted)} disabled={previewKind !== 'video' || !previewUrl} className={cn('grid size-8 place-items-center transition-colors disabled:opacity-35', previewMuted ? 'text-white/42' : 'text-[#b4fb60]')} aria-label={previewMuted ? 'Unmute preview' : 'Mute preview'}><Volume2 className="size-3.5" /></button><span className="hidden font-mono text-xs tabular-nums text-white/78 sm:inline">{currentTimeLabel} <span className="mx-1 text-white/28">/</span> {durationLabel}</span></div><label className="flex items-center gap-2 text-white/52"><ZoomOut className="size-3.5" /><span className="sr-only">Timeline zoom</span><input aria-label="Timeline zoom" type="range" min="0.7" max="2.4" step="0.1" value={zoom} onChange={(event) => setZoom(Number(event.target.value))} className="h-1 w-16 accent-[#98f237] sm:w-20" /><ZoomIn className="size-3.5" /></label></div><div className="flex min-h-0"><div className="hidden w-24 shrink-0 border-r border-white/8 pt-8 text-right text-[10px] text-white/40 sm:block"><div className="pr-3">Video</div><div className="mt-7 pr-3">Audio</div><div className="mt-6 pr-3">Captions</div><div className="mt-6 pr-3">Text</div></div><div ref={timelineRef} onPointerDown={startTimelineDrag} onPointerMove={moveTimelineDrag} onPointerUp={endTimelineDrag} onPointerCancel={endTimelineDrag} className={cn('premium-scroll-hide relative min-w-0 flex-1 touch-none select-none overflow-x-auto overflow-y-hidden px-3 pt-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#98f237]/60', timelineDragging ? 'cursor-grabbing' : 'cursor-grab')} role="slider" aria-label="Timeline. Drag to scroll, click to seek." aria-valuemin={0} aria-valuemax={effectiveDuration} aria-valuenow={currentTimeSec} tabIndex={0} onKeyDown={(event) => { if (event.key === 'ArrowLeft') { event.preventDefault(); onSeek(Math.max(0, currentTimeSec - 1)) } if (event.key === 'ArrowRight') { event.preventDefault(); onSeek(Math.min(effectiveDuration, currentTimeSec + 1)) } if (event.key === 'Home') { event.preventDefault(); onSeek(0) } if (event.key === 'End') { event.preventDefault(); onSeek(effectiveDuration) } }}><TimelineTracks zoom={zoom} effectiveDuration={effectiveDuration} sourceLabel={sourceLabel ?? projectTitle} transcriptSegments={resolvedSegments} captionsVisible={captionsVisible} currentTime={currentTimeSec} textPlacements={textPlacements} /><div className="pointer-events-none absolute bottom-0 top-0 z-10 border-l border-white shadow-[0_0_12px_rgba(255,255,255,.75)]" style={{ left: `calc(${playheadPercent * zoom}% + 0.75rem)` }}><span className="absolute -left-1.5 -top-1 size-3 rotate-45 bg-white" /></div></div></div></section> : <div className="relative h-10 shrink-0 border-t border-white/10 bg-[#070809]">{timelineResizeHandle}<button type="button" onClick={() => setShowTimeline(true)} className="group flex h-full w-full items-center justify-center gap-2 text-xs text-white/58 transition-colors hover:bg-white/[0.025] hover:text-white"><PanelBottomOpen className="size-3.5 transition-transform group-hover:-translate-y-0.5" /> Show timeline</button></div>}
+      {showTimeline ? <section className="relative shrink-0 border-t border-white/12 bg-[#070809]/95" style={{ height: timelineHeight }} aria-label="Video timeline">{timelineResizeHandle}<div className="flex h-11 items-center justify-between border-b border-white/8 px-3 sm:px-5"><div className="flex items-center gap-1.5 sm:gap-3"><span className="text-xs font-medium text-white/86">Timeline</span><button type="button" onClick={() => setShowTimeline(false)} className="grid size-8 place-items-center rounded-md border border-white/10 bg-white/[0.035] text-white/62 transition-all hover:border-white/20 hover:bg-white/[0.08] hover:text-white" aria-label="Collapse timeline" title="Collapse timeline"><PanelBottomClose className="size-3.5" /></button><button type="button" onClick={() => setCropEnabled((value) => !value)} className={cn('grid size-8 place-items-center rounded border transition-colors', cropEnabled ? 'border-[#98f237]/35 bg-[#98f237]/10 text-[#b4fb60]' : 'border-white/10 text-white/56 hover:text-white')} aria-label="Toggle crop frame"><Crop className="size-3.5" /></button><button type="button" onClick={onTogglePlayback} disabled={previewKind !== 'video' || !previewUrl} className="grid size-8 place-items-center text-white/82 disabled:opacity-35" aria-label={previewPlaying ? 'Pause timeline' : 'Play timeline'}>{previewPlaying ? <Pause className="size-4 fill-current" /> : <Play className="size-4 fill-current" />}</button><button type="button" onClick={() => onPreviewMutedChange(!previewMuted)} disabled={previewKind !== 'video' || !previewUrl} className={cn('grid size-8 place-items-center transition-colors disabled:opacity-35', previewMuted ? 'text-white/42' : 'text-[#b4fb60]')} aria-label={previewMuted ? 'Unmute preview' : 'Mute preview'}><Volume2 className="size-3.5" /></button><span className="hidden font-mono text-xs tabular-nums text-white/78 sm:inline">{currentTimeLabel} <span className="mx-1 text-white/28">/</span> {durationLabel}</span></div><label className="flex items-center gap-2 text-white/52"><ZoomOut className="size-3.5" /><span className="sr-only">Timeline zoom</span><input aria-label="Timeline zoom" type="range" min="0.7" max="2.4" step="0.1" value={zoom} onChange={(event) => setZoom(Number(event.target.value))} className="h-1 w-16 accent-[#98f237] sm:w-20" /><ZoomIn className="size-3.5" /></label></div><div className="flex min-h-0"><div className="hidden w-24 shrink-0 border-r border-white/8 pt-8 text-right text-[10px] text-white/40 sm:block"><div className="pr-3">Video</div><div className="mt-7 pr-3">Audio</div><div className="mt-6 pr-3">Captions</div><div className="mt-6 pr-3">Text</div></div><div ref={timelineRef} onPointerDown={startTimelineDrag} onPointerMove={moveTimelineDrag} onPointerUp={endTimelineDrag} onPointerCancel={endTimelineDrag} className={cn('premium-scroll-hide relative min-w-0 flex-1 touch-none select-none overflow-x-auto overflow-y-hidden px-3 pt-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#98f237]/60', timelineDragging ? 'cursor-grabbing' : 'cursor-grab')} role="slider" aria-label="Timeline. Drag to scroll, click to seek." aria-valuemin={0} aria-valuemax={effectiveDuration} aria-valuenow={currentTimeSec} tabIndex={0} onKeyDown={(event) => { if (event.key === 'ArrowLeft') { event.preventDefault(); onSeek(Math.max(0, currentTimeSec - 1)) } if (event.key === 'ArrowRight') { event.preventDefault(); onSeek(Math.min(effectiveDuration, currentTimeSec + 1)) } if (event.key === 'Home') { event.preventDefault(); onSeek(0) } if (event.key === 'End') { event.preventDefault(); onSeek(effectiveDuration) } }}><TimelineTracks zoom={zoom} effectiveDuration={effectiveDuration} sourceLabel={sourceLabel ?? projectTitle} transcriptSegments={resolvedSegments} captionsVisible={captionsVisible} currentTime={currentTimeSec} textPlacements={textPlacements} cutRanges={effectiveCutRanges} /><div className="pointer-events-none absolute bottom-0 top-0 z-10 border-l border-white shadow-[0_0_12px_rgba(255,255,255,.75)]" style={{ left: `calc(${playheadPercent * zoom}% + 0.75rem)` }}><span className="absolute -left-1.5 -top-1 size-3 rotate-45 bg-white" /></div></div></div></section> : <div className="relative h-10 shrink-0 border-t border-white/10 bg-[#070809]">{timelineResizeHandle}<button type="button" onClick={() => setShowTimeline(true)} className="group flex h-full w-full items-center justify-center gap-2 text-xs text-white/58 transition-colors hover:bg-white/[0.025] hover:text-white"><PanelBottomOpen className="size-3.5 transition-transform group-hover:-translate-y-0.5" /> Show timeline</button></div>}
     </section>
   )
 }
@@ -745,7 +903,7 @@ function ToolPanel({ activeTool, treatment, captionsVisible, cropEnabled, fitMod
   return <div className="mt-2 border-t border-white/8 pt-2">{content}</div>
 }
 
-function TimelineTracks({ zoom, effectiveDuration, sourceLabel, transcriptSegments, captionsVisible, currentTime, textPlacements }: { zoom: number; effectiveDuration: number; sourceLabel: string; transcriptSegments: MotionTranscriptSegment[]; captionsVisible: boolean; currentTime: number; textPlacements?: MotionTextPlacement[] }) {
+function TimelineTracks({ zoom, effectiveDuration, sourceLabel, transcriptSegments, captionsVisible, currentTime, textPlacements, cutRanges }: { zoom: number; effectiveDuration: number; sourceLabel: string; transcriptSegments: MotionTranscriptSegment[]; captionsVisible: boolean; currentTime: number; textPlacements?: MotionTextPlacement[]; cutRanges?: { start: number; end: number }[] }) {
   const width = `${zoom * 100}%`
   const activeSegment = transcriptSegments.find((segment) => isActiveSegment(segment, currentTime))
   const resolvedTextPlacements = textPlacements ?? transcriptSegments.slice(0, 3).map((segment, index) => ({
@@ -755,5 +913,5 @@ function TimelineTracks({ zoom, effectiveDuration, sourceLabel, transcriptSegmen
     text: segment.text.split(' ').slice(0, 4).join(' '),
     region: index === 1 ? 'bottom' : index === 2 ? 'top' : 'center',
   } as MotionTextPlacement))
-  return <><div className="relative h-5 border-b border-white/10" style={{ width, minWidth: '100%' }}>{Array.from({ length: 8 }).map((_, index) => <span key={index} className="absolute top-0 h-2 border-l border-white/28 text-[10px] text-white/42" style={{ left: `${(index / 7) * 100}%` }}><span className="absolute left-1 top-2 whitespace-nowrap">{formatTime((effectiveDuration * index) / 7).slice(0, 5)}</span></span>)}</div><div className="relative mt-2 h-11 overflow-hidden rounded border border-white/14 bg-[linear-gradient(120deg,#6b4332_0%,#d99768_13%,#5c3427_21%,#d89b71_34%,#273d48_53%,#bd825d_68%,#5b3728_82%,#d99c6d_100%)]" style={{ width, minWidth: '100%' }}><div className="absolute inset-0 bg-[repeating-linear-gradient(90deg,transparent_0,transparent_36px,rgba(0,0,0,.46)_37px,transparent_39px)]" />{activeSegment ? <div className="absolute inset-y-0 border-x border-white/30 bg-white/[0.07]" style={{ left: `${(activeSegment.start / effectiveDuration) * 100}%`, width: `${Math.max(1.5, ((activeSegment.end - activeSegment.start) / effectiveDuration) * 100)}%` }} /> : null}<span className="absolute bottom-1 left-2 max-w-[calc(100%-1rem)] truncate rounded bg-black/62 px-1.5 py-0.5 text-[9px] text-white/82">{sourceLabel}</span></div><div className="relative mt-2 h-8 overflow-hidden rounded bg-white/[0.08]" style={{ width, minWidth: '100%' }}><div className="absolute inset-0 opacity-70 [background-image:linear-gradient(90deg,transparent_0%,rgba(255,255,255,.7)_1%,transparent_2%,transparent_5%,rgba(255,255,255,.4)_6%,transparent_8%)] [background-size:42px_100%]" />{transcriptSegments.length > 0 ? transcriptSegments.map((segment, index) => { const centerPct = (((segment.start + segment.end) / 2) / effectiveDuration) * 100; const energy = 30 + ((segment.text.length + index * 3) % 7) * 8; return <span key={segment.id} className={cn('absolute bottom-1 w-[3px] -translate-x-1/2 rounded-full transition-colors duration-150', isActiveSegment(segment, currentTime) ? 'bg-[#b4fb60] shadow-[0_0_8px_rgba(180,251,96,.6)]' : 'bg-white/42')} style={{ left: `${centerPct}%`, height: `${energy}%` }} /> }) : null}</div>{captionsVisible ? <div className="relative mt-2 h-7 overflow-hidden" style={{ width, minWidth: '100%' }}>{transcriptSegments.map((segment) => <span key={segment.id} className={cn('absolute top-1 truncate rounded px-1.5 py-1 text-[9px] transition-colors', isActiveSegment(segment, currentTime) ? 'bg-[#98f237]/38 text-white' : 'bg-[#98f237]/18 text-white/72')} style={{ left: `${(segment.start / effectiveDuration) * 100}%`, width: `${Math.max(8, ((segment.end - segment.start) / effectiveDuration) * 100)}%` }}>{segment.text.split(' ').slice(0, 3).join(' ')}</span>)}</div> : null}<div className="relative mt-2 h-7 overflow-hidden rounded bg-white/[0.035]" style={{ width, minWidth: '100%' }}>{resolvedTextPlacements.map((placement) => <button type="button" key={placement.id} className="absolute top-1 truncate rounded border border-dashed border-[#98f237]/40 bg-[#98f237]/8 px-1.5 py-1 text-left text-[9px] text-white/70 transition-colors hover:border-[#98f237] hover:bg-[#98f237]/15 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#98f237]/60" style={{ left: `${(placement.start / effectiveDuration) * 100}%`, width: `${Math.max(10, ((placement.end - placement.start) / effectiveDuration) * 100)}%` }} title={`Text placement (${placement.region ?? 'center'}) from ${formatTime(placement.start)}`}>{placement.text}</button>)}</div></>
+  return <><div className="relative h-5 border-b border-white/10" style={{ width, minWidth: '100%' }}>{Array.from({ length: 8 }).map((_, index) => <span key={index} className="absolute top-0 h-2 border-l border-white/28 text-[10px] text-white/42" style={{ left: `${(index / 7) * 100}%` }}><span className="absolute left-1 top-2 whitespace-nowrap">{formatTime((effectiveDuration * index) / 7).slice(0, 5)}</span></span>)}</div><div className="relative mt-2 h-11 overflow-hidden rounded border border-white/14 bg-[linear-gradient(120deg,#6b4332_0%,#d99768_13%,#5c3427_21%,#d89b71_34%,#273d48_53%,#bd825d_68%,#5b3728_82%,#d99c6d_100%)]" style={{ width, minWidth: '100%' }}><div className="absolute inset-0 bg-[repeating-linear-gradient(90deg,transparent_0,transparent_36px,rgba(0,0,0,.46)_37px,transparent_39px)]" />{cutRanges && cutRanges.length > 0 ? <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden">{cutRanges.map((range, idx) => <div key={`cut-v-${idx}`} className="absolute inset-y-0 bg-[repeating-linear-gradient(45deg,rgba(239,68,68,0.35),rgba(239,68,68,0.35)_4px,rgba(0,0,0,0.6)_4px,rgba(0,0,0,0.6)_8px)] border-x border-red-500/70" style={{ left: `${(range.start / effectiveDuration) * 100}%`, width: `${Math.max(0.5, ((range.end - range.start) / effectiveDuration) * 100)}%` }} title={`Cut section: ${formatTime(range.start)} - ${formatTime(range.end)}`} />)}</div> : null}{activeSegment ? <div className="absolute inset-y-0 border-x border-white/30 bg-white/[0.07]" style={{ left: `${(activeSegment.start / effectiveDuration) * 100}%`, width: `${Math.max(1.5, ((activeSegment.end - activeSegment.start) / effectiveDuration) * 100)}%` }} /> : null}<span className="absolute bottom-1 left-2 max-w-[calc(100%-1rem)] truncate rounded bg-black/62 px-1.5 py-0.5 text-[9px] text-white/82">{sourceLabel}</span></div><div className="relative mt-2 h-8 overflow-hidden rounded bg-white/[0.08]" style={{ width, minWidth: '100%' }}><div className="absolute inset-0 opacity-70 [background-image:linear-gradient(90deg,transparent_0%,rgba(255,255,255,.7)_1%,transparent_2%,transparent_5%,rgba(255,255,255,.4)_6%,transparent_8%)] [background-size:42px_100%]" />{cutRanges && cutRanges.length > 0 ? <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden">{cutRanges.map((range, idx) => <div key={`cut-a-${idx}`} className="absolute inset-y-0 bg-red-950/60 border-x border-red-500/50" style={{ left: `${(range.start / effectiveDuration) * 100}%`, width: `${Math.max(0.5, ((range.end - range.start) / effectiveDuration) * 100)}%` }} />)}</div> : null}{transcriptSegments.length > 0 ? transcriptSegments.map((segment, index) => { const centerPct = (((segment.start + segment.end) / 2) / effectiveDuration) * 100; const energy = 30 + ((segment.text.length + index * 3) % 7) * 8; return <span key={segment.id} className={cn('absolute bottom-1 w-[3px] -translate-x-1/2 rounded-full transition-colors duration-150', isActiveSegment(segment, currentTime) ? 'bg-[#b4fb60] shadow-[0_0_8px_rgba(180,251,96,.6)]' : segment.isCut ? 'bg-red-500/35' : 'bg-white/42')} style={{ left: `${centerPct}%`, height: `${energy}%` }} /> }) : null}</div>{captionsVisible ? <div className="relative mt-2 h-7 overflow-hidden" style={{ width, minWidth: '100%' }}>{transcriptSegments.map((segment) => <span key={segment.id} className={cn('absolute top-1 truncate rounded px-1.5 py-1 text-[9px] transition-colors', segment.isCut ? 'line-through bg-red-500/20 text-red-300/60' : isActiveSegment(segment, currentTime) ? 'bg-[#98f237]/38 text-white' : 'bg-[#98f237]/18 text-white/72')} style={{ left: `${(segment.start / effectiveDuration) * 100}%`, width: `${Math.max(8, ((segment.end - segment.start) / effectiveDuration) * 100)}%` }}>{segment.text.split(' ').slice(0, 3).join(' ')}</span>)}</div> : null}<div className="relative mt-2 h-7 overflow-hidden rounded bg-white/[0.035]" style={{ width, minWidth: '100%' }}>{resolvedTextPlacements.map((placement) => <button type="button" key={placement.id} className="absolute top-1 truncate rounded border border-dashed border-[#98f237]/40 bg-[#98f237]/8 px-1.5 py-1 text-left text-[9px] text-white/70 transition-colors hover:border-[#98f237] hover:bg-[#98f237]/15 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#98f237]/60" style={{ left: `${(placement.start / effectiveDuration) * 100}%`, width: `${Math.max(10, ((placement.end - placement.start) / effectiveDuration) * 100)}%` }} title={`Text placement (${placement.region ?? 'center'}) from ${formatTime(placement.start)}`}>{placement.text}</button>)}</div></>
 }

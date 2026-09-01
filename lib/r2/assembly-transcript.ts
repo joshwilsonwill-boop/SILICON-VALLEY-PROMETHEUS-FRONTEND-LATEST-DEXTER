@@ -58,6 +58,7 @@ export function assemblyTranscriptToSegments(payload: JsonObject): TranscriptSeg
       startMs: group[0]!.startMs,
       endMs: group.at(-1)!.endMs,
       text: group.map((word) => word.text).join(' '),
+      words: group.map((w) => ({ text: w.text, startMs: w.startMs, endMs: w.endMs })),
     })
     group = []
   }

@@ -481,12 +481,21 @@ export interface MusicRecommendationPipelineResult {
   query?: string
 }
 
+export interface TranscriptWord {
+  text: string
+  startMs: number
+  endMs: number
+  isCut?: boolean
+}
+
 export interface TranscriptSegment {
   id: Id
   startMs: number
   endMs: number
   text: string
   speaker?: string
+  isCut?: boolean
+  words?: TranscriptWord[]
 }
 
 export interface DetectedScene {

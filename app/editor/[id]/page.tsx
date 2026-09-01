@@ -7494,11 +7494,87 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
         }
         return seg
       })
-      return {
+      const next = {
         ...current,
         artifacts: { ...current.artifacts, transcript: updated },
         transcriptText: updated.map((s) => s.text).join(' '),
       }
+      projects.upsertJob(next)
+      return next
+    })
+  }, [job?.artifacts.transcript, persistTranscriptSegments])
+
+  const handleToggleCutSegment = React.useCallback((segmentId: string) => {
+    const segments = job?.artifacts.transcript ?? []
+    const updated = segments.map((seg, index) => {
+      const matches =
+        seg.id === segmentId ||
+        String(index) === segmentId ||
+        `transcript-${index}` === segmentId ||
+        `motion-transcript-${index + 1}` === segmentId
+      if (!matches) return seg
+      const nextCut = !seg.isCut
+      return {
+        ...seg,
+        isCut: nextCut,
+        words: seg.words?.map((w) => ({ ...w, isCut: nextCut })),
+      }
+    })
+    persistTranscriptSegments(updated)
+    setJob((current) => {
+      if (!current) return current
+      const next = {
+        ...current,
+        artifacts: { ...current.artifacts, transcript: updated },
+      }
+      projects.upsertJob(next)
+      return next
+    })
+  }, [job?.artifacts.transcript, persistTranscriptSegments])
+
+  const handleToggleCutWord = React.useCallback((segmentId: string, wordIndex: number) => {
+    const segments = job?.artifacts.transcript ?? []
+    const updated = segments.map((seg, index) => {
+      const matches =
+        seg.id === segmentId ||
+        String(index) === segmentId ||
+        `transcript-${index}` === segmentId ||
+        `motion-transcript-${index + 1}` === segmentId
+      if (!matches) return seg
+
+      let words = seg.words
+      if (!words || words.length === 0) {
+        const split = seg.text.trim().split(/\s+/).filter(Boolean)
+        const dur = Math.max(50, (seg.endMs - seg.startMs) / split.length)
+        words = split.map((w, wIdx) => ({
+          text: w,
+          startMs: seg.startMs + Math.round(wIdx * dur),
+          endMs: Math.min(seg.endMs, seg.startMs + Math.round((wIdx + 1) * dur)),
+          isCut: Boolean(seg.isCut),
+        }))
+      }
+
+      const updatedWords = words.map((w, wIdx) => {
+        if (wIdx !== wordIndex) return w
+        return { ...w, isCut: !w.isCut }
+      })
+      const allCut = updatedWords.length > 0 && updatedWords.every((w) => w.isCut)
+
+      return {
+        ...seg,
+        isCut: allCut,
+        words: updatedWords,
+      }
+    })
+    persistTranscriptSegments(updated)
+    setJob((current) => {
+      if (!current) return current
+      const next = {
+        ...current,
+        artifacts: { ...current.artifacts, transcript: updated },
+      }
+      projects.upsertJob(next)
+      return next
     })
   }, [job?.artifacts.transcript, persistTranscriptSegments])
 
@@ -8786,6 +8862,8 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
                     isSourceDragOver={isInlineSourceDragOver}
                     transcriptSegments={motionTranscriptSegments}
                     onUpdateTranscriptSegment={handleUpdateTranscriptSegment}
+                    onToggleCutSegment={handleToggleCutSegment}
+                    onToggleCutWord={handleToggleCutWord}
                     onRequestTranscribe={() => void requestAssemblyAITranscription(true)}
                     isTranscribing={isTranscribingVideo}
                     transcriptError={transcriptError}

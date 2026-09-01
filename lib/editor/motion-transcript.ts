@@ -64,12 +64,39 @@ export function buildMotionTranscriptSegments(
   return orderedSegments.map((segment, index) => {
     const startMs = Math.max(0, segment.startMs)
     const endMs = Math.max(startMs, segment.endMs)
+    const startSec = startMs / 1000
+    const endSec = endMs / 1000
+
+    const rawWords = segment.words
+    let words: { text: string; start: number; end: number; isCut?: boolean }[] | undefined = undefined
+    if (Array.isArray(rawWords) && rawWords.length > 0) {
+      words = rawWords.map((w) => ({
+        text: String(w.text ?? '').trim(),
+        start: Number(w.startMs ?? startMs) / 1000,
+        end: Number(w.endMs ?? endMs) / 1000,
+        isCut: Boolean(w.isCut || segment.isCut),
+      }))
+    } else {
+      const split = segment.text.trim().split(/\s+/).filter(Boolean)
+      if (split.length > 0) {
+        const wordDur = Math.max(0.05, (endSec - startSec) / split.length)
+        words = split.map((w, wIdx) => ({
+          text: w,
+          start: startSec + wIdx * wordDur,
+          end: Math.min(endSec, startSec + (wIdx + 1) * wordDur),
+          isCut: Boolean(segment.isCut),
+        }))
+      }
+    }
+
     return {
       id: String(segment.id ?? `motion-transcript-${index + 1}`),
-      start: startMs / 1000,
-      end: endMs / 1000,
+      start: startSec,
+      end: endSec,
       text: segment.text.trim(),
       emphasis: extractEmphasis(segment.text),
+      isCut: Boolean(segment.isCut),
+      words,
     }
   })
 }
