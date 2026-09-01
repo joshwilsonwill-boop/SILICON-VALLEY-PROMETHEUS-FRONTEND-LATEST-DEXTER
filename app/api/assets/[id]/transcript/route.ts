@@ -5,31 +5,72 @@ import { downloadTextFromR2 } from '@/lib/r2/download-text'
 import { startSourceAssetTranscription } from '@/lib/server/source-transcript'
 import { createClient } from '@/lib/supabase/server'
 
+type TranscriptWord = {
+  text: string
+  startMs: number
+  endMs: number
+  isCut?: boolean
+}
+
 type TranscriptSegment = {
   id: string
   startMs: number
   endMs: number
   text: string
+  isCut?: boolean
+  words?: TranscriptWord[]
 }
 
 function normalizeSegments(value: unknown): TranscriptSegment[] | null {
-  if (!Array.isArray(value) || value.length === 0) return null
+  if (!Array.isArray(value)) return null
 
-  const segments = value.map((segment, index) => {
-    const record = segment && typeof segment === 'object' ? segment as Record<string, unknown> : {}
-    const text = typeof record.text === 'string' ? record.text.trim() : ''
-    const startMs = Number(record.startMs)
-    const endMs = Number(record.endMs)
-    if (!text || !Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs < startMs) return null
-    return {
-      id: typeof record.id === 'string' && record.id.trim() ? record.id.trim() : `transcript-${index + 1}`,
-      startMs: Math.round(startMs),
-      endMs: Math.round(endMs),
-      text,
+  const segments: TranscriptSegment[] = []
+  for (let index = 0; index < value.length; index++) {
+    const item = value[index]
+    const record = item && typeof item === 'object' ? (item as Record<string, unknown>) : {}
+    const text = typeof record.text === 'string' ? record.text : ''
+    const rawStart = Number(record.startMs ?? record.start ?? record.start_ms ?? record.startTime ?? 0)
+    const rawEnd = Number(record.endMs ?? record.end ?? record.end_ms ?? record.endTime ?? rawStart)
+    const startMs = Number.isFinite(rawStart) ? Math.max(0, Math.round(rawStart)) : 0
+    const endMs = Number.isFinite(rawEnd) ? Math.max(startMs, Math.round(rawEnd)) : startMs
+
+    const isCut = typeof record.isCut === 'boolean' ? record.isCut : undefined
+    let words: TranscriptWord[] | undefined = undefined
+
+    if (Array.isArray(record.words)) {
+      const parsedWords: TranscriptWord[] = []
+      for (const w of record.words) {
+        if (w && typeof w === 'object') {
+          const wordRec = w as Record<string, unknown>
+          const wStart = Number(wordRec.startMs ?? wordRec.start ?? startMs)
+          const wEnd = Number(wordRec.endMs ?? wordRec.end ?? endMs)
+          parsedWords.push({
+            text: String(wordRec.text ?? '').trim(),
+            startMs: Number.isFinite(wStart) ? Math.round(wStart) : startMs,
+            endMs: Number.isFinite(wEnd) ? Math.round(wEnd) : endMs,
+            ...(typeof wordRec.isCut === 'boolean' ? { isCut: wordRec.isCut } : {}),
+          })
+        }
+      }
+      if (parsedWords.length > 0) {
+        words = parsedWords
+      }
     }
-  })
 
-  return segments.every((segment): segment is TranscriptSegment => segment !== null) ? segments : null
+    segments.push({
+      id:
+        typeof record.id === 'string' && record.id.trim()
+          ? record.id.trim()
+          : `transcript-${index + 1}`,
+      startMs,
+      endMs,
+      text: text.trim(),
+      ...(isCut !== undefined ? { isCut } : {}),
+      ...(words && words.length > 0 ? { words } : {}),
+    })
+  }
+
+  return segments
 }
 
 /**
@@ -44,7 +85,9 @@ export async function GET(
   try {
     const { id: assetId } = await params
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -62,7 +105,7 @@ export async function GET(
     }
 
     const savedSegments = normalizeSegments(asset.transcript_segments)
-    if (savedSegments) {
+    if (savedSegments && savedSegments.length > 0) {
       if (asset.transcript_status !== 'completed') {
         await supabase
           .from('source_assets')
@@ -78,7 +121,10 @@ export async function GET(
     }
 
     if (asset.transcript_status === 'failed') {
-      return NextResponse.json({ status: 'failed', error: asset.transcript_error || 'Transcription failed.' })
+      return NextResponse.json({
+        status: 'failed',
+        error: asset.transcript_error || 'Transcription failed.',
+      })
     }
 
     if (asset.transcript_status === 'queued' || asset.transcript_status === 'transcribing') {
@@ -86,7 +132,12 @@ export async function GET(
     }
 
     if (asset.transcript_status === 'completed' && asset.transcript_r2_key) {
-      const bucket = (process.env.R2_BUCKET_SOURCES || process.env.R2_BUCKET_SOURCES_3 || process.env.R2_BUCKET_SOURCES_2 || 'prometheus-sources').trim()
+      const bucket = (
+        process.env.R2_BUCKET_SOURCES ||
+        process.env.R2_BUCKET_SOURCES_3 ||
+        process.env.R2_BUCKET_SOURCES_2 ||
+        'prometheus-sources'
+      ).trim()
       const raw = await downloadTextFromR2(bucket, asset.transcript_r2_key)
       if (raw) {
         const parsed = JSON.parse(raw) as Record<string, unknown>
@@ -98,7 +149,11 @@ export async function GET(
             : 'AssemblyAI completed without transcript text. Please retry transcription.'
           await supabase
             .from('source_assets')
-            .update({ transcript_status: 'failed', transcript_error: errorMessage, transcript_synced_at: new Date().toISOString() })
+            .update({
+              transcript_status: 'failed',
+              transcript_error: errorMessage,
+              transcript_synced_at: new Date().toISOString(),
+            })
             .eq('id', assetId)
             .eq('user_id', user.id)
           return NextResponse.json({ status: 'failed', error: errorMessage }, { status: 422 })
@@ -129,20 +184,29 @@ export async function PATCH(
 ) {
   try {
     const { id: assetId } = await params
-    const body = await req.json().catch(() => null) as { segments?: unknown } | null
+    const body = (await req.json().catch(() => null)) as { segments?: unknown } | null
     const segments = normalizeSegments(body?.segments)
-    if (!segments) return NextResponse.json({ error: 'A non-empty timed transcript is required.' }, { status: 400 })
+    if (!segments) {
+      return NextResponse.json({ error: 'Valid transcript array is required.' }, { status: 400 })
+    }
 
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
 
     const { error } = await supabase
       .from('source_assets')
       .update({
         transcript_status: 'completed',
         transcript_segments: segments,
-        transcript_text: segments.map((segment) => segment.text).join(' ').slice(0, 500),
+        transcript_text: segments
+          .map((segment) => segment.text)
+          .join(' ')
+          .slice(0, 500),
         transcript_completed_at: new Date().toISOString(),
         transcript_synced_at: new Date().toISOString(),
         transcript_error: null,
@@ -154,16 +218,16 @@ export async function PATCH(
     return NextResponse.json({ status: 'completed', segments })
   } catch (err) {
     console.error('[api/assets/[id]/transcript] PATCH error:', err)
-    return NextResponse.json({ error: err instanceof Error ? err.message : 'Failed to save transcript' }, { status: 500 })
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : 'Failed to save transcript' },
+      { status: 500 },
+    )
   }
 }
 
 /**
  * Starts an AssemblyAI transcription for a source asset and returns immediately.
  * The frontend polls `/api/assets/{id}/transcript/sync` for progress.
- *
- * Runs straight after a video of sensible length is uploaded — it must not wait
- * on the chat system or any editor step.
  */
 export async function POST(
   req: Request,
@@ -173,7 +237,9 @@ export async function POST(
     const { id: assetId } = await params
     const restart = new URL(req.url).searchParams.get('restart') === '1'
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -198,8 +264,7 @@ export async function POST(
 
     if (!started) {
       const tooLong =
-        Number.isFinite(Number(asset.duration_ms)) &&
-        Number(asset.duration_ms) > 40 * 60 * 1000
+        Number.isFinite(Number(asset.duration_ms)) && Number(asset.duration_ms) > 40 * 60 * 1000
       return NextResponse.json(
         {
           status: 'idle',

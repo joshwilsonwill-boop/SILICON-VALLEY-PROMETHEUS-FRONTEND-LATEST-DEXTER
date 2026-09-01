@@ -7464,17 +7464,33 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
     }
   }, [isSourceUploadPending, project?.sourceAssetId, requestAssemblyAITranscription, runFallbackTranscription, transcriptRefreshToken])
 
+  const persistTranscriptTimerRef = React.useRef<number | null>(null)
+  const pendingTranscriptSegmentsRef = React.useRef<TranscriptSegment[] | null>(null)
+
   const persistTranscriptSegments = React.useCallback((segments: TranscriptSegment[]) => {
     if (!project?.sourceAssetId) return
-    void fetch(`/api/assets/${project.sourceAssetId}/transcript`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ segments }),
-    }).then((response) => {
-      if (!response.ok) throw new Error('Transcript save failed')
-    }).catch(() => {
-      toast.error('Transcript change could not be saved. Please try again.')
-    })
+    pendingTranscriptSegmentsRef.current = segments
+
+    if (persistTranscriptTimerRef.current !== null) {
+      window.clearTimeout(persistTranscriptTimerRef.current)
+    }
+
+    persistTranscriptTimerRef.current = window.setTimeout(() => {
+      const payload = pendingTranscriptSegmentsRef.current
+      if (!payload || !project?.sourceAssetId) return
+
+      void fetch(`/api/assets/${project.sourceAssetId}/transcript`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ segments: payload }),
+      }).then((response) => {
+        if (!response.ok && response.status !== 401 && response.status !== 404) {
+          console.warn('[editor] Remote transcript sync status:', response.status)
+        }
+      }).catch((err) => {
+        console.warn('[editor] Remote transcript sync network error:', err)
+      })
+    }, 450)
   }, [project?.sourceAssetId])
 
   const handleUpdateTranscriptSegment = React.useCallback((segmentId: string, nextText: string) => {
@@ -9080,7 +9096,7 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
         isOpen={isMasterReviewOpen}
         onClose={() => setIsMasterReviewOpen(false)}
         originalVideoUrl={persistedPreviewUrl ?? previewUrl}
-        renderedVideoUrl={latestExport?.downloadUrl ?? previewUrl}
+        renderedVideoUrl={(latestExport?.metadata as any)?.downloadUrl ?? latestExport?.storagePath ?? previewUrl}
         projectTitle={project?.title ?? 'Untitled Project'}
         treatmentName="Prometheus Cinematic Master"
         onOpenThumbnailStudio={() => {
