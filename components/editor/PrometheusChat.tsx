@@ -408,6 +408,8 @@ export function PrometheusChat({
                   key={message.id}
                   message={message}
                   live={usesPersistentChat}
+                  isLatestAssistant={message.id === latestSpeakableMessage?.id}
+                  onPrompt={handleSuggestionSelect}
                   actionOutcome={actionOutcomes[message.id]}
                   onApplyActions={onApplyActions ? handleApplyActions : undefined}
                   onDismissActions={handleDismissActions}
@@ -542,22 +544,6 @@ export function PrometheusChat({
                   <Volume2 className="size-4" strokeWidth={1.5} />
                 </button>
                 <button
-                  type="button"
-                  data-jarvis-companion-toggle
-                  aria-label={jarvisLiveOpen ? 'Close Jarvis Live Companion' : 'Open Jarvis Live Voice & Vision Companion'}
-                  aria-pressed={jarvisLiveOpen}
-                  onClick={() => setJarvisLiveOpen((current) => !current)}
-                  className={cn(
-                    'grid size-8 shrink-0 place-items-center rounded-full transition-all hover:bg-white/[0.06] hover:text-white',
-                    jarvisLiveOpen
-                      ? 'bg-[#7ff2d4]/20 text-[#7ff2d4] shadow-[0_0_12px_rgba(127,242,212,0.4)]'
-                      : 'text-white/45 hover:text-[#7ff2d4]',
-                  )}
-                  title="Jarvis Live Companion (Bidirectional Voice + Vision)"
-                >
-                  <Sparkles className="size-4" strokeWidth={1.5} />
-                </button>
-                <button
                   type="submit"
                   disabled={!hasDraft}
                   className="grid size-8 shrink-0 place-items-center rounded-full text-white/70 transition-colors hover:bg-white/[0.06] hover:text-white disabled:pointer-events-none disabled:opacity-20"
@@ -612,6 +598,8 @@ function PrometheusMessageBubble({
   message,
   live,
   actionOutcome,
+  isLatestAssistant = false,
+  onPrompt,
   onApplyActions,
   onDismissActions,
   onSeekToSec,
@@ -623,6 +611,8 @@ function PrometheusMessageBubble({
 }: {
   message: PrometheusChatMessage
   live: boolean
+  isLatestAssistant?: boolean
+  onPrompt?: (text: string) => void
   actionOutcome?: 'applied' | 'dismissed'
   onApplyActions?: (drafts: EditorActionDraft[], messageId: string) => void
   onDismissActions?: (messageId: string) => void
@@ -793,6 +783,18 @@ function PrometheusMessageBubble({
 
         {!isUser && actionOutcome === 'applied' ? (
           <p className="text-[12px] text-white/35">Applied</p>
+        ) : null}
+
+        {!isUser && isLatestAssistant && messageComplete && onPrompt ? (
+          <div className="flex items-center gap-2 pt-0.5">
+            <button
+              type="button"
+              onClick={() => onPrompt('Continue the plan from where you stopped. Complete the full breakdown.')}
+              className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-[11px] font-medium text-white/50 transition-all hover:border-[#7ff2d4]/30 hover:bg-[#7ff2d4]/[0.04] hover:text-[#7ff2d4]"
+            >
+              <span>Continue plan</span>
+            </button>
+          </div>
         ) : null}
       </div>
     </article>

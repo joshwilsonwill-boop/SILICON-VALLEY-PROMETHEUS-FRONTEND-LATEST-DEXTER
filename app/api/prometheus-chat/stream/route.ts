@@ -187,7 +187,7 @@ export async function POST(request: Request) {
                   userMessage: message,
                   frameRefs: geminiFrameRefs,
                   abortSignal: request.signal,
-                  maxOutputTokens: maxTokens,
+                  maxOutputTokens: 8192,
                 },
                 {
                   onDelta: (chunk) => {
