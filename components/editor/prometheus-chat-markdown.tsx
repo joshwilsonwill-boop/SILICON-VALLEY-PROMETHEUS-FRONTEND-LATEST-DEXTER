@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, memo } from "react";
+import React, { useEffect, useRef, memo, useDeferredValue } from "react";
 import ReactMarkdown from "react-markdown";
 import type { Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -38,6 +38,9 @@ export const PrometheusChatMarkdown = memo(function PrometheusChatMarkdown({
   onProgress?: () => void;
 }) {
   const completionNotifiedRef = useRef(false);
+  // Defer markdown rendering during streaming to guarantee zero input lag for user typing
+  const deferredContent = useDeferredValue(content);
+  const displayContent = isComplete ? content : deferredContent;
 
   useEffect(() => {
     if (!isComplete) {
@@ -58,7 +61,7 @@ export const PrometheusChatMarkdown = memo(function PrometheusChatMarkdown({
         remarkPlugins={REMARK_PLUGINS}
         components={MARKDOWN_COMPONENTS}
       >
-        {content}
+        {displayContent}
       </ReactMarkdown>
       {!isComplete ? <span className="ai-chat-streaming-cursor text-white/60" aria-label="Streaming response">|</span> : null}
     </div>
