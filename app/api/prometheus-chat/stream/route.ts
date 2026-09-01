@@ -42,6 +42,11 @@ import {
 } from "@/lib/prometheus-assistant/tools";
 import type { ChatMediaJob } from "@/lib/prometheus-assistant/chat-media";
 import { createClient } from "@/lib/supabase/server";
+import {
+  resolveGeminiApiKey,
+  streamWithGemini,
+  type GeminiFrameRef,
+} from "@/lib/prometheus-assistant/gemini-stream";
 
 export const runtime = "nodejs";
 
@@ -136,258 +141,323 @@ export async function POST(request: Request) {
           send({ type: "delta", content: directReply });
         } else {
           const apiKey = cleanText(process.env.GROQ_API_KEY);
-          if (!apiKey) {
-            reply = createLocalPrometheusFallback({
-              intentKind: intent.kind,
-              knowledgeAnswer: knowledge.length
-                ? createExtractivePrometheusAnswer(message, knowledge, 900)
-                : null,
-              projectTitle: projectContext?.title,
-              filename: activeVideo?.filename,
-              durationSec: activeVideo?.durationMs
-                ? activeVideo.durationMs / 1000
-                : editorContext?.durationSec,
-              playheadSec: editorContext?.playheadSec,
-              recommendation: activeRecommendation,
-            });
-            send({ type: "delta", content: reply });
-          } else {
-            const groq = new Groq({ apiKey });
-            const model =
-              cleanText(process.env.GROQ_CHAT_MODEL) ||
-              cleanText(process.env.GROQ_MODEL) ||
-              DEFAULT_GROQ_MODEL;
-            const fallbackModel = "openai/gpt-oss-20b";
-            const maxTokens = normalizeMaxTokens(body?.verbosity);
+          const maxTokens = normalizeMaxTokens(body?.verbosity);
 
-            emitVideoContextThoughts(sendThought, projectContext, editorContext, knowledge);
+          emitVideoContextThoughts(sendThought, projectContext, editorContext, knowledge);
 
-            const systemPrompt = buildStreamSystemPrompt({
-              intentInstruction: getPrometheusIntentInstruction(intent),
-              knowledgeContext: formatKnowledgeContext(knowledge),
-              originalPrompt,
-              projectId,
-              projectContextBlock,
-              editorContext,
-              frameReferences,
-              toolsEnabled,
-              hasVideo,
-            });
-            const groqMessages = [
-              { role: "system", content: systemPrompt },
-              ...history.slice(-12),
-              { role: "user", content: message },
-            ] as const;
+          const systemPrompt = buildStreamSystemPrompt({
+            intentInstruction: getPrometheusIntentInstruction(intent),
+            knowledgeContext: formatKnowledgeContext(knowledge),
+            originalPrompt,
+            projectId,
+            projectContextBlock,
+            editorContext,
+            frameReferences,
+            toolsEnabled,
+            hasVideo,
+          });
 
-            const streamCompleteAnswer = async ({
-              messages,
-              selectedModel,
-              temperature,
-            }: {
-              messages: unknown[];
-              selectedModel: string;
-              temperature: number;
-            }) => {
-              const originalMessages = [...messages];
-              let continuationMessages = originalMessages;
+          let streamed = false;
 
-              for (let pass = 0; pass < MAX_COMPLETION_PASSES; pass += 1) {
-                const completion = await groq.chat.completions.create(
-                  {
-                    model: selectedModel,
-                    messages: continuationMessages as never,
-                    temperature,
-                    max_tokens: maxTokens,
-                    stream: true,
+          // ----------------------------------------------------------------
+          // Gemini 2.5 Flash — primary brain (multimodal + reasoning)
+          // Activates when GEMINI_API_KEY is configured. Frame thumbnails
+          // are sent as real inlineData image parts so Gemini actually sees
+          // the video frames — not just timecode labels.
+          // ----------------------------------------------------------------
+          const geminiApiKey = resolveGeminiApiKey();
+          if (geminiApiKey) {
+            try {
+              const geminiFrameRefs: GeminiFrameRef[] = frameReferences
+                .filter((ref): ref is typeof ref & { thumbnailUrl: string } => Boolean(ref.thumbnailUrl))
+                .map((ref) => ({
+                  timecode: ref.timecode || (ref.seconds !== undefined ? formatSecondsAsTimecode(ref.seconds) : '--:--'),
+                  url: ref.thumbnailUrl,
+                }));
+
+              const geminiReply = await streamWithGemini(
+                {
+                  apiKey: geminiApiKey,
+                  model: cleanText(process.env.GEMINI_CHAT_MODEL) || "gemini-2.5-flash",
+                  systemPrompt,
+                  history: history.slice(-10).map((m) => ({
+                    role: m.role === "assistant" ? "model" as const : "user" as const,
+                    content: m.content,
+                  })),
+                  userMessage: message,
+                  frameRefs: geminiFrameRefs,
+                  abortSignal: request.signal,
+                  maxOutputTokens: maxTokens,
+                },
+                {
+                  onDelta: (chunk) => {
+                    reply += chunk;
+                    send({ type: "delta", content: chunk });
                   },
-                  { signal: request.signal },
-                );
+                  onThought: sendThought,
+                  onStatus: (msg) => send({ type: "status", message: msg }),
+                },
+              );
 
-                let finishReason: string | null = null;
-                let passContent = "";
-                for await (const chunk of completion) {
-                  const choice = chunk.choices[0];
-                  finishReason = choice?.finish_reason ?? finishReason;
-                  const content = choice?.delta?.content ?? "";
-                  if (!content) continue;
-                  passContent += content;
-                  reply += content;
-                  send({ type: "delta", content });
-                }
-
-                if (finishReason !== "length") return;
-                if (!passContent.trim()) throw new Error("Prometheus response reached its token limit without producing more content.");
-                if (pass === MAX_COMPLETION_PASSES - 1) {
-                  throw new Error("Prometheus could not complete the response within the continuation limit.");
-                }
-
-                sendThought("Completing the remaining plan...");
-                continuationMessages = [
-                  ...originalMessages,
-                  { role: "assistant", content: reply },
-                  {
-                    role: "user",
-                    content: "Continue exactly where the prior response stopped. Do not repeat any heading, row, or sentence. Complete all open Markdown structures and end with the requested next-step choices.",
-                  },
-                ];
+              if (geminiReply.trim()) {
+                streamed = true;
+              } else {
+                // Gemini returned nothing — reset reply so Groq starts clean
+                reply = "";
               }
-            };
+            } catch (geminiError) {
+              if (request.signal.aborted) throw geminiError;
+              console.warn(
+                "[prometheus-chat-stream] Gemini failed; falling back to Groq",
+                geminiError instanceof Error ? geminiError.message.slice(0, 120) : geminiError,
+              );
+              reply = "";
+            }
+          }
 
-            let streamed = false;
+          // ----------------------------------------------------------------
+          // Groq fallback — activates when Gemini is absent or returned empty
+          // ----------------------------------------------------------------
+          if (!streamed) {
+            if (!apiKey) {
+              reply = createLocalPrometheusFallback({
+                intentKind: intent.kind,
+                knowledgeAnswer: knowledge.length
+                  ? createExtractivePrometheusAnswer(message, knowledge, 900)
+                  : null,
+                projectTitle: projectContext?.title,
+                filename: activeVideo?.filename,
+                durationSec: activeVideo?.durationMs
+                  ? activeVideo.durationMs / 1000
+                  : editorContext?.durationSec,
+                playheadSec: editorContext?.playheadSec,
+                recommendation: activeRecommendation,
+              });
+              send({ type: "delta", content: reply });
+            } else {
+              const groq = new Groq({ apiKey });
+              const model =
+                cleanText(process.env.GROQ_CHAT_MODEL) ||
+                cleanText(process.env.GROQ_MODEL) ||
+                DEFAULT_GROQ_MODEL;
+              const fallbackModel = "openai/gpt-oss-20b";
 
-            if (toolsEnabled) {
-              try {
-                sendThought("Planning editorial approach...");
+              const groqMessages = [
+                { role: "system", content: systemPrompt },
+                ...history.slice(-12),
+                { role: "user", content: message },
+              ] as const;
 
-                const planning = await groq.chat.completions.create(
-                  {
-                    model,
-                    messages: [...groqMessages],
-                    tools: [...PROMETHEUS_TOOLS],
-                    tool_choice: "auto",
-                    temperature: 0.3,
-                    max_tokens: 620,
-                    stream: false,
-                  },
-                  { signal: request.signal },
-                );
+              const streamCompleteAnswer = async ({
+                messages,
+                selectedModel,
+                temperature,
+              }: {
+                messages: unknown[];
+                selectedModel: string;
+                temperature: number;
+              }) => {
+                const originalMessages = [...messages];
+                let continuationMessages = originalMessages;
 
-                const planMessage = planning.choices?.[0]?.message as unknown as
-                  | Record<string, unknown>
-                  | undefined;
+                for (let pass = 0; pass < MAX_COMPLETION_PASSES; pass += 1) {
+                  const completion = await groq.chat.completions.create(
+                    {
+                      model: selectedModel,
+                      messages: continuationMessages as never,
+                      temperature,
+                      max_tokens: maxTokens,
+                      stream: true,
+                    },
+                    { signal: request.signal },
+                  );
 
-                const planContent = typeof planMessage?.content === "string" ? planMessage.content.trim() : "";
-                if (planContent) {
-                  sendThought(planContent);
+                  let finishReason: string | null = null;
+                  let passContent = "";
+                  for await (const chunk of completion) {
+                    const choice = chunk.choices[0];
+                    finishReason = choice?.finish_reason ?? finishReason;
+                    const content = choice?.delta?.content ?? "";
+                    if (!content) continue;
+                    passContent += content;
+                    reply += content;
+                    send({ type: "delta", content });
+                  }
+
+                  if (finishReason !== "length") return;
+                  if (!passContent.trim()) throw new Error("Prometheus response reached its token limit without producing more content.");
+                  if (pass === MAX_COMPLETION_PASSES - 1) {
+                    throw new Error("Prometheus could not complete the response within the continuation limit.");
+                  }
+
+                  sendThought("Completing the remaining plan...");
+                  continuationMessages = [
+                    ...originalMessages,
+                    { role: "assistant", content: reply },
+                    {
+                      role: "user",
+                      content: "Continue exactly where the prior response stopped. Do not repeat any heading, row, or sentence. Complete all open Markdown structures and end with the requested next-step choices.",
+                    },
+                  ];
                 }
+              };
 
-                const requested = normalizeGroqToolCalls(planMessage?.tool_calls);
-                if (requested.length) {
-                  send({ type: "status", message: "Running editorial tools" });
-                  toolCalls = [];
-                  const streamJobs: ChatMediaJob[] = [];
-                  for (const toolCall of requested) {
-                    if (toolCall.name === "submit_editor_job") {
-                      const submitted = await submitEditorJob(toolCall, { message, projectId, sessionId });
-                      if (submitted) {
-                        toolCalls.push(submitted.toolCall);
-                        if (submitted.job) streamJobs.push(submitted.job);
-                        send({
-                          type: "tool",
-                          toolCall: {
-                            id: submitted.toolCall.id,
-                            name: submitted.toolCall.name,
-                            label: submitted.toolCall.label,
-                            status: submitted.toolCall.status,
-                            summary: submitted.toolCall.summary,
-                          },
-                        });
+              let groqStreamed = false;
+
+              if (toolsEnabled) {
+                try {
+                  sendThought("Planning editorial approach...");
+
+                  const planning = await groq.chat.completions.create(
+                    {
+                      model,
+                      messages: [...groqMessages],
+                      tools: [...PROMETHEUS_TOOLS],
+                      tool_choice: "auto",
+                      temperature: 0.3,
+                      max_tokens: 620,
+                      stream: false,
+                    },
+                    { signal: request.signal },
+                  );
+
+                  const planMessage = planning.choices?.[0]?.message as unknown as
+                    | Record<string, unknown>
+                    | undefined;
+
+                  const planContent = typeof planMessage?.content === "string" ? planMessage.content.trim() : "";
+                  if (planContent) {
+                    sendThought(planContent);
+                  }
+
+                  const requested = normalizeGroqToolCalls(planMessage?.tool_calls);
+                  if (requested.length) {
+                    send({ type: "status", message: "Running editorial tools" });
+                    toolCalls = [];
+                    const streamJobs: ChatMediaJob[] = [];
+                    for (const toolCall of requested) {
+                      if (toolCall.name === "submit_editor_job") {
+                        const submitted = await submitEditorJob(toolCall, { message, projectId, sessionId });
+                        if (submitted) {
+                          toolCalls.push(submitted.toolCall);
+                          if (submitted.job) streamJobs.push(submitted.job);
+                          send({
+                            type: "tool",
+                            toolCall: {
+                              id: submitted.toolCall.id,
+                              name: submitted.toolCall.name,
+                              label: submitted.toolCall.label,
+                              status: submitted.toolCall.status,
+                              summary: submitted.toolCall.summary,
+                            },
+                          });
+                        }
+                        continue;
                       }
+                      const completedToolCall = executePrometheusTool(toolCall, {
+                        latestMessage: message,
+                        knowledge,
+                        frameReferences,
+                        projectId,
+                      });
+                      toolCalls.push(completedToolCall);
+                      send({
+                        type: "tool",
+                        toolCall: {
+                          id: completedToolCall.id,
+                          name: completedToolCall.name,
+                          label: completedToolCall.label,
+                          status: completedToolCall.status,
+                          summary: completedToolCall.summary,
+                        },
+                      });
+                    }
+
+                    sendThought("Composing final answer with tool results...");
+
+                    const followupMessages = [
+                          ...groqMessages,
+                          {
+                            role: "assistant",
+                            content: planContent,
+                            tool_calls: planMessage?.tool_calls,
+                          },
+                          ...toolCalls.map((toolCall) => ({
+                            role: "tool" as const,
+                            tool_call_id: toolCall.id,
+                            content: JSON.stringify(toolCall.output),
+                          })),
+                        ];
+
+                    send({ type: "status", message: "Drafting your answer" });
+                    groqStreamed = true;
+                    await streamCompleteAnswer({ messages: followupMessages, selectedModel: model, temperature: 0.38 });
+                  }
+                } catch (error) {
+                  if (isToolUseFailed(error)) {
+                    console.warn(
+                      "[prometheus-chat-stream] tool planning failed; answering without tools",
+                    );
+                    toolCalls = [];
+                  } else if (!request.signal.aborted) {
+                    console.warn(
+                      "[prometheus-chat-stream] tool planning errored; answering without tools",
+                    );
+                    toolCalls = [];
+                  } else {
+                    throw error;
+                  }
+                }
+              }
+
+              if (!groqStreamed) {
+                sendThought("Generating response...");
+
+                const modelsToTry = model === fallbackModel ? [model] : [model, fallbackModel];
+                let completionFailed = false;
+
+                for (let attempt = 0; attempt < modelsToTry.length; attempt += 1) {
+                  const attemptModel = modelsToTry[attempt];
+                  try {
+                    await streamCompleteAnswer({
+                      messages: [...groqMessages],
+                      selectedModel: attemptModel,
+                      temperature: intent.kind === "conversation" ? 0.52 : 0.38,
+                    });
+                    completionFailed = false;
+                    break;
+                  } catch (error) {
+                    if (request.signal.aborted) throw error;
+                    if (isToolUseFailed(error)) {
+                      console.warn("[prometheus-chat-stream] generation tool failure; retrying without tools");
+                      completionFailed = true;
+                      break;
+                    }
+                    if (attempt < modelsToTry.length - 1) {
+                      console.warn(`[prometheus-chat-stream] model ${attemptModel} failed; falling back to ${modelsToTry[attempt + 1]}`);
+                      completionFailed = true;
                       continue;
                     }
-                    const completedToolCall = executePrometheusTool(toolCall, {
-                      latestMessage: message,
-                      knowledge,
-                      frameReferences,
-                      projectId,
-                    });
-                    toolCalls.push(completedToolCall);
-                    send({
-                      type: "tool",
-                      toolCall: {
-                        id: completedToolCall.id,
-                        name: completedToolCall.name,
-                        label: completedToolCall.label,
-                        status: completedToolCall.status,
-                        summary: completedToolCall.summary,
-                      },
-                    });
+                    throw error;
                   }
-
-                  sendThought("Composing final answer with tool results...");
-
-                  const followupMessages = [
-                        ...groqMessages,
-                        {
-                          role: "assistant",
-                          content: planContent,
-                          tool_calls: planMessage?.tool_calls,
-                        },
-                        ...toolCalls.map((toolCall) => ({
-                          role: "tool" as const,
-                          tool_call_id: toolCall.id,
-                          content: JSON.stringify(toolCall.output),
-                        })),
-                      ];
-
-                  send({ type: "status", message: "Drafting your answer" });
-                  streamed = true;
-                  await streamCompleteAnswer({ messages: followupMessages, selectedModel: model, temperature: 0.38 });
                 }
-              } catch (error) {
-                if (isToolUseFailed(error)) {
-                  console.warn(
-                    "[prometheus-chat-stream] tool planning failed; answering without tools",
-                  );
-                  toolCalls = [];
-                } else if (!request.signal.aborted) {
-                  console.warn(
-                    "[prometheus-chat-stream] tool planning errored; answering without tools",
-                  );
-                  toolCalls = [];
-                } else {
-                  throw error;
+
+                if (completionFailed && !reply.trim()) {
+                  sendThought("Falling back to extractive guidance...");
+                  const fallback = knowledge.length
+                    ? createExtractivePrometheusAnswer(message, knowledge, maxTokens)
+                    : createLocalPrometheusFallback({
+                        intentKind: intent.kind,
+                        projectTitle: projectContext?.title,
+                        filename: activeVideo?.filename,
+                        durationSec: activeVideo?.durationMs
+                          ? activeVideo.durationMs / 1000
+                          : editorContext?.durationSec,
+                        playheadSec: editorContext?.playheadSec,
+                      });
+                  reply = fallback;
+                  send({ type: "delta", content: fallback });
                 }
-              }
-            }
-
-            if (!streamed) {
-              sendThought("Generating response...");
-
-              const modelsToTry = model === fallbackModel ? [model] : [model, fallbackModel];
-              let completionFailed = false;
-
-              for (let attempt = 0; attempt < modelsToTry.length; attempt += 1) {
-                const attemptModel = modelsToTry[attempt];
-                try {
-                  await streamCompleteAnswer({
-                    messages: [...groqMessages],
-                    selectedModel: attemptModel,
-                    temperature: intent.kind === "conversation" ? 0.52 : 0.38,
-                  });
-                  completionFailed = false;
-                  break;
-                } catch (error) {
-                  if (request.signal.aborted) throw error;
-                  if (isToolUseFailed(error)) {
-                    console.warn("[prometheus-chat-stream] generation tool failure; retrying without tools");
-                    completionFailed = true;
-                    break;
-                  }
-                  if (attempt < modelsToTry.length - 1) {
-                    console.warn(`[prometheus-chat-stream] model ${attemptModel} failed; falling back to ${modelsToTry[attempt + 1]}`);
-                    completionFailed = true;
-                    continue;
-                  }
-                  throw error;
-                }
-              }
-
-              if (completionFailed && !reply.trim()) {
-                sendThought("Falling back to extractive guidance...");
-                const fallback = knowledge.length
-                  ? createExtractivePrometheusAnswer(message, knowledge, maxTokens)
-                  : createLocalPrometheusFallback({
-                      intentKind: intent.kind,
-                      projectTitle: projectContext?.title,
-                      filename: activeVideo?.filename,
-                      durationSec: activeVideo?.durationMs
-                        ? activeVideo.durationMs / 1000
-                        : editorContext?.durationSec,
-                      playheadSec: editorContext?.playheadSec,
-                    });
-                reply = fallback;
-                send({ type: "delta", content: fallback });
               }
             }
           }
