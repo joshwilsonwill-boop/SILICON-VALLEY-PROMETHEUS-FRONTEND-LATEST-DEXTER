@@ -18,7 +18,12 @@ function getGeminiKey() {
 }
 
 function getAssemblyAiKey() {
-  const key = process.env.ASSEMBLYAI_API_KEY?.trim();
+  const key = (
+    process.env.ASSEMBLYAI_API_KEY ||
+    process.env.ASSEMBLYAI_API_KEY_3 ||
+    process.env.ASSEMBLYAI_API_KEY_2 ||
+    process.env.ASSEMBLYAI_API_KEY_1
+  )?.trim();
   return key || null;
 }
 
