@@ -10,11 +10,10 @@ assert.ok(existsSync('lib/voice-companion/gemini-live-client.ts'), 'gemini live 
 assert.ok(existsSync('hooks/use-voice-companion.ts'), 'voice companion hook must exist')
 assert.ok(existsSync('components/editor/voice-companion-hud.tsx'), 'voice companion hud must exist')
 
-// 2. Check PrometheusChat integration
+// 2. Check PrometheusChat composer cleanliness
 const chatSource = readFileSync('components/editor/PrometheusChat.tsx', 'utf8')
-assert.match(chatSource, /data-jarvis-companion-toggle/, 'PrometheusChat must have jarvis companion toggle')
-assert.match(chatSource, /VoiceCompanionHud/, 'PrometheusChat must render VoiceCompanionHud')
-assert.match(chatSource, /jarvisLiveOpen/, 'PrometheusChat must manage jarvisLiveOpen state')
+assert.ok(!chatSource.includes('data-jarvis-companion-toggle'), 'PrometheusChat composer must not have redundant companion toggle icon')
+assert.ok(!chatSource.includes('VoiceCompanionHud'), 'PrometheusChat must not render redundant VoiceCompanionHud')
 
 // 3. Check AudioStreamer instant barge-in flush capability
 const audioSource = readFileSync('lib/voice-companion/audio-streamer.ts', 'utf8')

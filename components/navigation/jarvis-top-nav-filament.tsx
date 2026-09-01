@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useRef, useState, useCallback } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Mic, MicOff, Eye, EyeOff, Sparkles, X, Volume2, Radio } from 'lucide-react'
 
@@ -22,93 +22,100 @@ export function JarvisTopNavFilament({ className }: JarvisTopNavFilamentProps) {
 
   const companion = useVoiceCompanion()
 
+  // Track latest reactive values in refs for zero-re-render RAF animation loop
+  const companionRef = useRef(companion)
+  companionRef.current = companion
+
+  const isHoveredRef = useRef(isHovered)
+  isHoveredRef.current = isHovered
+
   const isActive = companion.status !== 'disconnected' && companion.status !== 'error'
   const isSpeaking = companion.status === 'speaking'
   const isListening = companion.status === 'listening'
   const isInterrupted = companion.status === 'interrupted'
 
-  // Procedural dynamic wave calculation
-  // Computes a multi-harmonic liquid sine wave that pins to 0 at both endpoints
-  const renderWave = useCallback(() => {
-    if (!pathRef.current) return
-
-    const width = 200
-    const height = 32
-    const midY = height / 2
-    const numPoints = 64
-
-    // Dynamic amplitude based on companion state & audio volume
-    let baseAmplitude = 0
-    let freq1 = 0.04
-    let freq2 = 0.08
-    let speed = 0.06
-
-    if (isSpeaking) {
-      baseAmplitude = 6 + companion.assistantVolume * 14
-      speed = 0.16
-      freq1 = 0.05
-      freq2 = 0.11
-    } else if (isListening) {
-      baseAmplitude = 3 + companion.userVolume * 12
-      speed = 0.1
-      freq1 = 0.045
-      freq2 = 0.09
-    } else if (isInterrupted) {
-      baseAmplitude = 8
-      speed = 0.25
-    } else if (companion.status === 'connecting') {
-      baseAmplitude = 2.5
-      speed = 0.08
-    } else if (isHovered) {
-      baseAmplitude = 2
-      speed = 0.07
-    } else {
-      // Idle: ultra-fine subtle shimmer
-      baseAmplitude = 0.6
-      speed = 0.03
-    }
-
-    phaseRef.current += speed
-
-    let d = `M 0 ${midY}`
-    for (let i = 0; i <= numPoints; i++) {
-      const x = (i / numPoints) * width
-      // Sine envelope so the ends taper gracefully to exactly midY (0 displacement)
-      const envelope = Math.sin((Math.PI * i) / numPoints)
-      const yOffset =
-        (Math.sin(x * freq1 + phaseRef.current) * 0.7 +
-          Math.sin(x * freq2 - phaseRef.current * 1.3) * 0.3) *
-        baseAmplitude *
-        envelope
-
-      const y = midY + yOffset
-      d += ` L ${x.toFixed(2)} ${y.toFixed(2)}`
-    }
-
-    pathRef.current.setAttribute('d', d)
-    if (glowPathRef.current) {
-      glowPathRef.current.setAttribute('d', d)
-    }
-
-    animFrameIdRef.current = requestAnimationFrame(renderWave)
-  }, [
-    companion.assistantVolume,
-    companion.status,
-    companion.userVolume,
-    isHovered,
-    isInterrupted,
-    isListening,
-    isSpeaking,
-  ])
-
+  // Single mount-only high-performance RAF loop (zero React re-renders)
   useEffect(() => {
-    animFrameIdRef.current = requestAnimationFrame(renderWave)
+    let active = true
+
+    const loop = () => {
+      if (!active) return
+
+      if (pathRef.current) {
+        const comp = companionRef.current
+        const userVol = comp.getUserVolume()
+        const asstVol = comp.getAssistantVolume()
+        const status = comp.status
+        const hovered = isHoveredRef.current
+
+        const width = 200
+        const height = 32
+        const midY = height / 2
+        const numPoints = 48
+
+        let baseAmplitude = 0.6
+        let freq1 = 0.04
+        let freq2 = 0.08
+        let speed = 0.03
+
+        if (status === 'speaking') {
+          baseAmplitude = 6 + asstVol * 14
+          speed = 0.16
+          freq1 = 0.05
+          freq2 = 0.11
+        } else if (status === 'listening') {
+          baseAmplitude = 3 + userVol * 12
+          speed = 0.1
+          freq1 = 0.045
+          freq2 = 0.09
+        } else if (status === 'interrupted') {
+          baseAmplitude = 8
+          speed = 0.25
+        } else if (status === 'connecting') {
+          baseAmplitude = 2.5
+          speed = 0.08
+        } else if (hovered) {
+          baseAmplitude = 2
+          speed = 0.07
+        } else {
+          baseAmplitude = 0.6
+          speed = 0.03
+        }
+
+        phaseRef.current += speed
+
+        let d = `M 0 ${midY}`
+        for (let i = 0; i <= numPoints; i++) {
+          const x = (i / numPoints) * width
+          const envelope = Math.sin((Math.PI * i) / numPoints)
+          const yOffset =
+            (Math.sin(x * freq1 + phaseRef.current) * 0.7 +
+              Math.sin(x * freq2 - phaseRef.current * 1.3) * 0.3) *
+            baseAmplitude *
+            envelope
+
+          const y = midY + yOffset
+          d += ` L ${x.toFixed(1)} ${y.toFixed(1)}`
+        }
+
+        pathRef.current.setAttribute('d', d)
+        if (glowPathRef.current) {
+          glowPathRef.current.setAttribute('d', d)
+        }
+      }
+
+      animFrameIdRef.current = requestAnimationFrame(loop)
+    }
+
+    animFrameIdRef.current = requestAnimationFrame(loop)
+
     return () => {
+      active = false
       if (animFrameIdRef.current) {
         cancelAnimationFrame(animFrameIdRef.current)
       }
     }
-  }, [renderWave])
+  }, [])
 
   const handleToggleCompanion = () => {
     if (companion.status === 'disconnected') {
@@ -227,6 +234,8 @@ export function JarvisTopNavFilament({ className }: JarvisTopNavFilamentProps) {
                     ? 'bg-blue-400'
                     : isInterrupted
                     ? 'bg-amber-400'
+                    : companion.status === 'error'
+                    ? 'bg-rose-400'
                     : 'bg-emerald-400'
                 )}
               />
@@ -239,6 +248,8 @@ export function JarvisTopNavFilament({ className }: JarvisTopNavFilamentProps) {
                   ? 'Interrupted'
                   : companion.status === 'connecting'
                   ? 'Linking...'
+                  : companion.status === 'error'
+                  ? 'Connection Error'
                   : 'Jarvis Voice'}
               </span>
               <span className="text-white/30">•</span>
@@ -284,19 +295,10 @@ export function JarvisTopNavFilament({ className }: JarvisTopNavFilamentProps) {
               </div>
             </div>
 
-            {/* Live Visual Context Pill */}
-            <div className="my-2.5 flex items-center justify-between rounded-lg bg-white/[0.04] px-3 py-1.5 text-[11px] text-white/70 border border-white/[0.06]">
-              <span className="flex items-center gap-1.5">
-                <Radio className={cn('size-3', companion.isVisionActive ? 'text-cyan-400' : 'text-white/30')} />
-                {companion.isVisionActive ? 'Timeline Vision Active' : 'Vision Paused'}
-              </span>
-              <span className="font-mono text-[10px] text-white/40">Voice: {companion.selectedVoice}</span>
-            </div>
-
-            {/* Dynamic Spoken Transcript Box */}
-            <div className="min-h-[42px] max-h-16 overflow-y-auto rounded-lg bg-black/40 p-2 text-center text-xs leading-relaxed text-white/80 border border-white/5">
+            {/* Live Subtitle / Transcript Ticker */}
+            <div className="mt-3 min-h-[44px] rounded-xl bg-white/[0.04] p-2.5 text-xs text-white/90 border border-white/5">
               {latestTranscript ? (
-                <p>
+                <p className="line-clamp-2 leading-relaxed">
                   <span className={cn('font-semibold mr-1.5', latestTranscript.role === 'user' ? 'text-blue-300' : 'text-cyan-300')}>
                     {latestTranscript.role === 'user' ? 'You:' : 'Jarvis:'}
                   </span>
@@ -338,38 +340,32 @@ export function JarvisTopNavFilament({ className }: JarvisTopNavFilamentProps) {
                   className={cn(
                     'flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium transition-colors',
                     companion.isVisionActive
-                      ? 'bg-cyan-500/15 text-cyan-300 border border-cyan-500/30'
-                      : 'bg-white/10 text-white/50 hover:bg-white/15'
+                      ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
+                      : 'bg-white/10 text-white/60 hover:bg-white/15'
                   )}
-                  title="Toggle video preview vision sync"
                 >
                   {companion.isVisionActive ? <Eye className="size-3" /> : <EyeOff className="size-3" />}
-                  <span>Eye</span>
+                  <span>Vision {companion.isVisionActive ? 'On' : 'Off'}</span>
                 </button>
               </div>
 
-              <div className="flex items-center gap-1.5">
-                {companion.status !== 'disconnected' ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      companion.disconnect()
-                      setIsExpanded(false)
-                    }}
-                    className="rounded-lg bg-rose-500/15 px-2.5 py-1 text-xs text-rose-300 hover:bg-rose-500/25 transition-colors border border-rose-500/20"
-                  >
-                    Disconnect
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => companion.connect()}
-                    className="rounded-lg bg-cyan-500/20 px-2.5 py-1 text-xs text-cyan-300 hover:bg-cyan-500/30 transition-colors border border-cyan-500/30"
-                  >
-                    Connect
-                  </button>
-                )}
-              </div>
+              {companion.status === 'disconnected' || companion.status === 'error' ? (
+                <button
+                  type="button"
+                  onClick={companion.connect}
+                  className="rounded-lg bg-cyan-500 px-3 py-1 text-xs font-semibold text-black transition-all hover:bg-cyan-400 shadow-[0_0_12px_rgba(0,240,255,0.4)]"
+                >
+                  Connect
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={companion.disconnect}
+                  className="rounded-lg bg-white/10 px-3 py-1 text-xs font-medium text-white/80 transition-colors hover:bg-rose-500/20 hover:text-rose-300"
+                >
+                  Disconnect
+                </button>
+              )}
             </div>
           </motion.div>
         )}
