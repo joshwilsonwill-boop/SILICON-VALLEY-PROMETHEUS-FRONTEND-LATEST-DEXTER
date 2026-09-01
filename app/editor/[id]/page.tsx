@@ -6780,7 +6780,20 @@ function OriginalEditorPage() {
         setProject(nextProject)
         setIsProjectLoading(false)
       }
-      setJob(nextJob)
+      setJob((current) => {
+        if (current?.artifacts?.transcript?.length && (!nextJob?.artifacts?.transcript || nextJob.artifacts.transcript.length === 0)) {
+          if (nextJob) {
+            nextJob.artifacts = { ...nextJob.artifacts, transcript: current.artifacts.transcript }
+            nextJob.transcriptStatus = current.transcriptStatus
+            nextJob.transcriptText = current.transcriptText
+            nextJob.transcriptProvider = current.transcriptProvider
+            projects.upsertJob(nextJob)
+            return nextJob
+          }
+          return current
+        }
+        return nextJob
+      })
       if (nextJob?.status === 'completed' && intervalId !== null) {
         window.clearInterval(intervalId)
         intervalId = null
@@ -6817,8 +6830,23 @@ function OriginalEditorPage() {
           response: analysis,
           input: existing?.input ?? {prompt: '', sources: []},
         })
+        if (existing?.artifacts?.transcript?.length && (!nextJob.artifacts?.transcript || nextJob.artifacts.transcript.length === 0)) {
+          nextJob.artifacts.transcript = existing.artifacts.transcript
+          nextJob.transcriptStatus = existing.transcriptStatus
+          nextJob.transcriptText = existing.transcriptText
+          nextJob.transcriptProvider = existing.transcriptProvider
+        }
         projects.upsertJob(nextJob)
-        setJob(nextJob)
+        setJob((current) => {
+          if (current?.artifacts?.transcript?.length && (!nextJob.artifacts?.transcript || nextJob.artifacts.transcript.length === 0)) {
+            nextJob.artifacts.transcript = current.artifacts.transcript
+            nextJob.transcriptStatus = current.transcriptStatus
+            nextJob.transcriptText = current.transcriptText
+            nextJob.transcriptProvider = current.transcriptProvider
+            projects.upsertJob(nextJob)
+          }
+          return nextJob
+        })
 
         if (analysis.status === 'queued' && !dispatched) {
           dispatched = true
@@ -7288,12 +7316,33 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
       completed = true
       if (intervalId !== null) window.clearInterval(intervalId)
       intervalId = null
-      setJob((current) => current ? {
-        ...current,
-        artifacts: { ...current.artifacts, transcript: segments },
-        transcriptStatus: 'completed',
-        transcriptText: segments.map((segment) => segment.text).join(' '),
-      } : current)
+      setJob((current) => {
+        const next: ProcessingJob = current ? {
+          ...current,
+          artifacts: { ...current.artifacts, transcript: segments },
+          transcriptStatus: 'completed' as const,
+          transcriptText: segments.map((segment) => segment.text).join(' '),
+        } : {
+          id: `job-${projectId}`,
+          projectId,
+          status: 'completed' as const,
+          createdAt: new Date().toISOString(),
+          startedAt: new Date().toISOString(),
+          input: { prompt: '', sources: [] },
+          steps: [],
+          artifacts: {
+            transcript: segments,
+            scenes: [],
+            highlights: [],
+            brollSuggestions: [],
+          },
+          transcriptStatus: 'completed' as const,
+          transcriptText: segments.map((segment) => segment.text).join(' '),
+          transcriptProvider: 'assemblyai',
+        }
+        projects.upsertJob(next)
+        return next
+      })
       setTranscriptError(null)
       setIsTranscribingVideo(false)
     }
