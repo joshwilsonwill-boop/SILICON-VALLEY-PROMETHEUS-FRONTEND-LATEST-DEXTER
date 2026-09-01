@@ -110,7 +110,7 @@ export async function POST(
         return NextResponse.json({ status: 'failed', error: errorMessage }, { status: 422 })
       }
       // 3. Normalize and save to R2 (non-blocking fallback)
-      const bucket = process.env.R2_BUCKET_SOURCES || 'prometheus-sources'
+      const bucket = (process.env.R2_BUCKET_SOURCES || process.env.R2_BUCKET_SOURCES_3 || process.env.R2_BUCKET_SOURCES_2 || 'prometheus-sources').trim()
       const r2Key = R2Keys.transcript(user.id, asset.project_id, assetId)
       
       stage = 'upload_transcript_to_r2'
@@ -120,9 +120,9 @@ export async function POST(
         console.warn('[api/assets/[id]/transcript/sync] R2 transcript upload warning (non-fatal, continuing to save segments to database):', r2Err)
       }
 
-      // 4. Update Supabase
+      // 4. Update Supabase (with fallback if extended columns are not migrated)
       stage = 'persist_transcript'
-      const { error: updateError } = await supabase
+      let { error: updateError } = await supabase
         .from('source_assets')
         .update({
           transcript_status: 'completed',
@@ -131,14 +131,22 @@ export async function POST(
           transcript_synced_at: new Date().toISOString(),
           transcript_error: null,
           transcript_segments: segments,
-          // Store a tiny preview if useful, otherwise leave null
-          transcript_text: assemblyResponse.text?.slice(0, 500) || null
+          transcript_text: assemblyResponse.text?.slice(0, 500) || null,
         })
         .eq('id', assetId)
 
-      if (updateError) throw updateError
+      if (updateError) {
+        console.warn('[api/assets/[id]/transcript/sync] Full column update warning, falling back to core status update:', updateError)
+        await supabase
+          .from('source_assets')
+          .update({
+            transcript_status: 'completed',
+            transcript_error: null,
+          })
+          .eq('id', assetId)
+      }
 
-      return NextResponse.json({ status: 'completed', r2Key })
+      return NextResponse.json({ status: 'completed', r2Key, segments })
     }
 
     if (assemblyResponse.status === 'error') {
@@ -157,7 +165,12 @@ export async function POST(
     return NextResponse.json({ status: asset.transcript_status })
 
   } catch (err) {
-    const error = err instanceof Error ? err.message : 'Failed to sync transcript'
+    const error =
+      err instanceof Error
+        ? err.message
+        : typeof err === 'object' && err !== null && 'message' in err
+          ? String((err as any).message)
+          : 'Failed to sync transcript'
     console.error('[api/assets/[id]/transcript/sync] POST error:', { assetId, stage, error, err })
     return NextResponse.json(
       { error, stage },

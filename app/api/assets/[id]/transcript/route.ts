@@ -86,7 +86,7 @@ export async function GET(
     }
 
     if (asset.transcript_status === 'completed' && asset.transcript_r2_key) {
-      const bucket = process.env.R2_BUCKET_SOURCES || 'prometheus-sources'
+      const bucket = (process.env.R2_BUCKET_SOURCES || process.env.R2_BUCKET_SOURCES_3 || process.env.R2_BUCKET_SOURCES_2 || 'prometheus-sources').trim()
       const raw = await downloadTextFromR2(bucket, asset.transcript_r2_key)
       if (raw) {
         const parsed = JSON.parse(raw) as Record<string, unknown>

@@ -7370,7 +7370,16 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
             cache: 'no-store',
             signal: AbortSignal.timeout(12_000),
           })
-          const syncBody = (await syncResponse.json().catch(() => null)) as {status?: string; error?: string; reset?: boolean} | null
+          const syncBody = (await syncResponse.json().catch(() => null)) as {
+            status?: string
+            segments?: TranscriptSegment[]
+            error?: string
+            reset?: boolean
+          } | null
+          if (syncBody?.status === 'completed' && syncBody.segments?.length) {
+            completeTranscript(syncBody.segments)
+            return
+          }
           if (syncBody?.status === 'idle' || syncBody?.reset) {
             await requestAssemblyAITranscription(true, sourceAssetId)
             return
