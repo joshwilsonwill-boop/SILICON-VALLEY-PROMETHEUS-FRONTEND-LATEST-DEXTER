@@ -282,7 +282,9 @@ export function PrometheusChat({
     if (!renderedMessages.length && !showingThinking) return
 
     const frame = window.requestAnimationFrame(() => {
-      if (pinnedToBottomRef.current || lastMessage?.role === 'user') scrollToLatest('smooth')
+      if (pinnedToBottomRef.current || lastMessage?.role === 'user') {
+        scrollToLatest('auto')
+      }
     })
 
     return () => window.cancelAnimationFrame(frame)
@@ -579,7 +581,7 @@ export function PrometheusChat({
   )
 }
 
-function PrometheusMessageBubble({
+const PrometheusMessageBubble = React.memo(function PrometheusMessageBubble({
   message,
   live,
   actionOutcome,
@@ -784,4 +786,4 @@ function PrometheusMessageBubble({
       </div>
     </article>
   )
-}
+})

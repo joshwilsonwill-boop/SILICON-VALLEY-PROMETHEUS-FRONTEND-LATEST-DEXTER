@@ -449,13 +449,15 @@ export function useAIChat({
         const flushReply = () => {
           renderFrame = null;
           const content = reply;
-          setMessages((current) =>
-            current.map((entry) =>
+          setMessages((current) => {
+            const target = current.find((e) => e.id === assistantMessage.id);
+            if (target && target.content === content) return current;
+            return current.map((entry) =>
               entry.id === assistantMessage.id
                 ? { ...entry, content, isComplete: false }
                 : entry,
-            ),
-          );
+            );
+          });
         };
 
         const handleStreamEvent = (event: PrometheusChatStreamEvent) => {
