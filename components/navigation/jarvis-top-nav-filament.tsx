@@ -302,6 +302,10 @@ export function JarvisTopNavFilament({ className }: JarvisTopNavFilamentProps) {
                   </span>
                   {latestTranscript.text}
                 </p>
+              ) : companion.status === 'error' ? (
+                <p className="text-rose-300 text-[11px] leading-relaxed">
+                  {companion.error || 'Connection failed. Verify GEMINI_API_KEY.'}
+                </p>
               ) : companion.status === 'listening' ? (
                 <p className="text-white/40 italic">Listening... Speak freely or interrupt anytime.</p>
               ) : companion.status === 'connecting' ? (

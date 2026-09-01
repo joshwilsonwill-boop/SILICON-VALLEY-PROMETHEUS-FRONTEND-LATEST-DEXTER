@@ -38,7 +38,7 @@ export function downsampleBuffer(
     return buffer
   }
   if (inputRate < outputRate) {
-    return buffer // Cannot upsample meaningfully here
+    return buffer
   }
   const sampleRateRatio = inputRate / outputRate
   const newLength = Math.round(buffer.length / sampleRateRatio)
@@ -94,6 +94,7 @@ export class AudioRecorder {
   private source: MediaStreamAudioSourceNode | null = null
   private processor: ScriptProcessorNode | null = null
   private analyser: AnalyserNode | null = null
+  private silentGain: GainNode | null = null
   private onAudioChunk: ((base64Chunk: string) => void) | null = null
   private isRecording = false
 
@@ -127,6 +128,10 @@ export class AudioRecorder {
     // Buffer size 4096 gives ~85ms chunks at 48kHz, optimal for streaming
     this.processor = this.audioContext.createScriptProcessor(4096, 1, 1)
 
+    // Silent gain node to prevent mic loopback to speakers while keeping processor alive
+    this.silentGain = this.audioContext.createGain()
+    this.silentGain.gain.value = 0
+
     const inputSampleRate = this.audioContext.sampleRate
     const targetSampleRate = 16000
 
@@ -141,8 +146,8 @@ export class AudioRecorder {
 
     this.source.connect(this.analyser)
     this.analyser.connect(this.processor)
-    // Connect processor to destination to keep scriptProcessor alive
-    this.processor.connect(this.audioContext.destination)
+    this.processor.connect(this.silentGain)
+    this.silentGain.connect(this.audioContext.destination)
     this.isRecording = true
   }
 
@@ -150,6 +155,7 @@ export class AudioRecorder {
     this.isRecording = false
     this.processor?.disconnect()
     this.analyser?.disconnect()
+    this.silentGain?.disconnect()
     this.source?.disconnect()
     this.stream?.getTracks().forEach((track) => track.stop())
     if (this.audioContext?.state !== 'closed') {
@@ -157,6 +163,7 @@ export class AudioRecorder {
     }
     this.processor = null
     this.analyser = null
+    this.silentGain = null
     this.source = null
     this.stream = null
     this.audioContext = null
@@ -196,13 +203,21 @@ export class AudioPlayer {
       const AudioContextClass =
         window.AudioContext ||
         (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
-      this.audioContext = new AudioContextClass({ sampleRate: 24000 })
+      // Initialize with native browser sample rate for maximum device compatibility
+      this.audioContext = new AudioContextClass()
       this.analyser = this.audioContext.createAnalyser()
       this.analyser.fftSize = 512
       this.analyser.smoothingTimeConstant = 0.4
       this.analyser.connect(this.audioContext.destination)
     }
     return this.audioContext
+  }
+
+  async resume(): Promise<void> {
+    const ctx = this.initContext()
+    if (ctx.state === 'suspended') {
+      await ctx.resume().catch(() => {})
+    }
   }
 
   async playChunk(base64Audio: string): Promise<void> {
@@ -212,9 +227,13 @@ export class AudioPlayer {
     }
 
     const rawBuffer = base64ToArrayBuffer(base64Audio)
-    const int16Array = new Int16Array(rawBuffer)
+    const int16Length = Math.floor(rawBuffer.byteLength / 2)
+    if (int16Length === 0) return
+
+    const int16Array = new Int16Array(rawBuffer, 0, int16Length)
     const float32Array = pcm16ToFloat32(int16Array)
 
+    // The AudioBuffer is 24kHz PCM from Gemini; AudioContext automatically resamples it to output rate
     const audioBuffer = ctx.createBuffer(1, float32Array.length, 24000)
     audioBuffer.getChannelData(0).set(float32Array)
 

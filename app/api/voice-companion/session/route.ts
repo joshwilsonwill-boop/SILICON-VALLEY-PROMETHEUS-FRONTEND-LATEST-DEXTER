@@ -24,7 +24,7 @@ export async function GET() {
     const defaultModel =
       process.env.GEMINI_LIVE_MODEL || 'models/gemini-2.0-flash-exp'
     const defaultVoice = process.env.GEMINI_LIVE_VOICE || 'Puck'
-    const wsUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${apiKey.trim()}`
+    const wsUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=${apiKey.trim()}`
 
     return NextResponse.json({
       wsUrl,

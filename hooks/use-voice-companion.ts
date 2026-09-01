@@ -236,7 +236,7 @@ export function useVoiceCompanion({
       }
       const sessionData = await res.json()
 
-      // 2. Initialize Audio Player
+      // 2. Initialize Audio Player and unlock Web Audio context
       const player = new AudioPlayer({
         onPlaybackStateChange: (playing) => {
           setStatus((prev) => {
@@ -245,6 +245,7 @@ export function useVoiceCompanion({
           })
         },
       })
+      await player.resume()
       playerRef.current = player
 
       // 3. Initialize Gemini Live Client
@@ -256,6 +257,9 @@ export function useVoiceCompanion({
         },
         {
           onOpen: () => {
+            // Connected to socket
+          },
+          onSetupConfirmed: () => {
             setStatus('listening')
           },
           onAudio: (base64Pcm24k) => {
@@ -304,10 +308,10 @@ export function useVoiceCompanion({
       )
       clientRef.current = client
 
-      // 4. Connect WebSocket
+      // 4. Connect WebSocket and await setup confirmation
       await client.connect()
 
-      // 5. Start Audio Recorder
+      // 5. Start Audio Recorder only after setup is fully confirmed
       const recorder = new AudioRecorder()
       await recorder.start((base64Chunk) => {
         if (!isMutedRef.current && client.isConnected()) {

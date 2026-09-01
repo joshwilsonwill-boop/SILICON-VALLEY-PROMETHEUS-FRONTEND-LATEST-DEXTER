@@ -25,6 +25,7 @@ export interface GeminiLiveEvents {
   onError?: (error: Error) => void
   onClose?: (code: number, reason: string) => void
   onOpen?: () => void
+  onSetupConfirmed?: () => void
   onToolCall?: ToolCallHandler
 }
 
@@ -49,29 +50,57 @@ export class GeminiLiveClient {
       try {
         this.ws = new WebSocket(this.config.wsUrl)
 
+        const timeout = setTimeout(() => {
+          if (!this.isSetupComplete) {
+            const error = new Error('Gemini Live handshake timed out after 12s. Check network or GEMINI_API_KEY.')
+            this.events.onError?.(error)
+            reject(error)
+          }
+        }, 12000)
+
         this.ws.onopen = () => {
           this.sendSetupMessage()
-          this.isSetupComplete = true
           this.events.onOpen?.()
-          resolve()
+          // Fallback: If setupComplete is omitted by server, consider ready after short delay
+          setTimeout(() => {
+            if (!this.isSetupComplete && this.ws?.readyState === WebSocket.OPEN) {
+              this.isSetupComplete = true
+              clearTimeout(timeout)
+              this.events.onSetupConfirmed?.()
+              resolve()
+            }
+          }, 800)
         }
 
         this.ws.onmessage = async (event: MessageEvent) => {
           try {
-            await this.handleMessage(event.data)
+            await this.handleMessage(event.data, () => {
+              clearTimeout(timeout)
+              this.isSetupComplete = true
+              this.events.onSetupConfirmed?.()
+              resolve()
+            })
           } catch (err) {
             console.error('[GeminiLive] Error handling message:', err)
           }
         }
 
-        this.ws.onerror = (event) => {
-          const error = new Error('Gemini Live WebSocket connection error')
+        this.ws.onerror = () => {
+          clearTimeout(timeout)
+          const error = new Error('Gemini Live WebSocket connection failed. Verify GEMINI_API_KEY in environment variables.')
           this.events.onError?.(error)
           reject(error)
         }
 
         this.ws.onclose = (event) => {
+          clearTimeout(timeout)
           this.isSetupComplete = false
+          if (event.code !== 1000 && event.code !== 1005) {
+            const error = new Error(
+              `Gemini Live connection closed (code ${event.code}: ${event.reason || 'Server terminated stream. Verify API key and quota.'})`
+            )
+            this.events.onError?.(error)
+          }
           this.events.onClose?.(event.code, event.reason)
         }
       } catch (err) {
@@ -187,7 +216,7 @@ Keep your spoken responses fluid, punchy, conversational, and helpful. Never rea
     this.ws.send(JSON.stringify(setupPayload))
   }
 
-  private async handleMessage(data: unknown): Promise<void> {
+  private async handleMessage(data: unknown, onSetupConfirmed?: () => void): Promise<void> {
     let textData = ''
     if (typeof data === 'string') {
       textData = data
@@ -200,6 +229,19 @@ Keep your spoken responses fluid, punchy, conversational, and helpful. Never rea
     if (!textData) return
 
     const message = JSON.parse(textData)
+
+    // 0. Setup Confirmation from Google
+    if (message.setupComplete !== undefined) {
+      onSetupConfirmed?.()
+      return
+    }
+
+    // 0.1 Error payload from Google Server
+    if (message.error) {
+      const errorMsg = message.error.message || `Error code ${message.error.code || 'unknown'}`
+      this.events.onError?.(new Error(`Gemini Server Error: ${errorMsg}`))
+      return
+    }
 
     // 1. Server Content
     if (message.serverContent) {
