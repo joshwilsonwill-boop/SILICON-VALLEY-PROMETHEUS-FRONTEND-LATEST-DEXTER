@@ -44,6 +44,21 @@ export async function POST(
       return NextResponse.json({ status: 'completed', r2Key: asset.transcript_r2_key })
     }
 
+    // If still in the middle of being claimed, wait or reset if stale
+    if (asset.transcript_job_id.startsWith('claim:')) {
+      const startedAt = asset.transcript_started_at ? Date.parse(asset.transcript_started_at) : NaN
+      const isFresh = Number.isFinite(startedAt) && (Date.now() - startedAt < 45_000)
+      if (isFresh) {
+        return NextResponse.json({ status: 'queued' })
+      }
+      await supabase
+        .from('source_assets')
+        .update({ transcript_status: 'idle', transcript_error: null })
+        .eq('id', assetId)
+        .eq('transcript_job_id', asset.transcript_job_id)
+      return NextResponse.json({ status: 'idle' })
+    }
+
     // 2. Poll AssemblyAI
     stage = 'poll_assemblyai'
     const assemblyResponse = await getAssemblyAITranscriptionStatus(asset.transcript_job_id)
