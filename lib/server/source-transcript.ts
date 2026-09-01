@@ -54,17 +54,48 @@ export async function startSourceAssetTranscription({
   // editor can both request transcription; only one caller may win this
   // compare-and-set claim for the asset.
   const claimToken = `claim:${randomUUID()}`
-  const { data: claim, error: claimError } = await supabase.rpc('maul_claim_source_asset_transcription', {
-    p_asset_id: assetId,
-    p_claim_token: claimToken,
-    p_force: force,
-  })
-  if (claimError) throw claimError
-  const claimed = claim && typeof claim === 'object' ? claim as { claimed?: boolean; status?: string; transcriptJobId?: string } : null
-  if (!claimed?.claimed) {
-    return {
-      status: claimed?.status ?? asset.transcript_status ?? 'queued',
-      transcriptJobId: claimed?.transcriptJobId ?? asset.transcript_job_id,
+  let wonClaim = false
+
+  try {
+    const { data: claim, error: claimError } = await supabase.rpc('maul_claim_source_asset_transcription', {
+      p_asset_id: assetId,
+      p_claim_token: claimToken,
+      p_force: force,
+    })
+
+    if (!claimError && claim && typeof claim === 'object') {
+      const claimResult = claim as { claimed?: boolean; status?: string; transcriptJobId?: string }
+      if (claimResult.claimed) {
+        wonClaim = true
+      } else {
+        return {
+          status: claimResult.status ?? asset.transcript_status ?? 'queued',
+          transcriptJobId: claimResult.transcriptJobId ?? asset.transcript_job_id,
+        }
+      }
+    } else if (claimError) {
+      console.warn('[source-transcript] RPC claim failed, falling back to direct table update:', claimError.message)
+    }
+  } catch (err) {
+    console.warn('[source-transcript] RPC invocation exception, falling back to direct update:', err)
+  }
+
+  // Fallback to direct compare-and-set if RPC function is not installed in database
+  if (!wonClaim) {
+    const { error: directClaimError } = await supabase
+      .from('source_assets')
+      .update({
+        transcript_job_id: claimToken,
+        transcript_provider: 'assemblyai',
+        transcript_status: 'queued',
+        transcript_started_at: new Date().toISOString(),
+        transcript_error: null,
+      })
+      .eq('id', assetId)
+
+    if (directClaimError) {
+      console.error('[source-transcript] Direct claim failed:', directClaimError)
+      return null
     }
   }
 
