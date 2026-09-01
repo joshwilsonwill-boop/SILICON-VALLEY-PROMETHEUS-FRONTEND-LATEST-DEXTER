@@ -383,7 +383,7 @@ export function MotionEditWorkspace({
         </div>
       ) : null}
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
-        <aside className="hidden w-[clamp(270px,26vw,360px)] shrink-0 flex-col border-r border-white/10 xl:flex">
+        <aside className="hidden w-[clamp(250px,24vw,340px)] shrink-0 flex-col border-r border-white/10 xl:flex">
           <div className="flex min-h-14 shrink-0 items-center gap-2 border-b border-white/8 px-4">
             <span className="text-sm font-medium">Transcript</span>
             <span className="rounded bg-[#98f237]/15 px-1.5 py-0.5 text-[10px] font-medium text-[#b4fb60]">Prometheus AI</span>
@@ -539,6 +539,33 @@ export function MotionEditWorkspace({
               </div>
             ) : null}
 
+            {visibleSegments.length === 0 && !isTranscribing ? (
+              <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-white/10 bg-white/[0.02] px-4 py-8 text-center">
+                <div className="mb-3 flex size-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-white/50">
+                  <Sparkles className="size-5 text-[#98f237]" />
+                </div>
+                <h4 className="text-sm font-semibold text-white/90">
+                  {transcriptQuery ? 'No matching segments' : 'No transcript generated yet'}
+                </h4>
+                <p className="mt-1 max-w-[240px] text-xs leading-relaxed text-white/50">
+                  {transcriptQuery
+                    ? `No transcript lines match "${transcriptQuery}". Try another search term.`
+                    : 'Transcribe this video with Prometheus AI to view synchronized word captions, highlight key speech, and edit by sentence.'}
+                </p>
+                {!transcriptQuery && onRequestTranscribe ? (
+                  <button
+                    type="button"
+                    onClick={onRequestTranscribe}
+                    disabled={isSourceUploading}
+                    className="mt-4 inline-flex items-center gap-1.5 rounded-md bg-[#98f237] px-3.5 py-1.5 text-xs font-semibold text-black transition-colors hover:bg-[#b4fb60] disabled:opacity-50"
+                  >
+                    <Sparkles className="size-3.5" />
+                    {isSourceUploading ? 'Saving source media...' : 'Transcribe video'}
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
+
             <div className="space-y-3.5 text-[17px] leading-8">
               {visibleSegments.map((segment) => {
                 const active = isActiveSegment(segment, currentTimeSec)
@@ -613,20 +640,6 @@ export function MotionEditWorkspace({
                   </div>
                 )
               })}
-              {!isTranscribing && visibleSegments.length === 0 ? (
-                <div className="py-6 text-center">
-                  <p className="text-xs text-white/42 mb-2">No transcript lines found.</p>
-                  {onRequestTranscribe ? (
-                    <button
-                      type="button"
-                      onClick={onRequestTranscribe}
-                      className="inline-flex items-center gap-1.5 rounded bg-[#98f237] px-3 py-1.5 text-xs font-semibold text-black hover:bg-[#b4fb60]"
-                    >
-                      <Sparkles className="size-3.5" /> Transcribe with Prometheus AI
-                    </button>
-                  ) : null}
-                </div>
-              ) : null}
             </div>
           </div>
         </aside>

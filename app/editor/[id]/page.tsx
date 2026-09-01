@@ -82,7 +82,7 @@ import { dispatchCompletionEvent } from '@/components/editor/completion-event'
 import { useSourceStage } from '@/hooks/use-source-stage'
 import { useViralClipJob } from '@/hooks/use-viral-clip-job'
 import { buildTimedTranscriptWords } from '@/lib/editor/modal-viral-clip-workflow'
-import { buildMotionTranscriptSegments } from '@/lib/editor/motion-transcript'
+import { buildMotionTranscriptSegments, isLegacyMockTranscriptText } from '@/lib/editor/motion-transcript'
 import { clearPendingEditorNavigation, getRememberedEditorReturnPath } from '@/lib/editor-navigation'
 import { useFrameTargeting } from '@/hooks/use-frame-targeting'
 import { parseFrameReference } from '@/lib/editorial-frame/parse-frame-reference'
@@ -6763,6 +6763,14 @@ function OriginalEditorPage() {
       if (!active) return
 
       const nextJob = projects.getJob(projectId)
+      if (nextJob?.artifacts?.transcript?.some((segment) => isLegacyMockTranscriptText(segment.text))) {
+        nextJob.artifacts.transcript = []
+        if (nextJob.transcriptStatus === 'completed' || nextJob.transcriptProvider === 'mock') {
+          nextJob.transcriptStatus = 'idle'
+          nextJob.transcriptText = ''
+        }
+        projects.upsertJob(nextJob)
+      }
       const nextProject = projects.get(projectId)
 
       // Only ever replace the project with a real record. A null lookup during

@@ -24,12 +24,36 @@ function extractEmphasis(text: string): string[] {
   return ranked.slice(0, 3)
 }
 
+export const LEGACY_MOCK_TRANSCRIPT_SNIPPETS = [
+  "it doesn't matter if you are in your first job.",
+  "structure over surface is what makes the message stick.",
+  "retrieval is the skill people actually remember.",
+  "we tracked $741,824 in collected revenue from this shift.",
+  "myth versus fact is the wrong comparison when the offer is weak.",
+  "system design feels abstract until the process is visualized clearly.",
+  "when youtube and snapchat compete, the format decides the winner.",
+  "alex hormozi would call this the value equation in motion.",
+  "the final move is a hard call to action with one clean promise.",
+]
+
+const LEGACY_MOCK_SET = new Set(LEGACY_MOCK_TRANSCRIPT_SNIPPETS)
+
+export function isLegacyMockTranscriptText(text: string | null | undefined): boolean {
+  if (!text || typeof text !== 'string') return false
+  return LEGACY_MOCK_SET.has(text.trim().toLowerCase())
+}
+
 export function buildMotionTranscriptSegments(
   segments: readonly TranscriptSegment[] | null | undefined,
 ): MotionTranscriptSegment[] {
   const rawSegments = segments ?? []
   const orderedSegments = rawSegments
-    .filter((segment) => typeof segment.text === 'string' && segment.text.trim().length > 0)
+    .filter(
+      (segment) =>
+        typeof segment.text === 'string' &&
+        segment.text.trim().length > 0 &&
+        !isLegacyMockTranscriptText(segment.text),
+    )
     .slice()
     .sort((first, second) => first.startMs - second.startMs)
 
