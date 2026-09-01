@@ -2,10 +2,11 @@
 
 import * as React from 'react'
 import { AnimatePresence } from 'framer-motion'
-import { ArrowDown, ArrowUp, Brain, ChevronDown, LoaderCircle, Mic, Volume2, X } from 'lucide-react'
+import { ArrowDown, ArrowUp, Brain, ChevronDown, LoaderCircle, Mic, Sparkles, Volume2, X } from 'lucide-react'
 
 import { useAuth } from '@/components/auth/auth-provider'
 import { useAIChat, type AIChatContextProvider, type AIChatFrameReference, type CarouselItem } from '@/hooks/use-ai-chat'
+import { VoiceCompanionHud } from './voice-companion-hud'
 import type { ChatMediaItem, ChatMediaJob } from '@/lib/prometheus-assistant/chat-media'
 import { useProfile } from '@/hooks/use-profile'
 import { PROPOSE_NOT_APPLIED_MESSAGE, type EditorActionDraft } from '@/lib/editor-actions'
@@ -113,6 +114,7 @@ export function PrometheusChat({
   const [showJumpToLatest, setShowJumpToLatest] = React.useState(false)
   const [historyOpen, setHistoryOpen] = React.useState(false)
   const [voiceMode, setVoiceMode] = React.useState(false)
+  const [jarvisLiveOpen, setJarvisLiveOpen] = React.useState(false)
   const [speakingMessageId, setSpeakingMessageId] = React.useState<string | null>(null)
   const [actionOutcomes, setActionOutcomes] = React.useState<Record<string, 'applied' | 'dismissed'>>({})
   const historyButtonRef = React.useRef<HTMLButtonElement | null>(null)
@@ -540,6 +542,22 @@ export function PrometheusChat({
                   <Volume2 className="size-4" strokeWidth={1.5} />
                 </button>
                 <button
+                  type="button"
+                  data-jarvis-companion-toggle
+                  aria-label={jarvisLiveOpen ? 'Close Jarvis Live Companion' : 'Open Jarvis Live Voice & Vision Companion'}
+                  aria-pressed={jarvisLiveOpen}
+                  onClick={() => setJarvisLiveOpen((current) => !current)}
+                  className={cn(
+                    'grid size-8 shrink-0 place-items-center rounded-full transition-all hover:bg-white/[0.06] hover:text-white',
+                    jarvisLiveOpen
+                      ? 'bg-[#7ff2d4]/20 text-[#7ff2d4] shadow-[0_0_12px_rgba(127,242,212,0.4)]'
+                      : 'text-white/45 hover:text-[#7ff2d4]',
+                  )}
+                  title="Jarvis Live Companion (Bidirectional Voice + Vision)"
+                >
+                  <Sparkles className="size-4" strokeWidth={1.5} />
+                </button>
+                <button
                   type="submit"
                   disabled={!hasDraft}
                   className="grid size-8 shrink-0 place-items-center rounded-full text-white/70 transition-colors hover:bg-white/[0.06] hover:text-white disabled:pointer-events-none disabled:opacity-20"
@@ -573,6 +591,19 @@ export function PrometheusChat({
           />
         ) : null}
       </AnimatePresence>
+      <VoiceCompanionHud
+        isOpen={jarvisLiveOpen}
+        onClose={() => setJarvisLiveOpen(false)}
+        contextProvider={contextProvider}
+        onApplyActions={(drafts) => onApplyActions?.(drafts, 'jarvis-live')}
+        onSeek={onSeekToSec}
+        onTabChange={(tab) => {
+          onApplyActions?.([{ kind: 'switch_tab', tab, summary: `Switch to ${tab}` }], 'jarvis-live')
+        }}
+        onFitModeChange={(mode) => {
+          onApplyActions?.([{ kind: 'set_fit_mode', mode, summary: `Set fit mode to ${mode}` }], 'jarvis-live')
+        }}
+      />
     </section>
   )
 }
