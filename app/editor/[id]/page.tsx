@@ -7370,7 +7370,11 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
             cache: 'no-store',
             signal: AbortSignal.timeout(12_000),
           })
-          const syncBody = (await syncResponse.json().catch(() => null)) as {status?: string; error?: string} | null
+          const syncBody = (await syncResponse.json().catch(() => null)) as {status?: string; error?: string; reset?: boolean} | null
+          if (syncBody?.status === 'idle' || syncBody?.reset) {
+            await requestAssemblyAITranscription(true, sourceAssetId)
+            return
+          }
           if (!syncResponse.ok || syncBody?.status === 'failed') {
             failureMessage = syncBody?.error || failureMessage
             syncFailures += 1

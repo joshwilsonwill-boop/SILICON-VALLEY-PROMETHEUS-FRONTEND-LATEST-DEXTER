@@ -61,7 +61,25 @@ export async function POST(
 
     // 2. Poll AssemblyAI
     stage = 'poll_assemblyai'
-    const assemblyResponse = await getAssemblyAITranscriptionStatus(asset.transcript_job_id)
+    let assemblyResponse: Awaited<ReturnType<typeof getAssemblyAITranscriptionStatus>>
+    try {
+      assemblyResponse = await getAssemblyAITranscriptionStatus(asset.transcript_job_id)
+    } catch (pollErr) {
+      const errMsg = pollErr instanceof Error ? pollErr.message : String(pollErr)
+      if (errMsg.includes('404') || errMsg.toLowerCase().includes('not found')) {
+        console.warn(`[api/assets/[id]/transcript/sync] AssemblyAI job ${asset.transcript_job_id} not found. Resetting asset to idle to dispatch a fresh job.`)
+        await supabase
+          .from('source_assets')
+          .update({
+            transcript_status: 'idle',
+            transcript_job_id: null,
+            transcript_error: null,
+          })
+          .eq('id', assetId)
+        return NextResponse.json({ status: 'idle', reset: true })
+      }
+      throw pollErr
+    }
 
     if (assemblyResponse.status === 'queued' || assemblyResponse.status === 'processing') {
       // Update DB if it moved from queued to transcribing

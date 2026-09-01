@@ -4,15 +4,23 @@ function cleanEnvValue(value: string | undefined) {
 }
 
 export function isSupabaseConfigured() {
-  return Boolean(
-    cleanEnvValue(process.env.NEXT_PUBLIC_SUPABASE_URL) &&
-      cleanEnvValue(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY),
-  )
+  const url = cleanEnvValue(process.env.NEXT_PUBLIC_SUPABASE_URL) || cleanEnvValue(process.env.SUPABASE_URL)
+  const publishableKey =
+    cleanEnvValue(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) ||
+    cleanEnvValue(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) ||
+    cleanEnvValue(process.env.SUPABASE_ANON_KEY) ||
+    cleanEnvValue(process.env.JWT)
+
+  return Boolean(url && publishableKey)
 }
 
 export function getSupabaseConfig() {
-  const url = cleanEnvValue(process.env.NEXT_PUBLIC_SUPABASE_URL)
-  const publishableKey = cleanEnvValue(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY)
+  const url = cleanEnvValue(process.env.NEXT_PUBLIC_SUPABASE_URL) || cleanEnvValue(process.env.SUPABASE_URL)
+  const publishableKey =
+    cleanEnvValue(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) ||
+    cleanEnvValue(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) ||
+    cleanEnvValue(process.env.SUPABASE_ANON_KEY) ||
+    cleanEnvValue(process.env.JWT)
 
   if (!url || !publishableKey) {
     throw new Error(
