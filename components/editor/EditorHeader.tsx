@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { CheckCircle2, Sparkles, Undo2, Redo2, Pencil } from 'lucide-react'
+import { CheckCircle2, Sparkles, Undo2, Redo2, Pencil, Image as ImageIcon } from 'lucide-react'
 import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { WorkspaceNavBar, type WorkspaceNavItem } from '@/components/ui/anime-navbar'
 import { CinematicExportCluster } from '@/components/editor/cinematic-export-cluster'
@@ -31,6 +31,8 @@ export interface EditorHeaderProps {
   onWorkspaceTabChange: (name: string) => void
   onPrepareExport: () => void
   onDownload: () => void
+  onOpenThumbnailStudio?: () => void
+  onOpenMasterReview?: () => void
 }
 
 export function EditorHeader({
@@ -55,6 +57,8 @@ export function EditorHeader({
   onWorkspaceTabChange,
   onPrepareExport,
   onDownload,
+  onOpenThumbnailStudio,
+  onOpenMasterReview,
 }: EditorHeaderProps) {
   const handleUndo = () => {
     toast.info('Undo triggered', {
@@ -167,6 +171,33 @@ export function EditorHeader({
               </div>
             )}
           </div>
+        </div>
+
+        {/* Right: Quick Studio Tools */}
+        <div className="flex items-center gap-2.5">
+          {onOpenThumbnailStudio ? (
+            <button
+              type="button"
+              onClick={onOpenThumbnailStudio}
+              className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs text-white/70 transition-all hover:border-[#7ff2d4]/30 hover:bg-[#7ff2d4]/[0.04] hover:text-[#7ff2d4]"
+              title="Open Thumbnail Studio"
+            >
+              <ImageIcon className="size-3.5 text-[#7ff2d4]" />
+              <span className="hidden sm:inline">Thumbnail</span>
+            </button>
+          ) : null}
+
+          {latestExport?.status === 'completed' && onOpenMasterReview ? (
+            <button
+              type="button"
+              onClick={onOpenMasterReview}
+              className="inline-flex items-center gap-1.5 rounded-full border border-[#7ff2d4]/30 bg-[#7ff2d4]/10 px-3 py-1.5 text-xs font-medium text-[#7ff2d4] transition-all hover:bg-[#7ff2d4]/20"
+              title="Review Final Render Master"
+            >
+              <CheckCircle2 className="size-3.5" />
+              <span>Review Master</span>
+            </button>
+          ) : null}
         </div>
       </div>
       

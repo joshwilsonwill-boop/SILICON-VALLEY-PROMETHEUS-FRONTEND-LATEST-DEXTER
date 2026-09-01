@@ -56,6 +56,8 @@ import { TextReveal } from '@/components/editor/text-reveal'
 import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { LuxuryVignette } from '@/components/editor/luxury-vignette'
 import { EditorNewProjectUploadDialog } from '@/components/editor/editor-new-project-upload-dialog'
+import { ThumbnailStudioModal } from '@/components/editor/ThumbnailStudioModal'
+import { MasterVideoReviewModal } from '@/components/editor/MasterVideoReviewModal'
 import { EditorHeader } from '@/components/editor/EditorHeader'
 import { PreviewCanvas } from '@/components/editor/PreviewCanvas'
 import { TimelinePanel } from '@/components/editor/TimelinePanel'
@@ -6440,6 +6442,8 @@ function OriginalEditorPage() {
   const [isDownloading, setIsDownloading] = React.useState(false)
   const [isDownloadDialogOpen, setIsDownloadDialogOpen] = React.useState(false)
   const [isNewProjectUploadOpen, setIsNewProjectUploadOpen] = React.useState(false)
+  const [isThumbnailStudioOpen, setIsThumbnailStudioOpen] = React.useState(false)
+  const [isMasterReviewOpen, setIsMasterReviewOpen] = React.useState(false)
   const [isEditingTitle, setIsEditingTitle] = React.useState(false)
   const [tempTitle, setTempTitle] = React.useState('')
   const titleInputRef = React.useRef<HTMLInputElement | null>(null)
@@ -8765,6 +8769,8 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
           }}
           onPrepareExport={handlePrepareExport}
           onDownload={handleDownload}
+          onOpenThumbnailStudio={() => setIsThumbnailStudioOpen(true)}
+          onOpenMasterReview={() => setIsMasterReviewOpen(true)}
         />
 
         <main
@@ -9051,6 +9057,41 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
         />
       </div>
       <EditorNewProjectUploadDialog open={isNewProjectUploadOpen} onOpenChange={setIsNewProjectUploadOpen} />
+      <ThumbnailStudioModal
+        isOpen={isThumbnailStudioOpen}
+        onClose={() => setIsThumbnailStudioOpen(false)}
+        projectId={projectId}
+        projectTitle={project?.title ?? 'Untitled Project'}
+        videoElement={previewVideoRef.current}
+        videoUrl={previewUrl}
+        transcriptSnippet={
+          Array.isArray(job?.artifacts?.transcript)
+            ? job.artifacts.transcript.map((t: any) => t?.text || '').join(' ').slice(0, 500)
+            : ''
+        }
+        onSaveProjectThumbnail={(thumbnailUrl) => {
+          if (project) {
+            setProject((prev) => (prev ? { ...prev, thumbnailUrl } : prev))
+            void handleTitleSave()
+          }
+        }}
+      />
+      <MasterVideoReviewModal
+        isOpen={isMasterReviewOpen}
+        onClose={() => setIsMasterReviewOpen(false)}
+        originalVideoUrl={persistedPreviewUrl ?? previewUrl}
+        renderedVideoUrl={latestExport?.downloadUrl ?? previewUrl}
+        projectTitle={project?.title ?? 'Untitled Project'}
+        treatmentName="Prometheus Cinematic Master"
+        onOpenThumbnailStudio={() => {
+          setIsMasterReviewOpen(false)
+          setIsThumbnailStudioOpen(true)
+        }}
+        onPublishSocial={() => {
+          setIsMasterReviewOpen(false)
+          setIsDownloadDialogOpen(true)
+        }}
+      />
       <div
         ref={setChatComposerPortal}
         aria-hidden
