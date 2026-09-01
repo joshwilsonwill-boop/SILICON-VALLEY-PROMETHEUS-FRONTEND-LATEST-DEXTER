@@ -3,10 +3,12 @@
 /**
  * Bidirectional WebSocket client for Google Gemini Multimodal Live API.
  * Provides real-time speech-to-speech, visual frame streaming, tool calls, and barge-in.
+ * Supports multi-key pool failover across candidate API keys.
  */
 
 export interface GeminiLiveConfig {
   wsUrl: string
+  wsUrls?: string[]
   model?: string
   voiceName?: string
   systemInstruction?: string
@@ -35,10 +37,18 @@ export class GeminiLiveClient {
   private events: GeminiLiveEvents
   private isSetupComplete = false
   private connectionPromise: Promise<void> | null = null
+  private activeUrlIndex = 0
 
   constructor(config: GeminiLiveConfig, events: GeminiLiveEvents = {}) {
     this.config = config
     this.events = events
+  }
+
+  private getCandidateUrls(): string[] {
+    if (this.config.wsUrls && this.config.wsUrls.length > 0) {
+      return this.config.wsUrls
+    }
+    return [this.config.wsUrl]
   }
 
   async connect(): Promise<void> {
@@ -46,69 +56,101 @@ export class GeminiLiveClient {
       return this.connectionPromise || Promise.resolve()
     }
 
-    this.connectionPromise = new Promise((resolve, reject) => {
-      try {
-        this.ws = new WebSocket(this.config.wsUrl)
+    const candidateUrls = this.getCandidateUrls()
 
-        const timeout = setTimeout(() => {
-          if (!this.isSetupComplete) {
-            const error = new Error('Gemini Live handshake timed out after 12s. Check network or GEMINI_API_KEY.')
+    const attemptConnect = (index: number): Promise<void> => {
+      this.activeUrlIndex = index
+      const targetUrl = candidateUrls[index] || this.config.wsUrl
+
+      return new Promise((resolve, reject) => {
+        try {
+          this.ws = new WebSocket(targetUrl)
+
+          const timeout = setTimeout(() => {
+            if (!this.isSetupComplete) {
+              if (index < candidateUrls.length - 1) {
+                console.warn(`[GeminiLive] Key #${index + 1} handshake timed out. Trying candidate #${index + 2}...`)
+                this.ws?.close()
+                attemptConnect(index + 1).then(resolve).catch(reject)
+                return
+              }
+              const error = new Error('Gemini Live handshake timed out after 12s. Check network or GEMINI_API_KEY.')
+              this.events.onError?.(error)
+              reject(error)
+            }
+          }, 12000)
+
+          this.ws.onopen = () => {
+            this.sendSetupMessage()
+            this.events.onOpen?.()
+            // Fallback: If setupComplete is omitted by server, consider ready after short delay
+            setTimeout(() => {
+              if (!this.isSetupComplete && this.ws?.readyState === WebSocket.OPEN) {
+                this.isSetupComplete = true
+                clearTimeout(timeout)
+                this.events.onSetupConfirmed?.()
+                resolve()
+              }
+            }, 800)
+          }
+
+          this.ws.onmessage = async (event: MessageEvent) => {
+            try {
+              await this.handleMessage(event.data, () => {
+                clearTimeout(timeout)
+                this.isSetupComplete = true
+                this.events.onSetupConfirmed?.()
+                resolve()
+              })
+            } catch (err) {
+              console.error('[GeminiLive] Error handling message:', err)
+            }
+          }
+
+          this.ws.onerror = () => {
+            clearTimeout(timeout)
+            if (!this.isSetupComplete && index < candidateUrls.length - 1) {
+              console.warn(`[GeminiLive] Key #${index + 1} connection failed. Trying candidate #${index + 2}...`)
+              this.ws?.close()
+              attemptConnect(index + 1).then(resolve).catch(reject)
+              return
+            }
+            const error = new Error('Gemini Live WebSocket connection failed. Verify GEMINI_API_KEY in environment variables.')
             this.events.onError?.(error)
             reject(error)
           }
-        }, 12000)
 
-        this.ws.onopen = () => {
-          this.sendSetupMessage()
-          this.events.onOpen?.()
-          // Fallback: If setupComplete is omitted by server, consider ready after short delay
-          setTimeout(() => {
-            if (!this.isSetupComplete && this.ws?.readyState === WebSocket.OPEN) {
-              this.isSetupComplete = true
-              clearTimeout(timeout)
-              this.events.onSetupConfirmed?.()
-              resolve()
+          this.ws.onclose = (event) => {
+            clearTimeout(timeout)
+            const wasSetup = this.isSetupComplete
+            this.isSetupComplete = false
+
+            if (!wasSetup && index < candidateUrls.length - 1) {
+              console.warn(`[GeminiLive] Key #${index + 1} closed before setup. Trying candidate #${index + 2}...`)
+              attemptConnect(index + 1).then(resolve).catch(reject)
+              return
             }
-          }, 800)
-        }
 
-        this.ws.onmessage = async (event: MessageEvent) => {
-          try {
-            await this.handleMessage(event.data, () => {
-              clearTimeout(timeout)
-              this.isSetupComplete = true
-              this.events.onSetupConfirmed?.()
-              resolve()
-            })
-          } catch (err) {
-            console.error('[GeminiLive] Error handling message:', err)
+            if (event.code !== 1000 && event.code !== 1005) {
+              const error = new Error(
+                `Gemini Live connection closed (code ${event.code}: ${event.reason || 'Server terminated stream. Verify API key and quota.'})`
+              )
+              this.events.onError?.(error)
+            }
+            this.events.onClose?.(event.code, event.reason)
+          }
+        } catch (err) {
+          const error = err instanceof Error ? err : new Error(String(err))
+          if (index < candidateUrls.length - 1) {
+            attemptConnect(index + 1).then(resolve).catch(reject)
+          } else {
+            reject(error)
           }
         }
+      })
+    }
 
-        this.ws.onerror = () => {
-          clearTimeout(timeout)
-          const error = new Error('Gemini Live WebSocket connection failed. Verify GEMINI_API_KEY in environment variables.')
-          this.events.onError?.(error)
-          reject(error)
-        }
-
-        this.ws.onclose = (event) => {
-          clearTimeout(timeout)
-          this.isSetupComplete = false
-          if (event.code !== 1000 && event.code !== 1005) {
-            const error = new Error(
-              `Gemini Live connection closed (code ${event.code}: ${event.reason || 'Server terminated stream. Verify API key and quota.'})`
-            )
-            this.events.onError?.(error)
-          }
-          this.events.onClose?.(event.code, event.reason)
-        }
-      } catch (err) {
-        const error = err instanceof Error ? err : new Error(String(err))
-        reject(error)
-      }
-    })
-
+    this.connectionPromise = attemptConnect(0)
     return this.connectionPromise
   }
 

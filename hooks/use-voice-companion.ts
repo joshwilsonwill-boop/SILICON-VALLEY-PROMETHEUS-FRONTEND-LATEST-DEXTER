@@ -252,6 +252,7 @@ export function useVoiceCompanion({
       const client = new GeminiLiveClient(
         {
           wsUrl: sessionData.wsUrl,
+          wsUrls: sessionData.wsUrls,
           model: sessionData.model,
           voiceName: selectedVoice || sessionData.voiceName,
         },

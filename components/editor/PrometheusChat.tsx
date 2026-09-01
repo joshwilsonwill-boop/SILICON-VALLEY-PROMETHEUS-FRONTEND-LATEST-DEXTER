@@ -544,6 +544,22 @@ export function PrometheusChat({
                   <Volume2 className="size-4" strokeWidth={1.5} />
                 </button>
                 <button
+                  type="button"
+                  data-jarvis-companion-toggle
+                  aria-label={jarvisLiveOpen ? 'Close Jarvis Live Companion' : 'Open Jarvis Live Voice & Vision Companion'}
+                  aria-pressed={jarvisLiveOpen}
+                  onClick={() => setJarvisLiveOpen((current) => !current)}
+                  className={cn(
+                    'grid size-8 shrink-0 place-items-center rounded-full transition-all hover:bg-white/[0.06] hover:text-white',
+                    jarvisLiveOpen
+                      ? 'bg-[#7ff2d4]/20 text-[#7ff2d4] shadow-[0_0_12px_rgba(127,242,212,0.4)]'
+                      : 'text-white/45 hover:text-[#7ff2d4]',
+                  )}
+                  title="Jarvis Live Companion (Bidirectional Voice + Vision)"
+                >
+                  <Sparkles className="size-4" strokeWidth={1.5} />
+                </button>
+                <button
                   type="submit"
                   disabled={!hasDraft}
                   className="grid size-8 shrink-0 place-items-center rounded-full text-white/70 transition-colors hover:bg-white/[0.06] hover:text-white disabled:pointer-events-none disabled:opacity-20"

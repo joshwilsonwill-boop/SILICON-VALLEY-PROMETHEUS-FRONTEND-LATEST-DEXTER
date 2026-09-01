@@ -6,16 +6,27 @@ export const runtime = 'nodejs'
 
 export async function GET() {
   try {
-    const apiKey =
-      process.env.GEMINI_API_KEY ||
-      process.env.GEMINI_API_KEY_3 ||
-      process.env.GEMINI_API_KEY_2
+    // Collect all candidate keys in order of freshness
+    const candidates = [
+      process.env.GEMINI_API_KEY_3,
+      process.env.GEMINI_API_KEY_2,
+      process.env.GEMINI_API_KEY,
+    ]
 
-    if (!apiKey) {
+    const validKeys = Array.from(
+      new Set(
+        candidates
+          .map((k) => k?.trim())
+          .filter((k): k is string => Boolean(k && k.length > 10))
+      )
+    )
+
+    if (validKeys.length === 0) {
       return NextResponse.json(
         {
-          error: 'GEMINI_API_KEY is not configured on the server.',
-          detail: 'Please configure GEMINI_API_KEY in .env.local to enable the Jarvis voice companion.',
+          error: 'No Gemini API keys are configured on the server.',
+          detail:
+            'Please configure GEMINI_API_KEY, GEMINI_API_KEY_2, or GEMINI_API_KEY_3 in Vercel or .env.local.',
         },
         { status: 503 }
       )
@@ -24,10 +35,16 @@ export async function GET() {
     const defaultModel =
       process.env.GEMINI_LIVE_MODEL || 'models/gemini-2.0-flash-exp'
     const defaultVoice = process.env.GEMINI_LIVE_VOICE || 'Puck'
-    const wsUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=${apiKey.trim()}`
+
+    const wsUrls = validKeys.map(
+      (key) =>
+        `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=${key}`
+    )
 
     return NextResponse.json({
-      wsUrl,
+      wsUrl: wsUrls[0],
+      wsUrls,
+      keyCount: validKeys.length,
       model: defaultModel,
       voiceName: defaultVoice,
       availableVoices: ['Puck', 'Aoede', 'Charon', 'Fenrir', 'Kore'],
