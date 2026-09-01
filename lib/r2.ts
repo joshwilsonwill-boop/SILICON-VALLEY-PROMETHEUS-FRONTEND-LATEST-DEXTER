@@ -21,13 +21,14 @@ function warnAvatarR2Config(message: string) {
 }
 
 function getAvatarR2Config() {
+  const accountId = (process.env.R2_ACCOUNT_ID || process.env.R2_ACCOUNT_ID_3 || process.env.R2_ACCOUNT_ID_2)?.trim()
   const endpoint =
     process.env.R2_ENDPOINT ||
-    (process.env.R2_ACCOUNT_ID ? `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com` : undefined)
-  const accessKeyId = process.env.R2_ACCESS_KEY_ID
-  const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY
-  const bucketName = process.env.R2_AVATAR_BUCKET
-  const publicBaseUrl = process.env.R2_PUBLIC_URL || process.env.R2_PUBLIC_BASE_URL
+    (accountId ? `https://${accountId}.r2.cloudflarestorage.com` : undefined)
+  const accessKeyId = (process.env.R2_ACCESS_KEY_ID || process.env.R2_ACCESS_KEY_ID_3 || process.env.R2_ACCESS_KEY_ID_2)?.trim()
+  const secretAccessKey = (process.env.R2_SECRET_ACCESS_KEY || process.env.R2_SECRET_ACCESS_KEY_3 || process.env.R2_SECRET_ACCESS_KEY_2)?.trim()
+  const bucketName = (process.env.R2_AVATAR_BUCKET || process.env.R2_AVATAR_BUCKET_3 || process.env.R2_AVATAR_BUCKET_2 || 'prometheus-avatars')?.trim()
+  const publicBaseUrl = (process.env.R2_PUBLIC_URL || process.env.R2_PUBLIC_BASE_URL || process.env.R2_PUBLIC_URL_3 || process.env.R2_PUBLIC_URL_2)?.trim()
 
   const missing: string[] = []
   if (!endpoint) missing.push('R2_ENDPOINT')

@@ -11,6 +11,8 @@ const OPENAI_AUDIO_URL = "https://api.openai.com/v1/audio/transcriptions";
 function getGeminiKey() {
   const key = (
     process.env.GEMINI_API_KEY ||
+    process.env.GEMINI_API_KEY_3 ||
+    process.env.GEMINI_API_KEY_2 ||
     process.env.GOOGLE_GENERATIVE_AI_API_KEY ||
     process.env.GOOGLE_API_KEY
   )?.trim();
@@ -28,12 +30,20 @@ function getAssemblyAiKey() {
 }
 
 function getGroqKey() {
-  const key = process.env.GROQ_API_KEY?.trim();
+  const key = (
+    process.env.GROQ_API_KEY ||
+    process.env.GROQ_API_KEY_3 ||
+    process.env.GROQ_API_KEY_2
+  )?.trim();
   return key || null;
 }
 
 function getOpenAiKey() {
-  const key = process.env.OPENAI_API_KEY?.trim();
+  const key = (
+    process.env.OPENAI_API_KEY ||
+    process.env.OPENAI_API_KEY_3 ||
+    process.env.OPENAI_API_KEY_2
+  )?.trim();
   return key || null;
 }
 

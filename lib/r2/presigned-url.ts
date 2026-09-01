@@ -13,7 +13,7 @@ async function r2SigningDate() {
     return cachedClockOffset.value === null ? undefined : new Date(now + cachedClockOffset.value)
   }
 
-  const accountId = process.env.R2_ACCOUNT_ID
+  const accountId = (process.env.R2_ACCOUNT_ID || process.env.R2_ACCOUNT_ID_3 || process.env.R2_ACCOUNT_ID_2)?.trim()
   if (!accountId) return undefined
 
   try {

@@ -1,8 +1,8 @@
 import { S3Client } from "@aws-sdk/client-s3";
 
-const accountId = process.env.R2_ACCOUNT_ID;
-const accessKeyId = process.env.R2_ACCESS_KEY_ID;
-const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY;
+const accountId = (process.env.R2_ACCOUNT_ID || process.env.R2_ACCOUNT_ID_3 || process.env.R2_ACCOUNT_ID_2)?.trim();
+const accessKeyId = (process.env.R2_ACCESS_KEY_ID || process.env.R2_ACCESS_KEY_ID_3 || process.env.R2_ACCESS_KEY_ID_2)?.trim();
+const secretAccessKey = (process.env.R2_SECRET_ACCESS_KEY || process.env.R2_SECRET_ACCESS_KEY_3 || process.env.R2_SECRET_ACCESS_KEY_2)?.trim();
 
 if (!accountId || !accessKeyId || !secretAccessKey) {
   if (process.env.NODE_ENV === "production" && process.env.NEXT_PHASE !== 'phase-production-build') {

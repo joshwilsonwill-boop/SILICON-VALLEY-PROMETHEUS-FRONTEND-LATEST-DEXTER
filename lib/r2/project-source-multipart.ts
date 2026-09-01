@@ -167,7 +167,7 @@ export async function requireProjectSourceUploadContext(
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
   const providedAssetId = typeof input.assetId === 'string' ? input.assetId : ''
   const assetId = uuidRegex.test(providedAssetId) ? providedAssetId : crypto.randomUUID()
-  const bucket = process.env.R2_BUCKET_SOURCES || 'prometheus-sources'
+  const bucket = (process.env.R2_BUCKET_SOURCES || process.env.R2_BUCKET_SOURCES_3 || process.env.R2_BUCKET_SOURCES_2 || 'prometheus-sources').trim()
   const key = R2Keys.sourceAsset(user.id, projectId, assetId, filename)
 
   return {
@@ -207,7 +207,7 @@ export async function requireOwnedProjectSourceKey(projectId: string, key: unkno
   }
 
   return {
-    bucket: process.env.R2_BUCKET_SOURCES || 'prometheus-sources',
+    bucket: (process.env.R2_BUCKET_SOURCES || process.env.R2_BUCKET_SOURCES_3 || process.env.R2_BUCKET_SOURCES_2 || 'prometheus-sources').trim(),
     key,
     projectId,
     userId: user.id,
