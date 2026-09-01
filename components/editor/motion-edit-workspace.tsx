@@ -474,7 +474,7 @@ export function MotionEditWorkspace({
           ) : null}
 
           <div ref={transcriptRef} className="premium-scroll-hide min-h-0 flex-1 overflow-y-auto p-4">
-            {transcriptError && !isTranscribing ? (
+            {transcriptError && !isTranscribing && visibleSegments.length === 0 ? (
               <div className="mb-4 rounded-md border border-amber-300/25 bg-amber-300/[0.07] p-3 text-xs" role="alert">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">

@@ -91,12 +91,16 @@ export async function POST(
           .eq('transcript_job_id', asset.transcript_job_id)
         return NextResponse.json({ status: 'failed', error: errorMessage }, { status: 422 })
       }
-      // 3. Normalize and save to R2
+      // 3. Normalize and save to R2 (non-blocking fallback)
       const bucket = process.env.R2_BUCKET_SOURCES || 'prometheus-sources'
       const r2Key = R2Keys.transcript(user.id, asset.project_id, assetId)
       
       stage = 'upload_transcript_to_r2'
-      await uploadTranscriptToR2(bucket, r2Key, assemblyResponse)
+      try {
+        await uploadTranscriptToR2(bucket, r2Key, assemblyResponse)
+      } catch (r2Err) {
+        console.warn('[api/assets/[id]/transcript/sync] R2 transcript upload warning (non-fatal, continuing to save segments to database):', r2Err)
+      }
 
       // 4. Update Supabase
       stage = 'persist_transcript'
