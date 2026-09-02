@@ -332,3 +332,9 @@ class AutonomousUICoordinator {
 
 // Global Singleton Instance
 export const autonomousCoordinator = new AutonomousUICoordinator()
+
+if (typeof window !== 'undefined') {
+  ;(window as unknown as { autonomousCoordinator?: AutonomousUICoordinator }).autonomousCoordinator =
+    autonomousCoordinator
+}
+
