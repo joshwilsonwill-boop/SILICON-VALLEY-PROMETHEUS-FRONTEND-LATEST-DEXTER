@@ -25,7 +25,7 @@ const sessionSource = readFileSync('app/api/voice-companion/session/route.ts', '
 assert.match(sessionSource, /BidiGenerateContent/, 'Must use BidiGenerateContent endpoint')
 
 const clientSource = readFileSync('lib/voice-companion/gemini-live-client.ts', 'utf8')
-assert.match(clientSource, /models\/gemini-2.0-flash-exp/, 'Must configure Gemini 2.0 Flash model')
+assert.match(clientSource, /models\/gemini-2\.0-flash/, 'Must configure Gemini 2.0 Flash model')
 assert.match(clientSource, /seek_timeline/, 'Must declare seek_timeline tool')
 assert.match(clientSource, /preview_control/, 'Must declare preview_control tool')
 assert.match(clientSource, /interrupted/, 'Must handle interrupted barge-in event')
