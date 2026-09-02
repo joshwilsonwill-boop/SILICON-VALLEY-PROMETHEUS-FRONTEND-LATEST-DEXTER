@@ -34,7 +34,7 @@ export async function POST(
     const scriptAccent = body?.scriptAccent || ''
     const subtitle = body?.subtitle || ''
     const styleId = body?.styleId || 'behind_subject_blueprint'
-    const brandColor = body?.brandColor || '#FFE600'
+    const brandColor = body?.brandColor || '#3E5C76'
     const userPrompt = body?.userPrompt || ''
     const aspectRatio = body?.aspectRatio || '9:16'
 
@@ -52,8 +52,8 @@ ${subtitle ? `- Subtitle: "${subtitle.toUpperCase()}" in clean monospace or sans
 - Depth composition: Bold typography placed ${archetype.textLayer === 'behind' ? 'BEHIND the speaker\'s head and shoulders' : 'as high-contrast foreground overlay'}.
 - Visual style: ${archetype.name} - ${archetype.tagline}.
 - Brand Accent Color: ${brandColor}. Apply this color to glowing halos, colored rim lighting on the speaker silhouette, and highlight badges.
-- Photo & Lens treatments: Cinematic deep bottom vignette, authentic subtle film grain and dust, soft chromatic fringe blur, and clean graphic contrast.
-${archetype.defaultFloatingAssets.length > 0 ? `- Floating 3D assets: Staged contextual glowing icons (${archetype.defaultFloatingAssets.join(', ')}) floating around the speaker.` : ''}
+- Photo & Lens treatments: Clean editorial contrast, a restrained bottom vignette for text legibility, and a subtle film grain. Avoid heavy stylization, lens flares, or neon glows.
+${archetype.defaultFloatingAssets.length > 0 ? `- Floating accent: A single staged icon (${archetype.defaultFloatingAssets.join(', ')}) positioned as an editorial mark.` : ''}
 ${userPrompt ? `Additional creative direction: ${userPrompt}` : ''}`
 
     // 1. Try Google Imagen 3 (Nano Banana Image Model)

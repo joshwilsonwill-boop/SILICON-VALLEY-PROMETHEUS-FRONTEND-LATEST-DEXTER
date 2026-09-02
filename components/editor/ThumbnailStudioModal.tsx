@@ -69,13 +69,13 @@ const ASPECT_RATIO_OPTIONS: AspectRatioOption[] = [
 ]
 
 const BRAND_PALETTES = [
-  { name: 'Viral Amber', color: '#FFE600' },
-  { name: 'Electric Cyan', color: '#00F0FF' },
-  { name: 'Neon Crimson', color: '#FF0033' },
-  { name: 'Emerald High', color: '#10B981' },
-  { name: 'Royal Violet', color: '#8B5CF6' },
-  { name: 'Pure Bone', color: '#F7F6F2' },
-  { name: 'High-Vis Orange', color: '#FF6B00' },
+  { name: 'Ink Slate', color: '#3E5C76' },
+  { name: 'Bone Paper', color: '#E8E1D2' },
+  { name: 'Charcoal', color: '#2B2D33' },
+  { name: 'Sage', color: '#8A8A7C' },
+  { name: 'Porcelain Blue', color: '#4C6E9E' },
+  { name: 'Deep Forest', color: '#3A4B38' },
+  { name: 'Mist', color: '#B7BCC2' },
 ]
 
 const AVAILABLE_FLOATING_ASSETS = [
@@ -122,18 +122,18 @@ export function ThumbnailStudioModal({
 
   const [textLayer, setTextLayer] = React.useState<TextLayerMode>('behind')
 
-  const [brandColor, setBrandColor] = React.useState('#FF6B00')
+  const [brandColor, setBrandColor] = React.useState('#3E5C76')
 
-  const [activeAssets, setActiveAssets] = React.useState<string[]>(['hourglass', 'book'])
+  const [activeAssets, setActiveAssets] = React.useState<string[]>([])
 
   const [hasVignette, setHasVignette] = React.useState(true)
-  const [vignetteIntensity, setVignetteIntensity] = React.useState(0.75)
-  const [hasFilmGrain, setHasFilmGrain] = React.useState(true)
+  const [vignetteIntensity, setVignetteIntensity] = React.useState(0.5)
+  const [hasFilmGrain, setHasFilmGrain] = React.useState(false)
   const [hasFringeBlur, setHasFringeBlur] = React.useState(false)
   const [hasInkBleed, setHasInkBleed] = React.useState(false)
-  const [hasRimLight, setHasRimLight] = React.useState(true)
+  const [hasRimLight, setHasRimLight] = React.useState(false)
   const [hasBackgroundGrid, setHasBackgroundGrid] = React.useState(false)
-  const [hasTelemetryRuler, setHasTelemetryRuler] = React.useState(true)
+  const [hasTelemetryRuler, setHasTelemetryRuler] = React.useState(false)
 
   const [isGeneratingNanoBanana, setIsGeneratingNanoBanana] = React.useState(false)
   const [nanoBananaImageUrl, setNanoBananaImageUrl] = React.useState<string | null>(null)
@@ -312,7 +312,7 @@ export function ThumbnailStudioModal({
   const handleGenerateNanoBanana = async () => {
     const activeFrame = candidates[selectedFrameIndex]
     setIsGeneratingNanoBanana(true)
-    setNanoBananaStatus('Sending image shot & specifications to Nano Banana…')
+    setNanoBananaStatus('Sending image shot & specifications to AI Assist…')
 
     try {
       const res = await fetch(`/api/projects/${projectId}/thumbnails/nano-banana`, {
@@ -334,12 +334,12 @@ export function ThumbnailStudioModal({
         if (data.dataUrl) {
           setNanoBananaImageUrl(data.dataUrl)
           setViewMode('nano_banana')
-          setNanoBananaStatus('Nano Banana generation complete!')
+          setNanoBananaStatus('AI Assist generation complete!')
         } else {
-          setNanoBananaStatus(data.fallbackMessage || 'Nano Banana specifications synthesized.')
+          setNanoBananaStatus(data.fallbackMessage || 'AI Assist specifications synthesized.')
         }
       } else {
-        setNanoBananaStatus('Nano Banana request processed via Studio Canvas engine.')
+        setNanoBananaStatus('AI Assist request processed via Studio Canvas engine.')
       }
     } catch (err) {
       console.warn('[Nano Banana Request Error]', err)
@@ -410,8 +410,8 @@ export function ThumbnailStudioModal({
                 Short-Form Studio
               </span>
               <span className="h-3 w-px bg-white/10" />
-              <span className="rounded bg-white/[0.06] px-2 py-0.5 font-mono text-[9px] uppercase tracking-widest text-amber-300">
-                Nano Banana Enabled
+              <span className="rounded border border-[#3E5C76]/30 bg-[#3E5C76]/10 px-2 py-0.5 font-mono text-[9px] uppercase tracking-widest text-[#AFC7DE]">
+                AI Image Assist
               </span>
             </div>
 
@@ -460,11 +460,11 @@ export function ThumbnailStudioModal({
                     onClick={() => setViewMode('nano_banana')}
                     className={cn(
                       'flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors',
-                      viewMode === 'nano_banana' ? 'bg-amber-400 text-black' : 'text-white/50 hover:text-white',
+                      viewMode === 'nano_banana' ? 'bg-white text-black' : 'text-white/50 hover:text-white',
                     )}
                   >
                     <Wand2 className="size-3" />
-                    Nano Banana
+                    AI Assist
                   </button>
                 </div>
               )}
@@ -514,7 +514,7 @@ export function ThumbnailStudioModal({
 
                       <div className="pointer-events-none absolute bottom-2 left-2.5 flex items-center gap-1.5 rounded bg-black/75 px-2 py-0.5 font-mono text-[9px] uppercase tracking-widest text-white/70 backdrop-blur-md">
                         <span>{activeAspectConfig.width} × {activeAspectConfig.height}</span>
-                        <span className="text-white/30">//</span>
+                        <span className="text-white/30">{'//'}</span>
                         <span style={{ color: brandColor }}>{selectedArchetype.name}</span>
                       </div>
                     </motion.div>
@@ -528,7 +528,7 @@ export function ThumbnailStudioModal({
               </div>
 
               {nanoBananaStatus && (
-                <div className="mt-2 rounded-lg border border-amber-400/20 bg-amber-400/5 px-3 py-1.5 font-mono text-[11px] text-amber-200">
+                <div className="mt-2 rounded-lg border border-[#3E5C76]/30 bg-[#3E5C76]/10 px-3 py-1.5 font-mono text-[11px] text-[#B9CBDE]">
                   {nanoBananaStatus}
                 </div>
               )}
@@ -730,7 +730,7 @@ export function ThumbnailStudioModal({
                         value={scriptAccent}
                         onChange={(e) => setScriptAccent(e.target.value)}
                         placeholder="Luxury cursive script accent"
-                        className="w-full rounded-lg border border-white/[0.08] bg-black/60 px-3 py-1.5 text-xs text-amber-300 placeholder:text-white/25 focus:border-white/30 focus:outline-none"
+                        className="w-full rounded-lg border border-white/[0.08] bg-black/60 px-3 py-1.5 text-xs text-[#D8D2C4] placeholder:text-white/25 focus:border-white/30 focus:outline-none"
                       />
                       <input
                         type="text"
@@ -846,17 +846,17 @@ export function ThumbnailStudioModal({
                   type="button"
                   onClick={handleGenerateNanoBanana}
                   disabled={isGeneratingNanoBanana}
-                  className="flex w-full items-center justify-center gap-2 rounded-lg border border-amber-400/30 bg-amber-400/10 px-4 py-2.5 text-xs font-semibold text-amber-300 transition-colors hover:bg-amber-400/20 disabled:opacity-50"
+                  className="flex w-full items-center justify-center gap-2 rounded-lg border border-[#3E5C76]/40 bg-[#3E5C76]/15 px-4 py-2.5 text-xs font-semibold text-[#B4CAE0] transition-colors hover:bg-[#3E5C76]/25 disabled:opacity-50"
                 >
                   {isGeneratingNanoBanana ? (
                     <>
                       <Loader2 className="size-3.5 animate-spin" />
-                      Nano Banana Synthesizing…
+                      AI Image Synthesizing…
                     </>
                   ) : (
                     <>
                       <Wand2 className="size-3.5" />
-                      Generate with Nano Banana AI
+                      Generate with AI Image Assist
                     </>
                   )}
                 </button>

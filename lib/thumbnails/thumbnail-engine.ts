@@ -80,6 +80,51 @@ function formatTimecode(seconds: number): string {
 }
 
 export class ThumbnailEngine {
+  private static _displayFont: string | null = null
+  private static _scriptFont: string | null = null
+
+  /**
+   * Resolves a CSS custom-property font-family to its concrete font-family string so
+   * the canvas 2D context can use the app's loaded editorial/script faces. Falls back
+   * gracefully to a serif/cursive stack when the document is unavailable.
+   */
+  private static resolveFontStack(varExpression: string, fallback: string): string {
+    if (typeof document === 'undefined') return fallback
+    const probe = document.createElement('span')
+    probe.setAttribute('aria-hidden', 'true')
+    probe.style.cssText = `position:absolute;left:-9999px;top:-9999px;visibility:hidden;font-family:${varExpression};`
+    document.body.appendChild(probe)
+    const computed = getComputedStyle(probe).fontFamily
+    probe.remove()
+    return computed || fallback
+  }
+
+  /**
+   * The app's editorial serif display face (Migra / Elegist) with a Georgia fallback.
+   */
+  private static getDisplayFont(): string {
+    if (!ThumbnailEngine._displayFont) {
+      ThumbnailEngine._displayFont = ThumbnailEngine.resolveFontStack(
+        'var(--font-migra), var(--font-ui), Georgia, "Times New Roman", serif',
+        'Georgia, "Times New Roman", serif',
+      )
+    }
+    return ThumbnailEngine._displayFont
+  }
+
+  /**
+   * A quiet cursive accent face (Black Delights) with a Georgia cursive fallback.
+   */
+  private static getScriptFont(): string {
+    if (!ThumbnailEngine._scriptFont) {
+      ThumbnailEngine._scriptFont = ThumbnailEngine.resolveFontStack(
+        'var(--font-black-delights), var(--font-ui), Georgia, cursive',
+        'Georgia, cursive',
+      )
+    }
+    return ThumbnailEngine._scriptFont
+  }
+
   /**
    * Captures the current frame from an HTMLVideoElement at its native resolution.
    */
@@ -235,7 +280,7 @@ export class ThumbnailEngine {
       telemetryRuler: config.treatments?.telemetryRuler ?? false,
     }
 
-    const brandColor = config.brandColor || '#FFE600'
+    const brandColor = config.brandColor || '#3E5C76'
     const textLayer = config.textLayer || 'foreground'
 
     // 2. Background Grid if enabled
@@ -368,7 +413,7 @@ export class ThumbnailEngine {
 
     ctx.save()
     const fontSize = Math.round(height * 0.11 * (config.fontSizeScale || 1.0))
-    ctx.font = `900 ${fontSize}px Impact, -apple-system, sans-serif`
+    ctx.font = `800 ${fontSize}px ${ThumbnailEngine.getDisplayFont()}`
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
 
@@ -537,7 +582,7 @@ export class ThumbnailEngine {
     ctx.stroke()
 
     // X badge
-    ctx.fillStyle = '#FF2D55'
+    ctx.fillStyle = '#3E5C76'
     ctx.beginPath()
     ctx.arc(x + 18, y + 16, 12, 0, Math.PI * 2)
     ctx.fill()
@@ -560,11 +605,11 @@ export class ThumbnailEngine {
   }
 
   private static renderNotepadIcon(ctx: CanvasRenderingContext2D, x: number, y: number, color: string) {
-    ctx.fillStyle = '#007AFF'
+    ctx.fillStyle = '#3E5C76'
     ctx.beginPath()
     ctx.roundRect(x - 24, y - 24, 48, 48, 10)
     ctx.fill()
-    ctx.fillStyle = color
+    ctx.fillStyle = '#FFFFFF'
     ctx.fillRect(x - 14, y - 10, 28, 4)
     ctx.fillRect(x - 14, y - 2, 28, 4)
     ctx.fillRect(x - 14, y + 6, 18, 4)
@@ -580,7 +625,7 @@ export class ThumbnailEngine {
     ctx.stroke()
     ctx.beginPath()
     ctx.arc(x, y, 10, 0, Math.PI * 2)
-    ctx.fillStyle = '#FF2D55'
+    ctx.fillStyle = '#3E5C76'
     ctx.fill()
   }
 
@@ -654,7 +699,7 @@ export class ThumbnailEngine {
       let current = ''
       for (const w of words) {
         const test = current ? `${current} ${w}` : w
-        ctx.font = `900 ${baseFontSize}px Impact, -apple-system, sans-serif`
+        ctx.font = `800 ${baseFontSize}px ${ThumbnailEngine.getDisplayFont()}`
         if (ctx.measureText(test).width > width * 0.88 && current) {
           wrappedLines.push(current)
           current = w
@@ -700,7 +745,7 @@ export class ThumbnailEngine {
         ctx.shadowBlur = 18
       }
 
-      ctx.font = `900 ${baseFontSize}px Impact, -apple-system, sans-serif`
+      ctx.font = `800 ${baseFontSize}px ${ThumbnailEngine.getDisplayFont()}`
       ctx.strokeStyle = '#000000'
       ctx.lineWidth = Math.round(baseFontSize * 0.16)
       ctx.strokeText(line, centerX, y)
@@ -739,7 +784,7 @@ export class ThumbnailEngine {
   ) {
     ctx.save()
     const scriptSize = Math.round(height * 0.055)
-    ctx.font = `italic 700 ${scriptSize}px "Dancing Script", "Playfair Display", Georgia, cursive`
+    ctx.font = `italic 600 ${scriptSize}px ${ThumbnailEngine.getScriptFont()}`
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
 
