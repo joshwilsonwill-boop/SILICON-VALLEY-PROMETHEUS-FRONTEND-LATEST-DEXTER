@@ -9,7 +9,7 @@
  * - High-res Blob and DataURL export in PNG and WebP formats.
  */
 
-export type ThumbnailStylePreset = 'impact' | 'editorial' | 'neon' | 'minimal' | 'bold_accent'
+export type ThumbnailStylePreset = 'impact' | 'editorial' | 'neon' | 'minimal' | 'bold_accent' | 'cinematic'
 
 export type ThumbnailTextPosition = 'top' | 'center' | 'bottom'
 
@@ -245,6 +245,8 @@ export class ThumbnailEngine {
     let strokeWidth = Math.round(baseFontSize * 0.16)
     let badgeBg = 'rgba(0,0,0,0.82)'
     let letterSpacing = 2
+    let fontWeight = '800'
+    let fontStyle = 'normal'
 
     switch (config.preset) {
       case 'impact':
@@ -254,14 +256,26 @@ export class ThumbnailEngine {
         strokeWidth = Math.round(baseFontSize * 0.18)
         badgeBg = 'rgba(0, 0, 0, 0.88)'
         letterSpacing = 2
+        fontWeight = '900'
         break
       case 'editorial':
-        fontFamily = 'Georgia, "Times New Roman", serif'
-        primaryColor = config.textColor || '#F5F5F0' // Warm luxury cream
-        strokeColor = 'rgba(0,0,0,0.6)'
-        strokeWidth = Math.round(baseFontSize * 0.08)
-        badgeBg = 'rgba(18, 18, 20, 0.9)'
-        letterSpacing = 4
+        fontFamily = '"Newsreader", "Playfair Display", Georgia, "Times New Roman", serif'
+        primaryColor = config.textColor || '#F7F6F2' // Warm luxury bone / ivory
+        strokeColor = 'rgba(0,0,0,0.45)'
+        strokeWidth = Math.max(1, Math.round(baseFontSize * 0.04))
+        badgeBg = 'rgba(10, 10, 12, 0.82)'
+        letterSpacing = 3
+        fontWeight = '600'
+        fontStyle = 'italic'
+        break
+      case 'cinematic':
+        fontFamily = '-apple-system, BlinkMacSystemFont, "Geist Sans", "SF Pro Display", sans-serif'
+        primaryColor = config.textColor || '#EAE6DF'
+        strokeColor = 'rgba(0,0,0,0.65)'
+        strokeWidth = Math.max(1, Math.round(baseFontSize * 0.06))
+        badgeBg = 'rgba(6, 6, 8, 0.88)'
+        letterSpacing = 5
+        fontWeight = '700'
         break
       case 'neon':
         fontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
@@ -270,14 +284,16 @@ export class ThumbnailEngine {
         strokeWidth = Math.round(baseFontSize * 0.14)
         badgeBg = 'rgba(10, 20, 30, 0.92)'
         letterSpacing = 3
+        fontWeight = '800'
         break
       case 'minimal':
-        fontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+        fontFamily = '-apple-system, BlinkMacSystemFont, "Geist Sans", "SF Pro Display", sans-serif'
         primaryColor = config.textColor || '#FFFFFF'
-        strokeColor = 'rgba(0,0,0,0.4)'
-        strokeWidth = Math.max(2, Math.round(baseFontSize * 0.06))
-        badgeBg = 'rgba(0,0,0,0.75)'
+        strokeColor = 'rgba(0,0,0,0.35)'
+        strokeWidth = Math.max(1, Math.round(baseFontSize * 0.04))
+        badgeBg = 'rgba(12, 12, 14, 0.72)'
         letterSpacing = 1
+        fontWeight = '700'
         break
       case 'bold_accent':
         fontFamily = 'Impact, -apple-system, sans-serif'
@@ -286,10 +302,11 @@ export class ThumbnailEngine {
         strokeWidth = Math.round(baseFontSize * 0.16)
         badgeBg = 'rgba(255, 45, 85, 0.2)'
         letterSpacing = 2
+        fontWeight = '900'
         break
     }
 
-    ctx.font = `900 ${baseFontSize}px ${fontFamily}`
+    ctx.font = `${fontStyle} ${fontWeight} ${baseFontSize}px ${fontFamily}`
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
 

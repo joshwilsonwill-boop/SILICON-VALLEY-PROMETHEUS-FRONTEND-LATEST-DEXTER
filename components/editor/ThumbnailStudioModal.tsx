@@ -8,12 +8,11 @@ import {
   Download,
   Image as ImageIcon,
   Check,
-  RotateCcw,
-  Sliders,
-  Type,
   Camera,
   Loader2,
-  Share2,
+  AlignVerticalJustifyStart,
+  AlignVerticalJustifyCenter,
+  AlignVerticalJustifyEnd,
 } from 'lucide-react'
 
 import {
@@ -44,12 +43,37 @@ interface AiCurationResponse {
   rationale: string
 }
 
-const STYLE_PRESETS: Array<{ id: ThumbnailStylePreset; label: string; accent: string }> = [
-  { id: 'impact', label: 'Viral Impact', accent: '#FFE600' },
-  { id: 'editorial', label: 'Editorial Elegist', accent: '#F5F5F0' },
-  { id: 'neon', label: 'Cyber Neon', accent: '#00F0FF' },
-  { id: 'minimal', label: 'Minimal Swiss', accent: '#FFFFFF' },
-  { id: 'bold_accent', label: 'Bold Accent', accent: '#FF2D55' },
+export type StudioAspectRatio = '9:16' | '9:6' | '1:1' | '16:9'
+
+interface AspectRatioOption {
+  id: StudioAspectRatio
+  label: string
+  category: string
+  width: number
+  height: number
+  cssAspect: string
+}
+
+const ASPECT_RATIO_OPTIONS: AspectRatioOption[] = [
+  { id: '9:16', label: '9:16', category: 'Vertical Mobile', width: 720, height: 1280, cssAspect: 'aspect-[9/16]' },
+  { id: '9:6', label: '9:6', category: 'Editorial Portrait', width: 720, height: 1080, cssAspect: 'aspect-[9/6]' },
+  { id: '1:1', label: '1:1', category: 'Square Feed', width: 1080, height: 1080, cssAspect: 'aspect-square' },
+  { id: '16:9', label: '16:9', category: 'Landscape Cinema', width: 1280, height: 720, cssAspect: 'aspect-video' },
+]
+
+interface PresetOption {
+  id: ThumbnailStylePreset
+  name: string
+  subtitle: string
+  swatch: string
+}
+
+const PRESET_OPTIONS: PresetOption[] = [
+  { id: 'editorial', name: 'Atelier Editorial', subtitle: 'Luxury Serif', swatch: '#F7F6F2' },
+  { id: 'minimal', name: 'Swiss Minimal', subtitle: 'Pure Grotesque', swatch: '#FFFFFF' },
+  { id: 'cinematic', name: 'Cinematic Monolith', subtitle: 'Tracked Upper', swatch: '#EAE6DF' },
+  { id: 'impact', name: 'Viral Bold', subtitle: 'High-Energy Contrast', swatch: '#FFE600' },
+  { id: 'neon', name: 'Cyber Minimal', subtitle: 'Electric Tint', swatch: '#00F0FF' },
 ]
 
 export function ThumbnailStudioModal({
@@ -68,10 +92,13 @@ export function ThumbnailStudioModal({
   const [isAiCurating, setIsAiCurating] = React.useState(false)
   const [aiData, setAiData] = React.useState<AiCurationResponse | null>(null)
 
-  const [aspectRatio, setAspectRatio] = React.useState<'16:9' | '9:16'>('16:9')
-  const [headline, setHeadline] = React.useState('STOP DOING THIS')
+  // Default to 9:16 vertical as requested by the user
+  const [aspectRatio, setAspectRatio] = React.useState<StudioAspectRatio>('9:16')
+  const [headline, setHeadline] = React.useState(() =>
+    projectTitle?.trim() ? projectTitle.toUpperCase().slice(0, 32) : 'THE NEW DISCIPLINE',
+  )
   const [subtitle, setSubtitle] = React.useState('')
-  const [preset, setPreset] = React.useState<ThumbnailStylePreset>('impact')
+  const [preset, setPreset] = React.useState<ThumbnailStylePreset>('editorial')
   const [position, setPosition] = React.useState<ThumbnailTextPosition>('bottom')
   const [fontSizeScale, setFontSizeScale] = React.useState(1.0)
   const [showBadge, setShowBadge] = React.useState(true)
@@ -79,6 +106,13 @@ export function ThumbnailStudioModal({
   const [previewDataUrl, setPreviewDataUrl] = React.useState<string | null>(null)
   const [isExporting, setIsExporting] = React.useState(false)
   const [savedSuccess, setSavedSuccess] = React.useState(false)
+
+  // Sync initial headline when projectTitle changes
+  React.useEffect(() => {
+    if (projectTitle?.trim()) {
+      setHeadline((prev) => (prev === 'THE NEW DISCIPLINE' ? projectTitle.toUpperCase().slice(0, 32) : prev))
+    }
+  }, [projectTitle])
 
   // Extract candidate frames when modal opens
   React.useEffect(() => {
@@ -92,7 +126,6 @@ export function ThumbnailStudioModal({
         let extracted: ExtractedFrameCandidate[] = []
 
         if (videoElement && videoElement.readyState >= 2) {
-          // If video element exists, grab current playhead frame first
           const currentFrame = ThumbnailEngine.captureFrameFromVideo(videoElement)
           extracted = await ThumbnailEngine.extractCandidateFrames(videoElement, 6)
           if (currentFrame) {
@@ -160,13 +193,18 @@ export function ThumbnailStudioModal({
     }
   }
 
+  // Active Aspect Config
+  const activeAspectConfig = React.useMemo(() => {
+    return ASPECT_RATIO_OPTIONS.find((opt) => opt.id === aspectRatio) ?? ASPECT_RATIO_OPTIONS[0]
+  }, [aspectRatio])
+
   // Live Thumbnail Render Loop
   React.useEffect(() => {
     if (!candidates.length || selectedFrameIndex >= candidates.length) return
 
     const activeFrame = candidates[selectedFrameIndex]
-    const targetWidth = aspectRatio === '16:9' ? 1280 : 720
-    const targetHeight = aspectRatio === '16:9' ? 720 : 1280
+    const targetWidth = activeAspectConfig.width
+    const targetHeight = activeAspectConfig.height
 
     const config: ThumbnailTextConfig = {
       headline,
@@ -187,7 +225,7 @@ export function ThumbnailStudioModal({
     return () => {
       isMounted = false
     }
-  }, [candidates, selectedFrameIndex, headline, subtitle, preset, position, fontSizeScale, showBadge, aspectRatio])
+  }, [candidates, selectedFrameIndex, headline, subtitle, preset, position, fontSizeScale, showBadge, activeAspectConfig])
 
   // Capture current playhead from video
   const handleCaptureCurrentPlayhead = () => {
@@ -204,7 +242,7 @@ export function ThumbnailStudioModal({
     if (!previewDataUrl) return
     const link = document.createElement('a')
     link.href = previewDataUrl
-    link.download = `${projectTitle.toLowerCase().replace(/\s+/g, '_')}_thumbnail.png`
+    link.download = `${projectTitle.toLowerCase().replace(/\s+/g, '_')}_${aspectRatio.replace(':', 'x')}_cover.png`
     link.click()
   }
 
@@ -217,127 +255,163 @@ export function ThumbnailStudioModal({
       setIsExporting(false)
       setSavedSuccess(true)
       setTimeout(() => setSavedSuccess(false), 2400)
-    }, 600)
+    }, 450)
   }
 
   if (!isOpen) return null
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6">
-        {/* Backdrop */}
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 md:p-8">
+        {/* Minimalist Backdrop */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
+          transition={{ duration: 0.22 }}
           onClick={onClose}
-          className="fixed inset-0 bg-black/80 backdrop-blur-md"
+          className="fixed inset-0 bg-[#040405]/85 backdrop-blur-md"
         />
 
         {/* Modal Chamber */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.96, y: 16 }}
+          initial={{ opacity: 0, scale: 0.98, y: 12 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.96, y: 16 }}
+          exit={{ opacity: 0, scale: 0.98, y: 10 }}
           transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
-          className="relative z-10 flex h-[90vh] max-h-[860px] w-full max-w-6xl flex-col overflow-hidden rounded-3xl border border-white/10 bg-[#0A0A0C] shadow-2xl"
+          className="relative z-10 flex h-[92vh] max-h-[890px] w-full max-w-6xl flex-col overflow-hidden rounded-[24px] border border-white/[0.08] bg-[#09090b] shadow-[0_32px_100px_rgba(0,0,0,0.85)]"
         >
-          {/* Header */}
-          <div className="flex items-center justify-between border-b border-white/[0.08] px-6 py-4">
+          {/* Minimalist Architectural Header */}
+          <header className="flex h-16 shrink-0 items-center justify-between border-b border-white/[0.06] px-6">
             <div className="flex items-center gap-3">
-              <div className="grid size-9 place-items-center rounded-xl bg-white/[0.06] text-[#7ff2d4]">
-                <ImageIcon className="size-4" strokeWidth={1.75} />
-              </div>
-              <div>
-                <h2 className="text-base font-medium tracking-tight text-white/90">Thumbnail Studio</h2>
-                <p className="text-xs text-white/40">AI-curated viral cover art & keyframe typography</p>
-              </div>
+              <span className="font-mono text-[10px] uppercase tracking-[0.24em] text-white/38">
+                Cover Studio
+              </span>
+              <span className="h-3 w-px bg-white/10" />
+              <h2 className="truncate text-xs font-medium tracking-[0.02em] text-white/80">
+                {projectTitle || 'Untitled Sequence'}
+              </h2>
             </div>
 
-            <div className="flex items-center gap-3">
-              {/* Aspect Ratio Switcher */}
-              <div className="flex items-center rounded-full border border-white/10 bg-white/[0.04] p-0.5 text-xs text-white/60">
-                <button
-                  type="button"
-                  onClick={() => setAspectRatio('16:9')}
-                  className={cn(
-                    'rounded-full px-3 py-1 transition-all',
-                    aspectRatio === '16:9' ? 'bg-white text-black font-semibold' : 'hover:text-white',
-                  )}
-                >
-                  16:9 Landscape
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setAspectRatio('9:16')}
-                  className={cn(
-                    'rounded-full px-3 py-1 transition-all',
-                    aspectRatio === '9:16' ? 'bg-white text-black font-semibold' : 'hover:text-white',
-                  )}
-                >
-                  9:16 Portrait
-                </button>
+            <div className="flex items-center gap-4">
+              {/* Aspect Ratio Segmented Control */}
+              <div className="flex items-center rounded-lg border border-white/[0.08] bg-white/[0.02] p-0.5">
+                {ASPECT_RATIO_OPTIONS.map((opt) => {
+                  const isActive = aspectRatio === opt.id
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => setAspectRatio(opt.id)}
+                      className={cn(
+                        'relative rounded-md px-3 py-1 text-xs font-mono transition-colors',
+                        isActive ? 'text-black' : 'text-white/50 hover:text-white/85',
+                      )}
+                    >
+                      {isActive && (
+                        <motion.div
+                          layoutId="active-aspect-ratio"
+                          className="absolute inset-0 rounded-md bg-white shadow-sm"
+                          transition={{ type: 'spring', stiffness: 420, damping: 32 }}
+                        />
+                      )}
+                      <span className="relative z-10 font-semibold">{opt.label}</span>
+                    </button>
+                  )
+                })}
               </div>
 
               <button
                 type="button"
+                aria-label="Close Studio"
                 onClick={onClose}
-                className="grid size-8 place-items-center rounded-full text-white/40 transition-colors hover:bg-white/[0.06] hover:text-white"
+                className="grid size-8 place-items-center rounded-lg border border-white/[0.08] text-white/40 transition-colors hover:border-white/20 hover:bg-white/[0.04] hover:text-white"
               >
-                <X className="size-4" />
+                <X className="size-3.5" />
               </button>
             </div>
-          </div>
+          </header>
 
-          {/* Main Layout Grid */}
-          <div className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-12">
-            {/* Left Column: Live Canvas & Keyframe Strip (7 Cols) */}
-            <div className="flex flex-col gap-5 border-b border-white/[0.08] p-6 lg:col-span-7 lg:border-b-0 lg:border-r">
-              {/* Live Canvas Stage */}
-              <div className="relative flex flex-1 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-black/60 p-4">
+          {/* Main Workspace Stage */}
+          <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-12">
+            {/* Left Column: Vertical Canvas Display (7 Cols) */}
+            <div className="flex flex-col justify-between border-b border-white/[0.06] bg-[#070709] p-5 lg:col-span-7 lg:border-b-0 lg:border-r lg:p-7">
+              {/* Centered Luxury Canvas Stage */}
+              <div className="relative flex flex-1 items-center justify-center overflow-hidden py-2">
+                {/* Subtle Ambient Backlight derived from frame */}
                 {previewDataUrl ? (
-                  /* eslint-disable-next-line @next/next/no-img-element */
-                  <img
-                    src={previewDataUrl}
-                    alt="Thumbnail Preview"
-                    className={cn(
-                      'max-h-full rounded-xl object-contain shadow-2xl ring-1 ring-white/10 transition-all',
-                      aspectRatio === '16:9' ? 'aspect-video w-full' : 'aspect-[9/16] h-full',
-                    )}
+                  <div
+                    aria-hidden
+                    className="pointer-events-none absolute inset-0 opacity-20 blur-3xl transition-opacity duration-700"
+                    style={{
+                      backgroundImage: `url(${previewDataUrl})`,
+                      backgroundPosition: 'center',
+                      backgroundSize: 'cover',
+                    }}
                   />
-                ) : (
-                  <div className="flex flex-col items-center gap-2 text-white/30">
-                    <Loader2 className="size-6 animate-spin text-[#7ff2d4]" />
-                    <span className="text-xs">Rendering thumbnail…</span>
-                  </div>
-                )}
+                ) : null}
+
+                {/* Canvas Box */}
+                <div className="relative z-10 flex h-full max-h-[510px] w-full items-center justify-center">
+                  {previewDataUrl ? (
+                    <motion.div
+                      layout
+                      transition={{ type: 'spring', stiffness: 320, damping: 30 }}
+                      className={cn(
+                        'relative overflow-hidden rounded-xl border border-white/12 bg-black shadow-[0_24px_64px_rgba(0,0,0,0.9)] ring-1 ring-white/[0.04]',
+                        activeAspectConfig.cssAspect,
+                        aspectRatio === '9:16' || aspectRatio === '9:6' ? 'h-full max-h-[510px] w-auto' : 'w-full max-w-[540px] h-auto',
+                      )}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={previewDataUrl}
+                        alt="Active Studio Cover Art"
+                        className="size-full object-contain"
+                      />
+
+                      {/* Technical Specs Pill */}
+                      <div className="pointer-events-none absolute bottom-2 left-2.5 rounded bg-black/70 px-2 py-0.5 font-mono text-[9px] uppercase tracking-widest text-white/65 backdrop-blur-md">
+                        {activeAspectConfig.width} × {activeAspectConfig.height} // {activeAspectConfig.label}
+                      </div>
+                    </motion.div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-2.5 text-white/35">
+                      <Loader2 className="size-5 animate-spin text-white/50" />
+                      <span className="font-mono text-[11px] tracking-wider">Synthesizing Cover…</span>
+                    </div>
+                  )}
+                </div>
               </div>
 
-              {/* Candidate Keyframes Strip */}
-              <div className="flex flex-col gap-2">
+              {/* Keyframes Filmstrip */}
+              <div className="mt-4 shrink-0 space-y-2 border-t border-white/[0.06] pt-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs uppercase tracking-[0.14em] text-white/40">Candidate Keyframes</span>
+                  <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/40">
+                    Source Keyframes
+                  </span>
                   {videoElement ? (
                     <button
                       type="button"
                       onClick={handleCaptureCurrentPlayhead}
-                      className="inline-flex items-center gap-1.5 text-xs text-[#7ff2d4] transition-colors hover:underline"
+                      className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-white/60 transition-colors hover:text-white"
                     >
-                      <Camera className="size-3.5" />
-                      Capture at Playhead
+                      <Camera className="size-3 text-white/50" />
+                      Sample Playhead
                     </button>
                   ) : null}
                 </div>
 
                 {isExtracting ? (
-                  <div className="flex h-20 items-center justify-center rounded-xl border border-white/10 bg-white/[0.02]">
-                    <Loader2 className="size-4 animate-spin text-white/40" />
+                  <div className="flex h-16 items-center justify-center rounded-lg border border-white/[0.06] bg-white/[0.01]">
+                    <Loader2 className="size-4 animate-spin text-white/30" />
                   </div>
                 ) : (
-                  <div className="flex gap-2.5 overflow-x-auto pb-1 [scrollbar-width:thin]">
+                  <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
                     {candidates.map((candidate, idx) => {
                       const score = aiData?.candidateScores?.[idx]
                       const isRecommended = aiData?.recommendedFrameIndex === idx
+                      const isSelected = selectedFrameIndex === idx
 
                       return (
                         <button
@@ -345,26 +419,28 @@ export function ThumbnailStudioModal({
                           type="button"
                           onClick={() => setSelectedFrameIndex(idx)}
                           className={cn(
-                            'group relative h-18 w-28 shrink-0 overflow-hidden rounded-xl border transition-all',
-                            selectedFrameIndex === idx
-                              ? 'border-[#7ff2d4] ring-2 ring-[#7ff2d4]/40'
-                              : 'border-white/10 hover:border-white/30',
+                            'group relative h-16 w-24 shrink-0 overflow-hidden rounded-lg border transition-all duration-200',
+                            isSelected
+                              ? 'border-white ring-1 ring-white/60'
+                              : 'border-white/10 opacity-70 hover:border-white/30 hover:opacity-100',
                           )}
                         >
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={candidate.dataUrl}
-                            alt={`Frame ${candidate.timecode}`}
+                            alt={`Candidate at ${candidate.timecode}`}
                             className="size-full object-cover"
                           />
-                          <span className="absolute bottom-1 right-1 rounded bg-black/75 px-1 py-0.5 font-mono text-[9px] text-white/80">
+                          <span className="absolute bottom-1 right-1 rounded bg-black/80 px-1 py-0.2 font-mono text-[8px] text-white/70">
                             {candidate.timecode}
                           </span>
                           {score ? (
                             <span
                               className={cn(
-                                'absolute left-1 top-1 rounded px-1 py-0.5 text-[8px] font-bold',
-                                isRecommended ? 'bg-[#7ff2d4] text-black' : 'bg-black/80 text-white/90',
+                                'absolute left-1 top-1 rounded px-1 py-0.2 font-mono text-[8px]',
+                                isRecommended
+                                  ? 'bg-white text-black font-semibold'
+                                  : 'bg-black/80 text-white/70',
                               )}
                             >
                               {score}%
@@ -378,186 +454,201 @@ export function ThumbnailStudioModal({
               </div>
             </div>
 
-            {/* Right Column: AI Hooks & Visual Styling Controls (5 Cols) */}
-            <div className="flex flex-col gap-6 p-6 lg:col-span-5">
-              {/* AI Viral Hooks Section */}
-              <div className="flex flex-col gap-2.5 rounded-2xl border border-white/10 bg-white/[0.02] p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 text-xs font-medium text-amber-300">
-                    <Sparkles className="size-3.5" />
-                    <span>AI Viral Hooks</span>
+            {/* Right Column: Editorial Typographic & Aesthetic Controls (5 Cols) */}
+            <div className="flex flex-col justify-between overflow-y-auto p-6 lg:col-span-5 lg:p-7">
+              <div className="space-y-6">
+                {/* AI Curated Hooks */}
+                <div className="space-y-2.5 rounded-xl border border-white/[0.07] bg-white/[0.015] p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-white/50">
+                      <Sparkles className="size-3 text-white/60" />
+                      <span>Curated Hooks</span>
+                    </div>
+                    {isAiCurating && (
+                      <span className="font-mono text-[9px] uppercase tracking-wider text-white/40">
+                        Analyzing…
+                      </span>
+                    )}
                   </div>
-                  {isAiCurating ? (
-                    <span className="inline-flex items-center gap-1 text-[11px] text-white/40">
-                      <Loader2 className="size-3 animate-spin" />
-                      Analyzing
-                    </span>
+
+                  {aiData?.rationale ? (
+                    <p className="text-xs leading-relaxed text-white/40">{aiData.rationale}</p>
                   ) : null}
-                </div>
 
-                {aiData?.rationale ? (
-                  <p className="text-[11px] leading-relaxed text-white/50">{aiData.rationale}</p>
-                ) : null}
-
-                {aiData?.hookTitles && aiData.hookTitles.length > 0 ? (
                   <div className="flex flex-wrap gap-1.5">
-                    {aiData.hookTitles.map((hook, idx) => (
-                      <button
-                        key={`hook-${idx}`}
-                        type="button"
-                        onClick={() => setHeadline(hook)}
-                        className={cn(
-                          'rounded-full border px-2.5 py-1 text-xs transition-all',
-                          headline === hook
-                            ? 'border-amber-400/50 bg-amber-400/10 text-amber-200'
-                            : 'border-white/10 bg-white/[0.03] text-white/70 hover:border-white/20 hover:text-white',
-                        )}
-                      >
-                        {hook}
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="flex flex-wrap gap-1.5">
-                    {['STOP DOING THIS', 'THE REAL SECRET', 'NEVER AGAIN', 'WATCH THIS FIRST'].map((hook) => (
-                      <button
-                        key={hook}
-                        type="button"
-                        onClick={() => setHeadline(hook)}
-                        className="rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-xs text-white/70 hover:text-white"
-                      >
-                        {hook}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Text Inputs */}
-              <div className="flex flex-col gap-3">
-                <label className="text-xs uppercase tracking-[0.14em] text-white/40">Typography & Headline</label>
-                <div className="space-y-2">
-                  <input
-                    type="text"
-                    value={headline}
-                    onChange={(e) => setHeadline(e.target.value)}
-                    placeholder="Enter main headline text"
-                    className="w-full rounded-xl border border-white/10 bg-black/60 px-3.5 py-2.5 text-sm text-white placeholder:text-white/30 focus:border-[#7ff2d4]/50 focus:outline-none"
-                  />
-                  <input
-                    type="text"
-                    value={subtitle}
-                    onChange={(e) => setSubtitle(e.target.value)}
-                    placeholder="Optional subtitle (e.g. In 60 Seconds)"
-                    className="w-full rounded-xl border border-white/10 bg-black/60 px-3.5 py-2 text-xs text-white/80 placeholder:text-white/30 focus:border-[#7ff2d4]/50 focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              {/* Style Presets */}
-              <div className="flex flex-col gap-2">
-                <span className="text-xs uppercase tracking-[0.14em] text-white/40">Style Aesthetic</span>
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                  {STYLE_PRESETS.map((style) => (
-                    <button
-                      key={style.id}
-                      type="button"
-                      onClick={() => setPreset(style.id)}
-                      className={cn(
-                        'flex items-center gap-2 rounded-xl border p-2.5 text-left text-xs transition-all',
-                        preset === style.id
-                          ? 'border-white/30 bg-white/[0.08] text-white'
-                          : 'border-white/10 bg-white/[0.02] text-white/60 hover:text-white',
-                      )}
-                    >
-                      <span className="size-2.5 rounded-full" style={{ backgroundColor: style.accent }} />
-                      <span className="truncate">{style.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Position & Badge Switches */}
-              <div className="flex flex-wrap items-center justify-between gap-4 border-t border-white/[0.06] pt-4">
-                {/* Position */}
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-white/40">Position:</span>
-                  <div className="flex rounded-lg border border-white/10 bg-white/[0.03] p-0.5 text-xs text-white/60">
-                    {(['top', 'center', 'bottom'] as ThumbnailTextPosition[]).map((pos) => (
-                      <button
-                        key={pos}
-                        type="button"
-                        onClick={() => setPosition(pos)}
-                        className={cn(
-                          'rounded px-2.5 py-0.5 capitalize transition-all',
-                          position === pos ? 'bg-white/20 text-white font-medium' : 'hover:text-white',
-                        )}
-                      >
-                        {pos}
-                      </button>
-                    ))}
+                    {(aiData?.hookTitles && aiData.hookTitles.length > 0
+                      ? aiData.hookTitles
+                      : ['THE NEW DISCIPLINE', 'BEFORE YOU DECIDE', 'LESS BUT BETTER', 'THE TURNING POINT']
+                    ).map((hook) => {
+                      const isActive = headline === hook
+                      return (
+                        <button
+                          key={hook}
+                          type="button"
+                          onClick={() => setHeadline(hook)}
+                          className={cn(
+                            'rounded-md border px-2.5 py-1 text-xs transition-colors',
+                            isActive
+                              ? 'border-white/40 bg-white/10 text-white'
+                              : 'border-white/[0.08] bg-white/[0.02] text-white/60 hover:border-white/20 hover:text-white',
+                          )}
+                        >
+                          {hook}
+                        </button>
+                      )
+                    })}
                   </div>
                 </div>
 
-                {/* Badge Toggle */}
-                <label className="flex cursor-pointer items-center gap-2 text-xs text-white/70">
-                  <input
-                    type="checkbox"
-                    checked={showBadge}
-                    onChange={(e) => setShowBadge(e.target.checked)}
-                    className="size-4 rounded border-white/20 bg-black text-[#7ff2d4] focus:ring-0"
-                  />
-                  <span>Contrast Badge</span>
-                </label>
+                {/* Typography Inputs */}
+                <div className="space-y-3">
+                  <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/40">
+                    Typography & Copy
+                  </span>
+                  <div className="space-y-2">
+                    <input
+                      type="text"
+                      value={headline}
+                      onChange={(e) => setHeadline(e.target.value)}
+                      placeholder="Enter primary cover headline"
+                      className="w-full rounded-lg border border-white/[0.08] bg-black/60 px-3.5 py-2.5 text-sm text-white placeholder:text-white/25 focus:border-white/30 focus:outline-none"
+                    />
+                    <input
+                      type="text"
+                      value={subtitle}
+                      onChange={(e) => setSubtitle(e.target.value)}
+                      placeholder="Optional subtitle / author / chapter"
+                      className="w-full rounded-lg border border-white/[0.08] bg-black/60 px-3.5 py-2 text-xs text-white/80 placeholder:text-white/25 focus:border-white/30 focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Style Aesthetic Presets */}
+                <div className="space-y-2.5">
+                  <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/40">
+                    Aesthetic Direction
+                  </span>
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                    {PRESET_OPTIONS.map((style) => {
+                      const isSelected = preset === style.id
+                      return (
+                        <button
+                          key={style.id}
+                          type="button"
+                          onClick={() => setPreset(style.id)}
+                          className={cn(
+                            'flex flex-col items-start gap-1 rounded-lg border p-2.5 text-left transition-all',
+                            isSelected
+                              ? 'border-white/40 bg-white/[0.07] text-white'
+                              : 'border-white/[0.08] bg-white/[0.015] text-white/50 hover:border-white/20 hover:text-white',
+                          )}
+                        >
+                          <div className="flex items-center gap-1.5">
+                            <span className="size-2 rounded-full" style={{ backgroundColor: style.swatch }} />
+                            <span className="truncate text-xs font-medium">{style.name}</span>
+                          </div>
+                          <span className="text-[10px] text-white/35">{style.subtitle}</span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {/* Placement & Composition */}
+                <div className="space-y-3 border-t border-white/[0.06] pt-4">
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/40">
+                      Placement
+                    </span>
+                    <div className="flex rounded-md border border-white/[0.08] bg-white/[0.02] p-0.5">
+                      {(
+                        [
+                          { id: 'top', icon: AlignVerticalJustifyStart, label: 'Top' },
+                          { id: 'center', icon: AlignVerticalJustifyCenter, label: 'Mid' },
+                          { id: 'bottom', icon: AlignVerticalJustifyEnd, label: 'Base' },
+                        ] as const
+                      ).map(({ id, icon: Icon, label }) => {
+                        const isCurrent = position === id
+                        return (
+                          <button
+                            key={id}
+                            type="button"
+                            onClick={() => setPosition(id)}
+                            className={cn(
+                              'flex items-center gap-1 rounded px-2 py-1 text-xs transition-colors',
+                              isCurrent ? 'bg-white/15 text-white font-medium' : 'text-white/50 hover:text-white',
+                            )}
+                          >
+                            <Icon className="size-3" />
+                            <span>{label}</span>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Contrast Pill Toggle & Scale */}
+                  <div className="flex items-center justify-between gap-4">
+                    <label className="flex cursor-pointer items-center gap-2 text-xs text-white/70">
+                      <input
+                        type="checkbox"
+                        checked={showBadge}
+                        onChange={(e) => setShowBadge(e.target.checked)}
+                        className="size-3.5 rounded border-white/20 bg-black text-white focus:ring-0"
+                      />
+                      <span>Contrast Badge</span>
+                    </label>
+
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-[10px] text-white/40">Scale:</span>
+                      <input
+                        type="range"
+                        min="0.7"
+                        max="1.4"
+                        step="0.05"
+                        value={fontSizeScale}
+                        onChange={(e) => setFontSizeScale(parseFloat(e.target.value))}
+                        className="w-20 accent-white"
+                      />
+                      <span className="w-8 text-right font-mono text-[11px] text-white/60">
+                        {Math.round(fontSizeScale * 100)}%
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              {/* Font Size Scale */}
-              <div className="flex items-center gap-3">
-                <span className="text-xs text-white/40">Scale:</span>
-                <input
-                  type="range"
-                  min="0.7"
-                  max="1.5"
-                  step="0.05"
-                  value={fontSizeScale}
-                  onChange={(e) => setFontSizeScale(parseFloat(e.target.value))}
-                  className="flex-1 accent-[#7ff2d4]"
-                />
-                <span className="w-8 text-right font-mono text-xs text-white/60">
-                  {Math.round(fontSizeScale * 100)}%
-                </span>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="mt-auto flex flex-col gap-2.5 border-t border-white/[0.08] pt-4">
-                <div className="grid grid-cols-2 gap-2.5">
+              {/* Action Deck */}
+              <div className="mt-8 border-t border-white/[0.06] pt-5">
+                <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
                     onClick={handleDownload}
-                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/[0.05] px-4 py-3 text-xs font-semibold text-white transition-all hover:bg-white/[0.1]"
+                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/15 bg-white/[0.03] px-4 py-2.5 text-xs font-medium text-white/85 transition-colors hover:border-white/30 hover:bg-white/[0.06] hover:text-white"
                   >
-                    <Download className="size-4" />
+                    <Download className="size-3.5" />
                     Download PNG
                   </button>
 
-                  <button
+                  <motion.button
                     type="button"
+                    whileTap={{ scale: 0.98 }}
                     onClick={handleSaveCover}
                     disabled={isExporting}
-                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#7ff2d4] px-4 py-3 text-xs font-semibold text-black transition-all hover:bg-[#9ff6e3] disabled:opacity-50"
+                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-white px-4 py-2.5 text-xs font-semibold text-black transition-opacity hover:opacity-95 disabled:opacity-50"
                   >
                     {savedSuccess ? (
                       <>
-                        <Check className="size-4 text-black" />
-                        Cover Saved!
+                        <Check className="size-3.5 text-black" />
+                        Cover Saved
                       </>
                     ) : (
                       <>
-                        <ImageIcon className="size-4" />
+                        <ImageIcon className="size-3.5" />
                         Save Project Cover
                       </>
                     )}
-                  </button>
+                  </motion.button>
                 </div>
               </div>
             </div>
