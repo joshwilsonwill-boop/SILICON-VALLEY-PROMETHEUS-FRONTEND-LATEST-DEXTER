@@ -20,6 +20,36 @@ export function AgenticCursorLayer() {
   })
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      ;(window as unknown as { autonomousCoordinator?: typeof autonomousCoordinator }).autonomousCoordinator =
+        autonomousCoordinator
+
+      const handleTranscriptCut = (e: Event) => {
+        const detail = (e as CustomEvent<{ phrase?: string }>).detail
+        if (detail?.phrase) {
+          autonomousCoordinator.executeTranscriptCut(detail.phrase)
+        }
+      }
+
+      const handleMusicSelect = (e: Event) => {
+        const detail = (e as CustomEvent<{ genreOrMood?: string; trackId?: string }>).detail
+        autonomousCoordinator.executeMusicSelection(detail)
+      }
+
+      window.addEventListener('prometheus:autonomous-transcript-cut', handleTranscriptCut)
+      window.addEventListener('prometheus:autonomous-music-select', handleMusicSelect)
+
+      const unsubscribe = autonomousCoordinator.subscribe((nextState) => {
+        setCursorState(nextState)
+      })
+
+      return () => {
+        window.removeEventListener('prometheus:autonomous-transcript-cut', handleTranscriptCut)
+        window.removeEventListener('prometheus:autonomous-music-select', handleMusicSelect)
+        unsubscribe()
+      }
+    }
+
     const unsubscribe = autonomousCoordinator.subscribe((nextState) => {
       setCursorState(nextState)
     })

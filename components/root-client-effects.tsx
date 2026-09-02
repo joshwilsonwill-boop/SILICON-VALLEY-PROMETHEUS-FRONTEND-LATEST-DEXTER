@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from 'react'
 import dynamic from 'next/dynamic'
 import { usePathname } from 'next/navigation'
 import { useActivityDetector } from '@/hooks/useActivityDetector'
@@ -7,6 +8,7 @@ import { usePasteDetector } from '@/hooks/usePasteDetector'
 import { useUserPreferencesHydrator } from '@/hooks/use-user-preferences'
 import { useDeferredEnhancementsReady } from '@/hooks/use-deferred-enhancements-ready'
 import { ThemeInjector } from '@/components/theme/theme-injector'
+import { autonomousCoordinator } from '@/lib/autonomous-ui/coordinator'
 
 const AppToaster = dynamic(() => import('@/components/ui/app-toaster').then((mod) => mod.AppToaster), {
   ssr: false,
@@ -63,6 +65,13 @@ export function RootClientEffects() {
   const enhancementsReady = useDeferredEnhancementsReady()
   useActivityDetector()
   usePasteDetector()
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      ;(window as unknown as { autonomousCoordinator?: typeof autonomousCoordinator }).autonomousCoordinator =
+        autonomousCoordinator
+    }
+  }, [])
 
   return (
     <>
