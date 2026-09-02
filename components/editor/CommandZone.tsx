@@ -2,15 +2,26 @@
 
 import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Command, Download, Sparkles, Wand2 } from 'lucide-react'
+import { Command, Download, Music, Scissors, Sparkles, Wand2 } from 'lucide-react'
+import { autonomousCoordinator } from '@/lib/autonomous-ui/coordinator'
 
 const quickActions = [
+  { id: 'auto-cut', label: 'Jarvis Auto-Cut', icon: Scissors, command: 'auto-cut' },
+  { id: 'auto-music', label: 'Jarvis Music', icon: Music, command: 'auto-music' },
   { id: 'interrogate', label: 'Interrogate', icon: Sparkles, command: 'ai' },
   { id: 'enhance', label: 'Enhance', icon: Wand2, command: 'enhance' },
   { id: 'export', label: 'Export', icon: Download, command: 'export' },
 ]
 
 function dispatchEditorCommand(command: string) {
+  if (command === 'auto-cut') {
+    autonomousCoordinator.executeTranscriptCut('at the same part')
+    return
+  }
+  if (command === 'auto-music') {
+    autonomousCoordinator.executeMusicSelection({ genreOrMood: 'atmospheric' })
+    return
+  }
   window.dispatchEvent(new CustomEvent('prometheus:editor-command', { detail: { command } }))
 }
 

@@ -686,6 +686,8 @@ export function ThumbnailStudioModal({
                       />
                     </div>
                   </div>
+                </div>
+
                 {/* AI Viral Hooks */}
                 {aiData?.hookTitles && aiData.hookTitles.length > 0 ? (
                   <div className="space-y-1.5 border-t border-white/[0.06] pt-3">

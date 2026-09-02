@@ -34,6 +34,7 @@ import {
 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
+import { autonomousCoordinator } from '@/lib/autonomous-ui/coordinator'
 
 type PreviewMediaKind = 'video' | 'image'
 type MotionToolId = 'enhance' | 'captions' | 'media' | 'layout'
@@ -643,7 +644,20 @@ export function MotionEditWorkspace({
               </div>
             ) : null}
 
-            <div className="mb-4 flex items-center gap-2">
+            <div className="mb-4 flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const targetSegment = visibleSegments.find((s) => !s.isCut) ?? visibleSegments[0]
+                  const phrase = targetSegment?.text ? targetSegment.text.split(' ').slice(0, 4).join(' ') : 'at the same part'
+                  autonomousCoordinator.executeTranscriptCut(phrase)
+                }}
+                className="inline-flex min-h-8 items-center gap-1.5 rounded-md border border-[#00f0ff]/40 bg-[#00f0ff]/10 px-2.5 py-1.5 text-xs font-semibold text-[#00f0ff] shadow-[0_0_12px_rgba(0,240,255,0.2)] transition-all hover:bg-[#00f0ff]/20 hover:shadow-[0_0_20px_rgba(0,240,255,0.4)]"
+                title="Trigger autonomous Ghost Cursor to cut transcript on-screen"
+              >
+                <Sparkles className="size-3.5 animate-pulse text-[#00f0ff]" />
+                <span>Jarvis Auto-Cut</span>
+              </button>
               <button
                 type="button"
                 onClick={() => onApplyPrompt?.('Clean up the selected speech in the current edit.')}
