@@ -17,7 +17,7 @@ assert.match(thumbnailEngine, /export class ThumbnailEngine/)
 assert.match(thumbnailEngine, /captureFrameFromVideo/)
 assert.match(thumbnailEngine, /extractCandidateFrames/)
 assert.match(thumbnailEngine, /renderThumbnail/)
-assert.match(thumbnailEngine, /drawTypography/)
+assert.match(thumbnailEngine, /draw(Foreground)?Typography/)
 
 // AI Curate route checks
 assert.match(aiCurateRoute, /GoogleGenerativeAI/)

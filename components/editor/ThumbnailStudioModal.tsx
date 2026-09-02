@@ -686,7 +686,29 @@ export function ThumbnailStudioModal({
                       />
                     </div>
                   </div>
-                </div>
+                {/* AI Viral Hooks */}
+                {aiData?.hookTitles && aiData.hookTitles.length > 0 ? (
+                  <div className="space-y-1.5 border-t border-white/[0.06] pt-3">
+                    <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/40">
+                      AI Viral Hooks
+                    </span>
+                    <div className="flex flex-wrap gap-1.5 pt-0.5">
+                      {aiData.hookTitles.map((hook, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => setHeadline(hook)}
+                          className={cn(
+                            'rounded border border-white/10 bg-white/[0.03] px-2 py-1 text-left text-[11px] text-white/70 transition-all hover:border-white/30 hover:text-white',
+                            headline === hook && 'border-white/40 bg-white/10 text-white font-medium',
+                          )}
+                        >
+                          {hook}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
 
                 <div className="space-y-2 border-t border-white/[0.06] pt-4">
                   <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/40">

@@ -824,7 +824,6 @@ export function MotionEditWorkspace({
                 <div className="relative h-full w-full overflow-hidden border border-white/18 bg-black shadow-[0_28px_80px_rgba(0,0,0,0.56)]">
                   {renderMedia()}
                   <div className="pointer-events-none absolute left-3 top-3 inline-flex max-w-[calc(100%-1.5rem)] items-center gap-2 rounded bg-black/60 px-2.5 py-1.5 text-[10px] text-white/72 backdrop-blur-sm"><Frame className="size-3 shrink-0 text-[#98f237]" /><span className="truncate">{sourceLabel ?? 'Source video'}</span></div>
-                  {captionsVisible && activeSegment ? <div className="pointer-events-none absolute inset-x-[10%] bottom-8 text-center text-[clamp(.7rem,1.7vw,1.2rem)] font-semibold leading-snug text-white [text-shadow:0_2px_12px_rgba(0,0,0,1)]">{activeSegment.text}</div> : null}
                   <button type="button" onClick={onTogglePlayback} disabled={previewKind !== 'video' || !previewUrl} className="absolute bottom-3 left-3 grid size-10 place-items-center rounded-full border border-white/12 bg-black/60 text-white backdrop-blur-sm transition-colors hover:bg-black/82 disabled:cursor-not-allowed disabled:opacity-35" aria-label={previewPlaying ? 'Pause preview' : 'Play preview'}>{previewPlaying ? <Pause className="size-4 fill-current" /> : <Play className="ml-0.5 size-4 fill-current" />}</button>
                 </div>
                 {cropEnabled ? <CropFrame rect={cropRect} onChange={setCropRect} /> : null}
