@@ -50,6 +50,7 @@ import { FocusModeToggle } from "./FocusModeToggle";
 import { KeyboardShortcuts } from "./KeyboardShortcuts";
 import { SettingsPanel } from "./SettingsPanel";
 import { PrometheusChatMobile } from "./prometheus-chat-mobile";
+import { AgenticCursorLayer } from "@/components/editor/autonomous/agentic-cursor-layer";
 
 export function EditorRouteShell({ children }: { children: ReactNode }) {
   const sourceStatus = useEditorSourceStatus();
@@ -196,6 +197,7 @@ export function EditorRouteShell({ children }: { children: ReactNode }) {
         onToggleSidebar={toggleSidebar}
       />
       <CinematicCompletionOverlay />
+      <AgenticCursorLayer />
     </div>
   );
 }

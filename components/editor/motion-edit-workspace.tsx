@@ -187,6 +187,8 @@ function HighlightedTranscript({
           return (
             <span
               key={`${w.text}-${index}`}
+              data-word-index={index}
+              data-word-text={w.text}
               onClick={(e) => {
                 if (onToggleCutWord) {
                   e.stopPropagation()
@@ -743,6 +745,7 @@ export function MotionEditWorkspace({
                 return (
                   <div
                     key={segment.id}
+                    data-transcript-segment-id={segment.id}
                     data-active-transcript={active}
                     onClick={() => onSeek(segment.start)}
                     className={cn(
