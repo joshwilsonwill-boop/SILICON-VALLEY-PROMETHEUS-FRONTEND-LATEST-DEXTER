@@ -10,7 +10,9 @@ assert.ok(existsSync('lib/autonomous-ui/motion-driver.ts'), 'lib/autonomous-ui/m
 assert.ok(existsSync('lib/autonomous-ui/coordinator.ts'), 'lib/autonomous-ui/coordinator.ts must exist')
 assert.ok(existsSync('components/editor/autonomous/agentic-cursor-layer.tsx'), 'agentic-cursor-layer.tsx must exist')
 
-// 2. Check EditorRouteShell mounting
+// 2. Check Layout & EditorRouteShell mounting
+const layoutSource = readFileSync('app/layout.tsx', 'utf8')
+assert.match(layoutSource, /AgenticCursorLayer/, 'app/layout.tsx must import and mount AgenticCursorLayer')
 const shellSource = readFileSync('components/editor/EditorRouteShell.tsx', 'utf8')
 assert.match(shellSource, /AgenticCursorLayer/, 'EditorRouteShell must import and mount AgenticCursorLayer')
 
