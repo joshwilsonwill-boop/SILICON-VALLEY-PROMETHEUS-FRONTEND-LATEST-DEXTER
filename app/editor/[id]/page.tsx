@@ -1919,53 +1919,15 @@ function EyeOrb({
   target,
   reduceMotion,
 }: {
-  target: { x: number; y: number } | null
-  reduceMotion: boolean
+  target?: { x: number; y: number } | null
+  reduceMotion?: boolean
 }) {
-  const eyeRef = React.useRef<HTMLDivElement | null>(null)
-  const [pupilOffset, setPupilOffset] = React.useState({ x: 0, y: 0 })
-
-  React.useEffect(() => {
-    const eye = eyeRef.current
-    if (!eye || !target) {
-      setPupilOffset({ x: 0, y: 0 })
-      return
-    }
-
-    const rect = eye.getBoundingClientRect()
-    const eyeCenterX = rect.left + rect.width / 2
-    const eyeCenterY = rect.top + rect.height / 2
-    const dx = target.x - eyeCenterX
-    const dy = target.y - eyeCenterY
-    const angle = Math.atan2(dy, dx)
-    const distance = Math.sqrt(dx * dx + dy * dy)
-    const maxDistance = rect.width / 2 - 8
-    const moveDistance = Math.min(maxDistance, distance / 8)
-
-    setPupilOffset({
-      x: Math.cos(angle) * moveDistance,
-      y: Math.sin(angle) * moveDistance,
-    })
-  }, [target])
-
   return (
     <div
-      ref={eyeRef}
       className="relative flex h-6 w-6 items-center justify-center overflow-hidden rounded-full border border-white/12 bg-[radial-gradient(circle_at_30%_28%,rgba(255,255,255,0.98)_0%,rgba(244,247,255,0.96)_48%,rgba(196,206,224,0.9)_100%)] shadow-[0_8px_20px_-14px_rgba(255,255,255,0.52),inset_0_1px_0_rgba(255,255,255,0.82)]"
     >
-      <motion.div
-        className="absolute h-2.5 w-2.5 rounded-full bg-[#0b0e14] shadow-[0_0_10px_rgba(0,0,0,0.28)]"
-        animate={{ x: pupilOffset.x, y: pupilOffset.y }}
-        transition={
-          reduceMotion
-            ? { duration: 0 }
-            : {
-                type: 'spring',
-                stiffness: 380,
-                damping: 26,
-                mass: 0.32,
-              }
-        }
+      <div
+        className="absolute h-2.5 w-2.5 rounded-full bg-[#0b0e14] shadow-[0_0_10px_rgba(0,0,0,0.28)] transition-transform duration-300"
       />
     </div>
   )
@@ -1973,10 +1935,10 @@ function EyeOrb({
 
 function TypingEyes({
   target,
-  reduceMotion,
+  reduceMotion = false,
 }: {
-  target: { x: number; y: number } | null
-  reduceMotion: boolean
+  target?: { x: number; y: number } | null
+  reduceMotion?: boolean
 }) {
   return (
     <div className="inline-flex items-center gap-1.5">
@@ -3137,20 +3099,12 @@ function FloatingChatComposer({
   focusPulse?: number
 }) {
   const isMobile = useMediaQuery('(max-width: 767px)')
-  const [showSourceVideo, setShowSourceVideo] = React.useState(true)
+  const [showSourceVideo, setShowSourceVideo] = React.useState(false)
   const responsivePlaceholderText = 'Ask about editing, color, sound...'
   const composerId = React.useId()
   const hasDraft = draft.trim().length > 0
   const composerInputRef = useTextareaResize(draft, 1, 4)
-  const composerMeasureRef = React.useRef<HTMLSpanElement | null>(null)
-  const composerPlaceholderMeasureRef = React.useRef<HTMLSpanElement | null>(null)
-  const mouseMoveFrameRef = React.useRef<number | null>(null)
-  const pointerResetTimeoutRef = React.useRef<number | null>(null)
-  const draftRef = React.useRef(draft)
-  const placeholderTextRef = React.useRef('')
-  const eyeSourceRef = React.useRef<'placeholder' | 'caret' | 'pointer'>(hasDraft ? 'caret' : 'placeholder')
-  const [eyeTarget, setEyeTarget] = React.useState<{ x: number; y: number } | null>(null)
-  const [placeholderText, setPlaceholderText] = React.useState('')
+  const [placeholderText, setPlaceholderText] = React.useState(responsivePlaceholderText)
   const [caretIndex, setCaretIndex] = React.useState(0)
   const [pendingSelectionRange, setPendingSelectionRange] = React.useState<{ start: number; end: number } | null>(null)
   const [suppressedAssistKey, setSuppressedAssistKey] = React.useState<string | null>(null)
@@ -3210,75 +3164,13 @@ function FloatingChatComposer({
   ])
   const isFrameAssistSuppressed = suppressedAssistKey !== null && suppressedAssistKey === frameAssistKey
 
-  const updateCaretTarget = React.useCallback((activate = true) => {
-    const input = composerInputRef.current
-    const measure = composerMeasureRef.current
-    if (!input || !measure) return
-
-    const selectionIndex = input.selectionStart ?? input.value.length
-    setCaretIndex(selectionIndex)
-    setDraftScrollLeft(input.scrollLeft)
-    const beforeCaret = input.value.slice(0, selectionIndex).replaceAll(' ', '\u00a0') || '\u200b'
-    measure.textContent = beforeCaret
-
-    const rect = input.getBoundingClientRect()
-    const computed = window.getComputedStyle(input)
-    const paddingLeft = Number.parseFloat(computed.paddingLeft) || 0
-    const measureWidth = measure.getBoundingClientRect().width
-    const minX = rect.left + paddingLeft
-    const maxX = rect.right - 18
-
-    if (activate) {
-      eyeSourceRef.current = 'caret'
-    }
-    setEyeTarget({
-      x: Math.min(maxX, Math.max(minX, rect.left + paddingLeft + measureWidth - input.scrollLeft)),
-      y: rect.top + rect.height / 2,
-    })
-  }, [composerInputRef])
-
-  const updatePlaceholderTarget = React.useCallback((text: string) => {
-    const input = composerInputRef.current
-    const measure = composerPlaceholderMeasureRef.current
-    if (!input || !measure) return
-
-    measure.textContent = text.replaceAll(' ', '\u00a0') || '\u200b'
-
-    const rect = input.getBoundingClientRect()
-    const computed = window.getComputedStyle(input)
-    const paddingLeft = Number.parseFloat(computed.paddingLeft) || 0
-    const measureWidth = measure.getBoundingClientRect().width
-    const minX = rect.left + paddingLeft
-    const maxX = rect.right - 18
-
-    setEyeTarget({
-      x: Math.min(maxX, Math.max(minX, rect.left + paddingLeft + measureWidth)),
-      y: rect.top + rect.height / 2,
-    })
-  }, [composerInputRef])
-
-  React.useEffect(() => {
-    draftRef.current = draft
-  }, [draft])
-
-  React.useEffect(() => {
-    placeholderTextRef.current = placeholderText
-  }, [placeholderText])
-
   React.useEffect(() => {
     if (!isOpen) return
-
     const rafId = window.requestAnimationFrame(() => {
       composerInputRef.current?.focus()
-      if (draftRef.current.trim().length > 0) {
-        updateCaretTarget(false)
-      } else {
-        updatePlaceholderTarget(placeholderTextRef.current)
-      }
     })
-
     return () => window.cancelAnimationFrame(rafId)
-  }, [composerInputRef, isOpen, isThreadOpen, updateCaretTarget, updatePlaceholderTarget])
+  }, [composerInputRef, isOpen])
 
   React.useEffect(() => {
     if (isThreadOpen && isMobile) {
@@ -3309,108 +3201,10 @@ function FloatingChatComposer({
   }, [onOpenChange, onThreadOpenChange])
 
   React.useEffect(() => {
-    if (!isOpen || !hasDraft) return
-
-    const rafId = window.requestAnimationFrame(() => {
-      updateCaretTarget()
-    })
-
-    return () => window.cancelAnimationFrame(rafId)
-  }, [draft, hasDraft, isOpen, updateCaretTarget])
-
-  React.useEffect(() => {
-    if (hasDraft) {
-      eyeSourceRef.current = 'caret'
-      return
-    }
-
-    eyeSourceRef.current = 'placeholder'
-  }, [hasDraft])
-
-  React.useEffect(() => {
-    if (!isOpen || hasDraft) return
-    setPlaceholderText(responsivePlaceholderText)
-  }, [hasDraft, isOpen, responsivePlaceholderText])
-
-  React.useEffect(() => {
     if (!hasDraft) {
       setDraftScrollLeft(0)
     }
   }, [hasDraft])
-
-  React.useEffect(() => {
-    if (!isOpen || hasDraft) return
-    if (eyeSourceRef.current === 'pointer') return
-
-    const rafId = window.requestAnimationFrame(() => {
-      updatePlaceholderTarget(placeholderText)
-    })
-
-    return () => window.cancelAnimationFrame(rafId)
-  }, [hasDraft, isOpen, placeholderText, updatePlaceholderTarget])
-
-  React.useEffect(() => {
-    if (!isOpen) return
-
-    // Throttle eye-target state updates so a full page re-render happens at
-    // most ~20x/sec instead of once per animation frame. This was the primary
-    // cause of the editor chamber feeling slow while the mouse moved.
-    let lastEyeUpdateAt = 0
-    const EYE_UPDATE_INTERVAL_MS = 50
-
-    const handleMouseMove = (event: MouseEvent) => {
-      if (mouseMoveFrameRef.current !== null) {
-        window.cancelAnimationFrame(mouseMoveFrameRef.current)
-      }
-
-      const now = performance.now()
-      if (now - lastEyeUpdateAt < EYE_UPDATE_INTERVAL_MS) {
-        mouseMoveFrameRef.current = window.requestAnimationFrame(() => {
-          mouseMoveFrameRef.current = null
-        })
-        return
-      }
-      lastEyeUpdateAt = now
-
-      mouseMoveFrameRef.current = window.requestAnimationFrame(() => {
-        eyeSourceRef.current = 'pointer'
-        setEyeTarget({
-          x: event.clientX,
-          y: event.clientY,
-        })
-        mouseMoveFrameRef.current = null
-      })
-
-      if (pointerResetTimeoutRef.current !== null) {
-        window.clearTimeout(pointerResetTimeoutRef.current)
-      }
-
-      pointerResetTimeoutRef.current = window.setTimeout(() => {
-        pointerResetTimeoutRef.current = null
-        if (draftRef.current.trim().length > 0) {
-          updateCaretTarget(false)
-          eyeSourceRef.current = 'caret'
-        } else {
-          updatePlaceholderTarget(placeholderTextRef.current)
-          eyeSourceRef.current = 'placeholder'
-        }
-      }, 900)
-    }
-
-    window.addEventListener('mousemove', handleMouseMove)
-
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove)
-      if (mouseMoveFrameRef.current !== null) {
-        window.cancelAnimationFrame(mouseMoveFrameRef.current)
-        mouseMoveFrameRef.current = null
-      }
-      if (pointerResetTimeoutRef.current !== null) {
-        window.clearTimeout(pointerResetTimeoutRef.current)
-        pointerResetTimeoutRef.current = null
-      }
-    }
-  }, [isOpen, updateCaretTarget, updatePlaceholderTarget])
 
   React.useEffect(() => {
     if (suppressedAssistKey && suppressedAssistKey !== frameAssistKey) {
@@ -3458,14 +3252,12 @@ function FloatingChatComposer({
     }
 
     composerInputRef.current?.focus()
-    updateCaretTarget()
   }, [
     frameAssist.analysis.referenceEndIndex,
     frameAssist.analysis.referenceStartIndex,
     composerInputRef,
     onDraftChange,
     queuedPreviewRawText,
-    updateCaretTarget,
   ])
 
   const handleFrameAssistClear = React.useCallback(() => {
@@ -3611,10 +3403,10 @@ function FloatingChatComposer({
           }
         }}
         className={cn(
-          'pointer-events-auto relative will-change-[transform,opacity,filter]',
+          'pointer-events-auto relative will-change-[transform,opacity]',
           isThreadOpen
             ? [
-                'premium-motion-surface premium-telemetry-panel origin-center h-[calc(100dvh-1rem)] max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] overflow-hidden rounded-[28px] border border-white/10 bg-black shadow-[0_42px_120px_rgba(0,0,0,0.78),0_0_0_1px_rgba(255,255,255,0.035)] backdrop-blur-2xl',
+                'premium-motion-surface premium-telemetry-panel origin-center h-[calc(100dvh-1rem)] max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] overflow-hidden rounded-[28px] border border-white/10 bg-[#060606] shadow-[0_32px_80px_rgba(0,0,0,0.85),0_0_0_1px_rgba(255,255,255,0.035)]',
                 'md:h-[calc(100dvh-2rem)] md:max-h-[calc(100dvh-2rem)] md:w-[calc(100vw-2rem)] md:rounded-[34px]',
               ]
             : 'origin-bottom-right overflow-visible border border-transparent bg-transparent shadow-none',
@@ -3695,7 +3487,6 @@ function FloatingChatComposer({
               <motion.div
                 key="thread-prometheus-chat"
                 data-editorial-chat-workspace="split"
-                layout
                 className={cn(
                   'relative grid h-full min-h-0 bg-black md:grid-cols-[minmax(0,1fr)]',
                   showSourceVideo && previewUrl && !isMobile && 'md:grid-cols-[minmax(18rem,0.82fr)_minmax(0,1.18fr)]',
@@ -3707,7 +3498,6 @@ function FloatingChatComposer({
               >
                 {showSourceVideo && previewUrl ? (
                   <motion.aside
-                    layout
                     initial={reduceMotion ? false : { opacity: 0, x: -18, filter: 'blur(8px)' }}
                     animate={reduceMotion ? undefined : { opacity: 1, x: 0, filter: 'blur(0px)' }}
                     exit={reduceMotion ? undefined : { opacity: 0, x: -12, filter: 'blur(6px)' }}
@@ -3783,23 +3573,6 @@ function FloatingChatComposer({
                 exit={reduceMotion ? undefined : { opacity: 0, y: 8, filter: 'blur(6px)' }}
                 transition={{ duration: reduceMotion ? 0 : 0.26, ease: [0.22, 1, 0.36, 1] }}
               >
-                <span
-                  ref={composerMeasureRef}
-                  aria-hidden
-                  className="pointer-events-none absolute left-4 top-11 invisible whitespace-pre text-[20px] italic tracking-[0.01em]"
-                  style={{
-                    fontFamily: 'var(--font-newsreader), "Iowan Old Style", "Palatino Linotype", serif',
-                  }}
-                />
-                <span
-                  ref={composerPlaceholderMeasureRef}
-                  aria-hidden
-                  className="pointer-events-none absolute left-4 top-11 invisible whitespace-pre text-[20px] italic tracking-[0.01em]"
-                  style={{
-                    fontFamily: 'var(--font-newsreader), "Iowan Old Style", "Palatino Linotype", serif',
-                  }}
-                />
-
                 <div className="relative flex items-center justify-between gap-3">
                   <div className="premium-liquid-pill inline-flex min-h-8 items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 text-[10px] uppercase tracking-[0.28em] text-white/38">
                     <span
@@ -3810,7 +3583,7 @@ function FloatingChatComposer({
                   </div>
 
                   <div className="pointer-events-none absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 sm:block">
-                    <TypingEyes target={eyeTarget} reduceMotion={reduceMotion} />
+                    <TypingEyes reduceMotion={reduceMotion} />
                   </div>
 
                   <motion.button
@@ -3895,17 +3668,18 @@ function FloatingChatComposer({
                       onDraftChange(event.target.value)
                       setCaretIndex(event.target.selectionStart ?? event.target.value.length)
                     }}
-                    onClick={() => updateCaretTarget()}
-                    onFocus={() => {
-                      if (draftRef.current.trim().length > 0) {
-                        updateCaretTarget(false)
-                      }
+                    onClick={(event) => {
+                      setCaretIndex(event.currentTarget.selectionStart ?? event.currentTarget.value.length)
                     }}
                     onScroll={(event) => {
                       setDraftScrollLeft(event.currentTarget.scrollLeft)
                     }}
-                    onKeyUp={() => updateCaretTarget()}
-                    onSelect={() => updateCaretTarget()}
+                    onKeyUp={(event) => {
+                      setCaretIndex(event.currentTarget.selectionStart ?? event.currentTarget.value.length)
+                    }}
+                    onSelect={(event) => {
+                      setCaretIndex(event.currentTarget.selectionStart ?? event.currentTarget.value.length)
+                    }}
                     onKeyDown={handleComposerKeyDown}
                     className={cn(
                       'relative z-10 max-h-[calc(1.35em*4)] w-full resize-none overflow-y-auto bg-transparent px-0 py-0 text-[20px] italic leading-[1.35] tracking-[0.01em] text-transparent outline-none',
