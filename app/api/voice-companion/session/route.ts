@@ -33,7 +33,7 @@ export async function GET() {
     }
 
     const defaultModel =
-      process.env.GEMINI_LIVE_MODEL || 'models/gemini-2.0-flash'
+      process.env.GEMINI_LIVE_MODEL || 'models/gemini-2.0-flash-live-001'
     const defaultVoice = process.env.GEMINI_LIVE_VOICE || 'Puck'
 
     const wsUrls = validKeys.map(
@@ -48,7 +48,7 @@ export async function GET() {
       model: defaultModel,
       candidateModels: [
         defaultModel,
-        'models/gemini-2.0-flash',
+        'models/gemini-2.0-flash-live-001',
         'models/gemini-2.0-flash-exp',
       ],
       voiceName: defaultVoice,

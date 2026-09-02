@@ -165,7 +165,7 @@ Keep your spoken responses fluid, punchy, conversational, and helpful. Never rea
 
     const setupPayload = {
       setup: {
-        model: this.config.model || 'models/gemini-2.0-flash',
+        model: this.config.model || 'models/gemini-2.0-flash-live-001',
         generationConfig: {
           responseModalities: ['AUDIO'],
           speechConfig: {
