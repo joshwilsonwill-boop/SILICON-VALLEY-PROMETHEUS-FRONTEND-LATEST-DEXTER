@@ -3,8 +3,31 @@
 /**
  * Web Audio API helpers for Gemini Multimodal Live API.
  * - Input: Microphone captured, resampled to 16kHz 16-bit mono PCM, base64 encoded.
- * - Output: 24kHz 16-bit mono PCM decoded, scheduled seamlessly with instant barge-in flush.
+ * - Output: 24kHz 16-bit mono PCM decoded, scheduled seamlessly with intelligent barge-in gating.
+ * - Acoustic Echo & Ducking: Prevents speaker output from falsely triggering Gemini server interruptions.
  */
+
+let sharedAudioContext: AudioContext | null = null
+
+/**
+ * Synchronously prime/unlock the Web Audio context on a user click gesture.
+ * MUST be called inside the synchronous event turn (before any async fetch/await).
+ */
+export function primeAudioContext(): AudioContext {
+  if (typeof window === 'undefined') {
+    throw new Error('Web Audio is only available in the browser.')
+  }
+  if (!sharedAudioContext || sharedAudioContext.state === 'closed') {
+    const AudioContextClass =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+    sharedAudioContext = new AudioContextClass()
+  }
+  if (sharedAudioContext.state === 'suspended') {
+    void sharedAudioContext.resume()
+  }
+  return sharedAudioContext
+}
 
 export function base64ToArrayBuffer(base64: string): ArrayBuffer {
   const binaryString = window.atob(base64)
@@ -51,9 +74,8 @@ export function downsampleBuffer(
     let count = 0
     for (let i = offsetBuffer; i < nextOffsetBuffer && i < buffer.length; i++) {
       accum += buffer[i]
-      count++
     }
-    result[offsetResult] = count > 0 ? accum / count : 0
+    result[offsetResult] = accum / sampleRateRatio
     offsetResult++
     offsetBuffer = nextOffsetBuffer
   }
@@ -86,7 +108,23 @@ export function pcm16ToFloat32(pcmData: Int16Array): Float32Array {
 }
 
 /**
+ * Calculates RMS volume of Float32 audio chunk.
+ */
+function calculateRMS(samples: Float32Array): number {
+  let sum = 0
+  for (let i = 0; i < samples.length; i++) {
+    sum += samples[i] * samples[i]
+  }
+  return Math.sqrt(sum / samples.length)
+}
+
+export interface AudioRecorderOptions {
+  getIsSpeaking?: () => boolean
+}
+
+/**
  * Manages microphone capture, resampling to 16kHz PCM, and audio emission.
+ * Incorporates acoustic ducking to prevent speaker feedback from triggering false barge-ins.
  */
 export class AudioRecorder {
   private stream: MediaStream | null = null
@@ -97,6 +135,12 @@ export class AudioRecorder {
   private silentGain: GainNode | null = null
   private onAudioChunk: ((base64Chunk: string) => void) | null = null
   private isRecording = false
+  private getIsSpeaking?: () => boolean
+  private currentVolume = 0
+
+  constructor(options?: AudioRecorderOptions) {
+    this.getIsSpeaking = options?.getIsSpeaking
+  }
 
   async start(onAudioChunk: (base64Chunk: string) => void): Promise<void> {
     if (this.isRecording) return
@@ -111,13 +155,9 @@ export class AudioRecorder {
       },
     })
 
-    const AudioContextClass =
-      window.AudioContext ||
-      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
-    this.audioContext = new AudioContextClass()
-
+    this.audioContext = primeAudioContext()
     if (this.audioContext.state === 'suspended') {
-      await this.audioContext.resume()
+      await this.audioContext.resume().catch(() => {})
     }
 
     this.source = this.audioContext.createMediaStreamSource(this.stream)
@@ -125,7 +165,7 @@ export class AudioRecorder {
     this.analyser.fftSize = 512
     this.analyser.smoothingTimeConstant = 0.5
 
-    // Buffer size 4096 gives ~85ms chunks at 48kHz, optimal for streaming
+    // Buffer size 4096 gives ~85ms chunks at 48kHz
     this.processor = this.audioContext.createScriptProcessor(4096, 1, 1)
 
     // Silent gain node to prevent mic loopback to speakers while keeping processor alive
@@ -138,6 +178,18 @@ export class AudioRecorder {
     this.processor.onaudioprocess = (e: AudioProcessingEvent) => {
       if (!this.isRecording) return
       const inputData = e.inputBuffer.getChannelData(0)
+      const rms = calculateRMS(inputData)
+      this.currentVolume = Math.min(1, rms * 4)
+
+      // ACOUSTIC ECHO GATING:
+      // If the model is currently speaking through the speakers, only transmit
+      // if user volume is high (deliberate user barge-in).
+      const isAssistantSpeaking = this.getIsSpeaking?.() ?? false
+      if (isAssistantSpeaking && rms < 0.045) {
+        // Suppress acoustic bleed so Gemini does not self-abort
+        return
+      }
+
       const downsampled = downsampleBuffer(inputData, inputSampleRate, targetSampleRate)
       const pcmBuffer = floatTo16BitPCM(downsampled)
       const base64 = arrayBufferToBase64(pcmBuffer)
@@ -158,9 +210,6 @@ export class AudioRecorder {
     this.silentGain?.disconnect()
     this.source?.disconnect()
     this.stream?.getTracks().forEach((track) => track.stop())
-    if (this.audioContext?.state !== 'closed') {
-      this.audioContext?.close().catch(() => {})
-    }
     this.processor = null
     this.analyser = null
     this.silentGain = null
@@ -168,18 +217,11 @@ export class AudioRecorder {
     this.stream = null
     this.audioContext = null
     this.onAudioChunk = null
+    this.currentVolume = 0
   }
 
   getVolume(): number {
-    if (!this.analyser || !this.isRecording) return 0
-    const buffer = new Uint8Array(this.analyser.frequencyBinCount)
-    this.analyser.getByteTimeDomainData(buffer)
-    let sum = 0
-    for (let i = 0; i < buffer.length; i++) {
-      const v = (buffer[i] - 128) / 128
-      sum += v * v
-    }
-    return Math.min(1, Math.sqrt(sum / buffer.length) * 4)
+    return this.isRecording ? this.currentVolume : 0
   }
 }
 
@@ -200,11 +242,7 @@ export class AudioPlayer {
 
   private initContext(): AudioContext {
     if (!this.audioContext || this.audioContext.state === 'closed') {
-      const AudioContextClass =
-        window.AudioContext ||
-        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
-      // Initialize with native browser sample rate for maximum device compatibility
-      this.audioContext = new AudioContextClass()
+      this.audioContext = primeAudioContext()
       this.analyser = this.audioContext.createAnalyser()
       this.analyser.fftSize = 512
       this.analyser.smoothingTimeConstant = 0.4
@@ -218,6 +256,10 @@ export class AudioPlayer {
     if (ctx.state === 'suspended') {
       await ctx.resume().catch(() => {})
     }
+  }
+
+  getIsPlaying(): boolean {
+    return this.isPlaying
   }
 
   async playChunk(base64Audio: string): Promise<void> {
@@ -304,9 +346,6 @@ export class AudioPlayer {
 
   stop(): void {
     this.flush()
-    if (this.audioContext && this.audioContext.state !== 'closed') {
-      this.audioContext.close().catch(() => {})
-    }
     this.audioContext = null
     this.analyser = null
   }

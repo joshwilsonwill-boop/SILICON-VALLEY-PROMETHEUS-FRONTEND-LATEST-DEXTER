@@ -176,17 +176,46 @@ export function PrometheusChat({
     [renderedMessages],
   )
 
+  const activeUtterancesRef = React.useRef<SpeechSynthesisUtterance[]>([])
+
   React.useEffect(() => {
     if (!voiceMode || !latestSpeakableMessage || typeof window === 'undefined' || !('speechSynthesis' in window)) return
     if (spokenMessageIdsRef.current.has(latestSpeakableMessage.id)) return
 
     spokenMessageIdsRef.current.add(latestSpeakableMessage.id)
-    const utterance = new SpeechSynthesisUtterance(latestSpeakableMessage.content)
+    
+    // Clean raw markdown so browser speech synthesis does not crash or choke on symbols
+    const cleanText = latestSpeakableMessage.content
+      .replace(/```[\s\S]*?```/g, '')
+      .replace(/`([^`]+)`/g, '$1')
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+      .replace(/\|[^\n]+\|/g, '')
+      .replace(/^#{1,6}\s+/gm, '')
+      .replace(/[*_]{1,3}([^*_]+)[*_]{1,3}/g, '$1')
+      .replace(/^>\s+/gm, '')
+      .replace(/^[-*+]\s+/gm, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+
+    if (!cleanText) return
+
+    // Limit to natural conversational length so Windows/Chrome SAPI doesn't timeout
+    const spokenSummary = cleanText.length > 350 ? cleanText.slice(0, 350).replace(/\s+\S*$/, '') + '...' : cleanText
+    const utterance = new SpeechSynthesisUtterance(spokenSummary)
     utterance.rate = 1.02
     utterance.pitch = 1
     utterance.onstart = () => setSpeakingMessageId(latestSpeakableMessage.id)
-    utterance.onend = () => setSpeakingMessageId(null)
-    utterance.onerror = () => setSpeakingMessageId(null)
+    utterance.onend = () => {
+      setSpeakingMessageId(null)
+      activeUtterancesRef.current = activeUtterancesRef.current.filter((u) => u !== utterance)
+    }
+    utterance.onerror = () => {
+      setSpeakingMessageId(null)
+      activeUtterancesRef.current = activeUtterancesRef.current.filter((u) => u !== utterance)
+    }
+    
+    // Pin reference to prevent Chromium garbage collection from cancelling audio
+    activeUtterancesRef.current.push(utterance)
     window.speechSynthesis.cancel()
     window.speechSynthesis.speak(utterance)
   }, [latestSpeakableMessage, voiceMode])
@@ -210,6 +239,8 @@ export function PrometheusChat({
 
   const voice = useVoiceInput({
     onTranscript: (text) => {
+      // Auto-enable spoken replies when user speaks with their microphone
+      setVoiceMode(true)
       const prefix = composedDraft.trim() ? `${composedDraft.trim()} ` : ''
       setDraft(`${prefix}${text}`)
       inputRef.current?.focus()

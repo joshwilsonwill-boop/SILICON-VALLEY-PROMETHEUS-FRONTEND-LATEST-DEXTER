@@ -497,8 +497,29 @@ export function ThumbnailStudioModal({
                         </button>
                       )
                     })}
+                {/* AI Viral Hooks Suggestions */}
+                {aiData?.hookTitles && aiData.hookTitles.length > 0 ? (
+                  <div className="space-y-2">
+                    <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/40">
+                      AI Viral Hooks
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {aiData.hookTitles.map((title, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => setHeadline(title)}
+                          className={cn(
+                            'rounded-md border border-white/10 bg-white/[0.03] px-2.5 py-1 text-left text-xs text-white/70 transition-all hover:border-cyan-400/40 hover:bg-cyan-400/10 hover:text-cyan-200',
+                            headline === title && 'border-cyan-400/60 bg-cyan-400/15 text-cyan-300',
+                          )}
+                        >
+                          {title}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                ) : null}
 
                 {/* Typography Inputs */}
                 <div className="space-y-3">

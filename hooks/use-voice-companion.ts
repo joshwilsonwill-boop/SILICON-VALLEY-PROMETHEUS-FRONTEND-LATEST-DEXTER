@@ -2,9 +2,10 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { GeminiLiveClient, type ToolCallHandler } from '@/lib/voice-companion/gemini-live-client'
-import { AudioPlayer, AudioRecorder } from '@/lib/voice-companion/audio-streamer'
+import { AudioPlayer, AudioRecorder, primeAudioContext } from '@/lib/voice-companion/audio-streamer'
 import type { EditorActionDraft } from '@/lib/editor-actions'
 import type { ChatEditorContext } from '@/lib/prometheus-assistant/editor-context'
+import { autonomousCoordinator } from '@/lib/autonomous-ui/coordinator'
 
 export type VoiceCompanionStatus =
   | 'disconnected'
@@ -197,6 +198,25 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
           }
         }
 
+        case 'autonomous_transcript_cut': {
+          const phrase = String(args.phrase ?? '')
+          const success = await autonomousCoordinator.executeTranscriptCut(phrase, {
+            onSwitchTab: onTabChange,
+          })
+          return { success, cutPhrase: phrase }
+        }
+
+        case 'autonomous_music_action': {
+          const trackId = args.trackId ? String(args.trackId) : undefined
+          const genreOrMood = args.genreOrMood ? String(args.genreOrMood) : undefined
+          const success = await autonomousCoordinator.executeMusicSelection({
+            trackId,
+            genreOrMood,
+            onSwitchTab: onTabChange,
+          })
+          return { success, action: args.action, genreOrMood }
+        }
+
         default:
           return { error: `Tool ${name} not found` }
       }
@@ -227,6 +247,13 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
     disconnect()
     setError(null)
     setStatus('connecting')
+
+    // 0. Prime and resume AudioContext synchronously on the user click gesture
+    try {
+      primeAudioContext()
+    } catch {
+      // Ignore initial SSR/non-browser checks
+    }
 
     try {
       // 1. Fetch authorized session credentials
@@ -288,12 +315,15 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
             })
           },
           onInterrupted: () => {
-            // Instant barge-in: flush player
-            player.flush()
-            setStatus('interrupted')
-            setTimeout(() => {
-              setStatus((prev) => (prev === 'interrupted' ? 'listening' : prev))
-            }, 300)
+            // Only flush if user is speaking loudly into the mic (true deliberate barge-in)
+            const userVol = recorderRef.current?.getVolume() ?? 0
+            if (userVol > 0.12 || !player.getIsPlaying()) {
+              player.flush()
+              setStatus('interrupted')
+              setTimeout(() => {
+                setStatus((prev) => (prev === 'interrupted' ? 'listening' : prev))
+              }, 300)
+            }
           },
           onTurnComplete: () => {
             // Ready for next turn
@@ -303,7 +333,7 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
             setStatus('error')
           },
           onClose: () => {
-            setStatus('disconnected')
+            setStatus((prev) => (prev === 'error' ? 'error' : 'disconnected'))
           },
           onToolCall: handleToolCall,
         }
@@ -313,8 +343,10 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
       // 4. Connect WebSocket and await setup confirmation
       await client.connect()
 
-      // 5. Start Audio Recorder only after setup is fully confirmed
-      const recorder = new AudioRecorder()
+      // 5. Start Audio Recorder with playback ducking to eliminate acoustic echo loops
+      const recorder = new AudioRecorder({
+        getIsSpeaking: () => playerRef.current?.getIsPlaying() ?? false,
+      })
       await recorder.start((base64Chunk) => {
         if (!isMutedRef.current && client.isConnected()) {
           client.sendAudioChunk(base64Chunk)

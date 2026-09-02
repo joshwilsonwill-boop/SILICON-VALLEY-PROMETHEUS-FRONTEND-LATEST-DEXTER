@@ -165,7 +165,7 @@ Keep your spoken responses fluid, punchy, conversational, and helpful. Never rea
 
     const setupPayload = {
       setup: {
-        model: this.config.model || 'models/gemini-2.0-flash-exp',
+        model: this.config.model || 'models/gemini-2.0-flash',
         generationConfig: {
           responseModalities: ['AUDIO'],
           speechConfig: {
@@ -247,6 +247,43 @@ Keep your spoken responses fluid, punchy, conversational, and helpful. Never rea
                 parameters: {
                   type: 'object',
                   properties: {},
+                },
+              },
+              {
+                name: 'autonomous_transcript_cut',
+                description: 'Autonomously navigate to Motion workspace and cut out a specific spoken phrase/sentence from the transcript and video timeline (Descript-style text editing).',
+                parameters: {
+                  type: 'object',
+                  properties: {
+                    phrase: {
+                      type: 'string',
+                      description: 'The spoken phrase, quote, or sentence to cut from the transcript.',
+                    },
+                  },
+                  required: ['phrase'],
+                },
+              },
+              {
+                name: 'autonomous_music_action',
+                description: 'Autonomously navigate to Music workspace, browse recommended tracks, and preview or select a soundtrack.',
+                parameters: {
+                  type: 'object',
+                  properties: {
+                    action: {
+                      type: 'string',
+                      enum: ['select', 'preview'],
+                      description: 'Action to perform (preview or select soundtrack).',
+                    },
+                    genreOrMood: {
+                      type: 'string',
+                      description: 'Target mood or genre (e.g., atmospheric, upbeat, lofi, cinematic).',
+                    },
+                    trackId: {
+                      type: 'string',
+                      description: 'Optional specific track ID.',
+                    },
+                  },
+                  required: ['action'],
                 },
               },
             ],
