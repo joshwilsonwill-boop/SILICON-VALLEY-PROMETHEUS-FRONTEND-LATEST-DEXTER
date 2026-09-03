@@ -14,8 +14,11 @@ const prometheusChat = read('components/editor/PrometheusChat.tsx')
 // 1. AudioStreamer: Prime Audio Context & Acoustic Echo Ducking
 assert.match(audioStreamer, /export function primeAudioContext\(\)/, 'primeAudioContext export must exist')
 assert.match(audioStreamer, /getIsSpeaking/, 'AudioRecorder must support getIsSpeaking ducking callback')
-assert.match(audioStreamer, /isAssistantSpeaking && rms < 0\.045/, 'AudioRecorder must suppress microphone chunks during model speech')
+assert.match(audioStreamer, /BARGE_IN_RMS_THRESHOLD/, 'AudioRecorder must gate mic transmission with a barge-in threshold during model speech')
+assert.match(audioStreamer, /BARGE_IN_SUSTAINED_FRAMES/, 'AudioRecorder must require sustained user energy for deliberate barge-in')
+assert.match(audioStreamer, /silenceChunkBase64/, 'AudioRecorder must silence-fill gated frames instead of dropping them')
 assert.match(audioStreamer, /getIsPlaying\(\)/, 'AudioPlayer must expose getIsPlaying()')
+assert.match(audioStreamer, /getPendingMs\(\)/, 'AudioPlayer must expose getPendingMs() for turn-aware gating')
 
 // 2. GeminiLiveClient: Model & Response Modalities
 assert.match(geminiLiveClient, /models\/gemini-2\.0-flash/, 'Live client must default to standard gemini-2.0-flash')
@@ -23,8 +26,9 @@ assert.match(geminiLiveClient, /responseModalities:\s*\[['"]AUDIO['"]\]/, 'Live 
 
 // 3. useVoiceCompanion: Synchronous Priming & Error Preservation
 assert.match(useVoiceCompanion, /primeAudioContext\(\)/, 'useVoiceCompanion must synchronously prime Web Audio on connect gesture')
-assert.match(useVoiceCompanion, /getIsSpeaking:\s*\(\)\s*=>\s*playerRef\.current\?\.getIsPlaying\(\)/, 'useVoiceCompanion must link player playing state to recorder')
-assert.match(useVoiceCompanion, /setStatus\(\(prev\)\s*=>\s*\(prev === 'error' \? 'error' : 'disconnected'\)\)/, 'useVoiceCompanion must preserve error state on socket close')
+assert.match(useVoiceCompanion, /getIsSpeaking:\s*\(\)\s*=>\s*\n?\s*assistantTurnActiveRef\.current/, 'useVoiceCompanion must gate the recorder on the assistant turn flag, not just playback state')
+assert.match(useVoiceCompanion, /setUserStatus\(\(prev\) => \(prev === 'error' \? 'error' : 'disconnected'\)\)/, 'useVoiceCompanion must preserve error state on socket close')
+assert.match(useVoiceCompanion, /userVol > 0\.34/, 'useVoiceCompanion must only honor server interruptions backed by real user speech level')
 
 // 4. Session Route: Models & Candidate Keys
 assert.match(sessionRoute, /models\/gemini-2\.0-flash/, 'Session route must provide gemini-2.0-flash')

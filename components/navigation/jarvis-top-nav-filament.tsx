@@ -1,11 +1,15 @@
 'use client'
 
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Mic, MicOff, Eye, EyeOff, Sparkles, X, Volume2, Radio } from 'lucide-react'
+import { Mic, MicOff, Eye, EyeOff, Sparkles, X, Volume2, Radio, ArrowUp } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import { useVoiceCompanion } from '@/hooks/use-voice-companion'
+import {
+  getVoiceCompanionBridge,
+  subscribeVoiceCompanionBridge,
+} from '@/lib/voice-companion/bridge'
 
 export interface JarvisTopNavFilamentProps {
   className?: string
@@ -14,6 +18,7 @@ export interface JarvisTopNavFilamentProps {
 export function JarvisTopNavFilament({ className }: JarvisTopNavFilamentProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
+  const [textDraft, setTextDraft] = useState('')
   const svgRef = useRef<SVGSVGElement | null>(null)
   const pathRef = useRef<SVGPathElement | null>(null)
   const glowPathRef = useRef<SVGPathElement | null>(null)
@@ -22,12 +27,20 @@ export function JarvisTopNavFilament({ className }: JarvisTopNavFilamentProps) {
 
   const companion = useVoiceCompanion()
 
-  // Track latest reactive values in refs for zero-re-render RAF animation loop
-  const companionRef = useRef(companion)
-  companionRef.current = companion
+  const bridge = useSyncExternalStore(
+    subscribeVoiceCompanionBridge,
+    getVoiceCompanionBridge,
+    getVoiceCompanionBridge,
+  )
+  const isEditorLinked = Boolean(bridge.contextProvider || bridge.onApplyActions)
 
+  // Track latest reactive values in refs for zero-react-render RAF animation loop
+  const companionRef = useRef(companion)
   const isHoveredRef = useRef(isHovered)
-  isHoveredRef.current = isHovered
+  useEffect(() => {
+    companionRef.current = companion
+    isHoveredRef.current = isHovered
+  })
 
   const isActive = companion.status !== 'disconnected' && companion.status !== 'error'
   const isSpeaking = companion.status === 'speaking'
@@ -317,6 +330,36 @@ export function JarvisTopNavFilament({ className }: JarvisTopNavFilamentProps) {
               )}
             </div>
 
+            {/* Text channel: type to Jarvis when speaking is not an option */}
+            {isActive && (
+              <form
+                className="mt-2 flex items-center gap-1.5"
+                onSubmit={(event) => {
+                  event.preventDefault()
+                  const message = textDraft.trim()
+                  if (!message) return
+                  companion.sendTextMessage(message)
+                  setTextDraft('')
+                }}
+              >
+                <input
+                  value={textDraft}
+                  onChange={(event) => setTextDraft(event.target.value)}
+                  placeholder={isEditorLinked ? 'Message Jarvis (editor linked)…' : 'Message Jarvis…'}
+                  aria-label="Type a message to Jarvis"
+                  className="min-w-0 flex-1 rounded-lg border border-white/10 bg-black/50 px-2.5 py-1.5 text-xs text-white/90 outline-none transition-colors placeholder:text-white/30 focus:border-cyan-400/40"
+                />
+                <button
+                  type="submit"
+                  disabled={!textDraft.trim()}
+                  aria-label="Send message to Jarvis"
+                  className="grid size-7 shrink-0 place-items-center rounded-lg bg-cyan-400/90 text-black transition-opacity hover:bg-cyan-300 disabled:opacity-25"
+                >
+                  <ArrowUp className="size-3.5" strokeWidth={2.2} />
+                </button>
+              </form>
+            )}
+
             {/* Action Bar */}
             <div className="mt-3 flex items-center justify-between border-t border-white/10 pt-2.5">
               <div className="flex items-center gap-1.5">
@@ -347,6 +390,19 @@ export function JarvisTopNavFilament({ className }: JarvisTopNavFilamentProps) {
                   {companion.isVisionActive ? <Eye className="size-3" /> : <EyeOff className="size-3" />}
                   <span>Vision {companion.isVisionActive ? 'On' : 'Off'}</span>
                 </button>
+
+                <span
+                  className={cn(
+                    'flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[10px] font-medium tracking-wide',
+                    isEditorLinked
+                      ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
+                      : 'border-white/10 bg-white/[0.04] text-white/40',
+                  )}
+                  title={isEditorLinked ? 'Jarvis is wired to the open editor' : 'Open a project editor to enable timeline control'}
+                >
+                  <Radio className="size-3" />
+                  {isEditorLinked ? 'Editor linked' : 'Editor idle'}
+                </span>
               </div>
 
               {companion.status === 'disconnected' || companion.status === 'error' ? (

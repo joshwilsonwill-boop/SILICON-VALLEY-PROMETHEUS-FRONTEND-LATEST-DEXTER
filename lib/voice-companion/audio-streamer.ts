@@ -122,6 +122,12 @@ export interface AudioRecorderOptions {
   getIsSpeaking?: () => boolean
 }
 
+// Barge-in tuning: echo bleed from speakers rarely exceeds these levels while a
+// genuine user interruption sustains much louder energy across multiple frames.
+const BARGE_IN_RMS_THRESHOLD = 0.085
+const BARGE_IN_SUSTAINED_FRAMES = 3
+const SILENCE_CHUNK_SAMPLES = 1600 // 100ms at 16kHz keeps server VAD stream continuous
+
 /**
  * Manages microphone capture, resampling to 16kHz PCM, and audio emission.
  * Incorporates acoustic ducking to prevent speaker feedback from triggering false barge-ins.
@@ -137,6 +143,8 @@ export class AudioRecorder {
   private isRecording = false
   private getIsSpeaking?: () => boolean
   private currentVolume = 0
+  private bargeFrames = 0
+  private silenceChunkBase64: string | null = null
 
   constructor(options?: AudioRecorderOptions) {
     this.getIsSpeaking = options?.getIsSpeaking
@@ -181,13 +189,30 @@ export class AudioRecorder {
       const rms = calculateRMS(inputData)
       this.currentVolume = Math.min(1, rms * 4)
 
-      // ACOUSTIC ECHO GATING:
-      // If the model is currently speaking through the speakers, only transmit
-      // if user volume is high (deliberate user barge-in).
+      // ACOUSTIC ECHO GATING (turn-aware, with silence-fill):
+      // Browser echo cancellation does NOT cancel our own Web Audio speaker
+      // output, so while the assistant turn is active we only transmit after
+      // the user sustains clearly speech-level volume (deliberate barge-in).
+      // Gated frames are replaced with digital silence instead of being
+      // dropped, keeping the server VAD stream continuous and stable.
       const isAssistantSpeaking = this.getIsSpeaking?.() ?? false
-      if (isAssistantSpeaking && rms < 0.045) {
-        // Suppress acoustic bleed so Gemini does not self-abort
-        return
+      if (isAssistantSpeaking) {
+        if (rms > BARGE_IN_RMS_THRESHOLD) {
+          this.bargeFrames += 1
+        } else {
+          this.bargeFrames = 0
+        }
+        if (this.bargeFrames < BARGE_IN_SUSTAINED_FRAMES) {
+          if (!this.silenceChunkBase64) {
+            this.silenceChunkBase64 = arrayBufferToBase64(
+              floatTo16BitPCM(new Float32Array(SILENCE_CHUNK_SAMPLES)),
+            )
+          }
+          this.onAudioChunk?.(this.silenceChunkBase64)
+          return
+        }
+      } else {
+        this.bargeFrames = 0
       }
 
       const downsampled = downsampleBuffer(inputData, inputSampleRate, targetSampleRate)
@@ -205,6 +230,8 @@ export class AudioRecorder {
 
   stop(): void {
     this.isRecording = false
+    this.bargeFrames = 0
+    this.silenceChunkBase64 = null
     this.processor?.disconnect()
     this.analyser?.disconnect()
     this.silentGain?.disconnect()
@@ -260,6 +287,15 @@ export class AudioPlayer {
 
   getIsPlaying(): boolean {
     return this.isPlaying
+  }
+
+  /**
+   * Remaining scheduled playback in milliseconds. Survives a barge-in flush so
+   * echo gating can stay engaged for the rest of the assistant turn.
+   */
+  getPendingMs(): number {
+    if (!this.audioContext) return 0
+    return Math.max(0, (this.nextPlayTime - this.audioContext.currentTime) * 1000)
   }
 
   async playChunk(base64Audio: string): Promise<void> {

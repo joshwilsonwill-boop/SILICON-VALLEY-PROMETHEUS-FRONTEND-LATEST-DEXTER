@@ -72,6 +72,18 @@ export interface ThumbnailExportResult {
   height: number
 }
 
+/**
+ * Heuristic subject region (normalized 0..1) used to bias cropping, text
+ * placement, and the speaker cutout toward the real framing of the shot.
+ */
+export interface SubjectRegion {
+  cx: number
+  cy: number
+  w: number
+  h: number
+  confidence: number
+}
+
 function formatTimecode(seconds: number): string {
   const total = Math.max(0, Math.floor(seconds))
   const minutes = Math.floor(total / 60)
@@ -123,6 +135,113 @@ export class ThumbnailEngine {
       )
     }
     return ThumbnailEngine._scriptFont
+  }
+
+  /**
+   * Heavy grotesque stack for short-form impact headlines. Editorial serifs
+   * (Migra) read as book covers at thumbnail scale, so display type uses a
+   * condensed grotesque while the script accent keeps the editorial voice.
+   */
+  private static getImpactFont(): string {
+    return '"Archivo Black", "Helvetica Neue", "Segoe UI", Arial Black, sans-serif'
+  }
+
+  /**
+   * Heuristic subject detection: edge energy + skin-tone mass on a downsampled
+   * grid, with a center bias. Returns a normalized bounding region so crop,
+   * headline placement, and the speaker cutout follow the actual framing
+   * instead of hardcoded geometry.
+   */
+  static detectSubject(img: HTMLImageElement): SubjectRegion | null {
+    const gw = 48
+    const gh = 86
+    const canvas = document.createElement('canvas')
+    canvas.width = gw
+    canvas.height = gh
+    const ctx = canvas.getContext('2d', { willReadFrequently: true })
+    if (!ctx) return null
+
+    ctx.drawImage(img, 0, 0, gw, gh)
+    let pixels: Uint8ClampedArray
+    try {
+      pixels = ctx.getImageData(0, 0, gw, gh).data
+    } catch {
+      return null
+    }
+
+    const lum = new Float32Array(gw * gh)
+    const score = new Float32Array(gw * gh)
+    for (let i = 0; i < gw * gh; i++) {
+      const r = pixels[i * 4]
+      const g = pixels[i * 4 + 1]
+      const b = pixels[i * 4 + 2]
+      lum[i] = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+    }
+
+    let maxScore = 0
+    for (let y = 1; y < gh - 1; y++) {
+      for (let x = 1; x < gw - 1; x++) {
+        const i = y * gw + x
+        const r = pixels[i * 4]
+        const g = pixels[i * 4 + 1]
+        const b = pixels[i * 4 + 2]
+
+        const gx = Math.abs(lum[i + 1] - lum[i - 1]) + Math.abs(lum[i + gw] - lum[i - gw])
+        let cell = Math.min(1, gx * 3.2)
+
+        const maxc = Math.max(r, g, b)
+        const minc = Math.min(r, g, b)
+        const sat = maxc === 0 ? 0 : (maxc - minc) / maxc
+        const isSkin = r > 70 && r > g && r > b && r - g > 18 && r - b > 14 && sat > 0.24 && lum[i] > 0.2 && lum[i] < 0.92
+        if (isSkin) cell += 0.85
+
+        const centerBias = 1 - Math.abs(x / gw - 0.5) * 0.9
+        const lowerBias = y > gh * 0.12 ? 1 : 0.4
+        cell *= centerBias * lowerBias
+
+        score[i] = cell
+        if (cell > maxScore) maxScore = cell
+      }
+    }
+
+    if (maxScore < 0.32) return null
+
+    const threshold = maxScore * 0.42
+    let sumW = 0
+    let sumX = 0
+    let sumY = 0
+    let sumX2 = 0
+    let sumY2 = 0
+    let count = 0
+    for (let y = 1; y < gh - 1; y++) {
+      for (let x = 1; x < gw - 1; x++) {
+        const s = score[y * gw + x]
+        if (s < threshold) continue
+        const w = s * s
+        sumW += w
+        sumX += x * w
+        sumY += y * w
+        sumX2 += x * x * w
+        sumY2 += y * y * w
+        count += 1
+      }
+    }
+
+    if (count < 14 || sumW === 0) return null
+
+    const meanX = sumX / sumW
+    const meanY = sumY / sumW
+    const varX = Math.max(0, sumX2 / sumW - meanX * meanX)
+    const varY = Math.max(0, sumY2 / sumW - meanY * meanY)
+    const coverage = count / (gw * gh)
+
+    return {
+      cx: meanX / gw,
+      cy: meanY / gh,
+      w: Math.min(1, (4 * Math.sqrt(varX)) / gw),
+      h: Math.min(1, (4 * Math.sqrt(varY)) / gh),
+      confidence: Math.min(1, coverage * 4),
+    }
   }
 
   /**
@@ -250,7 +369,12 @@ export class ThumbnailEngine {
     const ctx = canvas.getContext('2d')
     if (!ctx) throw new Error('Could not obtain canvas 2D context')
 
-    // 1. Draw base image with cover fit
+    // 1. Detect the subject, then draw the base image with a subject-aware
+    //    cover fit: the detected subject center is pulled toward the upper
+    //    third of the canvas (where short-form faces live) instead of blindly
+    //    center-cropping heads out of frame.
+    const subject = ThumbnailEngine.detectSubject(img)
+
     const imgAspect = img.naturalWidth / img.naturalHeight
     const canvasAspect = targetWidth / targetHeight
     let drawWidth = targetWidth
@@ -261,9 +385,17 @@ export class ThumbnailEngine {
     if (imgAspect > canvasAspect) {
       drawWidth = targetHeight * imgAspect
       offsetX = (targetWidth - drawWidth) / 2
+      if (subject && subject.confidence > 0.25) {
+        const subjectCenterPx = subject.cx * drawWidth + offsetX
+        offsetX = Math.min(0, Math.max(targetWidth - drawWidth, targetWidth * 0.5 - subjectCenterPx))
+      }
     } else {
       drawHeight = targetWidth / imgAspect
       offsetY = (targetHeight - drawHeight) / 2
+      if (subject && subject.confidence > 0.25) {
+        const subjectCenterPx = subject.cy * drawHeight + offsetY
+        offsetY = Math.min(0, Math.max(targetHeight - drawHeight, targetHeight * 0.44 - subjectCenterPx))
+      }
     }
 
     ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight)
@@ -295,9 +427,9 @@ export class ThumbnailEngine {
 
     // 4. Background Headline ("Text Behind Speaker")
     if (textLayer === 'behind' || textLayer === 'split') {
-      ThumbnailEngine.drawBehindHeadline(ctx, config, targetWidth, targetHeight, brandColor)
+      ThumbnailEngine.drawBehindHeadline(ctx, config, targetWidth, targetHeight, brandColor, subject)
       // Draw extracted speaker foreground over background text
-      ThumbnailEngine.drawSpeakerCutout(ctx, img, offsetX, offsetY, drawWidth, drawHeight, targetWidth, targetHeight, treatments.rimLight, brandColor)
+      ThumbnailEngine.drawSpeakerCutout(ctx, img, offsetX, offsetY, drawWidth, drawHeight, targetWidth, targetHeight, treatments.rimLight, brandColor, subject)
     }
 
     // 5. Floating Visual Assets (3D Hourglass, Calendar, Book, Camera, Question Marks, etc.)
@@ -306,13 +438,24 @@ export class ThumbnailEngine {
     }
 
     // 6. Foreground Typography (Primary Headline + Script Accent + Badges)
+    let foregroundBlock: { centerY: number; totalHeight: number } | null = null
     if (textLayer === 'foreground' || textLayer === 'split' || !config.textLayer) {
-      ThumbnailEngine.drawForegroundTypography(ctx, config, targetWidth, targetHeight, brandColor, treatments.inkBleed)
+      foregroundBlock = ThumbnailEngine.drawForegroundTypography(ctx, config, targetWidth, targetHeight, brandColor, treatments.inkBleed)
     }
 
     // 7. Script Accent Overlay (e.g. "The future", "bo'lish uchun", "new year")
     if (config.scriptAccent?.trim()) {
-      ThumbnailEngine.drawScriptAccent(ctx, config.scriptAccent.trim(), targetWidth, targetHeight, brandColor)
+      // Tuck the script just above a bottom headline block (or below a top one)
+      // instead of always stamping it at a fixed 0.88 height over the text.
+      let scriptY = targetHeight * 0.88
+      if (foregroundBlock) {
+        const blockBottom = foregroundBlock.centerY + foregroundBlock.totalHeight / 2
+        const blockTop = foregroundBlock.centerY - foregroundBlock.totalHeight / 2
+        if (config.position === 'bottom') scriptY = Math.max(targetHeight * 0.6, blockBottom - foregroundBlock.totalHeight * 0.72)
+        else if (config.position === 'top') scriptY = Math.min(targetHeight * 0.42, blockTop + foregroundBlock.totalHeight * 1.15)
+        else scriptY = blockBottom + targetHeight * 0.035
+      }
+      ThumbnailEngine.drawScriptAccent(ctx, config.scriptAccent.trim(), targetWidth, targetHeight, brandColor, scriptY)
     }
 
     // 8. Photo Treatments: Vignette
@@ -407,18 +550,23 @@ export class ThumbnailEngine {
     width: number,
     height: number,
     brandColor: string,
+    subject?: SubjectRegion | null,
   ) {
     const text = config.headline.trim().toUpperCase()
     if (!text) return
 
     ctx.save()
     const fontSize = Math.round(height * 0.11 * (config.fontSizeScale || 1.0))
-    ctx.font = `800 ${fontSize}px ${ThumbnailEngine.getDisplayFont()}`
+    ctx.font = `800 ${fontSize}px ${ThumbnailEngine.getImpactFont()}`
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
 
     const centerX = width / 2
-    const centerY = height * 0.28 // Positioned behind head & shoulders
+    // Anchor behind the detected head/shoulders when available.
+    const centerY =
+      subject && subject.confidence > 0.25
+        ? Math.min(height * 0.42, Math.max(height * 0.16, (subject.cy - subject.h * 0.32) * height))
+        : height * 0.28
 
     // Ambient backlight halo behind the text
     const halo = ctx.createRadialGradient(centerX, centerY, 40, centerX, centerY, width * 0.45)
@@ -455,17 +603,26 @@ export class ThumbnailEngine {
     targetHeight: number,
     hasRimLight: boolean,
     rimColor: string,
+    subject?: SubjectRegion | null,
   ) {
     ctx.save()
 
-    // Create an elliptical portrait clip mask centered on the speaker's head & torso
-    ctx.beginPath()
-    const cx = targetWidth / 2
-    const cy = targetHeight * 0.58
-    const rx = targetWidth * 0.44
-    const ry = targetHeight * 0.44
+    // Derive the foreground mask from the detected subject region (falls back
+    // to a portrait-shaped region) instead of a fixed ellipse that ignores
+    // where the speaker actually sits in frame.
+    const useSubject = Boolean(subject && subject.confidence > 0.25)
+    const cx = useSubject && subject ? offsetX + subject.cx * drawWidth : targetWidth / 2
+    const cy = useSubject && subject ? offsetY + subject.cy * drawHeight : targetHeight * 0.58
+    const halfW = useSubject && subject
+      ? Math.max(targetWidth * 0.2, Math.min(targetWidth * 0.52, subject.w * drawWidth * 0.62))
+      : targetWidth * 0.44
+    const halfH = useSubject && subject
+      ? Math.max(targetHeight * 0.22, Math.min(targetHeight * 0.5, subject.h * drawHeight * 0.62))
+      : targetHeight * 0.44
+    const radius = Math.min(halfW, halfH) * 0.55
 
-    ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2)
+    ctx.beginPath()
+    ctx.roundRect(cx - halfW, cy - halfH, halfW * 2, halfH * 2, radius)
     ctx.clip()
 
     if (hasRimLight) {
@@ -484,7 +641,7 @@ export class ThumbnailEngine {
       ctx.globalAlpha = 0.25
       ctx.lineWidth = 3
       ctx.beginPath()
-      ctx.ellipse(cx, cy, rx + 1, ry + 1, 0, 0, Math.PI * 2)
+      ctx.roundRect(cx - halfW - 1, cy - halfH - 1, halfW * 2 + 2, halfH * 2 + 2, radius + 1)
       ctx.stroke()
       ctx.restore()
     }
@@ -663,6 +820,8 @@ export class ThumbnailEngine {
 
   /**
    * Draws primary foreground typography (Headline + Subtitle + Pill Badges).
+   * Returns the rendered block geometry so overlays (script accent, badges)
+   * can position themselves relative to real text bounds.
    */
   private static drawForegroundTypography(
     ctx: CanvasRenderingContext2D,
@@ -671,7 +830,7 @@ export class ThumbnailEngine {
     height: number,
     brandColor: string,
     inkBleed: boolean,
-  ) {
+  ): { centerY: number; totalHeight: number } {
     const scale = config.fontSizeScale || 1.0
     const baseFontSize = Math.round((height / 12) * scale)
     const headline = config.headline.trim().toUpperCase()
@@ -693,13 +852,14 @@ export class ThumbnailEngine {
     const lines = headline.split('\n')
 
     // Wrap headline into lines
+    const fontFor = (size: number) => `800 ${size}px ${ThumbnailEngine.getImpactFont()}`
     const wrappedLines: string[] = []
     lines.forEach((l) => {
       const words = l.split(' ')
       let current = ''
       for (const w of words) {
         const test = current ? `${current} ${w}` : w
-        ctx.font = `800 ${baseFontSize}px ${ThumbnailEngine.getDisplayFont()}`
+        ctx.font = fontFor(baseFontSize)
         if (ctx.measureText(test).width > width * 0.88 && current) {
           wrappedLines.push(current)
           current = w
@@ -710,15 +870,26 @@ export class ThumbnailEngine {
       if (current) wrappedLines.push(current)
     })
 
-    const lineHeight = baseFontSize * 1.12
+    // Auto-shrink until the widest line fits the safe area.
+    let fittedSize = baseFontSize
+    ctx.font = fontFor(fittedSize)
+    let widest = Math.max(1, ...wrappedLines.map((l) => ctx.measureText(l).width))
+    while (widest > width * 0.88 && fittedSize > baseFontSize * 0.55) {
+      fittedSize = Math.round(fittedSize * 0.94)
+      ctx.font = fontFor(fittedSize)
+      widest = Math.max(1, ...wrappedLines.map((l) => ctx.measureText(l).width))
+    }
+
+    // Condensed grotesque compression (0.94x vertical) for the classic
+    // short-form poster stance, applied around each line's baseline center.
+    const lineHeight = fittedSize * 1.02
     const totalHeight = wrappedLines.length * lineHeight
 
     // Pill badge background if enabled
     if (config.showBadge) {
-      const maxW = Math.max(...wrappedLines.map((l) => ctx.measureText(l).width))
-      const padX = baseFontSize * 0.4
-      const padY = baseFontSize * 0.28
-      const badgeW = maxW + padX * 2
+      const padX = fittedSize * 0.4
+      const padY = fittedSize * 0.28
+      const badgeW = widest + padX * 2
       const badgeH = totalHeight + padY * 2
 
       ctx.save()
@@ -745,31 +916,39 @@ export class ThumbnailEngine {
         ctx.shadowBlur = 18
       }
 
-      ctx.font = `800 ${baseFontSize}px ${ThumbnailEngine.getDisplayFont()}`
+      ctx.translate(centerX, y)
+      ctx.scale(1, 0.94)
+      ctx.font = fontFor(fittedSize)
+      if ('letterSpacing' in ctx) {
+        ;(ctx as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = `${Math.round(fittedSize * 0.01)}px`
+      }
       ctx.strokeStyle = '#000000'
-      ctx.lineWidth = Math.round(baseFontSize * 0.16)
-      ctx.strokeText(line, centerX, y)
+      ctx.lineWidth = Math.round(fittedSize * 0.16)
+      ctx.lineJoin = 'round'
+      ctx.strokeText(line, 0, 0)
 
       ctx.fillStyle = config.textColor || '#FFFFFF'
-      ctx.fillText(line, centerX, y)
+      ctx.fillText(line, 0, 0)
       ctx.restore()
     })
 
     // Subtitle rendering
     if (subtitle) {
-      const subSize = Math.round(baseFontSize * 0.38)
+      const subSize = Math.round(fittedSize * 0.38)
       const subY = centerY + totalHeight / 2 + subSize * 1.2
       ctx.save()
       ctx.font = `800 ${subSize}px -apple-system, sans-serif`
       ctx.fillStyle = brandColor
       ctx.strokeStyle = 'rgba(0,0,0,0.95)'
       ctx.lineWidth = 4
+      ctx.lineJoin = 'round'
       ctx.strokeText(subtitle.toUpperCase(), centerX, subY)
       ctx.fillText(subtitle.toUpperCase(), centerX, subY)
       ctx.restore()
     }
 
     ctx.restore()
+    return { centerY, totalHeight }
   }
 
   /**
@@ -781,6 +960,7 @@ export class ThumbnailEngine {
     width: number,
     height: number,
     brandColor: string,
+    accentY?: number,
   ) {
     ctx.save()
     const scriptSize = Math.round(height * 0.055)
@@ -789,7 +969,7 @@ export class ThumbnailEngine {
     ctx.textBaseline = 'middle'
 
     const x = width * 0.52
-    const y = height * 0.88
+    const y = accentY ?? height * 0.88
 
     // Slight angle tilt
     ctx.translate(x, y)

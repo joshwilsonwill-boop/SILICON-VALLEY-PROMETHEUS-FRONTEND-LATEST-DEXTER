@@ -171,7 +171,7 @@ export function PrometheusChat({
 
   const latestSpeakableMessage = React.useMemo(
     () => [...renderedMessages].reverse().find((message) =>
-      message.role === 'assistant' && (message.isComplete ?? true) && message.content.trim().length > 0,
+      message.role === 'assistant' && message.isComplete !== false && message.content.trim().length > 0,
     ) ?? null,
     [renderedMessages],
   )
@@ -182,8 +182,6 @@ export function PrometheusChat({
     if (!voiceMode || !latestSpeakableMessage || typeof window === 'undefined' || !('speechSynthesis' in window)) return
     if (spokenMessageIdsRef.current.has(latestSpeakableMessage.id)) return
 
-    spokenMessageIdsRef.current.add(latestSpeakableMessage.id)
-    
     // Clean raw markdown so browser speech synthesis does not crash or choke on symbols
     const cleanText = latestSpeakableMessage.content
       .replace(/```[\s\S]*?```/g, '')
@@ -199,25 +197,50 @@ export function PrometheusChat({
 
     if (!cleanText) return
 
+    const messageId = latestSpeakableMessage.id
+    // Claim the message for this effect run; only commit to "spoken" once the
+    // utterance actually starts, so a silent Chrome/SAPI failure can retry.
+    spokenMessageIdsRef.current.add(messageId)
+
     // Limit to natural conversational length so Windows/Chrome SAPI doesn't timeout
     const spokenSummary = cleanText.length > 350 ? cleanText.slice(0, 350).replace(/\s+\S*$/, '') + '...' : cleanText
     const utterance = new SpeechSynthesisUtterance(spokenSummary)
     utterance.rate = 1.02
     utterance.pitch = 1
-    utterance.onstart = () => setSpeakingMessageId(latestSpeakableMessage.id)
+    utterance.onstart = () => {
+      setSpeakingMessageId(messageId)
+    }
     utterance.onend = () => {
       setSpeakingMessageId(null)
       activeUtterancesRef.current = activeUtterancesRef.current.filter((u) => u !== utterance)
     }
     utterance.onerror = () => {
+      spokenMessageIdsRef.current.delete(messageId)
       setSpeakingMessageId(null)
       activeUtterancesRef.current = activeUtterancesRef.current.filter((u) => u !== utterance)
     }
-    
+
     // Pin reference to prevent Chromium garbage collection from cancelling audio
     activeUtterancesRef.current.push(utterance)
     window.speechSynthesis.cancel()
     window.speechSynthesis.speak(utterance)
+
+    // Chromium silently pauses speechSynthesis after ~15s of continuous
+    // speech; a periodic resume keeps long replies audible to the end.
+    const keepAlive = window.setInterval(() => {
+      const synth = window.speechSynthesis
+      if (!synth.speaking) {
+        window.clearInterval(keepAlive)
+        return
+      }
+      if (synth.paused) synth.resume()
+      else {
+        synth.pause()
+        synth.resume()
+      }
+    }, 9000)
+
+    return () => window.clearInterval(keepAlive)
   }, [latestSpeakableMessage, voiceMode])
 
   React.useEffect(() => stopSpokenReply, [stopSpokenReply])

@@ -1,8 +1,13 @@
 'use client'
 
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback, useEffect, useSyncExternalStore } from 'react'
 import { GeminiLiveClient, type ToolCallHandler } from '@/lib/voice-companion/gemini-live-client'
 import { AudioPlayer, AudioRecorder, primeAudioContext } from '@/lib/voice-companion/audio-streamer'
+import {
+  getVoiceCompanionBridge,
+  subscribeVoiceCompanionBridge,
+  type VoiceCompanionBridgeHandlers,
+} from '@/lib/voice-companion/bridge'
 import type { EditorActionDraft } from '@/lib/editor-actions'
 import type { ChatEditorContext } from '@/lib/prometheus-assistant/editor-context'
 import { autonomousCoordinator } from '@/lib/autonomous-ui/coordinator'
@@ -55,18 +60,15 @@ export interface UseVoiceCompanionReturn {
   sendTextMessage: (text: string) => void
 }
 
+function stripUndefined<T extends object>(value: T): Partial<T> {
+  const result: Partial<T> = {}
+  for (const [key, entry] of Object.entries(value)) {
+    if (entry !== undefined) result[key as keyof T] = entry
+  }
+  return result
+}
+
 export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVoiceCompanionReturn {
-  const {
-    contextProvider,
-    onApplyActions,
-    onSeek,
-    onPlay,
-    onPause,
-    onMute,
-    onUnmute,
-    onTabChange,
-    onFitModeChange,
-  } = options
 
   const [status, setStatus] = useState<VoiceCompanionStatus>('disconnected')
   const [isMuted, setIsMuted] = useState(false)
@@ -82,9 +84,32 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
   const recorderRef = useRef<AudioRecorder | null>(null)
   const playerRef = useRef<AudioPlayer | null>(null)
   const visionTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const volumeTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const assistantTurnActiveRef = useRef(false)
+  const statusRef = useRef<VoiceCompanionStatus>('disconnected')
+  const setUserStatus = useCallback(
+    (next: VoiceCompanionStatus | ((prev: VoiceCompanionStatus) => VoiceCompanionStatus)) => {
+      const resolved = typeof next === 'function' ? next(statusRef.current) : next
+      statusRef.current = resolved
+      setStatus(resolved)
+    },
+    [],
+  )
   const offscreenCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const isMutedRef = useRef(isMuted)
   isMutedRef.current = isMuted
+
+  // Editor-registered handlers (the global filament mounts outside the editor
+  // tree and gets its wiring through this bridge).
+  const bridgeSnapshot = useSyncExternalStore(
+    subscribeVoiceCompanionBridge,
+    getVoiceCompanionBridge,
+    getVoiceCompanionBridge,
+  )
+  const handlersRef = useRef<VoiceCompanionBridgeHandlers & UseVoiceCompanionOptions>(options)
+  useEffect(() => {
+    handlersRef.current = { ...bridgeSnapshot, ...stripUndefined(options) }
+  })
 
   const getUserVolume = useCallback(() => {
     if (isMutedRef.current || !recorderRef.current) return 0
@@ -149,9 +174,22 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
     }
   }, [isVisionActive])
 
-  // Tool call executor
+  // Tool call executor. Reads handlers through a ref so late-registered editor
+  // bridges (or re-mounted panels) are always honored without reconnecting.
   const handleToolCall: ToolCallHandler = useCallback(
     async (name: string, args: Record<string, unknown>) => {
+      const {
+        contextProvider,
+        onApplyActions,
+        onSeek,
+        onPlay,
+        onPause,
+        onMute,
+        onUnmute,
+        onTabChange,
+        onFitModeChange,
+      } = handlersRef.current
+
       switch (name) {
         case 'seek_timeline': {
           const time = typeof args.timeSec === 'number' ? args.timeSec : 0
@@ -221,7 +259,7 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
           return { error: `Tool ${name} not found` }
       }
     },
-    [contextProvider, onApplyActions, onFitModeChange, onMute, onPause, onPlay, onSeek, onTabChange, onUnmute]
+    []
   )
 
   const disconnect = useCallback(() => {
@@ -229,6 +267,11 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
       clearInterval(visionTimerRef.current)
       visionTimerRef.current = null
     }
+    if (volumeTimerRef.current) {
+      clearInterval(volumeTimerRef.current)
+      volumeTimerRef.current = null
+    }
+    assistantTurnActiveRef.current = false
     recorderRef.current?.stop()
     recorderRef.current = null
 
@@ -240,13 +283,13 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
 
     setUserVolume(0)
     setAssistantVolume(0)
-    setStatus('disconnected')
-  }, [])
+    setUserStatus('disconnected')
+  }, [setUserStatus])
 
   const connect = useCallback(async () => {
     disconnect()
     setError(null)
-    setStatus('connecting')
+    setUserStatus('connecting')
 
     // 0. Prime and resume AudioContext synchronously on the user click gesture
     try {
@@ -267,7 +310,8 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
       // 2. Initialize Audio Player and unlock Web Audio context
       const player = new AudioPlayer({
         onPlaybackStateChange: (playing) => {
-          setStatus((prev) => {
+          if (!playing) assistantTurnActiveRef.current = false
+          setUserStatus((prev) => {
             if (prev === 'disconnected' || prev === 'error') return prev
             return playing ? 'speaking' : 'listening'
           })
@@ -289,9 +333,12 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
             // Connected to socket
           },
           onSetupConfirmed: () => {
-            setStatus('listening')
+            setUserStatus('listening')
           },
           onAudio: (base64Pcm24k) => {
+            // Assistant turn is live: keep the echo gate engaged even between
+            // chunks (and after a barge-in flush) until turnComplete arrives.
+            assistantTurnActiveRef.current = true
             player.playChunk(base64Pcm24k)
           },
           onTranscript: (text, isUser) => {
@@ -315,25 +362,30 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
             })
           },
           onInterrupted: () => {
-            // Only flush if user is speaking loudly into the mic (true deliberate barge-in)
+            // The server VAD frequently "hears" our own speaker output (browser
+            // AEC does not cover Web Audio playback). Only honor the interrupt
+            // when the mic shows sustained, speech-level user energy; otherwise
+            // ignore it so the assistant never self-cancels into silence.
             const userVol = recorderRef.current?.getVolume() ?? 0
-            if (userVol > 0.12 || !player.getIsPlaying()) {
+            if (userVol > 0.34) {
+              assistantTurnActiveRef.current = false
               player.flush()
-              setStatus('interrupted')
+              setUserStatus('interrupted')
               setTimeout(() => {
-                setStatus((prev) => (prev === 'interrupted' ? 'listening' : prev))
+                setUserStatus((prev) => (prev === 'interrupted' ? 'listening' : prev))
               }, 300)
             }
           },
           onTurnComplete: () => {
-            // Ready for next turn
+            assistantTurnActiveRef.current = false
           },
           onError: (err) => {
             setError(err.message)
-            setStatus('error')
+            setUserStatus('error')
           },
           onClose: () => {
-            setStatus((prev) => (prev === 'error' ? 'error' : 'disconnected'))
+            assistantTurnActiveRef.current = false
+            setUserStatus((prev) => (prev === 'error' ? 'error' : 'disconnected'))
           },
           onToolCall: handleToolCall,
         }
@@ -343,9 +395,14 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
       // 4. Connect WebSocket and await setup confirmation
       await client.connect()
 
-      // 5. Start Audio Recorder with playback ducking to eliminate acoustic echo loops
+      // 5. Start Audio Recorder with turn-aware echo gating. Gating stays
+      //    engaged for the whole assistant turn (turn flag OR pending buffer),
+      //    which is what kills the interrupt-flush-open-gate feedback loop.
       const recorder = new AudioRecorder({
-        getIsSpeaking: () => playerRef.current?.getIsPlaying() ?? false,
+        getIsSpeaking: () =>
+          assistantTurnActiveRef.current ||
+          (playerRef.current?.getIsPlaying() ?? false) ||
+          (playerRef.current?.getPendingMs() ?? 0) > 0,
       })
       await recorder.start((base64Chunk) => {
         if (!isMutedRef.current && client.isConnected()) {
@@ -354,7 +411,15 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
       })
       recorderRef.current = recorder
 
-      // 6. Start visual frame sync interval (every 2.2 seconds)
+      // 6. Poll live volumes for reactive HUD visuals (throttled state updates)
+      volumeTimerRef.current = setInterval(() => {
+        const nextUser = recorderRef.current?.getVolume() ?? 0
+        const nextAssistant = playerRef.current?.getVolume() ?? 0
+        setUserVolume((prev) => (Math.abs(prev - nextUser) > 0.02 ? nextUser : prev))
+        setAssistantVolume((prev) => (Math.abs(prev - nextAssistant) > 0.02 ? nextAssistant : prev))
+      }, 90)
+
+      // 7. Start visual frame sync interval (every 2.2 seconds)
       visionTimerRef.current = setInterval(() => {
         captureAndSendVisualFrame()
       }, 2200)
@@ -366,10 +431,10 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to connect to voice companion'
       setError(msg)
-      setStatus('error')
+      setUserStatus('error')
       disconnect()
     }
-  }, [captureAndSendVisualFrame, disconnect, handleToolCall, selectedVoice])
+  }, [captureAndSendVisualFrame, disconnect, handleToolCall, selectedVoice, setUserStatus])
 
   const toggleMute = useCallback(() => {
     setIsMuted((prev) => !prev)

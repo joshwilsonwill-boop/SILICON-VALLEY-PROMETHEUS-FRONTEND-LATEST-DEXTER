@@ -7,6 +7,7 @@ console.log('Running Prometheus Jarvis Voice Companion regression test...')
 assert.ok(existsSync('app/api/voice-companion/session/route.ts'), 'session route must exist')
 assert.ok(existsSync('lib/voice-companion/audio-streamer.ts'), 'audio streamer must exist')
 assert.ok(existsSync('lib/voice-companion/gemini-live-client.ts'), 'gemini live client must exist')
+assert.ok(existsSync('lib/voice-companion/bridge.ts'), 'voice companion bridge must exist')
 assert.ok(existsSync('hooks/use-voice-companion.ts'), 'voice companion hook must exist')
 assert.ok(existsSync('components/editor/voice-companion-hud.tsx'), 'voice companion hud must exist')
 
@@ -46,5 +47,25 @@ assert.match(filamentSource, /jarvisLineGrad/, 'Filament must have cyan/blue gra
 assert.match(filamentSource, /jarvisNeonGlow/, 'Filament must have neon glow filter')
 assert.match(filamentSource, /Math\.sin\(\(Math\.PI \* i\) \/ numPoints\)/, 'Filament must use sine envelope for pinned endpoints')
 assert.match(filamentSource, /phaseRef\.current/, 'Filament must compute animated phase motion')
+
+// 7. Bidirectional wiring: editor registers handlers, filament consumes them
+const bridgeSource = readFileSync('lib/voice-companion/bridge.ts', 'utf8')
+assert.match(bridgeSource, /export function registerVoiceCompanionBridge/, 'Bridge must expose registerVoiceCompanionBridge')
+assert.match(bridgeSource, /export function subscribeVoiceCompanionBridge/, 'Bridge must expose subscribeVoiceCompanionBridge')
+
+const hookSource = readFileSync('hooks/use-voice-companion.ts', 'utf8')
+assert.match(hookSource, /getVoiceCompanionBridge/, 'useVoiceCompanion must consume bridge handlers')
+assert.match(hookSource, /handlersRef\.current/, 'useVoiceCompanion must resolve handlers at tool-call time')
+
+const editorPageSource = readFileSync('app/editor/[id]/page.tsx', 'utf8')
+assert.match(editorPageSource, /registerVoiceCompanionBridge\(\{/, 'Editor page must register voice companion bridge handlers')
+assert.match(editorPageSource, /unregisterVoiceCompanionBridge\(\)/, 'Editor page must unregister bridge handlers on unmount')
+
+assert.match(filamentSource, /sendTextMessage/, 'Filament must offer a typed text channel to Jarvis')
+assert.match(filamentSource, /isEditorLinked/, 'Filament must surface editor-link state from the bridge')
+
+// 8. Chat spoken-reply lifecycle: retry on failed utterance + Chrome keep-alive
+assert.match(chatSource, /spokenMessageIdsRef\.current\.delete\(messageId\)/, 'PrometheusChat must release the spoken claim when an utterance errors so it can retry')
+assert.match(chatSource, /synth\.pause\(\)/, 'PrometheusChat must use the Chrome speechSynthesis keep-alive workaround')
 
 console.log('prometheus-jarvis-voice-companion: all checks passed successfully!')

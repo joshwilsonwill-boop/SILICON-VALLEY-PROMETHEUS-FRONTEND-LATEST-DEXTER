@@ -30,6 +30,13 @@ assert.match(engineSource, /drawVignette/, 'ThumbnailEngine must implement drawV
 assert.match(engineSource, /drawFringeBlur/, 'ThumbnailEngine must implement drawFringeBlur')
 assert.match(engineSource, /drawScriptAccent/, 'ThumbnailEngine must implement drawScriptAccent')
 
+// 3b. Verify subject-aware framing (replaces blind center-crop + fixed ellipse)
+assert.match(engineSource, /static detectSubject/, 'ThumbnailEngine must detect the subject region heuristically')
+assert.match(engineSource, /ThumbnailEngine\.detectSubject\(img\)/, 'renderThumbnail must run subject detection before cropping')
+assert.match(engineSource, /subject\.confidence > 0\.25/, 'Subject-aware crop must respect detection confidence')
+assert.match(engineSource, /getImpactFont/, 'Headlines must use a heavy grotesque impact stack, not an editorial serif')
+assert.match(engineSource, /accentY/, 'Script accent must position relative to the headline block, not a fixed stamp')
+
 // 4. Verify Nano Banana API route
 const nanoRouteSource = readFileSync('app/api/projects/[id]/thumbnails/nano-banana/route.ts', 'utf8')
 assert.match(nanoRouteSource, /imagen-3\.0-generateImages/, 'Nano Banana route must connect to Imagen 3 / Gemini Image API')

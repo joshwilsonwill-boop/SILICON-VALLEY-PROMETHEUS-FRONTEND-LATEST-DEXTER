@@ -88,6 +88,7 @@ import { buildMotionTranscriptSegments, isLegacyMockTranscriptText } from '@/lib
 import { clearPendingEditorNavigation, getRememberedEditorReturnPath } from '@/lib/editor-navigation'
 import { useFrameTargeting } from '@/hooks/use-frame-targeting'
 import { parseFrameReference } from '@/lib/editorial-frame/parse-frame-reference'
+import { registerVoiceCompanionBridge, unregisterVoiceCompanionBridge } from '@/lib/voice-companion/bridge'
 import {
   consumePendingEditorialChatOpen,
   EDITORIAL_CHAT_OPEN_EVENT,
@@ -8156,6 +8157,18 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
   const handleApplyChatActions = React.useCallback((drafts: EditorActionDraft[]) => {
     applyEditorActionDrafts(drafts, chatEditorActionContext)
   }, [chatEditorActionContext])
+
+  // Wire the Jarvis voice companion (global filament) to this editor instance
+  // so tool calls can read live timeline state and apply granular actions.
+  React.useEffect(() => {
+    registerVoiceCompanionBridge({
+      contextProvider: chatContextProvider,
+      onApplyActions: handleApplyChatActions,
+    })
+    return () => {
+      unregisterVoiceCompanionBridge()
+    }
+  }, [chatContextProvider, handleApplyChatActions])
 
   React.useEffect(() => {
     const stopMedia = () => {
