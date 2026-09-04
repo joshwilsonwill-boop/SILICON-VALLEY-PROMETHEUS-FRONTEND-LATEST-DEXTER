@@ -4,6 +4,20 @@ import { NextResponse } from 'next/server'
 
 export const runtime = 'nodejs'
 
+const DEFAULT_GEMINI_LIVE_MODEL = 'models/gemini-3.1-flash-live-preview'
+const SUPPORTED_GEMINI_LIVE_MODELS = new Set([
+  DEFAULT_GEMINI_LIVE_MODEL,
+  'models/gemini-2.5-flash-native-audio-preview-12-2025',
+])
+
+function resolveLiveModel(value: string | undefined): string {
+  const candidate = value?.trim()
+  if (!candidate) return DEFAULT_GEMINI_LIVE_MODEL
+
+  const normalized = candidate.startsWith('models/') ? candidate : `models/${candidate}`
+  return SUPPORTED_GEMINI_LIVE_MODELS.has(normalized) ? normalized : DEFAULT_GEMINI_LIVE_MODEL
+}
+
 export async function GET() {
   try {
     // Collect all candidate keys in order of freshness
@@ -32,8 +46,7 @@ export async function GET() {
       )
     }
 
-    const defaultModel =
-      process.env.GEMINI_LIVE_MODEL || 'models/gemini-2.0-flash-live-001'
+    const defaultModel = resolveLiveModel(process.env.GEMINI_LIVE_MODEL)
     const defaultVoice = process.env.GEMINI_LIVE_VOICE || 'Puck'
 
     const wsUrls = validKeys.map(
@@ -48,8 +61,7 @@ export async function GET() {
       model: defaultModel,
       candidateModels: [
         defaultModel,
-        'models/gemini-2.0-flash-live-001',
-        'models/gemini-2.0-flash-exp',
+        ...Array.from(SUPPORTED_GEMINI_LIVE_MODELS).filter((model) => model !== defaultModel),
       ],
       voiceName: defaultVoice,
       availableVoices: ['Puck', 'Aoede', 'Charon', 'Fenrir', 'Kore'],

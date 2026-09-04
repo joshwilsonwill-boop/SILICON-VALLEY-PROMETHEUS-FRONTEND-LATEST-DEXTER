@@ -1,5 +1,7 @@
 'use client'
 
+import { get, set, del } from 'idb-keyval'
+
 export const R2_MULTIPART_CLIENT_MAX_BYTES = 10 * 1024 * 1024 * 1024
 export const R2_MULTIPART_CLIENT_PART_SIZE = 50 * 1024 * 1024
 export const R2_MULTIPART_MAX_RETRIES = 3
@@ -20,9 +22,11 @@ export type MultipartUploadProgress = {
   currentPart: number
   partProgressBytes: number
   percentage: number
-  phase: 'initiating' | 'uploading' | 'retrying' | 'completing' | 'aborting' | 'done'
+  phase: 'initiating' | 'uploading' | 'retrying' | 'completing' | 'aborting' | 'paused' | 'done'
   totalBytes: number
   totalParts: number
+  isResumed?: boolean
+  resumedFromPart?: number
 }
 
 type MultipartInitiateResponse = {
@@ -36,16 +40,39 @@ type MultipartInitiateResponse = {
   }
 }
 
-type UploadedPart = {
+export type UploadedPart = {
   ETag: string
   PartNumber: number
 }
 
+export type StoredMultipartSession = {
+  assetId: string
+  bucket: string
+  completedBytes: number
+  createdAt: number
+  fileFingerprint: string
+  fileLastModified: number
+  fileName: string
+  fileSize: number
+  fileType: string
+  key: string
+  partSize: number
+  projectId: string
+  sessionId: string
+  totalParts: number
+  updatedAt: number
+  uploadId: string
+  uploadedParts: UploadedPart[]
+}
+
 export type UploadProjectSourceMultipartOptions = {
+  abortRemoteOnCancel?: boolean
   assetId?: string | null
   file: File
   onProgress?: (progress: MultipartUploadProgress) => void
+  partSize?: number
   projectId: string
+  resumable?: boolean
   signal?: AbortSignal
 }
 
@@ -278,19 +305,88 @@ export async function abortProjectSourceMultipartUpload(input: {
   }
 }
 
+export function getMultipartFingerprint(file: File, projectId: string): string {
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+  return `prometheus_multipart_${projectId}_${safeName}_${file.size}_${file.lastModified}`
+}
+
+export async function getResumableSessionForFile(
+  file: File,
+  projectId: string,
+): Promise<StoredMultipartSession | null> {
+  if (typeof window === 'undefined') return null
+  try {
+    const fingerprint = getMultipartFingerprint(file, projectId)
+    const session = await get<StoredMultipartSession>(fingerprint)
+    if (!session) return null
+    // Sessions older than 24 hours are expired on R2
+    if (Date.now() - session.createdAt > 24 * 60 * 60 * 1000) {
+      await del(fingerprint).catch(() => undefined)
+      return null
+    }
+    return session
+  } catch (err) {
+    console.warn('[MULTIPART_IDB_GET_ERROR]', err)
+    return null
+  }
+}
+
+export async function clearResumableSessionForFile(
+  file: File,
+  projectId: string,
+): Promise<void> {
+  if (typeof window === 'undefined') return
+  try {
+    const fingerprint = getMultipartFingerprint(file, projectId)
+    await del(fingerprint)
+  } catch (err) {
+    console.warn('[MULTIPART_IDB_DEL_ERROR]', err)
+  }
+}
+
+export async function cancelProjectSourceMultipartUpload(input: {
+  file?: File
+  fingerprint?: string
+  projectId: string
+  sessionId?: string
+}) {
+  if (input.sessionId) {
+    await abortProjectSourceMultipartUpload({
+      projectId: input.projectId,
+      sessionId: input.sessionId,
+    }).catch(() => undefined)
+  }
+  if (input.file) {
+    await clearResumableSessionForFile(input.file, input.projectId).catch(() => undefined)
+  } else if (input.fingerprint && typeof window !== 'undefined') {
+    await del(input.fingerprint).catch(() => undefined)
+  }
+}
+
 export async function uploadProjectSourceMultipart({
+  abortRemoteOnCancel = false,
   assetId,
   file,
   onProgress,
+  partSize: customPartSize,
   projectId,
+  resumable = true,
   signal,
 }: UploadProjectSourceMultipartOptions): Promise<UploadProjectSourceMultipartResult> {
   if (file.size > R2_MULTIPART_CLIENT_MAX_BYTES) {
     throw new MultipartUploadError('File too large. Prometheus supports source videos up to 10GB.')
   }
   const stableAssetId = assetId || crypto.randomUUID()
+  const fingerprint = getMultipartFingerprint(file, projectId)
 
-  const totalParts = Math.ceil(file.size / R2_MULTIPART_CLIENT_PART_SIZE)
+  let storedSession: StoredMultipartSession | null = null
+  if (resumable) {
+    storedSession = await getResumableSessionForFile(file, projectId)
+  }
+
+  const partSize = customPartSize || storedSession?.partSize || R2_MULTIPART_CLIENT_PART_SIZE
+  const totalParts = Math.ceil(file.size / partSize)
+
   const baseProgress = {
     bytesUploaded: 0,
     currentPart: 0,
@@ -300,39 +396,119 @@ export async function uploadProjectSourceMultipart({
     totalParts,
   }
 
-  onProgress?.({ ...baseProgress, phase: 'initiating' })
-
-  const initiateResponse = await fetch(`/api/projects/${projectId}/upload-multipart/initiate`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    signal,
-    body: JSON.stringify({
-      assetId: stableAssetId,
-      contentType: file.type || 'application/octet-stream',
-      filename: file.name,
-      sizeBytes: file.size,
-    }),
-  })
-
-  const initiate = await readJsonResponse<MultipartInitiateResponse>(
-    initiateResponse,
-    'Unable to start R2 multipart upload',
-  )
-
-  const { asset, upload } = initiate
-  if (upload.status === 'verified' || upload.status === 'committed') {
-    onProgress?.({ ...baseProgress, bytesUploaded: file.size, percentage: 100, phase: 'done' })
-    return { asset, bucket: asset.bucket, key: asset.objectKey }
+  let asset: MultipartSourceAsset
+  let upload: {
+    sessionId: string
+    key: string
+    partSize: number
+    uploadId: string
+    status: 'reserved' | 'uploading' | 'verified' | 'committed'
   }
-  const uploadedParts: UploadedPart[] = []
+  let uploadedParts: UploadedPart[] = []
   let completedBytes = 0
+  let isResumed = false
+
+  if (storedSession && storedSession.uploadId && storedSession.sessionId && storedSession.uploadedParts.length > 0) {
+    asset = {
+      bucket: storedSession.bucket,
+      id: storedSession.assetId || stableAssetId,
+      mimeType: storedSession.fileType || file.type || 'application/octet-stream',
+      objectKey: storedSession.key,
+      projectId,
+      sizeBytes: file.size,
+      storageProvider: 'r2',
+      uploadSessionId: storedSession.sessionId,
+    }
+    upload = {
+      sessionId: storedSession.sessionId,
+      key: storedSession.key,
+      partSize: storedSession.partSize,
+      uploadId: storedSession.uploadId,
+      status: 'uploading',
+    }
+    uploadedParts = [...storedSession.uploadedParts]
+    const completedSet = new Set(uploadedParts.map((p) => p.PartNumber))
+    completedBytes = Array.from(completedSet).reduce((sum, pNum) => {
+      const isLastPart = pNum === totalParts
+      const pSize = isLastPart ? file.size - (pNum - 1) * partSize : partSize
+      return sum + pSize
+    }, 0)
+    isResumed = true
+
+    onProgress?.({
+      ...baseProgress,
+      bytesUploaded: completedBytes,
+      currentPart: uploadedParts.length,
+      isResumed: true,
+      percentage: Math.min(99, Math.round((completedBytes / file.size) * 100)),
+      phase: 'uploading',
+      resumedFromPart: uploadedParts.length,
+    })
+  } else {
+    onProgress?.({ ...baseProgress, phase: 'initiating' })
+
+    const initiateResponse = await fetch(`/api/projects/${projectId}/upload-multipart/initiate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal,
+      body: JSON.stringify({
+        assetId: stableAssetId,
+        contentType: file.type || 'application/octet-stream',
+        filename: file.name,
+        sizeBytes: file.size,
+      }),
+    })
+
+    const initiate = await readJsonResponse<MultipartInitiateResponse>(
+      initiateResponse,
+      'Unable to start R2 multipart upload',
+    )
+
+    asset = initiate.asset
+    upload = initiate.upload
+
+    if (upload.status === 'verified' || upload.status === 'committed') {
+      onProgress?.({ ...baseProgress, bytesUploaded: file.size, percentage: 100, phase: 'done' })
+      return { asset, bucket: asset.bucket, key: asset.objectKey }
+    }
+
+    if (resumable) {
+      storedSession = {
+        assetId: asset.id,
+        bucket: asset.bucket,
+        completedBytes: 0,
+        createdAt: Date.now(),
+        fileFingerprint: fingerprint,
+        fileLastModified: file.lastModified,
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type || 'application/octet-stream',
+        key: upload.key,
+        partSize,
+        projectId,
+        sessionId: upload.sessionId,
+        totalParts,
+        updatedAt: Date.now(),
+        uploadId: upload.uploadId,
+        uploadedParts: [],
+      }
+      await set(fingerprint, storedSession).catch(() => undefined)
+    }
+  }
+
+  const completedPartNumbers = new Set(uploadedParts.map((p) => p.PartNumber))
 
   try {
     for (let partNumber = 1; partNumber <= totalParts; partNumber += 1) {
       assertNotAborted(signal)
 
-      const start = (partNumber - 1) * R2_MULTIPART_CLIENT_PART_SIZE
-      const end = Math.min(start + R2_MULTIPART_CLIENT_PART_SIZE, file.size)
+      // If this part was already uploaded in an earlier session, skip it!
+      if (completedPartNumbers.has(partNumber)) {
+        continue
+      }
+
+      const start = (partNumber - 1) * partSize
+      const end = Math.min(start + partSize, file.size)
       const body = file.slice(start, end)
       let lastPartProgressBytes = 0
 
@@ -342,9 +518,11 @@ export async function uploadProjectSourceMultipart({
         onProgress?.({
           bytesUploaded: completedBytes,
           currentPart: partNumber,
+          isResumed,
           partProgressBytes: 0,
           percentage: Math.round((completedBytes / file.size) * 100),
           phase,
+          resumedFromPart: isResumed ? uploadedParts.length : undefined,
           totalBytes: file.size,
           totalParts,
         })
@@ -380,9 +558,11 @@ export async function uploadProjectSourceMultipart({
               onProgress?.({
                 bytesUploaded,
                 currentPart: partNumber,
+                isResumed,
                 partProgressBytes: loaded,
                 percentage: Math.round((bytesUploaded / file.size) * 100),
                 phase,
+                resumedFromPart: isResumed ? uploadedParts.length : undefined,
                 totalBytes: file.size,
                 totalParts,
               })
@@ -390,8 +570,20 @@ export async function uploadProjectSourceMultipart({
           })
 
           uploadedParts.push(uploadedPart)
+          completedPartNumbers.add(partNumber)
           completedBytes += body.size
           lastPartProgressBytes = body.size
+
+          if (resumable && storedSession) {
+            storedSession = {
+              ...storedSession,
+              completedBytes,
+              updatedAt: Date.now(),
+              uploadedParts: [...uploadedParts],
+            }
+            await set(fingerprint, storedSession).catch(() => undefined)
+          }
+
           break
         } catch (error) {
           console.error('[R2_MULTIPART_PART_RETRY]', {
@@ -413,6 +605,7 @@ export async function uploadProjectSourceMultipart({
     onProgress?.({
       bytesUploaded: file.size,
       currentPart: totalParts,
+      isResumed,
       partProgressBytes: 0,
       percentage: 100,
       phase: 'completing',
@@ -422,6 +615,8 @@ export async function uploadProjectSourceMultipart({
 
     let completed: { bucket: string; etag?: string; key: string; location?: string; sizeBytes: number; url?: string; verified: boolean } | null = null
     let completionError: unknown
+    const sortedParts = [...uploadedParts].sort((a, b) => a.PartNumber - b.PartNumber)
+
     for (let attempt = 1; attempt <= 2 && !completed; attempt += 1) {
       try {
         const completeResponse = await fetch(`/api/projects/${projectId}/upload-multipart/complete`, {
@@ -431,7 +626,7 @@ export async function uploadProjectSourceMultipart({
           body: JSON.stringify({
             sessionId: upload.sessionId,
             key: upload.key,
-            parts: uploadedParts,
+            parts: sortedParts,
             sizeBytes: file.size,
             uploadId: upload.uploadId,
           }),
@@ -448,9 +643,15 @@ export async function uploadProjectSourceMultipart({
     }
     if (!completed) throw completionError
 
+    // Completed successfully: remove from IndexedDB resumable cache
+    if (resumable) {
+      await del(fingerprint).catch(() => undefined)
+    }
+
     onProgress?.({
       bytesUploaded: file.size,
       currentPart: totalParts,
+      isResumed,
       partProgressBytes: 0,
       percentage: 100,
       phase: 'done',
@@ -463,27 +664,32 @@ export async function uploadProjectSourceMultipart({
       bucket: completed.bucket,
       key: completed.key,
       location: completed.location,
-      // The registration endpoint repeats HEAD verification before committing metadata.
-      // Returning only after verified=true prevents optimistic client-side commits.
       url: completed.url,
     }
   } catch (error) {
+    const isAborted = signal?.aborted
     onProgress?.({
       bytesUploaded: completedBytes,
       currentPart: Math.min(totalParts, uploadedParts.length + 1),
+      isResumed,
       partProgressBytes: 0,
       percentage: Math.round((completedBytes / file.size) * 100),
-      phase: 'aborting',
+      phase: isAborted ? 'paused' : 'aborting',
       totalBytes: file.size,
       totalParts,
     })
 
-    // Multipart uploads bill for orphaned parts until lifecycle cleanup runs.
-    // Explicit abort keeps failed/cancelled uploads from accumulating storage charges.
-    await abortProjectSourceMultipartUpload({
-      projectId,
-      sessionId: upload.sessionId,
-    }).catch(() => undefined)
+    // ONLY abort remotely if abortRemoteOnCancel is true
+    if (abortRemoteOnCancel && upload?.sessionId) {
+      await abortProjectSourceMultipartUpload({
+        projectId,
+        sessionId: upload.sessionId,
+      }).catch(() => undefined)
+
+      if (resumable) {
+        await del(fingerprint).catch(() => undefined)
+      }
+    }
 
     throw error
   }

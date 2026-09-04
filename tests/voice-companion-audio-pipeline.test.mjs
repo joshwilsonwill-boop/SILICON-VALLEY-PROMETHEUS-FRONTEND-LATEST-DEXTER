@@ -21,7 +21,7 @@ assert.match(audioStreamer, /getIsPlaying\(\)/, 'AudioPlayer must expose getIsPl
 assert.match(audioStreamer, /getPendingMs\(\)/, 'AudioPlayer must expose getPendingMs() for turn-aware gating')
 
 // 2. GeminiLiveClient: Model & Response Modalities
-assert.match(geminiLiveClient, /models\/gemini-2\.0-flash/, 'Live client must default to standard gemini-2.0-flash')
+assert.match(geminiLiveClient, /models\/gemini-3\.1-flash-live-preview/, 'Live client must default to a supported Gemini Live model')
 assert.match(geminiLiveClient, /responseModalities:\s*\[['"]AUDIO['"]\]/, 'Live client must request AUDIO response modality')
 
 // 3. useVoiceCompanion: Synchronous Priming & Error Preservation
@@ -31,7 +31,7 @@ assert.match(useVoiceCompanion, /setUserStatus\(\(prev\) => \(prev === 'error' \
 assert.match(useVoiceCompanion, /userVol > 0\.34/, 'useVoiceCompanion must only honor server interruptions backed by real user speech level')
 
 // 4. Session Route: Models & Candidate Keys
-assert.match(sessionRoute, /models\/gemini-2\.0-flash/, 'Session route must provide gemini-2.0-flash')
+assert.match(sessionRoute, /models\/gemini-3\.1-flash-live-preview/, 'Session route must provide a supported Gemini Live model')
 assert.match(sessionRoute, /candidateModels/, 'Session route must return candidate model list')
 
 // 5. PrometheusChat: Speech Sanitization & GC Pinning

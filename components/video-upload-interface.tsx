@@ -627,8 +627,16 @@ function describeMultipartUploadProgress(progress: MultipartUploadProgress, file
         return "Cancelling upload...";
     }
 
+    if (progress.phase === "paused") {
+        return `Upload paused for ${fileName}. Progress is saved.`;
+    }
+
     if (progress.phase === "done") {
         return "Upload complete. Saving your video...";
+    }
+
+    if (progress.isResumed) {
+        return `Resuming ${fileName} (${progress.percentage}%) — ${partLabel}.`;
     }
 
     return `Uploading ${fileName} (${progress.percentage}%) — ${partLabel}.`;
@@ -1896,13 +1904,13 @@ export function VideoUploadInterface() {
                                 ? 'presigning'
                                 : progress.phase === 'retrying'
                                     ? 'retrying'
-                                    : progress.phase === 'aborting'
+                                    : progress.phase === 'aborting' || progress.phase === 'paused'
                                         ? 'paused'
                                         : progress.phase === 'done'
                                             ? 'done'
                                             : 'uploading';
                         const partLabel = progress.totalParts > 1
-                            ? `Uploading part ${Math.max(1, progress.currentPart)} of ${progress.totalParts}`
+                            ? `${progress.isResumed ? 'Resuming' : 'Uploading'} part ${Math.max(1, progress.currentPart)} of ${progress.totalParts}`
                             : `Uploading ${formatFileSize(selectedSourceFile.size)}`;
                         const detail = describeMultipartUploadProgress(progress, selectedSourceFile.name);
 
@@ -3065,6 +3073,11 @@ export function VideoUploadInterface() {
                                         {uploadStatus === 'retrying' ? (
                                             <div className="mt-1 text-xs text-[#c7d2fe]">
                                                 Network hiccup — resuming the upload.
+                                            </div>
+                                        ) : null}
+                                        {uploadStatus === 'paused' ? (
+                                            <div className="mt-1 text-xs text-[#fbbf24]">
+                                                Upload paused. Chunk progress is preserved.
                                             </div>
                                         ) : null}
                                     </div>

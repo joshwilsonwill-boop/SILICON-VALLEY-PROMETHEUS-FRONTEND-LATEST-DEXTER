@@ -1,5 +1,5 @@
 export const STORAGE_TIERS = {
-  free: { label: 'Free', bytes: 500 * 1024 * 1024 },        // 500MB
+  free: { label: 'Free', bytes: 4 * 1024 * 1024 * 1024 },        // 4GB (supports up to 4GB long video upload capacity)
   creator: { label: 'Creator', bytes: 500 * 1024 * 1024 * 1024 },  // 500GB
   studio: { label: 'Studio', bytes: 2 * 1024 * 1024 * 1024 * 1024 }, // 2TB
   cinema: { label: 'Cinema', bytes: 5 * 1024 * 1024 * 1024 * 1024 }, // 5TB
