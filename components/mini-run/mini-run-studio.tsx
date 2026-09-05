@@ -5,7 +5,9 @@ import { motion } from 'framer-motion'
 import {
   CheckCircle2,
   Clapperboard,
+  Clock3,
   Download,
+  ExternalLink,
   Film,
   Layers,
   Loader2,
@@ -52,8 +54,8 @@ type SourceAsset = {
 type ProjectsResponse = { success: boolean; projects: ProjectListItem[] }
 type AssetResponse = { asset?: SourceAsset; source?: { url: string; expiresIn?: number } }
 
-type PipelineMode = 'auto' | 'maul' | 'joseph'
 type SongPolicy = 'auto' | 'disabled'
+const MAX_SHORT_DURATION_SECONDS = 30
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value))
 const parseNonNegative = (value: string, fallback: number) => {
@@ -99,18 +101,16 @@ export function MiniRunStudio() {
   const [assetLoading, setAssetLoading] = React.useState(false)
   const [assetError, setAssetError] = React.useState<string | null>(null)
 
-  const [pipeline, setPipeline] = React.useState<PipelineMode>('auto')
   const [songPolicy, setSongPolicy] = React.useState<SongPolicy>('auto')
   const [startSec, setStartSec] = React.useState('0')
   const [endSec, setEndSec] = React.useState('30')
   const [targetChunkWords, setTargetChunkWords] = React.useState('3')
   const [maxChunkWords, setMaxChunkWords] = React.useState('5')
-  const [canvasWidth, setCanvasWidth] = React.useState('1080')
-  const [canvasHeight, setCanvasHeight] = React.useState('1920')
 
   const [dispatching, setDispatching] = React.useState(false)
   const [dispatchError, setDispatchError] = React.useState<string | null>(null)
   const [job, setJob] = React.useState<{ jobId: string } | null>(null)
+  const [deliveredDurationSec, setDeliveredDurationSec] = React.useState<number | null>(null)
 
   const selectedProject = projects?.find((p) => p.id === selectedProjectId) ?? null
   const durationMs = asset?.duration_ms ?? null
@@ -141,13 +141,14 @@ export function MiniRunStudio() {
 
   React.useEffect(() => {
     if (!durationMs) return
-    setEndSec(String(Math.max(1, Math.round(durationMs / 1000))))
+    setEndSec(String(Math.min(MAX_SHORT_DURATION_SECONDS, Math.max(1, Math.round(durationMs / 1000)))))
   }, [durationMs])
 
   async function selectProject(projectId: string) {
     setSelectedProjectId(projectId)
     setJob(null)
     setDispatchError(null)
+    setDeliveredDurationSec(null)
     setAsset(null)
     setSourceUrl(null)
     setAssetLoading(true)
@@ -166,16 +167,18 @@ export function MiniRunStudio() {
   }
 
   const shotSpec = ((): MiniRunShotSpec => {
-    const start = parseNonNegative(startSec, 0)
-    const end = Math.max(start + 1, parseNonNegative(endSec, start + 30))
+    const sourceDurationSec = durationMs ? durationMs / 1000 : null
+    const start = clamp(parseNonNegative(startSec, 0), 0, Math.max(0, (sourceDurationSec ?? Number.MAX_SAFE_INTEGER) - 1))
+    const availableDuration = sourceDurationSec ? Math.max(1, sourceDurationSec - start) : MAX_SHORT_DURATION_SECONDS
+    const outputDuration = Math.min(MAX_SHORT_DURATION_SECONDS, availableDuration)
     return {
-      pipeline,
+      pipeline: 'maul',
       sourceStartMs: Math.round(start * 1000),
-      sourceEndMs: Math.round(end * 1000),
+      sourceEndMs: Math.round((start + outputDuration) * 1000),
       targetChunkWords: clamp(parseNonNegative(targetChunkWords, 3), 1, 15),
       maxChunkWords: clamp(parseNonNegative(maxChunkWords, 5), 1, 30),
-      canvasWidth: clamp(parseNonNegative(canvasWidth, 1080), 1, 4096),
-      canvasHeight: clamp(parseNonNegative(canvasHeight, 1920), 1, 4096),
+      canvasWidth: 1080,
+      canvasHeight: 1920,
       songPolicy,
     }
   })()
@@ -185,6 +188,7 @@ export function MiniRunStudio() {
     setDispatching(true)
     setDispatchError(null)
     setJob(null)
+    setDeliveredDurationSec(null)
     try {
       const result = await dispatchMiniRunFromProject({
         projectId: selectedProjectId,
@@ -205,7 +209,10 @@ export function MiniRunStudio() {
     setSelectedProjectId(null)
     setAsset(null)
     setSourceUrl(null)
+    setDeliveredDurationSec(null)
   }
+
+  const outputIsTooLong = deliveredDurationSec !== null && deliveredDurationSec > MAX_SHORT_DURATION_SECONDS + 0.1
 
 
   return (
@@ -219,9 +226,8 @@ export function MiniRunStudio() {
           Cut a long-form source into a finished 9:16 short — you call the shots.
         </h1>
         <p className="max-w-2xl text-sm leading-6 text-white/55">
-          Pick one of your own source videos, set the clip window and chunk styling,
-          then dispatch it to the studio. The pipeline transcribes, cuts dead air,
-          burns typography and renders a portrait MP4 back into your library.
+          Select a landscape source and the moment to start from. Mini-Runs transcribes,
+          reframes and renders one captioned 9:16 MP4, capped at 30 seconds.
         </p>
       </div>
 
@@ -350,7 +356,7 @@ export function MiniRunStudio() {
               </motion.span>
               Set the shots
             </CardTitle>
-            <CardDescription>Trim the window, choose the rhythm, pick the pipeline.</CardDescription>
+            <CardDescription>Choose where the 30-second short begins and set the caption rhythm.</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-5">
             <div className="grid grid-cols-2 gap-4">
@@ -365,13 +371,13 @@ export function MiniRunStudio() {
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="mrun-end">End (sec)</Label>
+                <Label htmlFor="mrun-end">Output length</Label>
                 <Input
                   id="mrun-end"
                   type="number"
-                  min={1}
+                  readOnly
                   value={endSec}
-                  onChange={(e) => setEndSec(e.target.value)}
+                  aria-label="Output length in seconds"
                 />
               </div>
             </div>
@@ -408,42 +414,10 @@ export function MiniRunStudio() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="mrun-w">Canvas width</Label>
-                <Input
-                  id="mrun-w"
-                  type="number"
-                  min={1}
-                  value={canvasWidth}
-                  onChange={(e) => setCanvasWidth(e.target.value)}
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="mrun-h">Canvas height</Label>
-                <Input
-                  id="mrun-h"
-                  type="number"
-                  min={1}
-                  value={canvasHeight}
-                  onChange={(e) => setCanvasHeight(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <Separator />
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="mrun-pipeline">Pipeline</Label>
-                <select
-                  id="mrun-pipeline"
-                  className="h-9 w-full rounded-[16px] border border-white/10 bg-white/[0.03] px-3 text-sm text-white/90 outline-none focus:ring-0"
-                  value={pipeline}
-                  onChange={(e) => setPipeline(e.target.value as PipelineMode)}
-                >
-                  <option value="auto">Auto (classify)</option>
-                  <option value="maul">Maul (short-form)</option>
-                  <option value="joseph">Joseph (long-form)</option>
-                </select>
+                <Label>Format</Label>
+                <div className="flex h-9 items-center gap-2 rounded-[16px] border border-white/10 bg-white/[0.03] px-3 text-sm text-white/75">
+                  <Film className="size-3.5 text-white/45" /> 9:16 portrait MP4
+                </div>
               </div>
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="mrun-song">Soundtrack</Label>
@@ -519,16 +493,47 @@ export function MiniRunStudio() {
 
             {lifecycle === 'completed' && status?.outputUrl && (
               <div className="flex w-full flex-col gap-3">
-                <div className="flex items-center gap-2 text-sm font-medium text-emerald-200">
-                  <CheckCircle2 className="size-4" /> Short complete
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 text-sm font-medium text-emerald-200">
+                    <CheckCircle2 className="size-4" /> MP4 delivered
+                  </div>
+                  <Badge className="border-emerald-500/20 bg-emerald-500/10 text-emerald-200">9:16 short</Badge>
                 </div>
                 <div className="overflow-hidden rounded-[18px] border border-white/10 bg-black">
-                  <video src={status.outputUrl} controls className="aspect-[9/16] w-full bg-black object-contain" />
+                  <video
+                    src={status.outputUrl}
+                    controls
+                    className="aspect-[9/16] w-full bg-black object-contain"
+                    onLoadedMetadata={(event) => {
+                      const duration = event.currentTarget.duration
+                      setDeliveredDurationSec(Number.isFinite(duration) ? duration : null)
+                    }}
+                  />
                 </div>
+                <div className="flex items-center gap-2 text-xs text-white/45">
+                  <Clock3 className="size-3.5" />
+                  {deliveredDurationSec == null ? 'Checking delivered duration...' : `${deliveredDurationSec.toFixed(1)} second MP4`}
+                </div>
+                {outputIsTooLong && (
+                  <p className="rounded-[14px] border border-rose-500/20 bg-rose-500/5 px-3 py-2 text-xs leading-5 text-rose-200">
+                    The delivered file exceeds the 30-second Mini-Run limit. Do not publish it; start a new render.
+                  </p>
+                )}
                 <div className="flex flex-wrap items-center gap-2">
-                  <Button asChild variant="outline" size="sm">
-                    <a href={status.outputUrl} target="_blank" rel="noreferrer" download>
+                  {outputIsTooLong ? (
+                    <Button variant="outline" size="sm" disabled>
                       <Download className="size-4" /> Download
+                    </Button>
+                  ) : (
+                    <Button asChild variant="outline" size="sm">
+                      <a href={status.outputUrl} download>
+                        <Download className="size-4" /> Download
+                      </a>
+                    </Button>
+                  )}
+                  <Button asChild variant="ghost" size="sm">
+                    <a href={status.outputUrl} target="_blank" rel="noreferrer">
+                      <ExternalLink className="size-4" /> Open
                     </a>
                   </Button>
                   <Button variant="ghost" size="sm" onClick={handleReset}>
@@ -538,6 +543,12 @@ export function MiniRunStudio() {
                 {status.pipelineJobId && (
                   <p className="truncate text-xs text-white/40">Job: {status.pipelineJobId}</p>
                 )}
+              </div>
+            )}
+
+            {lifecycle === 'completed' && !status?.outputUrl && (
+              <div className="flex w-full items-center gap-2 rounded-[14px] border border-rose-500/20 bg-rose-500/5 px-3 py-2 text-sm text-rose-200">
+                <XCircle className="size-4 shrink-0" /> The render completed without a downloadable MP4 URL.
               </div>
             )}
 

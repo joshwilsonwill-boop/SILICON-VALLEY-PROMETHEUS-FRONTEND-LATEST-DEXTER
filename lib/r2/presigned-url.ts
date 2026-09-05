@@ -1,11 +1,28 @@
 import { PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { request as httpsRequest } from 'node:https'
 import { r2Client } from "./client";
 import { r2SigningClockOffset } from './signing-clock';
 
 const EXPIRE_IN_SECONDS = 3600; // 1 hour
 const CLOCK_OFFSET_CACHE_MS = 5 * 60 * 1000
 let cachedClockOffset: { value: number | null; checkedAt: number } | null = null
+
+async function r2ServerDateOverIpv4(accountId: string): Promise<string | null> {
+  return new Promise((resolve) => {
+    const request = httpsRequest(
+      `https://${accountId}.r2.cloudflarestorage.com`,
+      { method: 'HEAD', family: 4, timeout: 3_000 },
+      (response) => {
+        response.resume()
+        resolve(response.headers.date ?? null)
+      },
+    )
+    request.once('timeout', () => request.destroy())
+    request.once('error', () => resolve(null))
+    request.end()
+  })
+}
 
 async function r2SigningDate() {
   const now = Date.now()
@@ -16,21 +33,15 @@ async function r2SigningDate() {
   const accountId = (process.env.R2_ACCOUNT_ID || process.env.R2_ACCOUNT_ID_3 || process.env.R2_ACCOUNT_ID_2)?.trim()
   if (!accountId) return undefined
 
-  try {
-    // R2 returns a Date header even for this unauthenticated request. It lets
-    // presigning remain valid when a local development machine has clock drift.
-    const response = await fetch(`https://${accountId}.r2.cloudflarestorage.com`, {
-      method: 'HEAD',
-      signal: AbortSignal.timeout(3_000),
-    })
-    const offset = r2SigningClockOffset(response.headers.get('date'), now)
-    cachedClockOffset = { value: offset, checkedAt: now }
-    if (offset !== null) {
-      console.warn(`[r2] Local clock differs from R2 by ${Math.round(offset / 1000)} seconds; compensating signed URLs.`)
-      return new Date(Date.now() + offset)
-    }
-  } catch {
-    // Fall back to the system clock. Production hosts should already be NTP-synchronized.
+  // R2 returns a Date header for unauthenticated requests. Pin this tiny
+  // probe to IPv4 because the local development host can black-hole IPv6
+  // requests before fetch's abort signal has a chance to fire.
+  const serverDate = await r2ServerDateOverIpv4(accountId)
+  const offset = r2SigningClockOffset(serverDate, now)
+  cachedClockOffset = { value: offset, checkedAt: now }
+  if (offset !== null) {
+    console.warn(`[r2] Local clock differs from R2 by ${Math.round(offset / 1000)} seconds; compensating signed URLs.`)
+    return new Date(Date.now() + offset)
   }
 
   cachedClockOffset = { value: null, checkedAt: now }
@@ -49,7 +60,12 @@ export async function getPresignedPutUrl(bucket: string, key: string, contentTyp
   return url;
 }
 
-export async function getPresignedGetUrl(bucket: string, key: string, dispositionOrFilename?: string) {
+export async function getPresignedGetUrl(
+  bucket: string,
+  key: string,
+  dispositionOrFilename?: string,
+  expiresIn: number = EXPIRE_IN_SECONDS,
+) {
   const responseContentDisposition = dispositionOrFilename && !dispositionOrFilename.includes('attachment')
     ? `attachment; filename="${dispositionOrFilename}"`
     : dispositionOrFilename;
@@ -61,6 +77,6 @@ export async function getPresignedGetUrl(bucket: string, key: string, dispositio
   });
 
   const signingDate = await r2SigningDate()
-  const url = await getSignedUrl(r2Client as any, command, { expiresIn: EXPIRE_IN_SECONDS, ...(signingDate ? { signingDate } : {}) });
+  const url = await getSignedUrl(r2Client as any, command, { expiresIn, ...(signingDate ? { signingDate } : {}) });
   return url;
 }

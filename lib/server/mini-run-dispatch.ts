@@ -1,7 +1,4 @@
-import {GetObjectCommand} from '@aws-sdk/client-s3'
-import {getSignedUrl} from '@aws-sdk/s3-request-presigner'
-
-import {r2Client} from '@/lib/r2/client'
+import {getPresignedGetUrl} from '@/lib/r2/presigned-url'
 import {
   resolveMiniRunConfig,
   type MiniRunEnvironment,
@@ -34,11 +31,7 @@ export type MiniRunRenderDispatchRequest = {
 export type MiniRunRenderDispatchEnvironment = MiniRunEnvironment
 
 export async function buildMiniRunSourceUrl(bucket: string, storagePath: string): Promise<string> {
-  const command = new GetObjectCommand({
-    Bucket: bucket,
-    Key: storagePath,
-  })
-  return getSignedUrl(r2Client as any, command, {expiresIn: SOURCE_URL_EXPIRES_SECONDS})
+  return getPresignedGetUrl(bucket, storagePath, undefined, SOURCE_URL_EXPIRES_SECONDS)
 }
 
 export async function dispatchMiniRunRender({

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 
 import { ProjectService } from '@/lib/projects/service'
+import { buildMiniRunRenderPayload } from '@/lib/server/mini-run-render-payload'
 import { buildMiniRunSourceUrl } from '@/lib/server/mini-run-dispatch'
 import { resolveMiniRunConfig } from '@/lib/server/mini-run-proxy'
 import { createClient } from '@/lib/supabase/server'
@@ -27,9 +28,6 @@ type SourceAssetRow = {
   width?: number
   height?: number
 }
-
-const isFiniteNumber = (value: unknown): value is number =>
-  typeof value === 'number' && Number.isFinite(value)
 
 export async function POST(req: Request) {
   let jobId: string | undefined
@@ -88,57 +86,9 @@ export async function POST(req: Request) {
 
     const bucket = row.storage_bucket || process.env.R2_BUCKET_SOURCES || 'prometheus-sources'
 
-    // Clip window (seconds -> ms) is the user-authored "shot". Default to a
-    // 30s window unless the asset carries a duration we can clamp against.
-    const startSec = isFiniteNumber(shot.sourceStartMs) ? (shot.sourceStartMs as number) / 1000 : 0
-    const endSec = isFiniteNumber(shot.sourceEndMs) ? (shot.sourceEndMs as number) / 1000 : undefined
-    const sourceDurationMs = row.duration_ms ?? row.durationMs
-    const fallbackEndSec = isFiniteNumber(sourceDurationMs)
-      ? sourceDurationMs / 1000
-      : startSec + 30
-    const actualEndSec = endSec && endSec > startSec ? endSec : fallbackEndSec
-    const durationMs = Math.round(Math.max(0, (actualEndSec - startSec) * 1000))
-
-    const width = isFiniteNumber(shot.canvasWidth) ? (shot.canvasWidth as number) : 1080
-    const height = isFiniteNumber(shot.canvasHeight) ? (shot.canvasHeight as number) : 1920
-
-    const metadata: Record<string, unknown> = {
-      durationSec: durationMs / 1000,
-      durationMs,
-      width: isFiniteNumber(row.width) ? row.width : undefined,
-      height: isFiniteNumber(row.height) ? row.height : undefined,
-    }
-    if (shot.pipeline === 'maul' || shot.pipeline === 'joseph') metadata.pipeline = shot.pipeline
-
-    const targetChunkWords = isFiniteNumber(shot.targetChunkWords)
-      ? Math.max(1, Math.min(15, Math.round(shot.targetChunkWords as number)))
-      : undefined
-    const maxChunkWords = isFiniteNumber(shot.maxChunkWords)
-      ? Math.max(targetChunkWords ?? 1, Math.min(30, Math.round(shot.maxChunkWords as number)))
-      : undefined
-
     // New job id is generated here so the UI can be told what to poll even if
     // the gateway re-derives its own internal id from the same value.
     jobId = crypto.randomUUID()
-
-    const bodyPayload: Record<string, unknown> = {
-      source: {}, // filled after we build the presigned URL
-      metadata,
-      design: { canvasWidth: width, canvasHeight: height },
-      selectedWindow: {
-        sourceStartMs: Math.round(startSec * 1000),
-        sourceEndMs: Math.round(actualEndSec * 1000),
-      },
-      jobId,
-    }
-    if (targetChunkWords != null) bodyPayload.targetChunkWords = targetChunkWords
-    if (maxChunkWords != null) bodyPayload.maxChunkWords = maxChunkWords
-    if (shot.songPolicy === 'disabled') bodyPayload.audio = { songPolicy: 'disabled' }
-
-    // Drop undefined metadata fields so they never get serialized.
-    for (const key of Object.keys(metadata)) {
-      if (metadata[key] === undefined) delete metadata[key]
-    }
 
     const env = {
       MINI_RUN_BACKEND_URL: process.env.MINI_RUN_BACKEND_URL,
@@ -147,7 +97,16 @@ export async function POST(req: Request) {
     }
     const config = resolveMiniRunConfig(env)
     const sourceUrl = await buildMiniRunSourceUrl(bucket, row.storage_path)
-    bodyPayload.source = { url: sourceUrl }
+    const bodyPayload = buildMiniRunRenderPayload({
+      sourceUrl,
+      source: {
+        durationMs: row.duration_ms ?? row.durationMs,
+        width: row.width,
+        height: row.height,
+      },
+      shot,
+      jobId,
+    })
 
     const response = await fetch(`${config.baseUrl}/api/pipeline/render`, {
       method: 'POST',

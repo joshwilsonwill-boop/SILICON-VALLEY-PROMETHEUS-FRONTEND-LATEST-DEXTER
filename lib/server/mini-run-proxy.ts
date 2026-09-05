@@ -136,6 +136,24 @@ export async function proxyMiniRunRequest({
 }) {
   const outbound = await buildMiniRunRequest({request, pathSegments, env})
   const upstream = await fetchImpl(outbound.url, outbound.init)
+
+  // Completed Mini-Run jobs can resolve with a 303 redirect straight to the
+  // rendered MP4. Browser polling expects JSON, so preserve the output URL in
+  // the job envelope instead of forwarding the redirect as a media response.
+  if (request.method.toUpperCase() === 'GET' && /^api\/pipeline\/job\/[A-Za-z0-9._~-]+$/.test(pathSegments.join('/')) && upstream.status === 303) {
+    const location = upstream.headers.get('location')
+    if (location) {
+      return Response.json({
+        jobId: pathSegments[pathSegments.length - 1],
+        state: 'completed',
+        status: 'completed',
+        outputUrl: `/api/mini-run/job/${encodeURIComponent(pathSegments[pathSegments.length - 1])}/output`,
+      }, {
+        headers: {'Cache-Control': 'no-store'},
+      })
+    }
+  }
+
   const headers = new Headers()
   for (const name of forwardedResponseHeaders) {
     const value = upstream.headers.get(name)

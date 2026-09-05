@@ -57,6 +57,10 @@ type MiniRunJobEnvelope = {
   failedReason?: string | null
   pipeline?: string
   pipelineJobId?: string
+  outputUrl?: string
+  r2Key?: string | null
+  outputPath?: string
+  chunkCount?: number
   returnvalue?: MiniRunRenderStatus | null
   response?: MiniRunRenderStatus | null
 }
@@ -83,10 +87,10 @@ function normalizeEnvelope(payload: MiniRunJobEnvelope): MiniRunRenderStatus {
     state: payload.state ?? payload.status ?? inner.state ?? inner.status ?? 'unknown',
     status: payload.status ?? payload.state ?? inner.status ?? inner.state ?? 'unknown',
     pipelineJobId: payload.pipelineJobId ?? inner.pipelineJobId,
-    outputUrl: inner.outputUrl,
-    r2Key: inner.r2Key,
-    outputPath: inner.outputPath,
-    chunkCount: inner.chunkCount,
+    outputUrl: payload.outputUrl ?? inner.outputUrl,
+    r2Key: payload.r2Key ?? inner.r2Key,
+    outputPath: payload.outputPath ?? inner.outputPath,
+    chunkCount: payload.chunkCount ?? inner.chunkCount,
     failedReason: payload.failedReason ?? inner.failedReason ?? null,
     error: payload.failedReason ?? inner.error ?? (payload.ok === false ? 'Mini-Run job failed.' : undefined),
   }
