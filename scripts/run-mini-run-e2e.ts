@@ -32,10 +32,14 @@ const outputUrl = (payload: Record<string, unknown>) => {
 }
 
 async function requestJson(url: string, init: RequestInit, timeoutMs = 120_000) {
+  const headers = init.headers
+    ? Object.fromEntries(new Headers(init.headers).entries())
+    : undefined
+
   return new Promise<Record<string, unknown>>((resolve, reject) => {
     const request = httpsRequest(url, {
       method: init.method ?? 'GET',
-      headers: init.headers,
+      headers,
       family: 4,
       timeout: timeoutMs,
     }, (response) => {
