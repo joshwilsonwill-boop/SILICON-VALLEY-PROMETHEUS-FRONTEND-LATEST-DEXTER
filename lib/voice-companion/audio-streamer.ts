@@ -261,6 +261,9 @@ export class AudioPlayer {
   private scheduledSources: AudioBufferSourceNode[] = []
   private nextPlayTime = 0
   private isPlaying = false
+  private playbackQueue: string[] = []
+  private playbackDrain: Promise<void> = Promise.resolve()
+  private playbackGeneration = 0
   private onPlaybackStateChange?: (playing: boolean) => void
 
   constructor(options?: { onPlaybackStateChange?: (playing: boolean) => void }) {
@@ -298,11 +301,25 @@ export class AudioPlayer {
     return Math.max(0, (this.nextPlayTime - this.audioContext.currentTime) * 1000)
   }
 
-  async playChunk(base64Audio: string): Promise<void> {
+  playChunk(base64Audio: string): Promise<void> {
+    this.playbackQueue.push(base64Audio)
+    const generation = this.playbackGeneration
+    this.playbackDrain = this.playbackDrain.catch(() => {}).then(async () => {
+      while (this.playbackQueue.length > 0) {
+        const next = this.playbackQueue.shift()
+        if (!next || generation !== this.playbackGeneration) return
+        await this.scheduleChunk(next, generation)
+      }
+    })
+    return this.playbackDrain
+  }
+
+  private async scheduleChunk(base64Audio: string, generation: number): Promise<void> {
     const ctx = this.initContext()
     if (ctx.state === 'suspended') {
       await ctx.resume().catch(() => {})
     }
+    if (generation !== this.playbackGeneration) return
 
     const rawBuffer = base64ToArrayBuffer(base64Audio)
     const int16Length = Math.floor(rawBuffer.byteLength / 2)
@@ -352,6 +369,8 @@ export class AudioPlayer {
    * when the user interrupts or starts speaking.
    */
   flush(): void {
+    this.playbackGeneration += 1
+    this.playbackQueue = []
     for (const source of this.scheduledSources) {
       try {
         source.stop()
@@ -382,6 +401,7 @@ export class AudioPlayer {
 
   stop(): void {
     this.flush()
+    this.playbackDrain = Promise.resolve()
     this.audioContext = null
     this.analyser = null
   }

@@ -19,6 +19,8 @@ assert.match(audioStreamer, /BARGE_IN_SUSTAINED_FRAMES/, 'AudioRecorder must req
 assert.match(audioStreamer, /silenceChunkBase64/, 'AudioRecorder must silence-fill gated frames instead of dropping them')
 assert.match(audioStreamer, /getIsPlaying\(\)/, 'AudioPlayer must expose getIsPlaying()')
 assert.match(audioStreamer, /getPendingMs\(\)/, 'AudioPlayer must expose getPendingMs() for turn-aware gating')
+assert.match(audioStreamer, /playbackQueue/, 'AudioPlayer must serialize incoming model audio chunks')
+assert.match(audioStreamer, /playbackGeneration/, 'AudioPlayer must cancel stale queued audio after a flush')
 
 // 2. GeminiLiveClient: Model & Response Modalities
 assert.match(geminiLiveClient, /models\/gemini-3\.1-flash-live-preview/, 'Live client must default to a supported Gemini Live model')

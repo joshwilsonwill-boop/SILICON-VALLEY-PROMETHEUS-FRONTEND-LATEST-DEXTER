@@ -55,7 +55,10 @@ type ProjectsResponse = { success: boolean; projects: ProjectListItem[] }
 type AssetResponse = { asset?: SourceAsset; source?: { url: string; expiresIn?: number } }
 
 type SongPolicy = 'auto' | 'disabled'
-const MAX_SHORT_DURATION_SECONDS = 30
+const DEFAULT_SHORT_DURATION_SECONDS = 30
+const MIN_SHORT_DURATION_SECONDS = 5
+const MAX_SHORT_DURATION_SECONDS = 180
+const OUTPUT_DURATION_TOLERANCE_SECONDS = 5
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value))
 const parseNonNegative = (value: string, fallback: number) => {
@@ -103,7 +106,7 @@ export function MiniRunStudio() {
 
   const [songPolicy, setSongPolicy] = React.useState<SongPolicy>('auto')
   const [startSec, setStartSec] = React.useState('0')
-  const [endSec, setEndSec] = React.useState('30')
+  const [preferredDurationSec, setPreferredDurationSec] = React.useState(String(DEFAULT_SHORT_DURATION_SECONDS))
   const [targetChunkWords, setTargetChunkWords] = React.useState('3')
   const [maxChunkWords, setMaxChunkWords] = React.useState('5')
 
@@ -141,7 +144,11 @@ export function MiniRunStudio() {
 
   React.useEffect(() => {
     if (!durationMs) return
-    setEndSec(String(Math.min(MAX_SHORT_DURATION_SECONDS, Math.max(1, Math.round(durationMs / 1000)))))
+    setPreferredDurationSec((current) => {
+      const requested = Number(current)
+      if (Number.isFinite(requested) && requested >= MIN_SHORT_DURATION_SECONDS && requested <= MAX_SHORT_DURATION_SECONDS) return current
+      return String(Math.min(MAX_SHORT_DURATION_SECONDS, Math.max(MIN_SHORT_DURATION_SECONDS, Math.round(durationMs / 1000))))
+    })
   }, [durationMs])
 
   async function selectProject(projectId: string) {
@@ -169,12 +176,18 @@ export function MiniRunStudio() {
   const shotSpec = ((): MiniRunShotSpec => {
     const sourceDurationSec = durationMs ? durationMs / 1000 : null
     const start = clamp(parseNonNegative(startSec, 0), 0, Math.max(0, (sourceDurationSec ?? Number.MAX_SAFE_INTEGER) - 1))
-    const availableDuration = sourceDurationSec ? Math.max(1, sourceDurationSec - start) : MAX_SHORT_DURATION_SECONDS
-    const outputDuration = Math.min(MAX_SHORT_DURATION_SECONDS, availableDuration)
+    const requestedDuration = clamp(
+      parseNonNegative(preferredDurationSec, DEFAULT_SHORT_DURATION_SECONDS),
+      MIN_SHORT_DURATION_SECONDS,
+      MAX_SHORT_DURATION_SECONDS,
+    )
+    const availableDuration = sourceDurationSec ? Math.max(1, sourceDurationSec - start) : requestedDuration
+    const outputDuration = Math.min(requestedDuration, availableDuration)
     return {
       pipeline: 'maul',
       sourceStartMs: Math.round(start * 1000),
       sourceEndMs: Math.round((start + outputDuration) * 1000),
+      preferredDurationSec: requestedDuration,
       targetChunkWords: clamp(parseNonNegative(targetChunkWords, 3), 1, 15),
       maxChunkWords: clamp(parseNonNegative(maxChunkWords, 5), 1, 30),
       canvasWidth: 1080,
@@ -212,7 +225,12 @@ export function MiniRunStudio() {
     setDeliveredDurationSec(null)
   }
 
-  const outputIsTooLong = deliveredDurationSec !== null && deliveredDurationSec > MAX_SHORT_DURATION_SECONDS + 0.1
+  const requestedOutputDurationSec = clamp(
+    parseNonNegative(preferredDurationSec, DEFAULT_SHORT_DURATION_SECONDS),
+    MIN_SHORT_DURATION_SECONDS,
+    MAX_SHORT_DURATION_SECONDS,
+  )
+  const outputIsTooLong = deliveredDurationSec !== null && deliveredDurationSec > requestedOutputDurationSec + OUTPUT_DURATION_TOLERANCE_SECONDS
 
 
   return (
@@ -227,7 +245,7 @@ export function MiniRunStudio() {
         </h1>
         <p className="max-w-2xl text-sm leading-6 text-white/55">
           Select a landscape source and the moment to start from. Mini-Runs transcribes,
-          reframes and renders one captioned 9:16 MP4, capped at 30 seconds.
+          reframes and renders one captioned 9:16 MP4 at your preferred short-form length.
         </p>
       </div>
 
@@ -356,7 +374,7 @@ export function MiniRunStudio() {
               </motion.span>
               Set the shots
             </CardTitle>
-            <CardDescription>Choose where the 30-second short begins and set the caption rhythm.</CardDescription>
+            <CardDescription>Choose where the short begins, set its preferred length, and tune the caption rhythm.</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-5">
             <div className="grid grid-cols-2 gap-4">
@@ -371,13 +389,16 @@ export function MiniRunStudio() {
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="mrun-end">Output length</Label>
+                <Label htmlFor="mrun-duration">Preferred length (sec)</Label>
                 <Input
-                  id="mrun-end"
+                  id="mrun-duration"
                   type="number"
-                  readOnly
-                  value={endSec}
-                  aria-label="Output length in seconds"
+                  min={MIN_SHORT_DURATION_SECONDS}
+                  max={MAX_SHORT_DURATION_SECONDS}
+                  step={1}
+                  value={preferredDurationSec}
+                  onChange={(e) => setPreferredDurationSec(e.target.value)}
+                  aria-label="Preferred output length in seconds"
                 />
               </div>
             </div>
@@ -516,7 +537,7 @@ export function MiniRunStudio() {
                 </div>
                 {outputIsTooLong && (
                   <p className="rounded-[14px] border border-rose-500/20 bg-rose-500/5 px-3 py-2 text-xs leading-5 text-rose-200">
-                    The delivered file exceeds the 30-second Mini-Run limit. Do not publish it; start a new render.
+                    The delivered file is more than five seconds beyond your preferred length. Review it before publishing or start a new render.
                   </p>
                 )}
                 <div className="flex flex-wrap items-center gap-2">

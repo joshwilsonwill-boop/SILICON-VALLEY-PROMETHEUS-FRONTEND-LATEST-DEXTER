@@ -17,6 +17,8 @@ export type MiniRunShotSpec = {
   /** Clip window within the source, in milliseconds. */
   sourceStartMs?: number
   sourceEndMs?: number
+  /** User-requested deliverable length in seconds. */
+  preferredDurationSec?: number
   /** Words per typographic chunk (defaults 3) / upper bound (defaults 5). */
   targetChunkWords: number
   maxChunkWords: number

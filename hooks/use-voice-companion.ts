@@ -339,7 +339,11 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
             // Assistant turn is live: keep the echo gate engaged even between
             // chunks (and after a barge-in flush) until turnComplete arrives.
             assistantTurnActiveRef.current = true
-            player.playChunk(base64Pcm24k)
+            void player.playChunk(base64Pcm24k).catch((playbackError) => {
+              const message = playbackError instanceof Error ? playbackError.message : 'Jarvis audio playback failed.'
+              setError(message)
+              setUserStatus('error')
+            })
           },
           onTranscript: (text, isUser) => {
             setTranscripts((prev) => {
