@@ -31,6 +31,28 @@ export interface GeminiLiveEvents {
   onToolCall?: ToolCallHandler
 }
 
+export function buildRealtimeAudioInput(base64Pcm: string) {
+  return {
+    realtimeInput: {
+      audio: {
+        mimeType: 'audio/pcm;rate=16000',
+        data: base64Pcm,
+      },
+    },
+  }
+}
+
+export function buildRealtimeVideoInput(base64Jpeg: string) {
+  return {
+    realtimeInput: {
+      video: {
+        mimeType: 'image/jpeg',
+        data: base64Jpeg,
+      },
+    },
+  }
+}
+
 export class GeminiLiveClient {
   private ws: WebSocket | null = null
   private config: GeminiLiveConfig
@@ -373,36 +395,12 @@ Keep your spoken responses fluid, punchy, conversational, and helpful. Never rea
 
   sendAudioChunk(base64Pcm: string): void {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN || !this.isSetupComplete) return
-
-    const payload = {
-      realtimeInput: {
-        mediaChunks: [
-          {
-            mimeType: 'audio/pcm;rate=16000',
-            data: base64Pcm,
-          },
-        ],
-      },
-    }
-
-    this.ws.send(JSON.stringify(payload))
+    this.ws.send(JSON.stringify(buildRealtimeAudioInput(base64Pcm)))
   }
 
   sendVisualFrame(base64Jpeg: string): void {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN || !this.isSetupComplete) return
-
-    const payload = {
-      realtimeInput: {
-        mediaChunks: [
-          {
-            mimeType: 'image/jpeg',
-            data: base64Jpeg,
-          },
-        ],
-      },
-    }
-
-    this.ws.send(JSON.stringify(payload))
+    this.ws.send(JSON.stringify(buildRealtimeVideoInput(base64Jpeg)))
   }
 
   sendContextText(text: string): void {

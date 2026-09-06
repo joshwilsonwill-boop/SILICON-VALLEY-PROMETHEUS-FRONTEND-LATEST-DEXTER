@@ -25,6 +25,9 @@ assert.match(audioStreamer, /playbackGeneration/, 'AudioPlayer must cancel stale
 // 2. GeminiLiveClient: Model & Response Modalities
 assert.match(geminiLiveClient, /models\/gemini-3\.1-flash-live-preview/, 'Live client must default to a supported Gemini Live model')
 assert.match(geminiLiveClient, /responseModalities:\s*\[['"]AUDIO['"]\]/, 'Live client must request AUDIO response modality')
+assert.doesNotMatch(geminiLiveClient, /mediaChunks/, 'Live client must not use deprecated realtimeInput.mediaChunks')
+assert.match(geminiLiveClient, /realtimeInput:\s*\{\s*audio:\s*\{/s, 'Live client must send microphone PCM through realtimeInput.audio')
+assert.match(geminiLiveClient, /realtimeInput:\s*\{\s*video:\s*\{/s, 'Live client must send visual frames through realtimeInput.video')
 
 // 3. useVoiceCompanion: Synchronous Priming & Error Preservation
 assert.match(useVoiceCompanion, /primeAudioContext\(\)/, 'useVoiceCompanion must synchronously prime Web Audio on connect gesture')
