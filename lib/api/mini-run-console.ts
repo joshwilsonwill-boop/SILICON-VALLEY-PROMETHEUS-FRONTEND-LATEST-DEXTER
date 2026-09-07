@@ -87,3 +87,58 @@ export async function dispatchMiniRunFromProject(
     statusUrl: `/api/mini-run/api/pipeline/job/${identifier(body.jobId, 'job ID')}`,
   }
 }
+
+export type MiniRunDispatchLongformInput = {
+  projectId: string
+  sourceAssetId: string
+  nClips?: number
+  prompt?: string
+  brandPreferences?: Record<string, unknown>
+  songPolicy?: 'auto' | 'disabled'
+}
+
+export type MiniRunDispatchLongformResult = {
+  batchJobId: string
+  status: string
+  nClips: number
+  pollUrl: string
+}
+
+export async function dispatchLongformFromProject(
+  input: MiniRunDispatchLongformInput,
+  fetchImpl: typeof fetch = fetch,
+): Promise<MiniRunDispatchLongformResult> {
+  const response = await fetchImpl('/api/mini-run/dispatch-longform', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    cache: 'no-store',
+    body: JSON.stringify(input),
+  })
+
+  const body = (await response.json().catch(() => ({}))) as {
+    batchJobId?: unknown
+    status?: unknown
+    nClips?: unknown
+    error?: unknown
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      typeof body.error === 'string'
+        ? body.error
+        : `Could not start the viral batch (HTTP ${response.status}).`,
+    )
+  }
+
+  if (typeof body.batchJobId !== 'string' || !body.batchJobId) {
+    throw new Error('Mini-Run dispatch response omitted the batch job id.')
+  }
+
+  return {
+    batchJobId: body.batchJobId,
+    status: typeof body.status === 'string' ? body.status : 'queued',
+    nClips: typeof body.nClips === 'number' ? body.nClips : (input.nClips ?? 4),
+    pollUrl: `/api/mini-run/api/pipeline/longform/${identifier(body.batchJobId, 'batch job ID')}`,
+  }
+}

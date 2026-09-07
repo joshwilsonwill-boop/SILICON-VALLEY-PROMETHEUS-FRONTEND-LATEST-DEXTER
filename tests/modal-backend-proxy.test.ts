@@ -52,6 +52,11 @@ async function run() {
   assert.equal(proxy.isAllowedModalBackendRequest!('POST', ['api', 'pipeline', 'video_chunker'], 'mini-run'), true)
   assert.equal(proxy.isAllowedModalBackendRequest!('POST', ['api', 'pipeline', 'matte'], 'mini-run'), true)
   assert.equal(proxy.isAllowedModalBackendRequest!('POST', ['api', 'pipeline', 'render'], 'mini-run'), true)
+  assert.equal(proxy.isAllowedModalBackendRequest!('POST', ['api', 'pipeline', 'longform'], 'mini-run'), true)
+  assert.equal(
+    proxy.isAllowedModalBackendRequest!('GET', ['api', 'pipeline', 'longform', 'batch_123'], 'mini-run'),
+    true,
+  )
   assert.equal(
     proxy.isAllowedModalBackendRequest!('GET', ['api', 'pipeline', 'job', 'job_abc_123'], 'mini-run'),
     true,

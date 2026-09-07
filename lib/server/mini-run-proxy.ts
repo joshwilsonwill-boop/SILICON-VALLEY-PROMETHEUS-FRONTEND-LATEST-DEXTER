@@ -67,9 +67,11 @@ export function isAllowedMiniRunRequest(method: string, pathSegments: string[]) 
   if (normalizedMethod === 'POST' && path === 'api/pipeline/video_chunker') return true
   if (normalizedMethod === 'POST' && path === 'api/pipeline/matte') return true
   if (normalizedMethod === 'POST' && path === 'api/pipeline/render') return true
+  if (normalizedMethod === 'POST' && path === 'api/pipeline/longform') return true
   if (
     normalizedMethod === 'GET' &&
-    /^api\/pipeline\/job\/[A-Za-z0-9._~-]+$/.test(path)
+    /^api\/pipeline\/job\/[A-Za-z0-9._~-]+$/.test(path) ||
+    /^api\/pipeline\/longform\/[A-Za-z0-9._~-]+$/.test(path)
   ) {
     return true
   }
@@ -140,7 +142,7 @@ export async function proxyMiniRunRequest({
   // Completed Mini-Run jobs can resolve with a 303 redirect straight to the
   // rendered MP4. Browser polling expects JSON, so preserve the output URL in
   // the job envelope instead of forwarding the redirect as a media response.
-  if (request.method.toUpperCase() === 'GET' && /^api\/pipeline\/job\/[A-Za-z0-9._~-]+$/.test(pathSegments.join('/')) && upstream.status === 303) {
+  if (request.method.toUpperCase() === 'GET' && /^api\/pipeline\/(job|longform)\/[A-Za-z0-9._~-]+$/.test(pathSegments.join('/')) && upstream.status === 303) {
     const location = upstream.headers.get('location')
     if (location) {
       return Response.json({

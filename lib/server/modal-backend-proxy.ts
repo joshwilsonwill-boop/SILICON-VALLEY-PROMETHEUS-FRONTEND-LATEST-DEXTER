@@ -101,6 +101,13 @@ export function isAllowedModalBackendRequest(
   if (normalizedMethod === 'POST' && path === 'api/pipeline/video_chunker') return true
   if (normalizedMethod === 'POST' && path === 'api/pipeline/matte') return true
   if (normalizedMethod === 'POST' && path === 'api/pipeline/render') return true
+  if (normalizedMethod === 'POST' && path === 'api/pipeline/longform') return true
+  if (
+    normalizedMethod === 'GET' &&
+    /^api\/pipeline\/longform\/[A-Za-z0-9_.~-]+$/.test(path)
+  ) {
+    return true
+  }
   return normalizedMethod === 'GET' && /^api\/pipeline\/job\/[A-Za-z0-9_.~-]+$/.test(path)
 }
 

@@ -46,6 +46,75 @@ export type MiniRunRenderStatus = {
   failedReason?: string | null
 }
 
+export type MiniRunLongformRequest = {
+  source: MiniRunRenderSource
+  nClips?: number
+  prompt?: string
+  brandPreferences?: Record<string, unknown>
+  design?: Record<string, unknown>
+  audio?: Record<string, unknown>
+  batchJobId?: string
+  jobIdPrefix?: string
+  sync?: boolean
+}
+
+export type MiniRunLongformSubmission = {
+  batchJobId: string
+  status: string
+  nClips: number
+  pollUrl: string
+}
+
+export type MiniRunLongformClip = {
+  clipIndex: number
+  rank: number
+  jobId: string
+  window: {
+    sourceStartMs: number
+    sourceEndMs: number
+    durationMs: number
+  }
+  viralMetadata: {
+    viralityScore?: number
+    hook?: string
+    reason?: string
+  }
+  success: boolean
+  error?: string | null
+  outputPath?: string
+  outputUrl?: string
+  r2Key?: string | null
+  chunkCount?: number
+  stageTimingsMs?: Record<string, number>
+}
+
+export type MiniRunLongformBatchResult = {
+  batchId?: string
+  sourcePath?: string
+  clipCount?: number
+  succeeded?: number
+  clips?: MiniRunLongformClip[]
+  stageTimingsMs?: {
+    transcribe?: number
+    viralSelect?: number
+    render?: number
+    total?: number
+  }
+}
+
+export type MiniRunLongformStatus = {
+  batchJobId: string
+  state: string
+  status: string
+  failedReason?: string | null
+  error?: string
+  returnvalue?: MiniRunLongformBatchResult | null
+  clips?: MiniRunLongformClip[]
+  clipCount?: number
+  succeeded?: number
+}
+
+
 // The gateway wraps the pipeline job result in `returnvalue`. We surface the
 // fields the editor cares about (the finished MP4 URL, pipeline ids, chunk count)
 // onto the top level so callers get a stable shape regardless of row layout.
@@ -154,6 +223,59 @@ export function createMiniRunClient(fetchImpl: FetchLike = fetch) {
       )
       return normalizeEnvelope(envelope)
     },
+
+    dispatchLongform: async (request: MiniRunLongformRequest) => {
+      const envelope = await jsonRequest<{
+        batchJobId: string
+        status?: string
+        nClips?: number
+        pollUrl?: string
+      }>('/api/pipeline/longform', {
+        method: 'POST',
+        body: JSON.stringify(request),
+      })
+      const batchJobId = envelope.batchJobId
+      if (!batchJobId) throw new Error('Mini-Run longform dispatch response omitted batchJobId.')
+      return {
+        batchJobId,
+        status: envelope.status ?? 'queued',
+        nClips: envelope.nClips ?? request.nClips ?? 4,
+        pollUrl: `${proxyRoot}/api/pipeline/longform/${identifier(batchJobId, 'batch job ID')}`,
+      } satisfies MiniRunLongformSubmission
+    },
+
+    getLongformStatus: async (batchJobId: string): Promise<MiniRunLongformStatus> => {
+      const envelope = await jsonRequest<{
+        ok?: boolean
+        batchJobId?: string
+        state?: string
+        status?: string
+        returnvalue?: MiniRunLongformBatchResult | null
+        failedReason?: string | null
+        error?: string
+      }>(`/api/pipeline/longform/${identifier(batchJobId, 'batch job ID')}`)
+
+      const state = envelope.state ?? envelope.status ?? 'unknown'
+      const status = envelope.status ?? envelope.state ?? 'unknown'
+      const ret = envelope.returnvalue ?? null
+      const clips = ret?.clips ?? []
+
+      return {
+        batchJobId: envelope.batchJobId ?? batchJobId,
+        state,
+        status,
+        failedReason: envelope.failedReason ?? null,
+        error:
+          envelope.failedReason ??
+          envelope.error ??
+          (envelope.ok === false ? 'Longform viral batch failed.' : undefined),
+        returnvalue: ret,
+        clips,
+        clipCount: ret?.clipCount ?? clips.length,
+        succeeded: ret?.succeeded ?? clips.filter((c) => c.success).length,
+      }
+    },
+
   }
 }
 

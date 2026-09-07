@@ -77,6 +77,69 @@ async function run() {
   const status = await client.getRenderStatus('render-789')
   assert.equal(status.outputUrl, 'https://cdn.example.test/short.mp4')
   assert.equal(status.chunkCount, 12)
+
+  // Longform batch client dispatch and status contracts
+  let longformDispatchedUrl = ''
+  let longformDispatchedBody: Record<string, unknown> = {}
+  const longformClient = createMiniRunClient(async (input, init) => {
+    longformDispatchedUrl = String(input)
+    if (init?.body) {
+      longformDispatchedBody = JSON.parse(String(init.body))
+    }
+    if (longformDispatchedUrl.endsWith('/api/pipeline/longform')) {
+      return new Response(JSON.stringify({
+        batchJobId: 'batch_xyz_789',
+        status: 'queued',
+        nClips: 3,
+        pollUrl: '/api/pipeline/longform/batch_xyz_789',
+      }), { headers: { 'Content-Type': 'application/json' } })
+    }
+    if (longformDispatchedUrl.includes('/api/pipeline/longform/batch_xyz_789')) {
+      return new Response(JSON.stringify({
+        ok: true,
+        batchJobId: 'batch_xyz_789',
+        state: 'completed',
+        status: 'completed',
+        returnvalue: {
+          batchId: 'batch_xyz_789_batch',
+          clipCount: 3,
+          succeeded: 3,
+          clips: [
+            {
+              clipIndex: 0,
+              rank: 1,
+              jobId: 'batch_xyz_789_clip1',
+              window: { sourceStartMs: 10000, sourceEndMs: 45000, durationMs: 35000 },
+              viralMetadata: { viralityScore: 95, hook: 'Never do this in trading', reason: 'High shock value' },
+              success: true,
+              outputUrl: 'https://cdn.example.test/clip1.mp4',
+            },
+          ],
+        },
+      }), { headers: { 'Content-Type': 'application/json' } })
+    }
+    return new Response(null, { status: 404 })
+  })
+
+  const batchSubmission = await longformClient.dispatchLongform({
+    source: 'https://cdn.example.test/hour-long.mp4',
+    nClips: 3,
+    prompt: 'Focus on trading tips',
+  })
+  assert.equal(batchSubmission.batchJobId, 'batch_xyz_789')
+  assert.equal(batchSubmission.status, 'queued')
+  assert.equal(batchSubmission.nClips, 3)
+  assert.equal(longformDispatchedBody.nClips, 3)
+  assert.equal(longformDispatchedBody.prompt, 'Focus on trading tips')
+
+  const batchStatus = await longformClient.getLongformStatus('batch_xyz_789')
+  assert.equal(batchStatus.batchJobId, 'batch_xyz_789')
+  assert.equal(batchStatus.state, 'completed')
+  assert.equal(batchStatus.clipCount, 3)
+  assert.equal(batchStatus.succeeded, 3)
+  assert.equal(batchStatus.clips?.length, 1)
+  assert.equal(batchStatus.clips?.[0].viralMetadata?.viralityScore, 95)
+  assert.equal(batchStatus.clips?.[0].outputUrl, 'https://cdn.example.test/clip1.mp4')
 }
 
 void run()
