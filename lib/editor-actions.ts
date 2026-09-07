@@ -2,15 +2,21 @@
  * Editor action drafts produced by the Prometheus chat assistant.
  *
  * The model may *propose* anything, but only actions from this closed enum are
- * machine-readable. Everything executable here is non-destructive and reversible
- * (transport + view state). Anything that mutates media (trim, captions,
- * typography, renders) is forced through the `propose` kind, which is displayed
- * as a plan and never fakes execution.
+ * machine-readable. Two execution tiers exist:
+ *
+ * 1. Ambient tier — non-destructive and reversible (transport + view state).
+ *    Always executable when a handler is registered.
+ * 2. Takeover tier — mutates editor state (splits, typography, caption styling,
+ *    render dispatch). These are only executed when the editor explicitly
+ *    enables takeover via `EditorActionContext.allowMutations`; otherwise they
+ *    degrade to a plan message instead of silently mutating media.
  */
 
 export type PreviewControlCommand = 'play' | 'pause' | 'mute' | 'unmute'
 export type EditorFitMode = 'fill' | 'fit'
 export type EditorWorkspaceTab = 'Editor' | 'Music' | 'Motion'
+export type EditorCaptionStyle = 'clean_bold' | 'karaoke_pop' | 'typewriter' | 'lower_third'
+export type EditorRenderMode = 'preview' | 'final'
 
 export type EditorActionDraft =
   | { kind: 'seek'; timeSec: number; summary: string }
@@ -19,6 +25,12 @@ export type EditorActionDraft =
   | { kind: 'switch_tab'; tab: EditorWorkspaceTab; summary: string }
   | { kind: 'open_thumbnail_studio'; summary: string }
   | { kind: 'open_master_review'; summary: string }
+  | { kind: 'set_playback_rate'; rate: number; summary: string }
+  | { kind: 'step_frames'; frames: number; summary: string }
+  | { kind: 'split_at_playhead'; timeSec: number; summary: string }
+  | { kind: 'set_typography'; preset: string; summary: string }
+  | { kind: 'set_caption_style'; style: EditorCaptionStyle; summary: string }
+  | { kind: 'start_render'; mode: EditorRenderMode; summary: string }
   | { kind: 'propose'; description: string; summary: string }
 
 export type EditorActionKind = EditorActionDraft['kind']
@@ -30,12 +42,31 @@ export const EDITOR_ACTION_KINDS: readonly EditorActionKind[] = [
   'switch_tab',
   'open_thumbnail_studio',
   'open_master_review',
+  'set_playback_rate',
+  'step_frames',
+  'split_at_playhead',
+  'set_typography',
+  'set_caption_style',
+  'start_render',
   'propose',
 ]
 
 const PREVIEW_COMMANDS: readonly PreviewControlCommand[] = ['play', 'pause', 'mute', 'unmute']
 const FIT_MODES: readonly EditorFitMode[] = ['fill', 'fit']
 const WORKSPACE_TABS: readonly EditorWorkspaceTab[] = ['Editor', 'Music', 'Motion']
+const CAPTION_STYLES: readonly EditorCaptionStyle[] = ['clean_bold', 'karaoke_pop', 'typewriter', 'lower_third']
+const RENDER_MODES: readonly EditorRenderMode[] = ['preview', 'final']
+
+/** Takeover-tier kinds: only executable when the editor enables mutations. */
+export const MUTATING_ACTION_KINDS: readonly EditorActionKind[] = [
+  'split_at_playhead',
+  'set_typography',
+  'set_caption_style',
+  'start_render',
+]
+
+export const TAKEOVER_REQUIRED_MESSAGE =
+  'Takeover mode is off — enable agent takeover to let me apply editing changes.'
 
 const MAX_ACTIONS_PER_DRAFT = 6
 
@@ -107,6 +138,63 @@ export function parseEditorActionDraft(input: unknown): EditorActionDraft | null
         kind: 'open_master_review',
         summary: cleanSummary(record.summary, 'Open Master Video Review'),
       }
+    case 'set_playback_rate': {
+      const rate = asFiniteNumber(record.rate ?? record.playbackRate ?? record.value)
+      if (rate === null) return null
+      const clamped = Math.min(4, Math.max(0.25, Math.round(rate * 100) / 100))
+      return {
+        kind: 'set_playback_rate',
+        rate: clamped,
+        summary: cleanSummary(record.summary, `Set playback speed to ${clamped}x`),
+      }
+    }
+    case 'step_frames': {
+      const frames = asFiniteNumber(record.frames ?? record.count)
+      if (frames === null || frames === 0) return null
+      const clamped = Math.round(Math.min(90, Math.max(-90, frames)))
+      return {
+        kind: 'step_frames',
+        frames: clamped,
+        summary: cleanSummary(record.summary, `Step ${clamped > 0 ? 'forward' : 'back'} ${Math.abs(clamped)} frame${Math.abs(clamped) === 1 ? '' : 's'}`),
+      }
+    }
+    case 'split_at_playhead': {
+      const timeSec = asFiniteNumber(record.timeSec ?? record.time_sec ?? record.seconds ?? record.time)
+      if (timeSec === null || timeSec < 0) return null
+      const time = Math.round(timeSec * 100) / 100
+      return {
+        kind: 'split_at_playhead',
+        timeSec: time,
+        summary: cleanSummary(record.summary, `Split clip at ${time.toFixed(2)}s`),
+      }
+    }
+    case 'set_typography': {
+      const preset = typeof record.preset === 'string' ? record.preset.trim().slice(0, 60) : null
+      if (!preset) return null
+      return {
+        kind: 'set_typography',
+        preset,
+        summary: cleanSummary(record.summary, `Apply "${preset}" typography`),
+      }
+    }
+    case 'set_caption_style': {
+      const style = typeof record.style === 'string' ? record.style.toLowerCase().trim() : null
+      if (!style || !CAPTION_STYLES.includes(style as EditorCaptionStyle)) return null
+      return {
+        kind: 'set_caption_style',
+        style: style as EditorCaptionStyle,
+        summary: cleanSummary(record.summary, `Switch captions to ${style.replace(/_/g, ' ')}`),
+      }
+    }
+    case 'start_render': {
+      const mode = typeof record.mode === 'string' ? record.mode.toLowerCase().trim() : null
+      if (!mode || !RENDER_MODES.includes(mode as EditorRenderMode)) return null
+      return {
+        kind: 'start_render',
+        mode: mode as EditorRenderMode,
+        summary: cleanSummary(record.summary, `Start ${mode} render`),
+      }
+    }
     case 'propose': {
       const description =
         typeof record.description === 'string' && record.description.trim().length > 0
@@ -150,8 +238,19 @@ export interface EditorActionContext {
   setWorkspaceTab?: (tab: EditorWorkspaceTab) => void
   openThumbnailStudio?: () => void
   openMasterReview?: () => void
+  setPlaybackRate?: (rate: number) => void
+  stepFrames?: (frames: number) => void
+  splitAtPlayhead?: (timeSec: number) => void
+  setTypography?: (preset: string) => void
+  setCaptionStyle?: (style: EditorCaptionStyle) => void
+  startRender?: (mode: EditorRenderMode) => void
   /** Used to clamp seek targets when known. */
   durationSec?: number
+  /**
+   * Takeover gate for mutating actions. When false/undefined, mutating kinds
+   * degrade to a plan message instead of executing.
+   */
+  allowMutations?: boolean
 }
 
 export interface EditorActionResult {
@@ -205,6 +304,42 @@ export function applyEditorAction(action: EditorActionDraft, ctx: EditorActionCo
     case 'open_master_review': {
       if (!ctx.openMasterReview) return { applied: false, message: 'Master Video Review is unavailable right now.' }
       ctx.openMasterReview()
+      return { applied: true, message: action.summary }
+    }
+    case 'set_playback_rate': {
+      if (!ctx.setPlaybackRate) return { applied: false, message: 'Playback speed is unavailable right now.' }
+      ctx.setPlaybackRate(action.rate)
+      return { applied: true, message: action.summary }
+    }
+    case 'step_frames': {
+      if (!ctx.stepFrames) return { applied: false, message: 'Frame stepping is unavailable right now.' }
+      ctx.stepFrames(action.frames)
+      return { applied: true, message: action.summary }
+    }
+    case 'split_at_playhead':
+    case 'set_typography':
+    case 'set_caption_style':
+    case 'start_render': {
+      if (!ctx.allowMutations) return { applied: false, message: TAKEOVER_REQUIRED_MESSAGE }
+      if (action.kind === 'split_at_playhead') {
+        if (!ctx.splitAtPlayhead) return { applied: false, message: 'Timeline splitting is unavailable right now.' }
+        const max = typeof ctx.durationSec === 'number' && Number.isFinite(ctx.durationSec) ? ctx.durationSec : null
+        const target = max === null ? Math.max(0, action.timeSec) : Math.min(Math.max(0, action.timeSec), max)
+        ctx.splitAtPlayhead(target)
+        return { applied: true, message: action.summary }
+      }
+      if (action.kind === 'set_typography') {
+        if (!ctx.setTypography) return { applied: false, message: 'Typography control is unavailable right now.' }
+        ctx.setTypography(action.preset)
+        return { applied: true, message: action.summary }
+      }
+      if (action.kind === 'set_caption_style') {
+        if (!ctx.setCaptionStyle) return { applied: false, message: 'Caption styling is unavailable right now.' }
+        ctx.setCaptionStyle(action.style)
+        return { applied: true, message: action.summary }
+      }
+      if (!ctx.startRender) return { applied: false, message: 'Rendering is unavailable right now.' }
+      ctx.startRender(action.mode)
       return { applied: true, message: action.summary }
     }
     case 'propose':

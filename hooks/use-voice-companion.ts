@@ -188,6 +188,8 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
         onUnmute,
         onTabChange,
         onFitModeChange,
+        isTakeoverEnabled,
+        onToggleTakeover,
       } = handlersRef.current
 
       switch (name) {
@@ -253,6 +255,40 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
             onSwitchTab: onTabChange,
           })
           return { success, action: args.action, genreOrMood }
+        }
+
+        case 'toggle_agent_takeover': {
+          if (!onToggleTakeover) return { success: false, error: 'Editor not linked — cannot toggle takeover.' }
+          onToggleTakeover()
+          return { success: true, takeoverEnabled: !isTakeoverEnabled }
+        }
+
+        case 'set_playback_rate': {
+          const rate = typeof args.rate === 'number' ? args.rate : Number(args.rate)
+          if (!Number.isFinite(rate) || rate <= 0) return { success: false, error: 'Invalid playback rate.' }
+          onApplyActions?.([{ kind: 'set_playback_rate', rate: Math.min(4, Math.max(0.25, rate)), summary: `Playback speed ${rate}x` }])
+          return { success: true, rate }
+        }
+
+        case 'step_frames': {
+          const frames = typeof args.frames === 'number' ? args.frames : Number(args.frames)
+          if (!Number.isFinite(frames) || frames === 0) return { success: false, error: 'Invalid frame count.' }
+          onApplyActions?.([{ kind: 'step_frames', frames: Math.round(Math.min(90, Math.max(-90, frames))), summary: `Frame step ${frames}` }])
+          return { success: true, frames }
+        }
+
+        case 'set_caption_style': {
+          const style = String(args.style ?? '')
+          if (!isTakeoverEnabled) return { success: false, error: 'Takeover mode is off — ask the user to enable it first.' }
+          onApplyActions?.([{ kind: 'set_caption_style', style: style as 'clean_bold' | 'karaoke_pop' | 'typewriter' | 'lower_third', summary: `Caption style: ${style}` }])
+          return { success: true, style }
+        }
+
+        case 'start_render': {
+          if (!isTakeoverEnabled) return { success: false, error: 'Takeover mode is off — ask the user to enable it first.' }
+          const mode = args.mode === 'final' ? 'final' : 'preview'
+          onApplyActions?.([{ kind: 'start_render', mode, summary: mode === 'final' ? 'Opening Master Review for final export' : 'Dispatching viral batch render' }])
+          return { success: true, mode }
         }
 
         default:

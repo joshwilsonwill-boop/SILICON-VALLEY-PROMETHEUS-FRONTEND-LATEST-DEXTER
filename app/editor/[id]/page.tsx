@@ -43,7 +43,8 @@ import {
 import { MusicPlayNotification } from '@/components/editor/music-play-notification'
 import { MusicRecommendationShowcase } from '@/components/editor/music-recommendation-showcase'
 import { PrometheusChat, type PrometheusChatMessage } from '@/components/editor/PrometheusChat'
-import { applyEditorActionDrafts, type EditorActionContext, type EditorActionDraft } from '@/lib/editor-actions'
+import { applyEditorActionDrafts, type EditorActionContext, type EditorActionDraft, type EditorCaptionStyle } from '@/lib/editor-actions'
+import { dispatchLongformFromProject } from '@/lib/api/mini-run-console'
 import type { AIChatContextProvider, AIChatLiveContext, AIChatVideoContext } from '@/hooks/use-ai-chat'
 import { ChatStyleSelector } from '@/components/editor/chat-style-selector'
 import { MusicTabPanel } from '@/components/editor/music-tab-panel'
@@ -6205,6 +6206,11 @@ function OriginalEditorPage() {
   const [isPreviewMediaReady, setIsPreviewMediaReady] = React.useState(false)
   const [isPreviewLoadingVisible, setIsPreviewLoadingVisible] = React.useState(false)
   const [isPreviewMuted, setIsPreviewMuted] = React.useState(true)
+  // Agent takeover: when true, Jarvis/chat may execute mutating editor actions.
+  const [isAgentTakeoverEnabled, setIsAgentTakeoverEnabled] = React.useState(false)
+  const [previewPlaybackRate, setPreviewPlaybackRate] = React.useState(1)
+  const [editorCaptionStyle, setEditorCaptionStyle] =
+    React.useState<EditorCaptionStyle>('clean_bold')
   const [isInlineSourceDragOver, setIsInlineSourceDragOver] = React.useState(false)
   const [isSourceUploadPending, setIsSourceUploadPending] = React.useState(false)
   const [transcriptRefreshToken, setTranscriptRefreshToken] = React.useState(0)
@@ -8127,6 +8133,9 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
     videoContext: null,
   })
 
+  // Latest agent-dispatched longform batch id (Mini-Run Studio polls via localStorage key too).
+  const miniRunLongformBatchIdRef = React.useRef<string | null>(null)
+
   React.useEffect(() => {
     chatLiveStateRef.current = {
       playheadSec: previewCurrentTimeSec,
@@ -8152,11 +8161,44 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
     setWorkspaceTab: setActiveWorkspaceTab,
     openThumbnailStudio: () => setIsThumbnailStudioOpen(true),
     openMasterReview: () => setIsMasterReviewOpen(true),
-  }), [transportDurationSec, handlePreviewSeekSeconds, startPreviewPlayback, pausePreviewPlayback])
+    setPlaybackRate: (rate) => {
+      setPreviewPlaybackRate(rate)
+      const video = previewVideoRef.current
+      if (video) video.playbackRate = rate
+    },
+    stepFrames: (frames) => {
+      const step = frames * (1 / 30)
+      handlePreviewSeekSeconds((chatLiveStateRef.current.playheadSec ?? 0) + step)
+    },
+    setCaptionStyle: (style) => setEditorCaptionStyle(style),
+    startRender: async (mode) => {
+      if (mode === 'final') {
+        setIsMasterReviewOpen(true)
+        return
+      }
+      if (!project?.sourceAssetId) return
+      try {
+        const result = await dispatchLongformFromProject({
+          projectId: project.id,
+          sourceAssetId: project.sourceAssetId,
+          songPolicy: 'auto',
+        })
+        miniRunLongformBatchIdRef.current = result.batchJobId
+        toast.success(`Viral batch queued (${result.nClips} clips) — track it in Mini-Run Studio.`)
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : 'Could not start the viral batch.')
+      }
+    },
+    allowMutations: isAgentTakeoverEnabled,
+  }), [transportDurationSec, handlePreviewSeekSeconds, startPreviewPlayback, pausePreviewPlayback, isAgentTakeoverEnabled, project?.id, project?.sourceAssetId])
 
   const handleApplyChatActions = React.useCallback((drafts: EditorActionDraft[]) => {
     applyEditorActionDrafts(drafts, chatEditorActionContext)
   }, [chatEditorActionContext])
+
+  const handleToggleAgentTakeover = React.useCallback(() => {
+    setIsAgentTakeoverEnabled((prev) => !prev)
+  }, [])
 
   // Wire the Jarvis voice companion (global filament) to this editor instance
   // so tool calls can read live timeline state and apply granular actions.
@@ -8164,11 +8206,13 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
     registerVoiceCompanionBridge({
       contextProvider: chatContextProvider,
       onApplyActions: handleApplyChatActions,
+      isTakeoverEnabled: isAgentTakeoverEnabled,
+      onToggleTakeover: handleToggleAgentTakeover,
     })
     return () => {
       unregisterVoiceCompanionBridge()
     }
-  }, [chatContextProvider, handleApplyChatActions])
+  }, [chatContextProvider, handleApplyChatActions, isAgentTakeoverEnabled, handleToggleAgentTakeover])
 
   React.useEffect(() => {
     const stopMedia = () => {
@@ -8768,6 +8812,8 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
                       bottomMode={bottomMode}
                       onTogglePlayback={togglePreviewPlayback}
                       onSeek={handlePreviewSeek}
+                      onSeekSeconds={handlePreviewSeekSeconds}
+                      durationSec={transportDurationSec}
                       onToggleMute={() => setIsPreviewMuted((prev) => !prev)}
                       onSetBottomMode={setBottomMode}
                     />

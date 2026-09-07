@@ -14,10 +14,10 @@ import {
   AlignVerticalJustifyCenter,
   AlignVerticalJustifyEnd,
   Layers,
-  Wand2,
   SlidersHorizontal,
   Palette,
   Eye,
+  TriangleAlert,
 } from 'lucide-react'
 
 import {
@@ -134,11 +134,6 @@ export function ThumbnailStudioModal({
   const [hasRimLight, setHasRimLight] = React.useState(false)
   const [hasBackgroundGrid, setHasBackgroundGrid] = React.useState(false)
   const [hasTelemetryRuler, setHasTelemetryRuler] = React.useState(false)
-
-  const [isGeneratingNanoBanana, setIsGeneratingNanoBanana] = React.useState(false)
-  const [nanoBananaImageUrl, setNanoBananaImageUrl] = React.useState<string | null>(null)
-  const [viewMode, setViewMode] = React.useState<'canvas' | 'nano_banana'>('canvas')
-  const [nanoBananaStatus, setNanoBananaStatus] = React.useState<string | null>(null)
 
   const [previewDataUrl, setPreviewDataUrl] = React.useState<string | null>(null)
   const [isExporting, setIsExporting] = React.useState(false)
@@ -309,47 +304,6 @@ export function ThumbnailStudioModal({
     )
   }
 
-  const handleGenerateNanoBanana = async () => {
-    const activeFrame = candidates[selectedFrameIndex]
-    setIsGeneratingNanoBanana(true)
-    setNanoBananaStatus('Sending image shot & specifications to AI Assist…')
-
-    try {
-      const res = await fetch(`/api/projects/${projectId}/thumbnails/nano-banana`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          frameDataUrl: activeFrame?.dataUrl,
-          headline,
-          scriptAccent,
-          subtitle,
-          styleId: selectedArchetype.id,
-          brandColor,
-          aspectRatio,
-        }),
-      })
-
-      if (res.ok) {
-        const data = await res.json()
-        if (data.dataUrl) {
-          setNanoBananaImageUrl(data.dataUrl)
-          setViewMode('nano_banana')
-          setNanoBananaStatus('AI Assist generation complete!')
-        } else {
-          setNanoBananaStatus(data.fallbackMessage || 'AI Assist specifications synthesized.')
-        }
-      } else {
-        setNanoBananaStatus('AI Assist request processed via Studio Canvas engine.')
-      }
-    } catch (err) {
-      console.warn('[Nano Banana Request Error]', err)
-      setNanoBananaStatus('Studio Canvas engine active.')
-    } finally {
-      setIsGeneratingNanoBanana(false)
-      setTimeout(() => setNanoBananaStatus(null), 4000)
-    }
-  }
-
   const handleCaptureCurrentPlayhead = () => {
     if (!videoElement) return
     const frame = ThumbnailEngine.captureFrameFromVideo(videoElement)
@@ -360,7 +314,7 @@ export function ThumbnailStudioModal({
   }
 
   const handleDownload = () => {
-    const activeUrl = viewMode === 'nano_banana' && nanoBananaImageUrl ? nanoBananaImageUrl : previewDataUrl
+    const activeUrl = previewDataUrl
     if (!activeUrl) return
     const link = document.createElement('a')
     link.href = activeUrl
@@ -369,7 +323,7 @@ export function ThumbnailStudioModal({
   }
 
   const handleSaveCover = () => {
-    const activeUrl = viewMode === 'nano_banana' && nanoBananaImageUrl ? nanoBananaImageUrl : previewDataUrl
+    const activeUrl = previewDataUrl
     if (!activeUrl) return
     setIsExporting(true)
     onSaveProjectThumbnail?.(activeUrl)
@@ -382,8 +336,7 @@ export function ThumbnailStudioModal({
 
   if (!isOpen) return null
 
-  const currentDisplayUrl =
-    viewMode === 'nano_banana' && nanoBananaImageUrl ? nanoBananaImageUrl : previewDataUrl
+  const currentDisplayUrl = previewDataUrl
 
   return (
     <AnimatePresence>
@@ -411,7 +364,7 @@ export function ThumbnailStudioModal({
               </span>
               <span className="h-3 w-px bg-white/10" />
               <span className="rounded border border-[#3E5C76]/30 bg-[#3E5C76]/10 px-2 py-0.5 font-mono text-[9px] uppercase tracking-widest text-[#AFC7DE]">
-                AI Image Assist
+                Canvas Compositor
               </span>
             </div>
 
@@ -441,33 +394,6 @@ export function ThumbnailStudioModal({
                   )
                 })}
               </div>
-
-              {nanoBananaImageUrl && (
-                <div className="flex items-center rounded-lg border border-white/[0.08] bg-white/[0.02] p-0.5">
-                  <button
-                    type="button"
-                    onClick={() => setViewMode('canvas')}
-                    className={cn(
-                      'flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors',
-                      viewMode === 'canvas' ? 'bg-white text-black' : 'text-white/50 hover:text-white',
-                    )}
-                  >
-                    <Layers className="size-3" />
-                    Canvas
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setViewMode('nano_banana')}
-                    className={cn(
-                      'flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors',
-                      viewMode === 'nano_banana' ? 'bg-white text-black' : 'text-white/50 hover:text-white',
-                    )}
-                  >
-                    <Wand2 className="size-3" />
-                    AI Assist
-                  </button>
-                </div>
-              )}
 
               <button
                 type="button"
@@ -526,12 +452,6 @@ export function ThumbnailStudioModal({
                   )}
                 </div>
               </div>
-
-              {nanoBananaStatus && (
-                <div className="mt-2 rounded-lg border border-[#3E5C76]/30 bg-[#3E5C76]/10 px-3 py-1.5 font-mono text-[11px] text-[#B9CBDE]">
-                  {nanoBananaStatus}
-                </div>
-              )}
 
               <div className="mt-3 shrink-0 space-y-2 border-t border-white/[0.06] pt-3">
                 <div className="flex items-center justify-between">
@@ -842,24 +762,14 @@ export function ThumbnailStudioModal({
               </div>
 
               <div className="mt-6 border-t border-white/[0.06] pt-4 space-y-2.5">
-                <button
-                  type="button"
-                  onClick={handleGenerateNanoBanana}
-                  disabled={isGeneratingNanoBanana}
-                  className="flex w-full items-center justify-center gap-2 rounded-lg border border-[#3E5C76]/40 bg-[#3E5C76]/15 px-4 py-2.5 text-xs font-semibold text-[#B4CAE0] transition-colors hover:bg-[#3E5C76]/25 disabled:opacity-50"
-                >
-                  {isGeneratingNanoBanana ? (
-                    <>
-                      <Loader2 className="size-3.5 animate-spin" />
-                      AI Image Synthesizing…
-                    </>
-                  ) : (
-                    <>
-                      <Wand2 className="size-3.5" />
-                      Generate with AI Image Assist
-                    </>
-                  )}
-                </button>
+                <div className="flex items-start gap-2 rounded-lg border border-amber-300/25 bg-amber-300/[0.06] px-3 py-2 text-[11px] leading-relaxed text-amber-200/90">
+                  <TriangleAlert className="mt-0.5 size-3.5 shrink-0" />
+                  <span>
+                    Synthetic AI image generation is deprecated for covers — it hallucinates faces and
+                    misspells titles. The deterministic Canvas Compositor below uses real frames from
+                    your video and is now the standard engine.
+                  </span>
+                </div>
 
                 <div className="grid grid-cols-2 gap-2.5">
                   <button

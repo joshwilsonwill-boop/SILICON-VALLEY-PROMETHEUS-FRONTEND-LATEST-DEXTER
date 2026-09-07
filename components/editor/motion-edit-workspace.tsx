@@ -35,6 +35,7 @@ import {
 
 import { cn } from '@/lib/utils'
 import { autonomousCoordinator } from '@/lib/autonomous-ui/coordinator'
+import { StyleCloneCard } from '@/components/editor/style-clone-card'
 
 type PreviewMediaKind = 'video' | 'image'
 type MotionToolId = 'enhance' | 'captions' | 'media' | 'layout'
@@ -712,6 +713,8 @@ export function MotionEditWorkspace({
                 ) : null}
               </div>
             ) : null}
+
+            <StyleCloneCard className="mt-4" />
 
             <div className="space-y-3.5 text-[17px] leading-8">
               {visibleSegments.map((segment) => {

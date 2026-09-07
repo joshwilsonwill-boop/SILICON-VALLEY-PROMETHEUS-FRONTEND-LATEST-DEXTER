@@ -394,6 +394,33 @@ export function JarvisTopNavFilament({ className }: JarvisTopNavFilamentProps) {
                 <span
                   className={cn(
                     'flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[10px] font-medium tracking-wide',
+                    bridge.isTakeoverEnabled
+                      ? 'border-amber-400/40 bg-amber-400/10 text-amber-300'
+                      : 'border-white/10 bg-white/[0.04] text-white/40',
+                  )}
+                  title={
+                    bridge.isTakeoverEnabled
+                      ? 'Agent takeover is ON — Jarvis may apply editing changes. Click to disable.'
+                      : 'Agent takeover is OFF — Jarvis can only control transport and views. Click to enable.'
+                  }
+                  role="switch"
+                  aria-checked={Boolean(bridge.isTakeoverEnabled)}
+                  tabIndex={0}
+                  onClick={() => bridge.onToggleTakeover?.()}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault()
+                      bridge.onToggleTakeover?.()
+                    }
+                  }}
+                >
+                  <Sparkles className="size-3" />
+                  {bridge.isTakeoverEnabled ? 'Takeover ON' : 'Takeover OFF'}
+                </span>
+
+                <span
+                  className={cn(
+                    'flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[10px] font-medium tracking-wide',
                     isEditorLinked
                       ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
                       : 'border-white/10 bg-white/[0.04] text-white/40',

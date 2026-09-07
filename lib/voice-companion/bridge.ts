@@ -18,6 +18,10 @@ export interface VoiceCompanionBridgeHandlers {
   onUnmute?: () => void
   onTabChange?: (tab: 'Editor' | 'Music' | 'Motion') => void
   onFitModeChange?: (mode: 'fill' | 'fit') => void
+  /** True when the editor has enabled autonomous agent takeover. */
+  isTakeoverEnabled?: boolean
+  /** Toggles the editor's agent takeover mode (mutating action gate). */
+  onToggleTakeover?: () => void
 }
 
 let currentHandlers: VoiceCompanionBridgeHandlers = {}

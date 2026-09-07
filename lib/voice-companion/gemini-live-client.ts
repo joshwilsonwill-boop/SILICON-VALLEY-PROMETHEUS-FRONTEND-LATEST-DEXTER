@@ -308,6 +308,72 @@ Keep your spoken responses fluid, punchy, conversational, and helpful. Never rea
                   required: ['action'],
                 },
               },
+              {
+                name: 'toggle_agent_takeover',
+                description: 'Toggle autonomous takeover mode. When enabled, you may execute editing changes (caption styling, renders, playback speed). Announce the new state to the user.',
+                parameters: {
+                  type: 'object',
+                  properties: {},
+                },
+              },
+              {
+                name: 'set_playback_rate',
+                description: 'Set the preview video playback speed (0.25x to 4x).',
+                parameters: {
+                  type: 'object',
+                  properties: {
+                    rate: {
+                      type: 'number',
+                      description: 'Playback rate multiplier between 0.25 and 4.',
+                    },
+                  },
+                  required: ['rate'],
+                },
+              },
+              {
+                name: 'step_frames',
+                description: 'Nudge the playhead by whole 30fps frames (negative steps backwards).',
+                parameters: {
+                  type: 'object',
+                  properties: {
+                    frames: {
+                      type: 'number',
+                      description: 'Number of frames to step; negative steps backwards.',
+                    },
+                  },
+                  required: ['frames'],
+                },
+              },
+              {
+                name: 'set_caption_style',
+                description: 'Restyle the editor captions. Only executes while takeover mode is enabled.',
+                parameters: {
+                  type: 'object',
+                  properties: {
+                    style: {
+                      type: 'string',
+                      enum: ['clean_bold', 'karaoke_pop', 'typewriter', 'lower_third'],
+                      description: 'Caption style preset to apply.',
+                    },
+                  },
+                  required: ['style'],
+                },
+              },
+              {
+                name: 'start_render',
+                description: 'Start a batch render of viral clips from the source video (preview mode), or open Master Video Review for the final export (final mode). Only executes while takeover mode is enabled.',
+                parameters: {
+                  type: 'object',
+                  properties: {
+                    mode: {
+                      type: 'string',
+                      enum: ['preview', 'final'],
+                      description: 'preview dispatches the viral batch render; final opens Master Video Review.',
+                    },
+                  },
+                  required: ['mode'],
+                },
+              },
             ],
           },
         ],
