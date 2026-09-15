@@ -123,7 +123,7 @@ function AnalyticsStage() {
   const rootRef = React.useRef<HTMLDivElement | null>(null)
   const statusPillRef = React.useRef<HTMLDivElement | null>(null)
   const chartCardRef = React.useRef<HTMLDivElement | null>(null)
-  const cardRefs = React.useRef<Array<HTMLDivElement | null>>([])
+  const cardRefs = React.useRef<Array<HTMLElement | null>>([])
   const sweepLandedOnChart = React.useRef(false)
   const bootDone = React.useRef(false)
   const releaseTimer = React.useRef<number | undefined>(undefined)
