@@ -20,13 +20,21 @@ export interface ResolvedTarget {
 export function resolveTabElement(tabName: AutonomousWorkspaceTab): ResolvedTarget | null {
   if (typeof document === 'undefined') return null
 
+  const targetLower = tabName.toLowerCase()
+
   // 1. Try explicit data attribute
-  const byAttr = document.querySelector<HTMLElement>(`[data-workspace-tab="${tabName}"]`)
+  const byAttr =
+    document.querySelector<HTMLElement>(`[data-workspace-tab="${tabName}"]`) ||
+    document.querySelector<HTMLElement>(`[data-workspace-tab*="${targetLower}" i]`)
   if (byAttr) return getElementTarget(byAttr)
 
-  // 2. Query header nav buttons by text content
-  const buttons = Array.from(document.querySelectorAll<HTMLElement>('header button, nav button, [role="tab"]'))
-  const matched = buttons.find((btn) => btn.textContent?.trim().toLowerCase() === tabName.toLowerCase())
+  // 2. Query header nav buttons by text content or aria-label
+  const buttons = Array.from(document.querySelectorAll<HTMLElement>('header button, nav button, [role="tab"], button'))
+  const matched = buttons.find((btn) => {
+    const text = btn.textContent?.trim().toLowerCase() ?? ''
+    const label = btn.getAttribute('aria-label')?.toLowerCase() ?? ''
+    return text === targetLower || text.includes(targetLower) || label.includes(targetLower)
+  })
   if (matched) return getElementTarget(matched)
 
   return null

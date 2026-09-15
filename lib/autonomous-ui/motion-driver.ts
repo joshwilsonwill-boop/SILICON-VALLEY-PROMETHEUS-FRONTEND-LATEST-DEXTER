@@ -46,7 +46,9 @@ export function computeTrajectoryPoint(
 }
 
 /**
- * Animate a smooth glide from start to target over durationMs, updating onStep
+ * Animate a smooth glide from start to target over durationMs using GSAP.
+ * Uses power3.inOut for premium, hardware-accelerated cursor travel.
+ * Falls back to the hand-rolled rAF approach if GSAP is unavailable.
  */
 export function animateGlide(
   start: Point,
@@ -55,31 +57,51 @@ export function animateGlide(
   onStep: (p: Point, progress: number) => void,
   onComplete: () => void
 ): () => void {
-  let animId: number | null = null
-  const startTime = performance.now()
-  let cancelled = false
+  // GSAP proxy object — GSAP tweens its numeric properties
+  const proxy = { x: start.x, y: start.y, progress: 0 }
 
-  const frame = (now: number) => {
-    if (cancelled) return
+  // Dynamic GSAP import to avoid SSR issues
+  let tween: { kill: () => void } | null = null
+  let killed = false
 
-    const elapsed = now - startTime
-    const progress = Math.min(1, elapsed / durationMs)
-    const current = computeTrajectoryPoint(start, target, progress)
+  import('gsap').then(({ default: gsap }) => {
+    if (killed) return
+    tween = gsap.to(proxy, {
+      x: target.x,
+      y: target.y,
+      progress: 1,
+      duration: durationMs / 1000,
+      ease: 'power3.inOut',
+      onUpdate: () => {
+        onStep({ x: proxy.x, y: proxy.y }, proxy.progress)
+      },
+      onComplete,
+    })
+  }).catch(() => {
+    // Fallback: hand-rolled rAF if GSAP import fails
+    let animId: number | null = null
+    const startTime = performance.now()
+    let cancelled = false
 
-    onStep(current, progress)
-
-    if (progress < 1) {
-      animId = requestAnimationFrame(frame)
-    } else {
-      onComplete()
+    const frame = (now: number) => {
+      if (cancelled) return
+      const elapsed = now - startTime
+      const progress = Math.min(1, elapsed / durationMs)
+      const current = computeTrajectoryPoint(start, target, progress)
+      onStep(current, progress)
+      if (progress < 1) {
+        animId = requestAnimationFrame(frame)
+      } else {
+        onComplete()
+      }
     }
-  }
-
-  animId = requestAnimationFrame(frame)
+    animId = requestAnimationFrame(frame)
+    tween = { kill: () => { cancelled = true; if (animId !== null) cancelAnimationFrame(animId) } }
+  })
 
   return () => {
-    cancelled = true
-    if (animId !== null) cancelAnimationFrame(animId)
+    killed = true
+    tween?.kill()
   }
 }
 

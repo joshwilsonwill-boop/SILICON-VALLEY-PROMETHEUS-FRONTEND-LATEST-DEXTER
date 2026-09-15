@@ -65,6 +65,7 @@ import { TimelinePanel } from '@/components/editor/TimelinePanel'
 import { MobileVideoPlayer } from '@/app/editor/components/mobile-video-player'
 import { stopEditorMedia } from '@/app/editor/stores/audio-store'
 import { setEditorSourceStatus, setEditorSourceUrl } from '@/lib/editor/source-status-store'
+import { autonomousCoordinator } from '@/lib/autonomous-ui/coordinator'
 
 // Always-Fast Lobe System
 const LivingCanvas = safeDynamic(() => import('@/components/living-canvas').then((mod) => ({ default: mod.LivingCanvas })), {
@@ -8192,12 +8193,43 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
     allowMutations: isAgentTakeoverEnabled,
   }), [transportDurationSec, handlePreviewSeekSeconds, startPreviewPlayback, pausePreviewPlayback, isAgentTakeoverEnabled, project?.id, project?.sourceAssetId])
 
-  const handleApplyChatActions = React.useCallback((drafts: EditorActionDraft[]) => {
+  const handleApplyChatActions = React.useCallback(async (drafts: EditorActionDraft[]) => {
+    if (isAgentTakeoverEnabled && drafts.length > 0) {
+      autonomousCoordinator.beginTakeover(`Jarvis applying: ${drafts[0].summary}`)
+      if (drafts[0].kind === 'seek' && typeof drafts[0].timeSec === 'number') {
+        await autonomousCoordinator.executeSeekTimeline(drafts[0].timeSec)
+      } else if (drafts[0].kind === 'switch_tab') {
+        await autonomousCoordinator.executeAutonomousTakeover(drafts[0].tab, (tab) => {
+          setActiveWorkspaceTab(tab as HeaderNavMode)
+          setBottomMode(tab === 'Music' ? 'Music' : 'Original')
+        })
+      } else {
+        await autonomousCoordinator.executeAutonomousTakeover('Motion', (tab) => {
+          setActiveWorkspaceTab(tab as HeaderNavMode)
+          setBottomMode(tab === 'Music' ? 'Music' : 'Original')
+        })
+      }
+    }
     applyEditorActionDrafts(drafts, chatEditorActionContext)
-  }, [chatEditorActionContext])
+  }, [chatEditorActionContext, isAgentTakeoverEnabled])
 
   const handleToggleAgentTakeover = React.useCallback(() => {
-    setIsAgentTakeoverEnabled((prev) => !prev)
+    setIsAgentTakeoverEnabled((prev) => {
+      const next = !prev
+      if (next) {
+        toast.info('Autonomous Takeover active — Jarvis taking control', {
+          description: 'Navigating to Motion Schema and executing autonomous actions.',
+        })
+        autonomousCoordinator.executeAutonomousTakeover('Motion', (tab) => {
+          setActiveWorkspaceTab(tab as HeaderNavMode)
+          setBottomMode(tab === 'Music' ? 'Music' : 'Original')
+        })
+      } else {
+        autonomousCoordinator.endTakeover()
+        toast.info('Autonomous Takeover disabled — control returned to user.')
+      }
+      return next
+    })
   }, [])
 
   // Wire the Jarvis voice companion (global filament) to this editor instance

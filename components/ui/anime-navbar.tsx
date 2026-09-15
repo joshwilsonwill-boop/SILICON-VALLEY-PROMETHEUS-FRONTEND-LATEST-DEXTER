@@ -108,6 +108,7 @@ export function WorkspaceNavBar({
                 buttonRefs.current[item.name] = node
               }}
               type="button"
+              data-workspace-tab={item.name}
               onClick={() => {
                 if (!activeItem) {
                   setActiveTab(item.name)

@@ -4,6 +4,9 @@
  * Orchestrates autonomous GUI actions across Prometheus Studio workspaces.
  * Encapsulates target resolution, motion planning, human priority barge-in,
  * ambient signaling, and execution of existing React state handlers.
+ *
+ * Cinematic Takeover: adds beginTakeover / endTakeover / anticipateTarget /
+ * setPillMode methods that drive the scrim, reticle, and escape-hatch layers.
  */
 
 import type {
@@ -11,6 +14,7 @@ import type {
   GhostCursorState,
   AutonomousUIEventListener,
   AutonomousActionPayload,
+  PillMode,
 } from './types'
 import {
   resolveTabElement,
@@ -20,6 +24,7 @@ import {
   resolveDomSelector,
 } from './target-resolver'
 import { animateGlide, ensureElementInView } from './motion-driver'
+import { useAutonomousStore } from './autonomous-store'
 
 class AutonomousUICoordinator {
   private state: GhostCursorState = {
@@ -32,6 +37,11 @@ class AutonomousUICoordinator {
     statusText: null,
     activeTargetRect: null,
     phase: 'idle',
+    // Cinematic Takeover fields
+    isTakeover: false,
+    pillMode: 'idle',
+    anticipatedTargetRect: null,
+    spotlightRect: null,
   }
 
   private listeners = new Set<AutonomousUIEventListener>()
@@ -103,6 +113,11 @@ class AutonomousUICoordinator {
       statusText: reason === 'user_barge_in' ? 'Control returned to user' : null,
       activeTargetRect: null,
       phase: 'yielding',
+      // Cinematic Takeover — clear all overlay layers
+      isTakeover: false,
+      pillMode: 'idle',
+      anticipatedTargetRect: null,
+      spotlightRect: null,
     }
     this.notify()
 
@@ -114,6 +129,65 @@ class AutonomousUICoordinator {
       }
     }, 400)
   }
+
+  // ─── Cinematic Takeover Lifecycle ──────────────────────────────────────────
+
+  /**
+   * Signal the start of a full autonomous UI takeover.
+   * Activates the ambient scrim, spotlight, and escape hatch.
+   * Called automatically by high-level workflow methods but can be called
+   * manually for custom sequences.
+   */
+  public beginTakeover(label = 'Jarvis is in control') {
+    this.state = {
+      ...this.state,
+      isTakeover: true,
+      visible: true,
+      statusText: label,
+      pillMode: 'action',
+    }
+    this.notify()
+  }
+
+  /**
+   * Signal the end of a full autonomous UI takeover.
+   * Fades the scrim out and returns pointer-events to the user.
+   */
+  public endTakeover() {
+    this.abortAction('cancelled')
+  }
+
+  /**
+   * Pre-signal a target element 200-300ms before the cursor arrives.
+   * Causes the bounding reticle to spring to life around the target element
+   * before the click is executed — conveying intent.
+   */
+  public anticipateTarget(element: HTMLElement | null) {
+    this.state = {
+      ...this.state,
+      anticipatedTargetRect: element ? element.getBoundingClientRect() : null,
+      spotlightRect: element ? element.getBoundingClientRect() : null,
+    }
+    this.notify()
+  }
+
+  /**
+   * Set the action-pill visual mode dynamically during autonomous execution.
+   * - 'typing'  → animated caret icon (text input phase)
+   * - 'waiting' → indeterminate spinner (processing phase)
+   * - 'action'  → declarative verb label (navigation / click phase)
+   * - 'idle'    → pill hidden
+   */
+  public setPillMode(mode: PillMode, statusText?: string) {
+    this.state = {
+      ...this.state,
+      pillMode: mode,
+      statusText: statusText ?? this.state.statusText,
+    }
+    this.notify()
+  }
+
+
 
   /**
    * Move the ghost cursor smoothly to a screen coordinate and execute an action
@@ -322,6 +396,144 @@ class AutonomousUICoordinator {
 
     if (onSwitchTab) {
       onSwitchTab(tabName)
+    } else {
+      // Fallback: read from the zustand store bridge
+      useAutonomousStore.getState().onSwitchTab?.(tabName)
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 300))
+    this.abortAction('cancelled')
+    return true
+  }
+
+  /**
+   * High-level Workflow: Full Autonomous Page Takeover
+   *
+   * Actively moves the 3D ghost cursor to the requested schema/tab (e.g. Motion Brain),
+   * pre-signals target reticle, stimulates the click, switches the active workspace,
+   * and maintains the cinematic viewport moving border and ambient shade throughout the session.
+   */
+  public async executeAutonomousTakeover(
+    targetTab: AutonomousWorkspaceTab = 'Motion',
+    onSwitchTab?: (tab: AutonomousWorkspaceTab) => void
+  ): Promise<boolean> {
+    if (this.isHumanInteracting) return false
+
+    // 1. Activate full takeover mode with perimeter moving border
+    this.beginTakeover(`Jarvis taking control: ${targetTab} schema`)
+
+    await new Promise((resolve) => setTimeout(resolve, 150))
+
+    // 2. Resolve target element (e.g. Motion tab button)
+    const tabTarget = resolveTabElement(targetTab)
+
+    if (tabTarget) {
+      // Pre-signal 200ms ahead with precision corner ticks
+      this.anticipateTarget(tabTarget.element)
+      await new Promise((resolve) => setTimeout(resolve, 200))
+
+      // Glide the 3D pillowy black cursor to target
+      const glided = await this.glideTo(
+        tabTarget.centerX,
+        tabTarget.centerY,
+        `Jarvis: Switching to ${targetTab} Schema`,
+        tabTarget.rect,
+        650
+      )
+
+      if (!glided) return false
+
+      // Stimulate tactile click
+      await this.simulateClick()
+      tabTarget.element.click()
+    }
+
+    // Switch tab callback
+    if (onSwitchTab) {
+      onSwitchTab(targetTab)
+    } else {
+      useAutonomousStore.getState().onSwitchTab?.(targetTab)
+    }
+
+    // Retain takeover active state so the viewport moving border and escape hatch persist
+    this.state = {
+      ...this.state,
+      isTakeover: true,
+      visible: true,
+      phase: 'hovering',
+      statusText: `Jarvis: ${targetTab} Schema Active`,
+      pillMode: 'action',
+    }
+    this.notify()
+
+    return true
+  }
+
+  /**
+   * High-level Workflow: Seek the timeline to a specific time in seconds
+   */
+  public async executeSeekTimeline(timeSec: number): Promise<boolean> {
+    // 1. Try to find and interact with the timeline scrubber
+    const scrubber = resolveDomSelector('[data-motion-chamber] [role="slider"]')
+    if (scrubber) {
+      await ensureElementInView(scrubber.element)
+      const glided = await this.glideTo(
+        scrubber.centerX,
+        scrubber.centerY,
+        `Jarvis: Seeking to ${timeSec.toFixed(1)}s`,
+        scrubber.rect,
+        500
+      )
+      if (!glided) return false
+      await this.simulateClick()
+    }
+
+    // 2. Call the React callback via store bridge (works even without DOM target)
+    useAutonomousStore.getState().onSeekSeconds?.(timeSec)
+
+    await new Promise((resolve) => setTimeout(resolve, 300))
+    this.abortAction('cancelled')
+    return true
+  }
+
+  /**
+   * High-level Workflow: Control preview playback (play / pause / mute / unmute)
+   */
+  public async executePreviewControl(
+    command: 'play' | 'pause' | 'mute' | 'unmute'
+  ): Promise<boolean> {
+    const label =
+      command === 'play' ? 'Playing preview'
+      : command === 'pause' ? 'Pausing preview'
+      : command === 'mute' ? 'Muting audio'
+      : 'Unmuting audio'
+
+    // 1. Try to find the physical button
+    const isPlayback = command === 'play' || command === 'pause'
+    const buttonQuery = isPlayback
+      ? '[data-motion-chamber] button[aria-label*="play" i], [data-motion-chamber] button[aria-label*="pause" i]'
+      : '[data-motion-chamber] button[aria-label*="mute" i], [data-motion-chamber] button[aria-label*="unmute" i]'
+
+    const target = resolveDomSelector(buttonQuery)
+    if (target) {
+      await ensureElementInView(target.element)
+      const glided = await this.glideTo(
+        target.centerX,
+        target.centerY,
+        `Jarvis: ${label}`,
+        target.rect,
+        400
+      )
+      if (!glided) return false
+      await this.simulateClick()
+      target.element.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    } else {
+      // 2. Fallback: call React callback via store bridge
+      if (isPlayback) {
+        useAutonomousStore.getState().onTogglePlayback?.()
+      } else {
+        useAutonomousStore.getState().onToggleMute?.()
+      }
     }
 
     await new Promise((resolve) => setTimeout(resolve, 300))

@@ -2,7 +2,8 @@
 
 import React, { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Mic, MicOff, Eye, EyeOff, Sparkles, X, Volume2, Radio, ArrowUp } from 'lucide-react'
+import { Mic, MicOff, Eye, EyeOff, Sparkles, X, Volume2, Radio, ArrowUp, Power } from 'lucide-react'
+import { Liquid } from 'liquid-gooey'
 
 import { cn } from '@/lib/utils'
 import { useVoiceCompanion } from '@/hooks/use-voice-companion'
@@ -10,6 +11,7 @@ import {
   getVoiceCompanionBridge,
   subscribeVoiceCompanionBridge,
 } from '@/lib/voice-companion/bridge'
+import { autonomousCoordinator } from '@/lib/autonomous-ui/coordinator'
 
 export interface JarvisTopNavFilamentProps {
   className?: string
@@ -272,183 +274,265 @@ export function JarvisTopNavFilament({ className }: JarvisTopNavFilamentProps) {
         </AnimatePresence>
       </div>
 
-      {/* Expanded Cinematic Island Dock (Drops down from the filament) */}
+      {/* Shared Glass Distortion SVG Filter for liquid-crystal-card */}
+      <svg className="pointer-events-none absolute -left-[9999px] -top-[9999px] size-0 overflow-hidden" aria-hidden="true">
+        <defs>
+          <filter id="glass-distortion" x="0%" y="0%" width="100%" height="100%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.035 0.035" numOctaves="2" result="noise" />
+            <feDisplacementMap in="SourceGraphic" in2="noise" scale="5" xChannelSelector="R" yChannelSelector="G" />
+          </filter>
+        </defs>
+      </svg>
+
+      {/* Expanded Cinematic Island Dock (liquid-crystal-card glassmorphism treatment) */}
       <AnimatePresence>
         {isExpanded && (
           <motion.div
             initial={{ opacity: 0, y: -16, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -16, scale: 0.95 }}
-            transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
-            className="pointer-events-auto relative mt-2 flex w-80 md:w-96 flex-col overflow-hidden rounded-2xl border border-white/15 bg-black/85 p-4 text-white shadow-[0_20px_50px_rgba(0,0,0,0.8),0_0_30px_rgba(0,240,255,0.15)] backdrop-blur-2xl"
+            transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
+            className="liquid-crystal-card pointer-events-auto relative mt-2.5 flex w-full max-w-[420px] flex-col justify-between rounded-[14px] p-5 text-white isolate shadow-[0px_0px_24px_-6px_rgba(0,240,255,0.35)]"
+            style={{ textShadow: '0 1px 3px rgba(0,0,0,0.35)' }}
           >
-            {/* Header / State */}
-            <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
-              <div className="flex items-center gap-2">
-                <span className="relative flex size-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cyan-400 opacity-75" />
-                  <span className="relative inline-flex size-2 rounded-full bg-cyan-400" />
-                </span>
-                <span className="text-xs font-semibold tracking-wider uppercase text-cyan-300 flex items-center gap-1.5">
-                  <Sparkles className="size-3" />
-                  Jarvis Companion
-                </span>
+            {/* Header / Identity */}
+            <div className="relative z-10 flex items-start justify-between border-b border-white/10 pb-3">
+              <div className="flex items-center gap-3">
+                <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-cyan-400/80 bg-white/10 shadow-[0_0_14px_rgba(0,240,255,0.4)]">
+                  <Sparkles className="size-4 text-cyan-300 animate-pulse" />
+                  <span className="absolute -bottom-0.5 -right-0.5 flex size-2.5">
+                    <span className={cn(
+                      "absolute inline-flex h-full w-full animate-ping rounded-full opacity-75",
+                      isActive ? "bg-cyan-400" : "bg-zinc-500"
+                    )} />
+                    <span className={cn(
+                      "relative inline-flex size-2.5 rounded-full",
+                      isSpeaking ? "bg-cyan-400" : isListening ? "bg-blue-400" : isActive ? "bg-emerald-400" : "bg-zinc-500"
+                    )} />
+                  </span>
+                </div>
+                <div className="flex flex-col">
+                  <p className="m-0 text-sm font-semibold tracking-wide text-white">Prometheus Jarvis</p>
+                  <p className="m-0 text-xs text-cyan-200/70 font-mono tracking-wider">Autonomous Video AI</p>
+                </div>
               </div>
 
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-2">
+                <div
+                  className={cn(
+                    "flex size-7 items-center justify-center rounded-full transition-colors",
+                    isActive ? "text-cyan-300 bg-cyan-500/15" : "text-white/40 bg-white/5"
+                  )}
+                  title={isActive ? "Jarvis Connected" : "Jarvis Standby"}
+                >
+                  <Radio className={cn("size-3.5", isActive && "animate-pulse")} />
+                </div>
                 <button
                   type="button"
                   onClick={() => setIsExpanded(false)}
-                  className="rounded-lg p-1 text-white/50 hover:bg-white/10 hover:text-white transition-colors"
+                  className="grid size-7 place-items-center rounded-full text-white/50 hover:bg-white/10 hover:text-white transition-colors"
                   aria-label="Minimize into filament"
                   title="Minimize into filament"
                 >
-                  <X className="size-3.5" />
+                  <X className="size-4" />
                 </button>
               </div>
             </div>
 
-            {/* Live Subtitle / Transcript Ticker */}
-            <div className="mt-3 min-h-[44px] rounded-xl bg-white/[0.04] p-2.5 text-xs text-white/90 border border-white/5">
-              {latestTranscript ? (
-                <p className="line-clamp-2 leading-relaxed">
-                  <span className={cn('font-semibold mr-1.5', latestTranscript.role === 'user' ? 'text-blue-300' : 'text-cyan-300')}>
-                    {latestTranscript.role === 'user' ? 'You:' : 'Jarvis:'}
-                  </span>
-                  {latestTranscript.text}
-                </p>
-              ) : companion.status === 'error' ? (
-                <p className="text-rose-300 text-[11px] leading-relaxed">
-                  {companion.error || 'Connection failed. Verify GEMINI_API_KEY.'}
-                </p>
-              ) : companion.status === 'listening' ? (
-                <p className="text-white/40 italic">Listening... Speak freely or interrupt anytime.</p>
-              ) : companion.status === 'connecting' ? (
-                <p className="text-white/40 italic">Connecting to Gemini Multimodal Live API...</p>
-              ) : (
-                <p className="text-white/40 italic">Filament synchronized with editor.</p>
-              )}
-            </div>
+            {/* Live Subtitle / Neural Channel */}
+            <div className="relative z-10 mt-3 text-center">
+              <div className="rounded-xl border border-white/10 bg-white/[0.04] p-3 backdrop-blur-[8px] text-left">
+                {latestTranscript ? (
+                  <p className="line-clamp-2 text-xs leading-relaxed text-white/90">
+                    <span className={cn('font-semibold mr-1.5', latestTranscript.role === 'user' ? 'text-blue-300' : 'text-cyan-300')}>
+                      {latestTranscript.role === 'user' ? 'You:' : 'Jarvis:'}
+                    </span>
+                    {latestTranscript.text}
+                  </p>
+                ) : companion.status === 'error' ? (
+                  <p className="text-rose-300 text-[11px] leading-relaxed">
+                    {companion.error || 'Connection failed. Verify GEMINI_API_KEY.'}
+                  </p>
+                ) : companion.status === 'listening' ? (
+                  <p className="text-cyan-200/70 text-xs italic">Listening... Speak freely or trigger autonomous commands.</p>
+                ) : companion.status === 'connecting' ? (
+                  <p className="text-cyan-200/70 text-xs italic">Connecting to Gemini Multimodal Live API...</p>
+                ) : (
+                  <div>
+                    <h4 className="m-0 text-xs font-bold uppercase tracking-wider text-cyan-300">Autonomous Neural Core</h4>
+                    <p className="m-0 mt-1 text-[11px] text-white/60">
+                      Filament synchronized with editor. Ready for voice & autonomous commands.
+                    </p>
+                  </div>
+                )}
+              </div>
 
-            {/* Text channel: type to Jarvis when speaking is not an option */}
-            {isActive && (
-              <form
-                className="mt-2 flex items-center gap-1.5"
-                onSubmit={(event) => {
-                  event.preventDefault()
-                  const message = textDraft.trim()
-                  if (!message) return
-                  companion.sendTextMessage(message)
-                  setTextDraft('')
-                }}
-              >
-                <input
-                  value={textDraft}
-                  onChange={(event) => setTextDraft(event.target.value)}
-                  placeholder={isEditorLinked ? 'Message Jarvis (editor linked)…' : 'Message Jarvis…'}
-                  aria-label="Type a message to Jarvis"
-                  className="min-w-0 flex-1 rounded-lg border border-white/10 bg-black/50 px-2.5 py-1.5 text-xs text-white/90 outline-none transition-colors placeholder:text-white/30 focus:border-cyan-400/40"
-                />
-                <button
-                  type="submit"
-                  disabled={!textDraft.trim()}
-                  aria-label="Send message to Jarvis"
-                  className="grid size-7 shrink-0 place-items-center rounded-lg bg-cyan-400/90 text-black transition-opacity hover:bg-cyan-300 disabled:opacity-25"
-                >
-                  <ArrowUp className="size-3.5" strokeWidth={2.2} />
-                </button>
-              </form>
-            )}
-
-            {/* Action Bar */}
-            <div className="mt-3 flex items-center justify-between border-t border-white/10 pt-2.5">
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={companion.toggleMute}
-                  className={cn(
-                    'flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium transition-colors',
-                    companion.isMuted
-                      ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
-                      : 'bg-white/10 text-white/80 hover:bg-white/15'
-                  )}
-                >
-                  {companion.isMuted ? <MicOff className="size-3" /> : <Mic className="size-3" />}
-                  <span>{companion.isMuted ? 'Unmute' : 'Mute'}</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={companion.toggleVision}
-                  className={cn(
-                    'flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium transition-colors',
-                    companion.isVisionActive
-                      ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
-                      : 'bg-white/10 text-white/60 hover:bg-white/15'
-                  )}
-                >
-                  {companion.isVisionActive ? <Eye className="size-3" /> : <EyeOff className="size-3" />}
-                  <span>Vision {companion.isVisionActive ? 'On' : 'Off'}</span>
-                </button>
-
-                <span
-                  className={cn(
-                    'flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[10px] font-medium tracking-wide',
-                    bridge.isTakeoverEnabled
-                      ? 'border-amber-400/40 bg-amber-400/10 text-amber-300'
-                      : 'border-white/10 bg-white/[0.04] text-white/40',
-                  )}
-                  title={
-                    bridge.isTakeoverEnabled
-                      ? 'Agent takeover is ON — Jarvis may apply editing changes. Click to disable.'
-                      : 'Agent takeover is OFF — Jarvis can only control transport and views. Click to enable.'
-                  }
-                  role="switch"
-                  aria-checked={Boolean(bridge.isTakeoverEnabled)}
-                  tabIndex={0}
-                  onClick={() => bridge.onToggleTakeover?.()}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter' || event.key === ' ') {
-                      event.preventDefault()
-                      bridge.onToggleTakeover?.()
-                    }
+              {/* Text channel: type to Jarvis when speaking is not an option */}
+              {isActive && (
+                <form
+                  className="mt-2.5 flex items-center gap-1.5"
+                  onSubmit={(event) => {
+                    event.preventDefault()
+                    const message = textDraft.trim()
+                    if (!message) return
+                    companion.sendTextMessage(message)
+                    setTextDraft('')
                   }}
                 >
-                  <Sparkles className="size-3" />
-                  {bridge.isTakeoverEnabled ? 'Takeover ON' : 'Takeover OFF'}
-                </span>
-
-                <span
-                  className={cn(
-                    'flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[10px] font-medium tracking-wide',
-                    isEditorLinked
-                      ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
-                      : 'border-white/10 bg-white/[0.04] text-white/40',
-                  )}
-                  title={isEditorLinked ? 'Jarvis is wired to the open editor' : 'Open a project editor to enable timeline control'}
-                >
-                  <Radio className="size-3" />
-                  {isEditorLinked ? 'Editor linked' : 'Editor idle'}
-                </span>
-              </div>
-
-              {companion.status === 'disconnected' || companion.status === 'error' ? (
-                <button
-                  type="button"
-                  onClick={companion.connect}
-                  className="rounded-lg bg-cyan-500 px-3 py-1 text-xs font-semibold text-black transition-all hover:bg-cyan-400 shadow-[0_0_12px_rgba(0,240,255,0.4)]"
-                >
-                  Connect
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={companion.disconnect}
-                  className="rounded-lg bg-white/10 px-3 py-1 text-xs font-medium text-white/80 transition-colors hover:bg-rose-500/20 hover:text-rose-300"
-                >
-                  Disconnect
-                </button>
+                  <input
+                    value={textDraft}
+                    onChange={(event) => setTextDraft(event.target.value)}
+                    placeholder={isEditorLinked ? 'Instruct Jarvis (editor linked)…' : 'Message Jarvis…'}
+                    aria-label="Type an instruction to Jarvis"
+                    className="min-w-0 flex-1 rounded-lg border border-white/15 bg-black/40 px-3 py-1.5 text-xs text-white/90 outline-none backdrop-blur-md transition-colors placeholder:text-white/30 focus:border-cyan-400/50"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!textDraft.trim()}
+                    aria-label="Send message to Jarvis"
+                    className="grid size-7 shrink-0 place-items-center rounded-lg bg-cyan-400 text-black transition-transform active:scale-95 hover:bg-cyan-300 disabled:opacity-30"
+                  >
+                    <ArrowUp className="size-3.5" strokeWidth={2.4} />
+                  </button>
+                </form>
               )}
+            </div>
+
+            {/* Liquid Gooey Morphing Action Bar */}
+            <div className="relative z-10 mt-4 border-t border-white/10 pt-3 flex flex-col items-center justify-center">
+              <Liquid
+                blur={5}
+                contrast={18}
+                fill="rgba(255,255,255,0.08)"
+                shadow="0 4px 14px rgba(0,0,0,0.45)"
+                className="relative flex items-center justify-center gap-3 py-1"
+              >
+                {/* 1. Mute / Unmute */}
+                <Liquid.Item x={isExpanded ? -80 : 0} y={0} transition="bouncy">
+                  <button
+                    type="button"
+                    onClick={companion.toggleMute}
+                    title={companion.isMuted ? "Unmute microphone" : "Mute microphone"}
+                    aria-label={companion.isMuted ? "Unmute microphone" : "Mute microphone"}
+                    className={cn(
+                      "round-btn flex size-9 items-center justify-center rounded-full border transition-all active:scale-95 shadow-md",
+                      companion.isMuted
+                        ? "border-rose-400/50 bg-rose-500/25 text-rose-300 shadow-[0_0_12px_rgba(244,63,94,0.4)]"
+                        : "border-white/20 bg-white/10 text-white/90 hover:bg-white/20 hover:text-white"
+                    )}
+                  >
+                    {companion.isMuted ? <MicOff className="size-4" /> : <Mic className="size-4" />}
+                  </button>
+                </Liquid.Item>
+
+                {/* 2. Vision Stream */}
+                <Liquid.Item x={isExpanded ? -40 : 0} y={0} transition="bouncy" delay={30}>
+                  <button
+                    type="button"
+                    onClick={companion.toggleVision}
+                    title={companion.isVisionActive ? "Vision stream active (Click to pause)" : "Vision stream off (Click to enable)"}
+                    aria-label={companion.isVisionActive ? "Vision stream active" : "Vision stream off"}
+                    className={cn(
+                      "round-btn flex size-9 items-center justify-center rounded-full border transition-all active:scale-95 shadow-md",
+                      companion.isVisionActive
+                        ? "border-cyan-400/60 bg-cyan-500/25 text-cyan-300 shadow-[0_0_12px_rgba(0,240,255,0.4)]"
+                        : "border-white/20 bg-white/10 text-white/60 hover:bg-white/20 hover:text-white"
+                    )}
+                  >
+                    {companion.isVisionActive ? <Eye className="size-4" /> : <EyeOff className="size-4" />}
+                  </button>
+                </Liquid.Item>
+
+                {/* 3. Autonomous Takeover ("take a wire") */}
+                <Liquid.Item x={0} y={isExpanded ? -3 : 0} transition="bouncy" delay={60}>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={Boolean(bridge.isTakeoverEnabled)}
+                    onClick={() => {
+                      if (bridge.onToggleTakeover) {
+                        bridge.onToggleTakeover()
+                      } else {
+                        if (!bridge.isTakeoverEnabled) {
+                          autonomousCoordinator.executeAutonomousTakeover('Motion')
+                        } else {
+                          autonomousCoordinator.endTakeover()
+                        }
+                      }
+                    }}
+                    title={
+                      bridge.isTakeoverEnabled
+                        ? "Agent Takeover active (Click to release)"
+                        : "Autonomous Takeover (Click to let Jarvis take control)"
+                    }
+                    aria-label={bridge.isTakeoverEnabled ? "Agent Takeover active" : "Autonomous Takeover"}
+                    className={cn(
+                      "round-btn relative flex size-10 items-center justify-center rounded-full border transition-all active:scale-95 shadow-lg",
+                      bridge.isTakeoverEnabled
+                        ? "border-amber-400/80 bg-amber-400/25 text-amber-300 shadow-[0_0_16px_rgba(251,191,36,0.6)]"
+                        : "border-cyan-400/40 bg-white/10 text-cyan-300 hover:border-cyan-400 hover:bg-cyan-500/20"
+                    )}
+                  >
+                    <Sparkles className={cn("size-4", bridge.isTakeoverEnabled && "animate-spin")} style={{ animationDuration: '4s' }} />
+                    {bridge.isTakeoverEnabled && (
+                      <span className="absolute -top-0.5 -right-0.5 flex size-2.5">
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
+                        <span className="relative inline-flex size-2.5 rounded-full bg-amber-400" />
+                      </span>
+                    )}
+                  </button>
+                </Liquid.Item>
+
+                {/* 4. Editor Neural Link ("digital link") */}
+                <Liquid.Item x={isExpanded ? 40 : 0} y={0} transition="bouncy" delay={90}>
+                  <div
+                    title={isEditorLinked ? "Editor linked to Jarvis" : "Editor idle (open a project to link)"}
+                    aria-label={isEditorLinked ? "Editor linked" : "Editor idle"}
+                    className={cn(
+                      "round-btn flex size-9 items-center justify-center rounded-full border transition-all shadow-md",
+                      isEditorLinked
+                        ? "border-emerald-400/50 bg-emerald-500/20 text-emerald-300 shadow-[0_0_12px_rgba(52,211,153,0.35)]"
+                        : "border-white/20 bg-white/10 text-white/40"
+                    )}
+                  >
+                    <Radio className={cn("size-4", isEditorLinked && "animate-pulse")} />
+                  </div>
+                </Liquid.Item>
+
+                {/* 5. Connect / Disconnect Power */}
+                <Liquid.Item x={isExpanded ? 80 : 0} y={0} transition="bouncy" delay={120}>
+                  <button
+                    type="button"
+                    onClick={
+                      companion.status === 'disconnected' || companion.status === 'error'
+                        ? companion.connect
+                        : companion.disconnect
+                    }
+                    title={
+                      companion.status === 'disconnected' || companion.status === 'error'
+                        ? "Connect to Gemini Live Neural Companion"
+                        : "Disconnect Session"
+                    }
+                    aria-label={
+                      companion.status === 'disconnected' || companion.status === 'error'
+                        ? "Connect Jarvis"
+                        : "Disconnect Jarvis"
+                    }
+                    className={cn(
+                      "round-btn flex size-9 items-center justify-center rounded-full border transition-all active:scale-95 shadow-md",
+                      companion.status === 'disconnected' || companion.status === 'error'
+                        ? "border-cyan-400 bg-cyan-400/30 text-cyan-200 hover:bg-cyan-400 hover:text-black shadow-[0_0_14px_rgba(0,240,255,0.4)]"
+                        : "border-white/20 bg-white/10 text-white/80 hover:border-rose-400/50 hover:bg-rose-500/20 hover:text-rose-300"
+                    )}
+                  >
+                    <Power className="size-4" />
+                  </button>
+                </Liquid.Item>
+              </Liquid>
+
+              <p className="mt-2.5 text-center text-[10px] tracking-wide text-white/45" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
+                Tip: Press ESC or move mouse quickly to exit autonomous takeover anytime.
+              </p>
             </div>
           </motion.div>
         )}
