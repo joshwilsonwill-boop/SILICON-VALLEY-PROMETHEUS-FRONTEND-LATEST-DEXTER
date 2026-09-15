@@ -3,11 +3,16 @@
 import * as React from 'react'
 import Image from 'next/image'
 import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from 'framer-motion'
-import { Activity, ArrowUpRight, Eye, Heart, Link2, LoaderCircle, MessageCircle, Play, PlayCircle, Share2, Sparkles } from 'lucide-react'
+import gsap from 'gsap'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import { Activity, ArrowUpRight, Eye, Heart, Link2, MessageCircle, Play, PlayCircle, Share2, Sparkles } from 'lucide-react'
 
 import { BackButton } from '@/components/navigation/BackButton'
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet'
+import { Jarvis, JarvisFollow, JarvisProvider, useJarvisAgent } from '@/components/ui/jarvis'
 import { cn } from '@/lib/utils'
+import { JarvisReachChart, metricVisuals, type JarvisChartPoint, type ReachMetric } from './JarvisReachChart'
+import type { ChartPhase } from './bklit/chart-phase'
 
 type AnalyticsRange = '7D' | '30D' | '90D'
 
@@ -21,6 +26,7 @@ type ChartPoint = {
 type MetricCard = {
   key: 'reach' | 'watchTime' | 'likes' | 'shares'
   label: string
+  thought: string
   icon: React.ComponentType<{ className?: string }>
   sparkline: number[]
 }
@@ -87,21 +93,62 @@ type AnalyticsPayload = {
 }
 
 const metricCards: MetricCard[] = [
-  { key: 'reach', label: 'Reach', icon: Eye, sparkline: [12, 18, 15, 24, 20, 28, 31, 29] },
-  { key: 'watchTime', label: 'Watch time', icon: Activity, sparkline: [7, 11, 14, 12, 18, 20, 23, 25] },
-  { key: 'likes', label: 'Likes', icon: Heart, sparkline: [4, 6, 8, 10, 11, 13, 12, 15] },
-  { key: 'shares', label: 'Shares', icon: Share2, sparkline: [2, 3, 3, 5, 4, 6, 7, 8] },
+  { key: 'reach', label: 'Reach', thought: 'Amplifying reach', icon: Eye, sparkline: [12, 18, 15, 24, 20, 28, 31, 29] },
+  { key: 'watchTime', label: 'Watch time', thought: 'Compiling watch time', icon: Activity, sparkline: [7, 11, 14, 12, 18, 20, 23, 25] },
+  { key: 'likes', label: 'Likes', thought: 'Counting resonance', icon: Heart, sparkline: [4, 6, 8, 10, 11, 13, 12, 15] },
+  { key: 'shares', label: 'Shares', thought: 'Tracing propagation', icon: Share2, sparkline: [2, 3, 3, 5, 4, 6, 7, 8] },
 ]
 
 const rangeOptions: AnalyticsRange[] = ['7D', '30D', '90D']
+const metricTabs: ReachMetric[] = ['reach', 'watchTime', 'engagement']
 
 export function PrometheusAnalytics() {
+  return (
+    <main className="analytics-jarvis-root relative min-h-full overflow-x-hidden bg-black text-[#F5F5F5]">
+      <SpectraNoise />
+      <AmbientBlurField />
+      <JarvisProvider>
+        <AnalyticsStage />
+        <JarvisPointer />
+        <JarvisHalo />
+        <JarvisThought />
+      </JarvisProvider>
+    </main>
+  )
+}
+
+function AnalyticsStage() {
   const reduceMotion = useReducedMotion()
+  const { focusElement, say, release, agentActive } = useJarvisAgent()
+  const rootRef = React.useRef<HTMLDivElement | null>(null)
+  const statusPillRef = React.useRef<HTMLDivElement | null>(null)
+  const chartCardRef = React.useRef<HTMLDivElement | null>(null)
+  const cardRefs = React.useRef<Array<HTMLDivElement | null>>([])
+  const sweepLandedOnChart = React.useRef(false)
+  const bootDone = React.useRef(false)
+  const releaseTimer = React.useRef<number | undefined>(undefined)
+
   const [activeRange, setActiveRange] = React.useState<AnalyticsRange>('30D')
+  const [activeMetric, setActiveMetric] = React.useState<ReachMetric>('reach')
   const [livePayload, setLivePayload] = React.useState<AnalyticsPayload | null>(null)
   const [loadState, setLoadState] = React.useState<'loading' | 'ready' | 'error'>('loading')
   const [selectedVideo, setSelectedVideo] = React.useState<LiveVideo | null>(null)
-  const chartData = React.useMemo(() => selectChartRange(livePayload?.timeSeries ?? [], activeRange), [activeRange, livePayload])
+  const [armedCount, setArmedCount] = React.useState(0)
+
+  const chartData = React.useMemo(
+    () => selectJarvisRange(toJarvisPoints(livePayload?.timeSeries ?? []), activeRange),
+    [activeRange, livePayload],
+  )
+  const dashFromIndex = React.useMemo(() => {
+    if (chartData.length < 2) return undefined
+    const last = chartData[chartData.length - 1]!
+    const today = new Date()
+    return last.date.toDateString() === today.toDateString() ? chartData.length - 1 : undefined
+  }, [chartData])
+  const sparklines = React.useMemo(
+    () => buildSparklineMap(livePayload?.timeSeries ?? []),
+    [livePayload],
+  )
   const displayMetrics = React.useMemo(
     () => ({
       reach: livePayload?.totals.views ?? 0,
@@ -139,7 +186,30 @@ export function PrometheusAnalytics() {
   React.useEffect(() => {
     let cancelled = false
 
+    if (!bootDone.current) {
+      bootDone.current = true
+      if (!reduceMotion) {
+        focusElement(statusPillRef.current, {
+          thought: 'JARVIS online · calibrating read',
+          duration: 520,
+          click: true,
+          linger: true,
+        })
+      }
+    }
+
     async function loadAnalytics() {
+      if (!reduceMotion) {
+        focusElement(chartCardRef.current, {
+          thought: 'Querying live channel metrics…',
+          duration: 640,
+          click: true,
+          linger: true,
+        })
+      } else {
+        setArmedCount(metricCards.length)
+      }
+
       try {
         const response = await fetch('/api/analytics/video-performance', { cache: 'no-store' })
         const data = (await response.json().catch(() => null)) as AnalyticsPayload | null
@@ -148,11 +218,15 @@ export function PrometheusAnalytics() {
           setLoadState('ready')
         } else if (!cancelled) {
           setLoadState('error')
+          say('Telemetry link refused · refresh to retry')
+          window.setTimeout(release, 3200)
         }
       } catch {
         if (!cancelled) {
           setLivePayload(null)
           setLoadState('error')
+          say('Telemetry link refused · refresh to retry')
+          window.setTimeout(release, 3200)
         }
       }
     }
@@ -160,116 +234,347 @@ export function PrometheusAnalytics() {
     void loadAnalytics()
     return () => {
       cancelled = true
+      window.clearTimeout(releaseTimer.current)
+      release()
     }
-  }, [])
+  }, [focusElement, reduceMotion, release, say])
+
+  React.useEffect(() => {
+    if (!livePayload || reduceMotion) return
+    setArmedCount(0)
+    sweepLandedOnChart.current = false
+
+    const steps: Array<{ thought: string; value: number }> = [
+      { thought: `${metricCards[0]!.thought} · ${formatNumber(livePayload.totals.views)}`, value: livePayload.totals.views },
+      { thought: `${metricCards[1]!.thought} · ${formatWatchTime(livePayload.totals.watchTimeSeconds)}`, value: livePayload.totals.watchTimeSeconds },
+      { thought: `${metricCards[2]!.thought} · ${formatNumber(livePayload.totals.likes)}`, value: livePayload.totals.likes },
+      { thought: `${metricCards[3]!.thought} · ${formatNumber(livePayload.totals.shares)}`, value: livePayload.totals.shares },
+    ]
+
+    const runStep = (index: number) => {
+      if (index >= steps.length) {
+        sweepLandedOnChart.current = true
+        focusElement(chartCardRef.current, {
+          thought: 'Resolving reach curve…',
+          duration: 560,
+          click: true,
+          linger: true,
+        })
+        return
+      }
+      focusElement(cardRefs.current[index], {
+        thought: steps[index]!.thought,
+        duration: 460,
+        onArrive: () => {
+          setArmedCount((current) => Math.max(current, index + 1))
+          releaseTimer.current = window.setTimeout(() => runStep(index + 1), 300)
+        },
+      })
+    }
+
+    runStep(0)
+  }, [focusElement, livePayload, reduceMotion])
+
+  const handleChartPhase = React.useCallback(
+    (phase: ChartPhase) => {
+      if (phase === 'revealing') say('Curve locking · aligning domain')
+      if (phase === 'ready' && sweepLandedOnChart.current) {
+        say('Read complete · curves resolved')
+        window.clearTimeout(releaseTimer.current)
+        releaseTimer.current = window.setTimeout(release, 1100)
+      }
+    },
+    [release, say],
+  )
+
+  const handleRangeChange = (range: AnalyticsRange, el: HTMLElement) => {
+    if (range === activeRange) return
+    const from = activeRange
+    setActiveRange(range)
+    if (!reduceMotion) focusElement(el, { thought: `Refolding timeline · ${from} → ${range}`, duration: 400, click: true })
+  }
+
+  const handleMetricChange = (metric: ReachMetric, el: HTMLElement) => {
+    if (metric === activeMetric) return
+    setActiveMetric(metric)
+    if (!reduceMotion) focusElement(el, { thought: `Overlaying ${metricVisuals[metric].label}`, duration: 400, click: true })
+  }
+
+  const handleOpenVideo = (video: LiveVideo) => {
+    setSelectedVideo(video)
+    say(`Expanding dossier · ${video.title.length > 34 ? `${video.title.slice(0, 34)}…` : video.title}`)
+  }
+
+  React.useLayoutEffect(() => {
+    if (reduceMotion || !rootRef.current) return
+    gsap.registerPlugin(ScrollTrigger)
+    const context = gsap.context(() => {
+      gsap.utils.toArray<HTMLElement>('[data-jarvis-reveal]').forEach((element) => {
+        gsap.fromTo(
+          element,
+          { autoAlpha: 0, y: 46, filter: 'blur(16px)' },
+          {
+            autoAlpha: 1,
+            y: 0,
+            filter: 'blur(0px)',
+            duration: 1.05,
+            ease: 'power3.out',
+            scrollTrigger: { trigger: element, start: 'top 88%', once: true },
+          },
+        )
+      })
+      gsap.utils.toArray<HTMLElement>('[data-jarvis-blob]').forEach((element, index) => {
+        gsap.to(element, {
+          xPercent: index % 2 ? 14 : -12,
+          yPercent: index % 2 ? -16 : 12,
+          scale: index % 2 ? 1.18 : 0.86,
+          duration: 17 + index * 6,
+          ease: 'sine.inOut',
+          yoyo: true,
+          repeat: -1,
+        })
+      })
+    }, rootRef)
+    return () => context.revert()
+  }, [reduceMotion])
 
   return (
-    <main className="relative min-h-full overflow-x-hidden bg-black text-[#F5F5F5]">
-      <SpectraNoise />
-
-      <div className="relative z-10 mx-auto flex min-h-full w-full max-w-[1720px] flex-col px-4 pb-8 pt-4 sm:px-7 sm:pb-12 sm:pt-7 lg:px-10">
-        <header className="grid gap-6 border-b border-white/[0.09] pb-7 lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:items-end lg:gap-8">
-          <BackButton fallbackHref="/studio" className="mb-0 border border-white/[0.12] bg-white/[0.025] text-white hover:bg-white/[0.08]" />
-          <div className="min-w-0">
-            <div className="flex items-center gap-3">
-              <span className="size-1.5 animate-pulse rounded-full bg-white" />
-              <p className="text-[10px] uppercase tracking-[0.28em] text-[#8D8E85]">PERFORMANCE SUITE / 2026</p>
-            </div>
-            <div className="mt-4 flex flex-wrap items-end gap-x-5 gap-y-2">
-              <CinematicTitle
-                text="Analytics"
-                className="font-[family-name:var(--font-vogue-display)] text-[clamp(3.1rem,6vw,6.4rem)] font-normal leading-[0.9] text-[#F5F5F5]"
-              />
-            </div>
+    <div ref={rootRef} className="relative z-10 mx-auto flex min-h-full w-full max-w-[1720px] flex-col px-4 pb-8 pt-4 sm:px-7 sm:pb-12 sm:pt-7 lg:px-10">
+      <header className="grid gap-6 border-b border-white/[0.09] pb-7 lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:items-end lg:gap-8">
+        <BackButton fallbackHref="/studio" className="mb-0 border border-white/[0.12] bg-white/[0.025] text-white hover:bg-white/[0.08]" />
+        <div className="min-w-0">
+          <div ref={statusPillRef} className="inline-flex items-center gap-3">
+            <span className="relative flex size-1.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#D7FF4F] opacity-60" />
+              <span className="relative inline-flex size-1.5 rounded-full bg-[#D7FF4F]" />
+            </span>
+            <p className="text-[10px] uppercase tracking-[0.28em] text-[#8D8E85]">PERFORMANCE SUITE / 2026 · JARVIS LINKED</p>
           </div>
-          <div className="flex items-center gap-3 text-[10px] uppercase tracking-[0.2em] text-[#8D8E85] lg:justify-self-end">
-            <span>Last 30 days</span>
-            <span className="h-px w-8 bg-white/20" />
-            <span className="text-white">Live read</span>
-          </div>
-        </header>
-
-        <section className="mt-7">
-          <div className="grid divide-y divide-white/[0.09] border-y border-white/[0.09] sm:grid-cols-2 sm:divide-x sm:divide-y-0 lg:grid-cols-4">
-            {metricCards.map((card, index) => {
-              const Icon = card.icon
-              return (
-                <motion.article
-                  key={card.key}
-                  className="group min-w-0 px-4 py-5 first:pl-0 sm:px-5 sm:py-6 lg:px-7 lg:first:pl-0"
-                  style={{
-                    transition: 'all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
-                  }}
-                  initial={reduceMotion ? false : { opacity: 0, y: 16 }}
-                  animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
-                  transition={{
-                    duration: 0.5,
-                    delay: 0.8 + index * 0.1,
-                    ease: [0.25, 0.46, 0.45, 0.94],
-                  }}
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="text-[10px] uppercase tracking-[0.22em] text-[#8D8E85]">{card.label}</span>
-                    <Icon className="size-3.5 text-[#A8AA9D] transition-transform duration-500 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
-                  </div>
-                  <div className="mt-5 font-[family-name:var(--font-geist)] text-[clamp(2rem,3vw,3.3rem)] font-light leading-none tracking-tight text-[#F1F0EA]">
-                    <AnimatedMetric value={displayMetrics[card.key]} metricKey={card.key} />
-                  </div>
-                  <div className="mt-5 max-w-[11rem]">
-                    <MetricSparkline values={card.sparkline} />
-                  </div>
-                </motion.article>
-              )
-            })}
-          </div>
-        </section>
-
-        <section className="mt-8 grid gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(300px,0.36fr)] xl:gap-10">
-          <div className="min-w-0">
-            <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
-              <div>
-                <p className="text-[10px] uppercase tracking-[0.28em] text-[#8D8E85]">Signal trajectory</p>
-                <h2 className="mt-2 font-[family-name:var(--font-vogue-display)] text-[clamp(2rem,3.4vw,3.8rem)] leading-none text-[#F1F0EA]">Reach, without the noise.</h2>
-              </div>
-              <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-[#999A91]">
-                <span className="size-1.5 rounded-full bg-white" />
-                <span>All channels</span>
-              </div>
-            </div>
-            <ReachCurveChart
-              data={chartData}
-              activeRange={activeRange}
-              onRangeChange={setActiveRange}
-              loading={loadState === 'loading'}
-              message={loadState === 'error' ? 'Unable to load analytics. Refresh the page to try again.' : livePayload?.metricsWarning ?? null}
+          <div className="mt-4 flex flex-wrap items-end gap-x-5 gap-y-2">
+            <CinematicTitle
+              text="Analytics"
+              className="font-[family-name:var(--font-vogue-display)] text-[clamp(3.1rem,6vw,6.4rem)] font-normal leading-[0.9] text-[#F5F5F5]"
             />
           </div>
-          <TiltSignalCard signal={displaySignal} />
-        </section>
+        </div>
+        <div className="flex items-center gap-3 text-[10px] uppercase tracking-[0.2em] text-[#8D8E85] lg:justify-self-end">
+          <span>Last {activeRange === '7D' ? 7 : activeRange === '30D' ? 30 : 90} days</span>
+          <span className="h-px w-8 bg-white/20" />
+          <span className={cn('text-white', agentActive && 'text-[#D7FF4F]')}>Live read</span>
+        </div>
+      </header>
 
-        <section className="mt-12 border-t border-white/[0.09] pt-6" data-legacy-section="RECENT ASSETS">
-          <div className="flex flex-wrap items-end justify-between gap-4">
+      <section className="mt-7" data-jarvis-reveal>
+        <div className="grid divide-y divide-white/[0.09] border-y border-white/[0.09] sm:grid-cols-2 sm:divide-x sm:divide-y-0 lg:grid-cols-4">
+          {metricCards.map((card, index) => {
+            const Icon = card.icon
+            return (
+              <article
+                key={card.key}
+                ref={(node) => {
+                  cardRefs.current[index] = node
+                }}
+                onMouseEnter={() => !agentActive && say(`${card.label} · ${formatMetric(card.key, displayMetrics[card.key])}`)}
+                onMouseLeave={() => !agentActive && say(null)}
+                className="group relative min-w-0 overflow-hidden px-4 py-5 first:pl-0 sm:px-5 sm:py-6 lg:px-7 lg:first:pl-0"
+              >
+                <span className="pointer-events-none absolute -inset-x-6 -top-10 h-24 rounded-full bg-[#D7FF4F]/[0.06] opacity-0 blur-[34px] transition-opacity duration-700 group-hover:opacity-100" aria-hidden="true" />
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-[10px] uppercase tracking-[0.22em] text-[#8D8E85]">{card.label}</span>
+                  <Icon className="size-3.5 text-[#A8AA9D] transition-transform duration-500 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+                </div>
+                <div className="mt-5 font-[family-name:var(--font-geist)] text-[clamp(2rem,3vw,3.3rem)] font-light leading-none tracking-tight text-[#F1F0EA]">
+                  <AnimatedMetric value={displayMetrics[card.key]} metricKey={card.key} armed={reduceMotion ? true : armedCount > index} />
+                </div>
+                <div className="mt-5 max-w-[11rem]">
+                  <MetricSparkline values={sparklines[card.key] ?? card.sparkline} />
+                </div>
+              </article>
+            )
+          })}
+        </div>
+      </section>
+
+      <section className="mt-8 grid gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(300px,0.36fr)] xl:gap-10">
+        <div className="min-w-0" data-jarvis-reveal>
+          <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
             <div>
-              <p className="text-[10px] uppercase tracking-[0.28em] text-[#8D8E85]">Video ledger</p>
-              <h2 className="mt-2 font-[family-name:var(--font-vogue-display)] text-[clamp(2rem,3.4vw,3.8rem)] leading-none text-[#F1F0EA]">Every cut. Accounted for.</h2>
+              <p className="text-[10px] uppercase tracking-[0.28em] text-[#8D8E85]">Signal trajectory</p>
+              <h2 className="mt-2 font-[family-name:var(--font-vogue-display)] text-[clamp(2rem,3.4vw,3.8rem)] leading-none text-[#F1F0EA]">Reach, without the noise.</h2>
             </div>
-            <div className="flex items-center gap-2 text-[11px] text-[#A8AA9D]">
-              <Sparkles className="size-3.5 text-white" />
-              Ranked by reach
+            <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-[#999A91]">
+              <span className="size-1.5 rounded-full" style={{ backgroundColor: metricVisuals[activeMetric].color }} />
+              <span>All channels</span>
             </div>
           </div>
-          <div className="mt-7">
-            <RecentAssetsGrid videos={videoLedger} onOpenVideo={setSelectedVideo} />
+          <div
+            ref={chartCardRef}
+            className="relative overflow-hidden rounded-3xl border border-white/[0.1] bg-white/[0.02] px-4 pb-3 pt-4 shadow-[0_30px_90px_rgba(0,0,0,0.55)] backdrop-blur-2xl sm:px-6 sm:pb-4 sm:pt-5"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 border-b border-white/[0.08] pb-4">
+              <div className="flex items-center gap-2">
+                {metricTabs.map((metric) => (
+                  <button
+                    key={metric}
+                    type="button"
+                    onClick={(event) => handleMetricChange(metric, event.currentTarget)}
+                    className={cn(
+                      'relative flex min-h-11 items-center gap-2 rounded-full border border-transparent px-3.5 py-1.5 text-[10px] uppercase tracking-[0.14em] text-white/50 transition-colors duration-300 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70',
+                      activeMetric === metric && 'text-black',
+                    )}
+                  >
+                    {activeMetric === metric ? (
+                      <motion.span layoutId="jarvis-metric-pill" className="absolute inset-0 rounded-full bg-[#F1F0EA]" transition={{ type: 'spring', stiffness: 420, damping: 36 }} />
+                    ) : null}
+                    <span className="relative size-1.5 rounded-full" style={{ backgroundColor: metricVisuals[metric].color }} />
+                    <span className="relative">{metricVisuals[metric].label}</span>
+                  </button>
+                ))}
+              </div>
+              <div className="flex items-center gap-1 rounded-full border border-white/[0.09] bg-black/30 p-1">
+                {rangeOptions.map((range) => (
+                  <button
+                    key={range}
+                    type="button"
+                    onClick={(event) => handleRangeChange(range, event.currentTarget)}
+                    className={cn(
+                      'min-h-9 min-w-11 rounded-full px-2.5 py-1 text-[10px] tracking-[0.08em] text-white/55 transition-colors duration-300 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70',
+                      activeRange === range && 'bg-white text-black',
+                    )}
+                  >
+                    {range}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="relative mt-4">
+              {loadState === 'error' ? (
+                <div className="grid h-[clamp(300px,42vh,440px)] place-items-center px-6 text-center text-[13px] leading-6 text-[#8D8E85]">
+                  Unable to load analytics. Refresh the page to try again.
+                </div>
+              ) : (
+                <JarvisReachChart
+                  data={chartData}
+                  metric={activeMetric}
+                  loading={loadState === 'loading'}
+                  dashFromIndex={dashFromIndex}
+                  onPhaseChange={handleChartPhase}
+                  revealSignature={`${activeRange}:${activeMetric}`}
+                />
+              )}
+            </div>
+
+            <p className="min-h-5 border-t border-white/[0.06] pt-2 text-[10px] uppercase tracking-[0.18em] text-[#66685F]">
+              {loadState === 'ready' ? livePayload?.metricsWarning ?? '' : ''}
+            </p>
           </div>
-        </section>
-      </div>
+        </div>
+        <TiltSignalCard signal={displaySignal} />
+      </section>
+
+      <section className="mt-12 border-t border-white/[0.09] pt-6" data-jarvis-reveal>
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.28em] text-[#8D8E85]">Video ledger</p>
+            <h2 className="mt-2 font-[family-name:var(--font-vogue-display)] text-[clamp(2rem,3.4vw,3.8rem)] leading-none text-[#F1F0EA]">Every cut. Accounted for.</h2>
+          </div>
+          <div className="flex items-center gap-2 text-[11px] text-[#A8AA9D]">
+            <Sparkles className="size-3.5 text-[#D7FF4F]" />
+            Ranked by reach
+          </div>
+        </div>
+        <div className="mt-7">
+          <RecentAssetsGrid videos={videoLedger} onOpenVideo={handleOpenVideo} />
+        </div>
+      </section>
 
       <VideoPerformanceSheet
         video={selectedVideo}
         platforms={livePayload?.platforms ?? []}
         onOpenChange={(open) => !open && setSelectedVideo(null)}
       />
-    </main>
+    </div>
+  )
+}
+
+function JarvisPointer() {
+  const { isClicking, agentActive } = useJarvisAgent()
+  return (
+    <Jarvis>
+      <div className="relative">
+        {agentActive ? <span aria-hidden="true" className="absolute -inset-4 rounded-full bg-[#D7FF4F]/[0.12] blur-[14px]" /> : null}
+        <motion.svg
+          className="size-6 text-[#D7FF4F] drop-shadow-[0_0_9px_rgba(215,255,79,0.8)]"
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 40 40"
+          animate={{ scale: isClicking ? 0.82 : 1 }}
+          transition={{ type: 'spring', stiffness: 600, damping: 30 }}
+        >
+          <path
+            fill="currentColor"
+            d="M1.8 4.4 7 36.2c.3 1.8 2.6 2.3 3.6.8l3.9-5.7c1.7-2.5 4.5-4.1 7.5-4.3l6.9-.5c1.8-.1 2.5-2.4 1.1-3.5L5 2.5c-1.4-1.1-3.5 0-3.3 1.9Z"
+          />
+        </motion.svg>
+        <AnimatePresence>
+          {isClicking ? (
+            <motion.span
+              initial={{ scale: 0.4, opacity: 1 }}
+              animate={{ scale: 2.3, opacity: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.34, ease: 'easeOut' }}
+              className="absolute left-0 top-0 size-9 rounded-full border border-[#D7FF4F]/70 bg-[#D7FF4F]/15"
+            />
+          ) : null}
+        </AnimatePresence>
+      </div>
+    </Jarvis>
+  )
+}
+
+function JarvisHalo() {
+  return (
+    <JarvisFollow align="center" sideOffset={0} transition={{ stiffness: 190, damping: 26, bounce: 0 }}>
+      <span
+        aria-hidden="true"
+        className="block size-12 rounded-full border border-[#D7FF4F]/25 bg-[#D7FF4F]/[0.05] blur-[7px]"
+      />
+    </JarvisFollow>
+  )
+}
+
+function JarvisThought() {
+  const { thought } = useJarvisAgent()
+  return (
+    <JarvisFollow align="bottom-right" sideOffset={8}>
+      <AnimatePresence mode="popLayout">
+        {thought ? (
+          <motion.div
+            key={thought}
+            initial={{ opacity: 0, y: 8, scale: 0.92, filter: 'blur(8px)' }}
+            animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
+            exit={{ opacity: 0, scale: 0.9, filter: 'blur(8px)' }}
+            transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+            className="flex items-center gap-2 whitespace-nowrap rounded-full border border-white/[0.14] bg-black/55 px-3 py-1.5 text-[10px] uppercase tracking-[0.2em] shadow-[0_12px_44px_rgba(0,0,0,0.55)] backdrop-blur-2xl"
+          >
+            <Sparkles className="size-3 shrink-0 animate-pulse text-[#D7FF4F]" />
+            <span className="font-medium text-[#D7FF4F]">Jarvis</span>
+            <span className="h-3 w-px bg-white/15" />
+            <span className="text-[#EAEAEA]">{thought}</span>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+    </JarvisFollow>
+  )
+}
+
+function AmbientBlurField() {
+  return (
+    <div className="pointer-events-none fixed inset-0 z-0" aria-hidden="true">
+      <div data-jarvis-blob className="absolute -left-[16%] top-[6%] size-[46rem] rounded-full bg-[radial-gradient(50%_50%_at_50%_50%,rgba(215,255,79,0.075),transparent_70%)] blur-[110px]" />
+      <div data-jarvis-blob className="absolute -right-[12%] top-[38%] size-[40rem] rounded-full bg-[radial-gradient(50%_50%_at_50%_50%,rgba(0,240,255,0.06),transparent_70%)] blur-[120px]" />
+      <div data-jarvis-blob className="absolute bottom-[4%] left-[26%] size-[34rem] rounded-full bg-[radial-gradient(50%_50%_at_50%_50%,rgba(196,181,253,0.05),transparent_70%)] blur-[130px]" />
+    </div>
   )
 }
 
@@ -321,10 +626,11 @@ function CinematicTitle({ text, className }: { text: string; className?: string 
   )
 }
 
-function AnimatedMetric({ value, metricKey }: { value: number; metricKey: MetricCard['key'] }) {
+function AnimatedMetric({ value, metricKey, armed }: { value: number; metricKey: MetricCard['key']; armed: boolean }) {
   const reduceMotion = useReducedMotion()
   const [displayValue, setDisplayValue] = React.useState(reduceMotion ? value : 0)
   const previousValue = React.useRef(0)
+  const armedOnce = React.useRef(false)
 
   React.useEffect(() => {
     if (reduceMotion) {
@@ -332,6 +638,9 @@ function AnimatedMetric({ value, metricKey }: { value: number; metricKey: Metric
       previousValue.current = value
       return
     }
+    if (!armed) return
+    if (!armedOnce.current && value === 0) return
+    armedOnce.current = true
 
     const startValue = previousValue.current
     const startTime = performance.now()
@@ -346,160 +655,43 @@ function AnimatedMetric({ value, metricKey }: { value: number; metricKey: Metric
     }
     frame = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(frame)
-  }, [reduceMotion, value])
+  }, [armed, reduceMotion, value])
 
   return <span className="tabular-nums">{formatMetric(metricKey, displayValue)}</span>
 }
 
-function selectChartRange(series: ChartPoint[], range: AnalyticsRange) {
-  const visiblePoints = series.slice(-(range === '7D' ? 7 : range === '30D' ? 30 : 90))
-  if (range !== '90D' || visiblePoints.length <= 18) return visiblePoints.map(formatChartPoint)
-
-  const groups = Array.from({ length: Math.ceil(visiblePoints.length / 7) }, () => [] as ChartPoint[])
-  visiblePoints.forEach((point, index) => groups[Math.floor(index / 7)]?.push(point))
-  return groups.filter((group) => group.length > 0).map((group) => {
-    const last = group[group.length - 1]!
-    return formatChartPoint({
-      label: last.label,
-      reach: group.reduce((sum, point) => sum + point.reach, 0),
-      watchTime: group.reduce((sum, point) => sum + point.watchTime, 0),
-      engagement: Math.round((group.reduce((sum, point) => sum + point.engagement, 0) / group.length) * 10) / 10,
-    })
-  })
+function toJarvisPoints(series: ChartPoint[]): JarvisChartPoint[] {
+  return series
+    .map((point) => ({
+      date: new Date(`${point.label}T00:00:00`),
+      reach: point.reach,
+      watchTime: point.watchTime,
+      engagement: point.engagement,
+    }))
+    .filter((point) => !Number.isNaN(point.date.getTime()))
 }
 
-function formatChartPoint(point: ChartPoint): ChartPoint {
-  const date = new Date(`${point.label}T00:00:00`)
+function selectJarvisRange(points: JarvisChartPoint[], range: AnalyticsRange): JarvisChartPoint[] {
+  const visible = points.slice(-(range === '7D' ? 7 : range === '30D' ? 30 : 90))
+  if (range !== '90D' || visible.length <= 18) return visible
+
+  const groups = Array.from({ length: Math.ceil(visible.length / 7) }, () => [] as JarvisChartPoint[])
+  visible.forEach((point, index) => groups[Math.floor(index / 7)]?.push(point))
+  return groups.filter((group) => group.length > 0).map((group) => ({
+    date: group[group.length - 1]!.date,
+    reach: group.reduce((sum, point) => sum + point.reach, 0),
+    watchTime: group.reduce((sum, point) => sum + point.watchTime, 0),
+    engagement: Math.round((group.reduce((sum, point) => sum + point.engagement, 0) / group.length) * 10) / 10,
+  }))
+}
+
+function buildSparklineMap(series: ChartPoint[]): Partial<Record<MetricCard['key'], number[]>> {
+  if (!series.length) return {}
+  const tail = series.slice(-8)
   return {
-    ...point,
-    label: Number.isNaN(date.getTime()) ? point.label : new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric' }).format(date),
+    reach: tail.map((point) => point.reach),
+    watchTime: tail.map((point) => point.watchTime),
   }
-}
-
-function TypewriterCustomFallback({
-  text,
-  className,
-  delayMs = 0,
-  onComplete,
-}: {
-  text: string
-  className?: string
-  delayMs?: number
-  onComplete?: () => void
-}) {
-  const reduceMotion = useReducedMotion()
-  const [ref, visible] = useIntersectionOnce<HTMLSpanElement>()
-  const [characters, setCharacters] = React.useState(reduceMotion ? text.length : 0)
-  const [cursorVisible, setCursorVisible] = React.useState(!reduceMotion)
-  const onCompleteRef = React.useRef(onComplete)
-
-  React.useEffect(() => {
-    onCompleteRef.current = onComplete
-  }, [onComplete])
-
-  React.useEffect(() => {
-    if (!visible) return
-    if (reduceMotion) {
-      setCharacters(text.length)
-      setCursorVisible(false)
-      onCompleteRef.current?.()
-      return
-    }
-
-    let interval: number | null = null
-    let fadeTimer: number | null = null
-    const startTimer = window.setTimeout(() => {
-      let index = 0
-      setCharacters(0)
-      setCursorVisible(true)
-
-      interval = window.setInterval(() => {
-        index += 1
-        setCharacters(index)
-
-        if (index >= text.length) {
-          if (interval !== null) window.clearInterval(interval)
-          onCompleteRef.current?.()
-          fadeTimer = window.setTimeout(() => setCursorVisible(false), 2000)
-        }
-      }, 60)
-    }, delayMs)
-
-    return () => {
-      window.clearTimeout(startTimer)
-      if (interval !== null) window.clearInterval(interval)
-      if (fadeTimer !== null) window.clearTimeout(fadeTimer)
-    }
-  }, [delayMs, reduceMotion, text.length, visible])
-
-  return (
-    <span ref={ref} className={cn('inline-flex items-center gap-1', className)}>
-      <span aria-label={text}>{text.slice(0, characters)}</span>
-      {cursorVisible ? <span className="prometheus-typewriter-cursor" aria-hidden="true" /> : null}
-      <style>{`
-        .prometheus-typewriter-cursor {
-          display: inline-block;
-          width: 1px;
-          height: 1em;
-          background: rgba(200, 200, 200, 0.6);
-          margin-left: 2px;
-          animation: prometheusTypewriterBlink 0.8s steps(1) infinite;
-        }
-
-        @keyframes prometheusTypewriterBlink {
-          0%, 100% { opacity: 0; }
-          50% { opacity: 1; }
-        }
-      `}</style>
-    </span>
-  )
-}
-
-function TextIlluminateFallback({
-  text,
-  className,
-  delayMs = 0,
-}: {
-  text: string
-  className?: string
-  delayMs?: number
-}) {
-  const reduceMotion = useReducedMotion()
-  const [ref, visible] = useIntersectionOnce<HTMLSpanElement>()
-  const [illuminated, setIlluminated] = React.useState(reduceMotion)
-
-  React.useEffect(() => {
-    if (!visible) return
-    if (reduceMotion) {
-      setIlluminated(true)
-      return
-    }
-
-    const timer = window.setTimeout(() => setIlluminated(true), delayMs + 1200)
-    return () => window.clearTimeout(timer)
-  }, [delayMs, reduceMotion, visible])
-
-  return (
-    <span ref={ref} className={cn('relative inline-block', className)}>
-      <span
-        className={cn('relative z-10 transition-colors duration-700', illuminated ? 'text-[#EAEAEA] opacity-100' : 'text-[#333] opacity-15')}
-      >
-        {text}
-      </span>
-      <span className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
-        <motion.span
-          className="absolute inset-y-0 left-0 w-[35%]"
-          initial={false}
-          animate={illuminated ? { x: '120%' } : { x: '-120%' }}
-          transition={{ duration: 1.2, ease: 'easeOut', delay: delayMs / 1000 }}
-          style={{
-            background:
-              'linear-gradient(90deg, transparent 0%, rgba(160, 210, 220, 0.9) 45%, rgba(200, 230, 240, 0.6) 55%, transparent 100%)',
-          }}
-        />
-      </span>
-    </span>
-  )
 }
 
 function MetricSparkline({ values }: { values: number[] }) {
@@ -532,178 +724,6 @@ function MetricSparkline({ values }: { values: number[] }) {
   )
 }
 
-function ReachCurveChart({
-  data,
-  activeRange,
-  onRangeChange,
-  loading,
-  message,
-}: {
-  data: ChartPoint[]
-  activeRange: AnalyticsRange
-  onRangeChange: (range: AnalyticsRange) => void
-  loading: boolean
-  message: string | null
-}) {
-  const reduceMotion = useReducedMotion()
-  const chartRef = React.useRef<HTMLDivElement | null>(null)
-  const [hoverIndex, setHoverIndex] = React.useState<number | null>(null)
-  const points = React.useMemo(() => buildChartPoints(data), [data])
-  const linePath = React.useMemo(() => buildSmoothPath(points), [points])
-  const areaPath = React.useMemo(() => buildAreaPath(points), [points])
-  const hoverPoint = hoverIndex !== null ? points[hoverIndex] ?? null : null
-  const hoverDatum = hoverIndex !== null ? data[hoverIndex] ?? null : null
-
-  const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
-    const element = chartRef.current
-    if (!element || !data.length) return
-
-    const rect = element.getBoundingClientRect()
-    const progress = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width))
-    const index = Math.round(progress * (data.length - 1))
-    setHoverIndex(index)
-  }
-
-  return (
-    <motion.section
-      className="relative overflow-hidden border border-white/[0.12] bg-black px-4 pb-3 pt-4 sm:px-6 sm:pb-4 sm:pt-5"
-      initial={reduceMotion ? false : { opacity: 0, y: 14 }}
-      animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
-      transition={{ duration: 0.8, ease: 'easeOut', delay: 1.4 }}
-    >
-      <div className="flex items-center justify-between gap-4 border-b border-white/[0.08] pb-4">
-        <div>
-          <p className="text-[10px] uppercase tracking-[0.25em] text-[#8D8E85]">REACH CURVE</p>
-          <p className="mt-1.5 text-[12px] text-[#A8AA9D]">Verified video reach over time</p>
-        </div>
-        <div className="flex items-center border border-white/[0.09] bg-black/20 p-1">
-          {rangeOptions.map((range) => (
-            <button
-              key={range}
-              type="button"
-              onClick={() => onRangeChange(range)}
-              className={cn(
-                'min-h-11 min-w-11 border border-transparent px-2 py-1.5 text-[10px] tracking-[0.08em] text-white/55 transition-colors duration-300 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70',
-                activeRange === range && 'border-white/30 bg-white text-black',
-              )}
-            >
-              {range}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div
-        ref={chartRef}
-        onPointerMove={handlePointerMove}
-        onPointerLeave={() => setHoverIndex(null)}
-        className="relative mt-4 h-[280px] sm:h-[340px] lg:h-[420px]"
-      >
-        {loading ? (
-          <div className="absolute inset-0 grid place-items-center" role="status" aria-label="Loading analytics">
-            <LoaderCircle className="size-5 animate-spin text-white" />
-          </div>
-        ) : data.length === 0 ? (
-          <div className="absolute inset-0 grid place-items-center px-6 text-center text-[13px] leading-6 text-[#8D8E85]">
-            {message ?? 'No video measurements are available for this period.'}
-          </div>
-        ) : (
-          <>
-            <svg viewBox="0 0 800 320" className="h-full w-full" role="img" aria-label="Reach trend">
-              <defs>
-                <linearGradient id="analytics-reach-fill" x1="0" x2="0" y1="0" y2="1">
-                  <stop offset="0%" stopColor="rgba(215,255,79,0.16)" />
-                  <stop offset="100%" stopColor="rgba(215,255,79,0)" />
-                </linearGradient>
-              </defs>
-
-              {gridLines.map((line) => (
-                <line
-                  key={line.y}
-                  x1="32"
-                  x2="768"
-                  y1={line.y}
-                  y2={line.y}
-                  stroke="rgba(255,255,255,0.075)"
-                  strokeDasharray="4 8"
-                />
-              ))}
-
-              {points.map((point, index) => (
-                <line
-                  key={`${point.x}-${index}`}
-                  x1={point.x}
-                  x2={point.x}
-                  y1="32"
-                  y2="288"
-                  stroke="rgba(255,255,255,0.045)"
-                />
-              ))}
-
-              <AnimatePresence mode="wait" initial={false}>
-                <motion.g key={activeRange}>
-                  <motion.path
-                d={areaPath}
-                fill="url(#analytics-reach-fill)"
-                initial={reduceMotion ? false : { opacity: 0 }}
-                animate={reduceMotion ? undefined : { opacity: 1 }}
-                transition={{ duration: 0.55, ease: 'easeOut' }}
-              />
-                  <motion.path
-                d={linePath}
-                fill="none"
-                stroke="rgba(215,255,79,0.96)"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                initial={reduceMotion ? false : { opacity: 0, pathLength: 0 }}
-                animate={reduceMotion ? undefined : { opacity: 1, pathLength: 1 }}
-                exit={reduceMotion ? undefined : { opacity: 0 }}
-                transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
-              />
-
-              {points.map((point, index) => (
-                    <motion.circle
-                  key={`${point.x}-${point.y}-${index}`}
-                  cx={point.x}
-                  cy={point.y}
-                  r={hoverIndex === index ? 4 : 2.2}
-                  fill={hoverIndex === index ? 'rgba(215,255,79,1)' : 'rgba(215,255,79,0.68)'}
-                  initial={reduceMotion ? false : { opacity: 0, scale: 0 }}
-                  animate={reduceMotion ? undefined : { opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.38 + index * 0.035, duration: 0.24 }}
-                />
-              ))}
-                </motion.g>
-              </AnimatePresence>
-
-              {data.map((item, index) => (
-                <text key={`${item.label}-${index}`} x={points[index]?.x ?? 0} y="310" textAnchor="middle" fill="#555" fontSize="11">
-                  {item.label}
-                </text>
-              ))}
-            </svg>
-
-            {hoverPoint && hoverDatum ? (
-              <div
-                className="pointer-events-none absolute -translate-x-1/2 -translate-y-full rounded-[12px] border border-[rgba(255,255,255,0.08)] bg-[rgba(20,20,22,0.9)] px-3 py-2 text-[12px] text-[#CCC] backdrop-blur-xl"
-                style={{
-                  left: hoverPoint.x / 800 * 100 + '%',
-                  top: Math.max(hoverPoint.y - 18, 24),
-                }}
-              >
-                <div className="text-[10px] uppercase tracking-[0.2em] text-[#A8AA9D]">{hoverDatum.label}</div>
-                <div className="mt-1 text-sm text-[#F1F0EA]">{formatNumber(hoverDatum.reach)} reach</div>
-                <div className="mt-0.5 text-[11px] text-[#A8AA9D]">{hoverDatum.engagement}% engagement</div>
-              </div>
-            ) : null}
-          </>
-        )}
-      </div>
-    </motion.section>
-  )
-}
-
 function TiltSignalCard({ signal }: { signal: TopSignal | null }) {
   const cardRef = React.useRef<HTMLDivElement | null>(null)
 
@@ -728,7 +748,7 @@ function TiltSignalCard({ signal }: { signal: TopSignal | null }) {
   }
 
   return (
-    <aside className="min-w-0 xl:pt-0">
+    <aside className="min-w-0 xl:pt-0" data-jarvis-reveal>
       <div className="flex items-center justify-between border-b border-white/[0.09] pb-4">
         <p className="text-[10px] uppercase tracking-[0.28em] text-[#8D8E85]">TOP SIGNAL</p>
         <span className="text-[10px] uppercase tracking-[0.18em] text-white/70">01 / 01</span>
@@ -737,7 +757,7 @@ function TiltSignalCard({ signal }: { signal: TopSignal | null }) {
         ref={cardRef}
         onPointerMove={handlePointerMove}
         onPointerLeave={handleLeave}
-        className="group relative mt-5 overflow-hidden border border-white/[0.12] bg-black shadow-[0_28px_70px_rgba(0,0,0,0.4)]"
+        className="group relative mt-5 overflow-hidden rounded-3xl border border-white/[0.12] bg-black shadow-[0_28px_70px_rgba(0,0,0,0.4)]"
         style={{
           transform: 'perspective(800px) rotateX(var(--rx)) rotateY(var(--ry))',
           transition: 'transform 0.1s ease-out',
@@ -745,11 +765,11 @@ function TiltSignalCard({ signal }: { signal: TopSignal | null }) {
           '--ry': '0deg',
         } as React.CSSProperties}
       >
-        <div className="relative aspect-[4/5] overflow-hidden">
+        <div className="relative aspect-[4/5] overflow-hidden rounded-3xl">
           {signal?.image ? <Image src={signal.image} alt={signal.title} fill sizes="(max-width: 1280px) 100vw, 30vw" className="object-cover transition-transform duration-700 group-hover:scale-[1.035]" /> : null}
           <div className={cn('absolute inset-0', signal?.image ? 'bg-[linear-gradient(180deg,rgba(0,0,0,0.06)_0%,rgba(0,0,0,0.12)_40%,rgba(0,0,0,0.94)_100%)]' : 'bg-black')} />
           {signal ? <div className="absolute left-4 top-4 flex items-center gap-2 border border-white/[0.14] bg-black/20 px-2.5 py-1.5 text-[9px] uppercase tracking-[0.2em] text-white/80 backdrop-blur-sm">
-            <span className="size-1.5 rounded-full bg-white" />
+            <span className="size-1.5 rounded-full bg-[#D7FF4F]" />
             Outperforming
           </div> : null}
           <div className="absolute bottom-0 left-0 right-0 p-5 sm:p-6">
@@ -831,7 +851,7 @@ function RecentAssetsGrid({
             >
               <div className="contents text-left">
                 <div className="flex min-w-0 items-center gap-3.5 pr-11 lg:pr-0">
-                  <div className="relative aspect-video w-24 shrink-0 overflow-hidden border border-white/[0.1] bg-black sm:w-32">
+                  <div className="relative aspect-video w-24 shrink-0 overflow-hidden rounded-xl border border-white/[0.1] bg-black sm:w-32">
                     {item.image ? <Image src={item.image} alt={item.alt} fill sizes="128px" className="object-cover transition-transform duration-500 group-hover:scale-[1.04]" /> : <div className="absolute inset-0 bg-black" />}
                     <div className="absolute inset-0 bg-black/15" />
                     <Play className="absolute bottom-2 left-2 size-3 fill-white text-white" />
@@ -862,9 +882,9 @@ function RecentAssetsGrid({
                 type="button"
                 aria-label={`Open performance for ${item.title}`}
                 onClick={() => onOpenVideo(videos[index]!)}
-                className="group/trigger absolute right-0 top-4 flex size-8 items-center justify-center border border-white/[0.12] bg-black text-[#A8AA9D] transition-[background-color,border-color,color,transform] duration-300 hover:-translate-y-0.5 hover:border-white/40 hover:bg-[#101010] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 lg:static lg:justify-self-end"
+                className="group/trigger absolute right-0 top-4 flex size-8 items-center justify-center rounded-full border border-white/[0.12] bg-black text-[#A8AA9D] transition-[background-color,border-color,color,transform] duration-300 hover:-translate-y-0.5 hover:border-white/40 hover:bg-[#101010] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 lg:static lg:justify-self-end"
               >
-                <span className="absolute inset-[5px] border border-current opacity-0 transition-all duration-300 group-hover/trigger:inset-[3px] group-hover/trigger:opacity-30" aria-hidden="true" />
+                <span className="absolute inset-[5px] rounded-full border border-current opacity-0 transition-all duration-300 group-hover/trigger:inset-[3px] group-hover/trigger:opacity-30" aria-hidden="true" />
                 <ArrowUpRight className="relative size-3.5 transition-transform duration-300 group-hover/trigger:-translate-y-0.5 group-hover/trigger:translate-x-0.5" />
               </button>
             </motion.div>
@@ -898,7 +918,7 @@ function VideoPerformanceSheet({
           <>
             <div className="pr-10">
               <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.22em] text-[#8D8E85]">
-                <span className={cn('size-1.5 rounded-full', hasTrackedData ? 'bg-white' : 'bg-[#777970]')} />
+                <span className={cn('size-1.5 rounded-full', hasTrackedData ? 'bg-[#D7FF4F]' : 'bg-[#777970]')} />
                 {hasTrackedData ? 'Performance detail' : 'Tracking setup'}
               </div>
               <SheetTitle className="mt-4 font-[family-name:var(--font-vogue-display)] text-[clamp(2.1rem,6vw,4.1rem)] font-normal leading-[0.92] text-[#F1F0EA]">
@@ -936,7 +956,7 @@ function VideoPerformanceSheet({
                             </div>
                           </div>
                           {platform.publishedUrl ? (
-                            <a href={platform.publishedUrl} target="_blank" rel="noreferrer" className="flex size-8 items-center justify-center border border-white/[0.12] text-[#A8AA9D] transition-colors hover:border-white/40 hover:bg-white hover:text-black" aria-label={`Open ${video.title} on ${platform.platformName}`}>
+                            <a href={platform.publishedUrl} target="_blank" rel="noreferrer" className="flex size-8 items-center justify-center rounded-full border border-white/[0.12] text-[#A8AA9D] transition-colors hover:border-white/40 hover:bg-white hover:text-black" aria-label={`Open ${video.title} on ${platform.platformName}`}>
                               <ArrowUpRight className="size-3.5" />
                             </a>
                           ) : null}
@@ -970,7 +990,7 @@ function VideoPerformanceSheet({
                         <span className="size-2 rounded-full" style={{ backgroundColor: platform.color }} />
                         <span className="text-[13px] text-[#E9E9E1]">Connect {platform.name}</span>
                       </span>
-                      <span className="flex size-7 items-center justify-center border border-white/[0.12] text-[#A8AA9D] transition-all duration-300 group-hover/platform:border-white group-hover/platform:bg-[#101010] group-hover/platform:text-white">
+                      <span className="flex size-7 items-center justify-center rounded-full border border-white/[0.12] text-[#A8AA9D] transition-all duration-300 group-hover/platform:border-white group-hover/platform:bg-[#101010] group-hover/platform:text-white">
                         <ArrowUpRight className="size-3.5 transition-transform duration-300 group-hover/platform:-translate-y-0.5 group-hover/platform:translate-x-0.5" />
                       </span>
                     </a>
@@ -1002,31 +1022,6 @@ function PerformanceDatum({ icon: Icon, label, value }: { icon: React.ComponentT
       <p className="mt-2 text-[16px] font-light text-[#F1F0EA]">{value}</p>
     </div>
   )
-}
-
-function useIntersectionOnce<T extends Element>(threshold = 0.45) {
-  const ref = React.useRef<T | null>(null)
-  const [visible, setVisible] = React.useState(false)
-
-  React.useEffect(() => {
-    const element = ref.current
-    if (!element || visible) return
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) {
-          setVisible(true)
-          observer.disconnect()
-        }
-      },
-      { threshold },
-    )
-
-    observer.observe(element)
-    return () => observer.disconnect()
-  }, [threshold, visible])
-
-  return [ref, visible] as const
 }
 
 function formatMetric(key: MetricCard['key'], value: number) {
@@ -1067,24 +1062,6 @@ function buildSparklinePoints(values: number[]) {
   }))
 }
 
-function buildChartPoints(data: ChartPoint[]) {
-  const width = 800
-  const height = 320
-  const paddingX = 32
-  const paddingY = 32
-  const innerWidth = width - paddingX * 2
-  const innerHeight = height - paddingY * 2
-  const values = data.map((point) => point.reach)
-  const max = Math.max(...values, 1)
-  const min = Math.min(...values, 0)
-  const range = Math.max(max - min, 1)
-
-  return values.map((value, index) => ({
-    x: paddingX + (innerWidth * index) / Math.max(values.length - 1, 1),
-    y: paddingY + innerHeight - ((value - min) / range) * innerHeight,
-  }))
-}
-
 function buildSmoothPath(points: Array<{ x: number; y: number }>) {
   if (!points.length) return ''
 
@@ -1095,14 +1072,3 @@ function buildSmoothPath(points: Array<{ x: number; y: number }>) {
     return `${path} C ${controlX} ${previous.y}, ${controlX} ${point.y}, ${point.x} ${point.y}`
   }, '')
 }
-
-function buildAreaPath(points: Array<{ x: number; y: number }>) {
-  if (!points.length) return ''
-  const line = buildSmoothPath(points)
-  const baseline = 288
-  const first = points[0]
-  const last = points[points.length - 1]
-  return `${line} L ${last.x} ${baseline} L ${first.x} ${baseline} Z`
-}
-
-const gridLines = [64, 112, 160, 208, 256].map((y) => ({ y }))

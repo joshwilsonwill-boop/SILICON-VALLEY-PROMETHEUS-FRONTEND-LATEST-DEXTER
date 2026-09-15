@@ -29,6 +29,8 @@ const config = [
       "build/**",
       "node_modules/**",
       "next-env.d.ts",
+      // Vendored bklit-ui chart registry (copied from bklit.com; lint upstream style as-is)
+      "components/analytics/bklit/**",
     ],
   },
 ];
