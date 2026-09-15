@@ -8,11 +8,11 @@ import { PrometheusChatLoadingSkeleton } from "../components/editor/prometheus-c
 import { PrometheusChatMarkdown } from "../components/editor/prometheus-chat-markdown";
 import { buildChatFollowUpSuggestions } from "../lib/prometheus-assistant/chat-follow-ups";
 
-test("thinking indicator exposes a visible morph and flowing skeleton lines", () => {
+test("thinking indicator exposes a breathing orb and flowing skeleton lines", () => {
   const markup = renderToStaticMarkup(<PrometheusChatLoadingSkeleton />);
 
   assert.match(markup, /role="status"/);
-  assert.match(markup, /data-thinking-morph="circle-to-spark"/);
+  assert.match(markup, /data-thinking-orb="breathing"/);
   assert.match(markup, /data-skeleton-flow="true"/);
 });
 
