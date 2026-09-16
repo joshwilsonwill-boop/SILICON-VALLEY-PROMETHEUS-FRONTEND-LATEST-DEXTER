@@ -100,6 +100,8 @@ export function SoundtrackCard({
     <div
       role="button"
       tabIndex={0}
+      data-track-id={track.id}
+      data-autonomous-target="music-track"
       onClick={onFocus}
       onKeyDown={(event) => {
         if (event.key === 'Enter' || event.key === ' ') {
@@ -127,6 +129,8 @@ export function SoundtrackCard({
 
       <button
         type="button"
+        data-action="select-track"
+        data-autonomous-target="music-select"
         aria-label={isSelected ? `Deselect ${track.title}` : `Select ${track.title}`}
         onClick={(event) => {
           event.stopPropagation()
@@ -160,6 +164,8 @@ export function SoundtrackCard({
 
       <button
         type="button"
+        data-action="play-track"
+        data-autonomous-target="music-play"
         aria-label={isPlaying ? `Pause ${track.title}` : `Play ${track.title}`}
         onClick={(event) => {
           event.stopPropagation()

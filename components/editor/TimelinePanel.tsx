@@ -335,7 +335,13 @@ export function TimelinePanel({
             <button className="flex h-9 w-9 items-center justify-center rounded-lg text-white/40 transition-colors hover:bg-white/5 hover:text-white">
               <Layers className="size-4" />
             </button>
-            <button className="flex h-9 w-9 items-center justify-center rounded-lg text-white/40 transition-colors hover:bg-white/5 hover:text-white">
+            <button
+              data-action="split-cut"
+              data-autonomous-target="split"
+              aria-label="Split clip at playhead"
+              title="Split clip at playhead (S)"
+              className="flex h-9 w-9 items-center justify-center rounded-lg text-white/40 transition-colors hover:bg-white/5 hover:text-white"
+            >
               <Scissors className="size-4" />
             </button>
           </div>

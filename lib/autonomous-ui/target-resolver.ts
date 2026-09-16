@@ -341,6 +341,139 @@ export function resolveMasterReviewTarget(): ResolvedTarget | null {
   return null
 }
 
+/**
+ * Find search input in Music catalog panel
+ */
+export function resolveMusicSearchTarget(): ResolvedTarget | null {
+  if (typeof document === 'undefined') return null
+
+  const candidates = [
+    '[data-autonomous-target="music-search"]',
+    'input[placeholder*="Search" i]',
+    'input[placeholder*="title or artist" i]',
+    'aside input[type="text"]',
+  ]
+
+  for (const selector of candidates) {
+    const el = document.querySelector<HTMLElement>(selector)
+    if (el) {
+      const target = getElementTarget(el)
+      if (target) return target
+    }
+  }
+
+  return null
+}
+
+/**
+ * Find play/preview button for a soundtrack card
+ */
+export function resolveMusicPlayTarget(trackId?: string): ResolvedTarget | null {
+  if (typeof document === 'undefined') return null
+
+  if (trackId) {
+    const el = document.querySelector<HTMLElement>(
+      `[data-track-id="${trackId}"] [data-action="play-track"], [data-track-id="${trackId}"] button[aria-label*="Play" i], [data-track-id="${trackId}"] button[aria-label*="Pause" i]`
+    )
+    if (el) {
+      const target = getElementTarget(el)
+      if (target) return target
+    }
+  }
+
+  const fallback = document.querySelector<HTMLElement>(
+    '[data-autonomous-target="music-track"] [data-action="play-track"], [data-soundtrack-card] button[aria-label*="Play" i], [data-action="play-track"]'
+  )
+  if (fallback) return getElementTarget(fallback)
+
+  return null
+}
+
+/**
+ * Find selection button or clickable card to stage a soundtrack track
+ */
+export function resolveMusicSelectTarget(trackId?: string): ResolvedTarget | null {
+  if (typeof document === 'undefined') return null
+
+  if (trackId) {
+    const selectBtn = document.querySelector<HTMLElement>(
+      `[data-track-id="${trackId}"] [data-action="select-track"], [data-track-id="${trackId}"] button[aria-label*="Select" i]`
+    )
+    if (selectBtn) {
+      const target = getElementTarget(selectBtn)
+      if (target) return target
+    }
+    const card = document.querySelector<HTMLElement>(`[data-track-id="${trackId}"]`)
+    if (card) return getElementTarget(card)
+  }
+
+  const fallbackBtn = document.querySelector<HTMLElement>(
+    '[data-autonomous-target="music-track"] [data-action="select-track"], [data-autonomous-target="music-track"]'
+  )
+  if (fallbackBtn) return getElementTarget(fallbackBtn)
+
+  return null
+}
+
+/**
+ * Find split/cut tool button in timeline controls
+ */
+export function resolveSplitTarget(): ResolvedTarget | null {
+  if (typeof document === 'undefined') return null
+
+  const candidates = [
+    '[data-action="split-cut"]',
+    '[data-autonomous-target="split"]',
+    'button[aria-label*="split" i]',
+    'button[title*="split" i]',
+    'button[aria-label*="cut" i]',
+  ]
+
+  for (const selector of candidates) {
+    const el = document.querySelector<HTMLElement>(selector)
+    if (el) {
+      const target = getElementTarget(el)
+      if (target) return target
+    }
+  }
+
+  // Look for scissors icon
+  const buttons = Array.from(document.querySelectorAll<HTMLElement>('button'))
+  for (const btn of buttons) {
+    if (btn.querySelector('svg.lucide-scissors')) {
+      const target = getElementTarget(btn)
+      if (target) return target
+    }
+  }
+
+  return null
+}
+
+/**
+ * Find caption styling or typography selector button
+ */
+export function resolveStylingTarget(): ResolvedTarget | null {
+  if (typeof document === 'undefined') return null
+
+  const candidates = [
+    '[data-action="style-selector"]',
+    '[data-autonomous-target="styling"]',
+    'button[aria-label*="style" i]',
+    'button[aria-label*="caption" i]',
+    '[data-motion-chamber] button',
+  ]
+
+  for (const selector of candidates) {
+    const el = document.querySelector<HTMLElement>(selector)
+    if (el) {
+      const target = getElementTarget(el)
+      if (target) return target
+    }
+  }
+
+  return null
+}
+
 function getElementTarget(element: HTMLElement): ResolvedTarget | null {
   const rect = element.getBoundingClientRect()
   if (rect.width === 0 && rect.height === 0 && rect.top === 0 && rect.left === 0) {

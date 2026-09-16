@@ -252,6 +252,7 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
           const success = await autonomousCoordinator.executeMusicSelection({
             trackId,
             genreOrMood,
+            query: genreOrMood,
             onSwitchTab: onTabChange ? (tab) => onTabChange(tab as 'Editor' | 'Music' | 'Motion') : undefined,
           })
           return { success, action: args.action, genreOrMood }

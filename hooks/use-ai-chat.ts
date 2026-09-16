@@ -19,6 +19,7 @@ import {
   type ChatSession,
   updateChatSessionTitle,
 } from "@/lib/supabase/chat-sessions";
+import { autonomousCoordinator } from "@/lib/autonomous-ui/coordinator";
 
 export type AIChatPlatform =
   | "twitter"
@@ -463,6 +464,7 @@ export function useAIChat({
         const handleStreamEvent = (event: PrometheusChatStreamEvent) => {
           if (event.type === "status") {
             setStreamStatus(event.message);
+            autonomousCoordinator.streamStatus(event.message);
             setStreamActivity((current) => {
               const entries = current.map((entry) =>
                 entry.kind === "status" && entry.state === "active"
@@ -483,6 +485,7 @@ export function useAIChat({
           }
           if (event.type === "thought") {
             setStreamStatus(event.content);
+            autonomousCoordinator.streamThought(event.content);
             setMessages((current) =>
               current.map((entry) => {
                 if (entry.id !== assistantMessage.id) return entry;
@@ -493,6 +496,7 @@ export function useAIChat({
             return;
           }
           if (event.type === "tool") {
+            autonomousCoordinator.streamTool(event.toolCall.label, event.toolCall.summary);
             setStreamActivity((current) => [
               ...current.map((entry) =>
                 entry.kind === "status" && entry.state === "active"

@@ -1262,6 +1262,7 @@ export function MusicTabPanel({
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-white/35" />
             <input
+              data-autonomous-target="music-search"
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
               className="h-12 w-full rounded-[18px] border border-white/16 bg-white/[0.06] pl-10 pr-10 text-[16px] text-white/90 outline-none transition-colors placeholder:text-white/42 focus:border-[#6366f1]/70 focus:ring-2 focus:ring-[#6366f1]/20"

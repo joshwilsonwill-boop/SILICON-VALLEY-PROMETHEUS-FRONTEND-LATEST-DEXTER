@@ -8197,41 +8197,78 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
   const handleApplyChatActions = React.useCallback(async (drafts: EditorActionDraft[]) => {
     if (!drafts || drafts.length === 0) return
 
-    for (const draft of drafts) {
+    for (let i = 0; i < drafts.length; i++) {
+      const draft = drafts[i]
+      const isContinuous = i < drafts.length - 1
+
       if (draft.kind === 'preview_control') {
-        await autonomousCoordinator.executePreviewControl(draft.command, () => {
-          if (draft.command === 'play') startPreviewPlayback()
-          else if (draft.command === 'pause') pausePreviewPlayback()
-          else if (draft.command === 'mute') setIsPreviewMuted(true)
-          else if (draft.command === 'unmute') setIsPreviewMuted(false)
-        })
+        await autonomousCoordinator.executePreviewControl(
+          draft.command,
+          () => {
+            if (draft.command === 'play') startPreviewPlayback()
+            else if (draft.command === 'pause') pausePreviewPlayback()
+            else if (draft.command === 'mute') setIsPreviewMuted(true)
+            else if (draft.command === 'unmute') setIsPreviewMuted(false)
+          },
+          isContinuous
+        )
       } else if (draft.kind === 'seek' && typeof draft.timeSec === 'number') {
         await autonomousCoordinator.executeSeekTimeline(
           draft.timeSec,
           transportDurationSec,
-          (time) => handlePreviewSeekSeconds(time)
+          (time) => handlePreviewSeekSeconds(time),
+          isContinuous
         )
       } else if (draft.kind === 'switch_tab') {
-        await autonomousCoordinator.executeTabSwitch(draft.tab as AutonomousWorkspaceTab, (tab) => {
-          setActiveWorkspaceTab(tab as HeaderNavMode)
-          setBottomMode(tab === 'Music' ? 'Music' : 'Original')
+        await autonomousCoordinator.executeTabSwitch(
+          draft.tab as AutonomousWorkspaceTab,
+          (tab) => {
+            setActiveWorkspaceTab(tab as HeaderNavMode)
+            setBottomMode(tab === 'Music' ? 'Music' : 'Original')
+          },
+          isContinuous
+        )
+      } else if (draft.kind === 'split_at_playhead' && typeof draft.timeSec === 'number') {
+        await autonomousCoordinator.executeAutonomousEditingWorkflow({
+          type: 'split',
+          timeSec: draft.timeSec,
+          onSwitchTab: (tab) => {
+            setActiveWorkspaceTab(tab as HeaderNavMode)
+            setBottomMode(tab === 'Music' ? 'Music' : 'Original')
+          },
+          onSeek: handlePreviewSeekSeconds,
+          isContinuous,
+        })
+      } else if (draft.kind === 'set_caption_style') {
+        await autonomousCoordinator.executeAutonomousEditingWorkflow({
+          type: 'caption_style',
+          style: draft.style,
+          onSwitchTab: (tab) => {
+            setActiveWorkspaceTab(tab as HeaderNavMode)
+            setBottomMode(tab === 'Music' ? 'Music' : 'Original')
+          },
+          isContinuous,
         })
       } else if (draft.kind === 'start_render') {
-        await autonomousCoordinator.executeExportAction(draft.mode, () => {
-          if (draft.mode === 'final') {
-            setIsMasterReviewOpen(true)
-          } else {
-            handlePrepareExport()
-          }
-        })
+        await autonomousCoordinator.executeExportAction(
+          draft.mode,
+          () => {
+            if (draft.mode === 'final') {
+              setIsMasterReviewOpen(true)
+            } else {
+              handlePrepareExport()
+            }
+          },
+          isContinuous
+        )
       } else if (draft.kind === 'open_thumbnail_studio') {
         await autonomousCoordinator.executeThumbnailStudio(() => {
           setIsThumbnailStudioOpen(true)
-        })
+        }, isContinuous)
       } else if (draft.kind === 'open_master_review') {
         await autonomousCoordinator.executeMasterReview(() => {
           setIsMasterReviewOpen(true)
-        })
+        }, isContinuous)
       } else {
         autonomousCoordinator.beginTakeover(`Jarvis: ${draft.summary}`)
         await new Promise((r) => setTimeout(r, 250))
