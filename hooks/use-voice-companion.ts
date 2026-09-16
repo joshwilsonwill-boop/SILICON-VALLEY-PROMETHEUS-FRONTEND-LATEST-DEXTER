@@ -29,14 +29,14 @@ export interface VoiceCompanionTranscriptItem {
 
 export interface UseVoiceCompanionOptions {
   contextProvider?: () => ChatEditorContext | null
-  onApplyActions?: (drafts: EditorActionDraft[]) => void
-  onSeek?: (timeSec: number) => void
-  onPlay?: () => void
-  onPause?: () => void
-  onMute?: () => void
-  onUnmute?: () => void
-  onTabChange?: (tab: 'Editor' | 'Music' | 'Motion') => void
-  onFitModeChange?: (mode: 'fill' | 'fit') => void
+  onApplyActions?: (drafts: EditorActionDraft[]) => Promise<void> | void
+  onSeek?: (timeSec: number) => Promise<void> | void
+  onPlay?: () => Promise<void> | void
+  onPause?: () => Promise<void> | void
+  onMute?: () => Promise<void> | void
+  onUnmute?: () => Promise<void> | void
+  onTabChange?: (tab: 'Editor' | 'Music' | 'Motion') => Promise<void> | void
+  onFitModeChange?: (mode: 'fill' | 'fit') => Promise<void> | void
 }
 
 export interface UseVoiceCompanionReturn {
@@ -196,33 +196,33 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
         case 'seek_timeline': {
           const time = typeof args.timeSec === 'number' ? args.timeSec : 0
           if (onSeek) {
-            onSeek(time)
+            await onSeek(time)
           } else if (onApplyActions) {
-            onApplyActions([{ kind: 'seek', timeSec: time, summary: `Seek to ${time}s` }])
+            await onApplyActions([{ kind: 'seek', timeSec: time, summary: `Seek to ${time}s` }])
           }
           return { success: true, newPlayheadSec: time }
         }
 
         case 'preview_control': {
           const cmd = args.command as 'play' | 'pause' | 'mute' | 'unmute'
-          if (cmd === 'play') onPlay ? onPlay() : onApplyActions?.([{ kind: 'preview_control', command: 'play', summary: 'Play preview' }])
-          if (cmd === 'pause') onPause ? onPause() : onApplyActions?.([{ kind: 'preview_control', command: 'pause', summary: 'Pause preview' }])
-          if (cmd === 'mute') onMute ? onMute() : onApplyActions?.([{ kind: 'preview_control', command: 'mute', summary: 'Mute preview' }])
-          if (cmd === 'unmute') onUnmute ? onUnmute() : onApplyActions?.([{ kind: 'preview_control', command: 'unmute', summary: 'Unmute preview' }])
+          if (cmd === 'play') onPlay ? await onPlay() : await onApplyActions?.([{ kind: 'preview_control', command: 'play', summary: 'Play preview' }])
+          if (cmd === 'pause') onPause ? await onPause() : await onApplyActions?.([{ kind: 'preview_control', command: 'pause', summary: 'Pause preview' }])
+          if (cmd === 'mute') onMute ? await onMute() : await onApplyActions?.([{ kind: 'preview_control', command: 'mute', summary: 'Mute preview' }])
+          if (cmd === 'unmute') onUnmute ? await onUnmute() : await onApplyActions?.([{ kind: 'preview_control', command: 'unmute', summary: 'Unmute preview' }])
           return { success: true, command: cmd }
         }
 
         case 'switch_workspace_tab': {
           const tab = args.tab as 'Editor' | 'Music' | 'Motion'
-          if (onTabChange) onTabChange(tab)
-          else if (onApplyActions) onApplyActions([{ kind: 'switch_tab', tab, summary: `Switch to ${tab}` }])
+          if (onTabChange) await onTabChange(tab)
+          else if (onApplyActions) await onApplyActions([{ kind: 'switch_tab', tab, summary: `Switch to ${tab}` }])
           return { success: true, activeTab: tab }
         }
 
         case 'set_fit_mode': {
           const mode = args.mode as 'fill' | 'fit'
-          if (onFitModeChange) onFitModeChange(mode)
-          else if (onApplyActions) onApplyActions([{ kind: 'set_fit_mode', mode, summary: `Fit mode: ${mode}` }])
+          if (onFitModeChange) await onFitModeChange(mode)
+          else if (onApplyActions) await onApplyActions([{ kind: 'set_fit_mode', mode, summary: `Fit mode: ${mode}` }])
           return { success: true, fitMode: mode }
         }
 
@@ -241,7 +241,7 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
         case 'autonomous_transcript_cut': {
           const phrase = String(args.phrase ?? '')
           const success = await autonomousCoordinator.executeTranscriptCut(phrase, {
-            onSwitchTab: onTabChange,
+            onSwitchTab: onTabChange ? (tab) => onTabChange(tab as 'Editor' | 'Music' | 'Motion') : undefined,
           })
           return { success, cutPhrase: phrase }
         }
@@ -252,7 +252,7 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
           const success = await autonomousCoordinator.executeMusicSelection({
             trackId,
             genreOrMood,
-            onSwitchTab: onTabChange,
+            onSwitchTab: onTabChange ? (tab) => onTabChange(tab as 'Editor' | 'Music' | 'Motion') : undefined,
           })
           return { success, action: args.action, genreOrMood }
         }
@@ -285,9 +285,8 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
         }
 
         case 'start_render': {
-          if (!isTakeoverEnabled) return { success: false, error: 'Takeover mode is off — ask the user to enable it first.' }
           const mode = args.mode === 'final' ? 'final' : 'preview'
-          onApplyActions?.([{ kind: 'start_render', mode, summary: mode === 'final' ? 'Opening Master Review for final export' : 'Dispatching viral batch render' }])
+          await onApplyActions?.([{ kind: 'start_render', mode, summary: mode === 'final' ? 'Opening Master Review for final export' : 'Dispatching viral batch render' }])
           return { success: true, mode }
         }
 

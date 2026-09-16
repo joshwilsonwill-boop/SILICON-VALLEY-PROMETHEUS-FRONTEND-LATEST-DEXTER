@@ -22,6 +22,12 @@ import {
   resolveTranscriptPhraseElements,
   resolveMusicTrackElement,
   resolveDomSelector,
+  resolveMuteTarget,
+  resolvePlaybackTarget,
+  resolveExportTarget,
+  resolveScrubberTarget,
+  resolveThumbnailStudioTarget,
+  resolveMasterReviewTarget,
 } from './target-resolver'
 import { animateGlide, ensureElementInView } from './motion-driver'
 import { useAutonomousStore } from './autonomous-store'
@@ -472,26 +478,43 @@ class AutonomousUICoordinator {
   /**
    * High-level Workflow: Seek the timeline to a specific time in seconds
    */
-  public async executeSeekTimeline(timeSec: number): Promise<boolean> {
-    // 1. Try to find and interact with the timeline scrubber
-    const scrubber = resolveDomSelector('[data-motion-chamber] [role="slider"]')
+  public async executeSeekTimeline(
+    timeSec: number,
+    durationSec?: number,
+    callback?: (timeSec: number) => void
+  ): Promise<boolean> {
+    if (this.isHumanInteracting) return false
+
+    const label = `Jarvis: Seeking to ${timeSec.toFixed(1)}s`
+    this.beginTakeover(label)
+
+    const fraction = durationSec && durationSec > 0 ? timeSec / durationSec : undefined
+    const scrubber = resolveScrubberTarget(fraction)
+
     if (scrubber) {
       await ensureElementInView(scrubber.element)
+      this.anticipateTarget(scrubber.element)
+      await new Promise((resolve) => setTimeout(resolve, 140))
+
       const glided = await this.glideTo(
         scrubber.centerX,
         scrubber.centerY,
-        `Jarvis: Seeking to ${timeSec.toFixed(1)}s`,
+        label,
         scrubber.rect,
-        500
+        420
       )
       if (!glided) return false
       await this.simulateClick()
     }
 
-    // 2. Call the React callback via store bridge (works even without DOM target)
-    useAutonomousStore.getState().onSeekSeconds?.(timeSec)
+    if (callback) {
+      callback(timeSec)
+    } else {
+      useAutonomousStore.getState().onSeekSeconds?.(timeSec)
+    }
 
-    await new Promise((resolve) => setTimeout(resolve, 300))
+    this.setPillMode('action', `Scrubbed to ${timeSec.toFixed(1)}s`)
+    await new Promise((resolve) => setTimeout(resolve, 280))
     this.abortAction('cancelled')
     return true
   }
@@ -500,43 +523,177 @@ class AutonomousUICoordinator {
    * High-level Workflow: Control preview playback (play / pause / mute / unmute)
    */
   public async executePreviewControl(
-    command: 'play' | 'pause' | 'mute' | 'unmute'
+    command: 'play' | 'pause' | 'mute' | 'unmute',
+    callback?: () => void
   ): Promise<boolean> {
+    if (this.isHumanInteracting) return false
+
+    const isMuting = command === 'mute' || command === 'unmute'
     const label =
-      command === 'play' ? 'Playing preview'
-      : command === 'pause' ? 'Pausing preview'
-      : command === 'mute' ? 'Muting audio'
-      : 'Unmuting audio'
+      command === 'play' ? 'Jarvis: Playing preview'
+      : command === 'pause' ? 'Jarvis: Pausing preview'
+      : command === 'mute' ? 'Jarvis: Muting audio'
+      : 'Jarvis: Unmuting audio'
 
-    // 1. Try to find the physical button
-    const isPlayback = command === 'play' || command === 'pause'
-    const buttonQuery = isPlayback
-      ? '[data-motion-chamber] button[aria-label*="play" i], [data-motion-chamber] button[aria-label*="pause" i]'
-      : '[data-motion-chamber] button[aria-label*="mute" i], [data-motion-chamber] button[aria-label*="unmute" i]'
+    // 1. Immediately begin visual takeover sequence with high-speed reaction
+    this.beginTakeover(label)
 
-    const target = resolveDomSelector(buttonQuery)
+    // 2. Resolve target element (Mute button or Play button)
+    const target = isMuting ? resolveMuteTarget() : resolvePlaybackTarget(command)
+
     if (target) {
       await ensureElementInView(target.element)
+      this.anticipateTarget(target.element)
+      await new Promise((resolve) => setTimeout(resolve, 140))
+
       const glided = await this.glideTo(
         target.centerX,
         target.centerY,
-        `Jarvis: ${label}`,
+        label,
+        target.rect,
+        360
+      )
+      if (!glided) return false
+
+      // Tactile click with micro-compression and shockwaves
+      await this.simulateClick()
+      target.element.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    }
+
+    // 3. Fire callback synchronously with the click
+    if (callback) {
+      callback()
+    } else {
+      if (isMuting) {
+        useAutonomousStore.getState().onToggleMute?.()
+      } else {
+        useAutonomousStore.getState().onTogglePlayback?.()
+      }
+    }
+
+    this.setPillMode('action', isMuting ? (command === 'mute' ? 'Audio muted' : 'Audio unmuted') : (command === 'play' ? 'Playing' : 'Paused'))
+    await new Promise((resolve) => setTimeout(resolve, 320))
+    this.abortAction('cancelled')
+    return true
+  }
+
+  /**
+   * High-level Workflow: Autonomous Export Action
+   */
+  public async executeExportAction(
+    mode: 'final' | 'preview' | 'export' = 'export',
+    callback?: () => void
+  ): Promise<boolean> {
+    if (this.isHumanInteracting) return false
+
+    const label = mode === 'final'
+      ? 'Jarvis: Opening Master Review'
+      : 'Jarvis: Opening Export workflow'
+
+    this.beginTakeover(label)
+
+    const target = mode === 'final' ? (resolveMasterReviewTarget() || resolveExportTarget()) : resolveExportTarget()
+
+    if (target) {
+      await ensureElementInView(target.element)
+      this.anticipateTarget(target.element)
+      await new Promise((resolve) => setTimeout(resolve, 140))
+
+      const glided = await this.glideTo(
+        target.centerX,
+        target.centerY,
+        label,
+        target.rect,
+        420
+      )
+      if (!glided) return false
+
+      await this.simulateClick()
+      target.element.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    }
+
+    if (callback) {
+      callback()
+    }
+
+    this.setPillMode('action', mode === 'final' ? 'Master Review open' : 'Export initiated')
+    await new Promise((resolve) => setTimeout(resolve, 350))
+    this.abortAction('cancelled')
+    return true
+  }
+
+  /**
+   * High-level Workflow: Autonomous Thumbnail Studio Launch
+   */
+  public async executeThumbnailStudio(callback?: () => void): Promise<boolean> {
+    if (this.isHumanInteracting) return false
+
+    const label = 'Jarvis: Opening Thumbnail Studio'
+    this.beginTakeover(label)
+
+    const target = resolveThumbnailStudioTarget()
+    if (target) {
+      await ensureElementInView(target.element)
+      this.anticipateTarget(target.element)
+      await new Promise((resolve) => setTimeout(resolve, 140))
+
+      const glided = await this.glideTo(
+        target.centerX,
+        target.centerY,
+        label,
         target.rect,
         400
       )
       if (!glided) return false
+
       await this.simulateClick()
       target.element.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
-    } else {
-      // 2. Fallback: call React callback via store bridge
-      if (isPlayback) {
-        useAutonomousStore.getState().onTogglePlayback?.()
-      } else {
-        useAutonomousStore.getState().onToggleMute?.()
-      }
     }
 
-    await new Promise((resolve) => setTimeout(resolve, 300))
+    if (callback) {
+      callback()
+    }
+
+    this.setPillMode('action', 'Thumbnail Studio open')
+    await new Promise((resolve) => setTimeout(resolve, 320))
+    this.abortAction('cancelled')
+    return true
+  }
+
+  /**
+   * High-level Workflow: Autonomous Master Review Launch
+   */
+  public async executeMasterReview(callback?: () => void): Promise<boolean> {
+    if (this.isHumanInteracting) return false
+
+    const label = 'Jarvis: Opening Master Review'
+    this.beginTakeover(label)
+
+    const target = resolveMasterReviewTarget() || resolveExportTarget()
+    if (target) {
+      await ensureElementInView(target.element)
+      this.anticipateTarget(target.element)
+      await new Promise((resolve) => setTimeout(resolve, 140))
+
+      const glided = await this.glideTo(
+        target.centerX,
+        target.centerY,
+        label,
+        target.rect,
+        400
+      )
+      if (!glided) return false
+
+      await this.simulateClick()
+      target.element.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    }
+
+    if (callback) {
+      callback()
+    }
+
+    this.setPillMode('action', 'Master Review open')
+    await new Promise((resolve) => setTimeout(resolve, 320))
     this.abortAction('cancelled')
     return true
   }

@@ -10,14 +10,14 @@ import type { ChatEditorContext } from '@/lib/prometheus-assistant/editor-contex
  */
 export interface VoiceCompanionBridgeHandlers {
   contextProvider?: () => ChatEditorContext | null
-  onApplyActions?: (drafts: EditorActionDraft[]) => void
-  onSeek?: (timeSec: number) => void
-  onPlay?: () => void
-  onPause?: () => void
-  onMute?: () => void
-  onUnmute?: () => void
-  onTabChange?: (tab: 'Editor' | 'Music' | 'Motion') => void
-  onFitModeChange?: (mode: 'fill' | 'fit') => void
+  onApplyActions?: (drafts: EditorActionDraft[]) => Promise<void> | void
+  onSeek?: (timeSec: number) => Promise<void> | void
+  onPlay?: () => Promise<void> | void
+  onPause?: () => Promise<void> | void
+  onMute?: () => Promise<void> | void
+  onUnmute?: () => Promise<void> | void
+  onTabChange?: (tab: 'Editor' | 'Music' | 'Motion') => Promise<void> | void
+  onFitModeChange?: (mode: 'fill' | 'fit') => Promise<void> | void
   /** True when the editor has enabled autonomous agent takeover. */
   isTakeoverEnabled?: boolean
   /** Toggles the editor's agent takeover mode (mutating action gate). */

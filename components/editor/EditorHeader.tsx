@@ -179,6 +179,9 @@ export function EditorHeader({
             <button
               type="button"
               onClick={onOpenThumbnailStudio}
+              data-action="thumbnail-studio"
+              data-autonomous-target="thumbnail-studio"
+              aria-label="Open Thumbnail Studio"
               className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs text-white/70 transition-all hover:border-[#7ff2d4]/30 hover:bg-[#7ff2d4]/[0.04] hover:text-[#7ff2d4]"
               title="Open Thumbnail Studio"
             >
@@ -191,6 +194,9 @@ export function EditorHeader({
             <button
               type="button"
               onClick={onOpenMasterReview}
+              data-action="master-review"
+              data-autonomous-target="master-review"
+              aria-label="Review Final Render Master"
               className="inline-flex items-center gap-1.5 rounded-full border border-[#7ff2d4]/30 bg-[#7ff2d4]/10 px-3 py-1.5 text-xs font-medium text-[#7ff2d4] transition-all hover:bg-[#7ff2d4]/20"
               title="Review Final Render Master"
             >

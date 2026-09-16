@@ -412,6 +412,8 @@ export function JarvisTopNavFilament({ className }: JarvisTopNavFilamentProps) {
                   <button
                     type="button"
                     onClick={companion.toggleMute}
+                    data-action="filament-mute-mic"
+                    data-autonomous-target="filament-mic"
                     title={companion.isMuted ? "Unmute microphone" : "Mute microphone"}
                     aria-label={companion.isMuted ? "Unmute microphone" : "Mute microphone"}
                     className={cn(

@@ -52,7 +52,6 @@ export function formatMetricValue(metric: ReachMetric, value: number): string {
 type JarvisReachChartProps = {
   data: JarvisChartPoint[];
   metric: ReachMetric;
-  loading: boolean;
   /** Inclusive index where the dashed "in progress" tail begins. */
   dashFromIndex?: number;
   /** Chart lifecycle phase callback — the agent chains cursor motion off this. */
@@ -64,7 +63,6 @@ type JarvisReachChartProps = {
 function JarvisReachChart({
   data,
   metric,
-  loading,
   dashFromIndex,
   onPhaseChange,
   revealSignature,
@@ -120,8 +118,7 @@ function JarvisReachChart({
       />
       <AreaChart
         data={data as unknown as Record<string, unknown>[]}
-        status={loading ? 'loading' : 'ready'}
-        loadingLabel={loading ? 'Parsing telemetry…' : undefined}
+        status="ready"
         yDomainTween
         yDomainTweenDuration={640}
         animationDuration={1400}
@@ -135,10 +132,6 @@ function JarvisReachChart({
           horizontal
           numTicksRows={4}
           stroke="var(--chart-grid)"
-          loadingStroke="rgba(255,255,255,0.16)"
-          shimmer
-          shimmerSync
-          shimmerLength={180}
         />
         <Area
           dataKey={metric}
@@ -151,8 +144,6 @@ function JarvisReachChart({
           fadeEdges
           dashFromIndex={dashFromIndex}
           dashArray="5,5"
-          loadingStroke="#F1F0EA"
-          loadingStrokeOpacity={0.45}
         />
         <XAxis numTicks={5} />
         <ChartTooltip

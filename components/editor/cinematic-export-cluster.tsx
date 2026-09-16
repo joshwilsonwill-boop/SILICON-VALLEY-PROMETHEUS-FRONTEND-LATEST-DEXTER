@@ -38,6 +38,8 @@ export function CinematicExportCluster({
         type="button"
         onClick={isDownloadAction ? onDownload : onExport}
         disabled={isBusy}
+        data-action="export"
+        data-autonomous-target="export"
         aria-label={isDownloadAction ? 'Download completed export' : 'Export video'}
         className={cn(
           'group inline-flex h-10 items-center gap-2 rounded-full border px-3.5 text-[13px] font-medium text-white transition-[background-color,border-color,color,transform,box-shadow] duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 disabled:cursor-wait disabled:opacity-60',

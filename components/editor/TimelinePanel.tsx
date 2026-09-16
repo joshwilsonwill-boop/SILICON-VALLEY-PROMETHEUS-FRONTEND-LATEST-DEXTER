@@ -226,6 +226,10 @@ export function TimelinePanel({
             <button
               onClick={onTogglePlayback}
               disabled={previewKind !== 'video' || !previewUrl}
+              data-action="toggle-playback"
+              data-autonomous-target="playback"
+              aria-label={previewPlaying ? 'Pause preview' : 'Play preview'}
+              title={previewPlaying ? 'Pause (Space)' : 'Play (Space)'}
               className="group flex h-10 w-10 items-center justify-center rounded-full border border-white/8 bg-white/[0.03] text-white/60 transition-all hover:border-white/20 hover:text-white disabled:opacity-20"
             >
               {previewPlaying ? <Pause className="size-4" /> : <Play className="size-4 fill-current ml-0.5" />}
@@ -246,6 +250,8 @@ export function TimelinePanel({
               ref={trackRef}
               role="slider"
               tabIndex={scrubberDisabled ? -1 : 0}
+              data-action="seek-scrubber"
+              data-autonomous-target="timeline-scrubber"
               aria-label="Timeline scrubber"
               aria-valuemin={0}
               aria-valuemax={Math.round(durationSec * 1000)}
@@ -317,6 +323,10 @@ export function TimelinePanel({
             <button
               type="button"
               onClick={onToggleMute}
+              data-action="toggle-mute"
+              data-autonomous-target="mute"
+              aria-label={isPreviewMuted ? 'Unmute preview' : 'Mute preview'}
+              title={isPreviewMuted ? 'Unmute (M)' : 'Mute (M)'}
               className="flex h-9 w-9 items-center justify-center rounded-lg text-white/40 transition-colors hover:bg-white/5 hover:text-white"
             >
               {isPreviewMuted ? <VolumeX className="size-4" /> : <Volume2 className="size-4" />}

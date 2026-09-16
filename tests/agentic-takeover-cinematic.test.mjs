@@ -87,5 +87,32 @@ assert.match(cursorLayerSrc, /prometheus:autonomous-takeover/, 'agentic-cursor-l
 // 12. Editor page wiring
 const pageSrc = readFileSync('app/editor/[id]/page.tsx', 'utf8')
 assert.match(pageSrc, /autonomousCoordinator\.executeAutonomousTakeover/, 'page.tsx wires takeover to executeAutonomousTakeover')
+assert.match(pageSrc, /autonomousCoordinator\.executePreviewControl/, 'page.tsx wires preview_control to executePreviewControl')
+assert.match(pageSrc, /autonomousCoordinator\.executeExportAction/, 'page.tsx wires start_render to executeExportAction')
 
-console.log('Cinematic Agent Takeover UI test suite: ALL 12 VERIFICATION GATES PASSED!')
+// 13. Dedicated target resolvers
+const resolverSrc = readFileSync('lib/autonomous-ui/target-resolver.ts', 'utf8')
+assert.match(resolverSrc, /export function resolveMuteTarget/, 'target-resolver exports resolveMuteTarget')
+assert.match(resolverSrc, /export function resolvePlaybackTarget/, 'target-resolver exports resolvePlaybackTarget')
+assert.match(resolverSrc, /export function resolveExportTarget/, 'target-resolver exports resolveExportTarget')
+assert.match(resolverSrc, /export function resolveScrubberTarget/, 'target-resolver exports resolveScrubberTarget')
+assert.match(resolverSrc, /export function resolveThumbnailStudioTarget/, 'target-resolver exports resolveThumbnailStudioTarget')
+assert.match(resolverSrc, /export function resolveMasterReviewTarget/, 'target-resolver exports resolveMasterReviewTarget')
+
+// 14. Dedicated coordinator expressivity workflows
+assert.match(coordSrc, /executePreviewControl\(/, 'coordinator implements executePreviewControl')
+assert.match(coordSrc, /executeExportAction\(/, 'coordinator implements executeExportAction')
+assert.match(coordSrc, /executeThumbnailStudio\(/, 'coordinator implements executeThumbnailStudio')
+assert.match(coordSrc, /executeMasterReview\(/, 'coordinator implements executeMasterReview')
+
+// 15. DOM targets have explicit targeting attributes
+const timelineSrc = readFileSync('components/editor/TimelinePanel.tsx', 'utf8')
+assert.match(timelineSrc, /data-action="toggle-mute"/, 'TimelinePanel mute button has data-action')
+assert.match(timelineSrc, /data-autonomous-target="mute"/, 'TimelinePanel mute button has data-autonomous-target')
+assert.match(timelineSrc, /data-action="toggle-playback"/, 'TimelinePanel play button has data-action')
+assert.match(timelineSrc, /data-autonomous-target="playback"/, 'TimelinePanel play button has data-autonomous-target')
+
+const exportClusterSrc = readFileSync('components/editor/cinematic-export-cluster.tsx', 'utf8')
+assert.match(exportClusterSrc, /data-action="export"/, 'CinematicExportCluster has data-action="export"')
+
+console.log('Cinematic Agent Takeover UI test suite: ALL 15 VERIFICATION GATES PASSED!')

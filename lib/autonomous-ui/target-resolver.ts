@@ -149,9 +149,200 @@ export function resolveDomSelector(selector: string): ResolvedTarget | null {
   return getElementTarget(el)
 }
 
+/**
+ * Find the primary preview audio mute/unmute toggle or mic mute button
+ */
+export function resolveMuteTarget(): ResolvedTarget | null {
+  if (typeof document === 'undefined') return null
+
+  const candidates = [
+    '[data-action="toggle-mute"]',
+    '[data-autonomous-target="mute"]',
+    '[data-action="mute"]',
+    'button[aria-label*="mute" i]',
+    'button[aria-label*="unmute" i]',
+    'button[aria-label*="volume" i]',
+    '[data-action="filament-mute-mic"]',
+    'button[aria-label*="microphone" i]',
+  ]
+
+  for (const selector of candidates) {
+    const el = document.querySelector<HTMLElement>(selector)
+    if (el) {
+      const target = getElementTarget(el)
+      if (target) return target
+    }
+  }
+
+  const buttons = Array.from(document.querySelectorAll<HTMLElement>('button'))
+  for (const btn of buttons) {
+    const hasVolIcon = btn.querySelector('svg.lucide-volume-2, svg.lucide-volume-x, svg.lucide-volume')
+    if (hasVolIcon) {
+      const target = getElementTarget(btn)
+      if (target) return target
+    }
+  }
+
+  return null
+}
+
+/**
+ * Find playback play/pause button
+ */
+export function resolvePlaybackTarget(command?: 'play' | 'pause'): ResolvedTarget | null {
+  if (typeof document === 'undefined') return null
+
+  const candidates = [
+    '[data-action="toggle-playback"]',
+    '[data-autonomous-target="playback"]',
+    command ? `button[aria-label*="${command}" i]` : 'button[aria-label*="play" i], button[aria-label*="pause" i]',
+    '[data-action="play"]',
+    '[data-action="pause"]',
+  ]
+
+  for (const selector of candidates) {
+    const el = document.querySelector<HTMLElement>(selector)
+    if (el) {
+      const target = getElementTarget(el)
+      if (target) return target
+    }
+  }
+
+  const buttons = Array.from(document.querySelectorAll<HTMLElement>('button'))
+  for (const btn of buttons) {
+    const hasPlayIcon = btn.querySelector('svg.lucide-play, svg.lucide-pause')
+    if (hasPlayIcon) {
+      const target = getElementTarget(btn)
+      if (target) return target
+    }
+  }
+
+  return null
+}
+
+/**
+ * Find Export trigger button or panel
+ */
+export function resolveExportTarget(): ResolvedTarget | null {
+  if (typeof document === 'undefined') return null
+
+  const candidates = [
+    '[data-action="export"]',
+    '[data-autonomous-target="export"]',
+    'button[aria-label*="export video" i]',
+    'button[aria-label*="start export" i]',
+    'button[aria-label*="export" i]',
+    'button[aria-label*="download completed" i]',
+    'aside#editor-sidebar-v2 [aria-label*="export" i]',
+    'header [data-action="export"]',
+    'button[data-action="start-render"]',
+  ]
+
+  for (const selector of candidates) {
+    const el = document.querySelector<HTMLElement>(selector)
+    if (el) {
+      const target = getElementTarget(el)
+      if (target) return target
+    }
+  }
+
+  const buttons = Array.from(document.querySelectorAll<HTMLElement>('button, [role="button"]'))
+  for (const btn of buttons) {
+    const text = btn.textContent?.trim().toLowerCase() ?? ''
+    const label = btn.getAttribute('aria-label')?.toLowerCase() ?? ''
+    if (text === 'export' || text.includes('export') || label.includes('export')) {
+      const target = getElementTarget(btn)
+      if (target) return target
+    }
+  }
+
+  return null
+}
+
+/**
+ * Find timeline scrubber slider, optionally computing exact fraction along the track
+ */
+export function resolveScrubberTarget(fraction?: number): ResolvedTarget | null {
+  if (typeof document === 'undefined') return null
+
+  const candidates = [
+    '[data-action="seek-scrubber"]',
+    '[data-autonomous-target="timeline-scrubber"]',
+    '[role="slider"][aria-label*="scrubber" i]',
+    '[data-motion-chamber] [role="slider"]',
+    '[role="slider"]',
+  ]
+
+  for (const selector of candidates) {
+    const el = document.querySelector<HTMLElement>(selector)
+    if (el) {
+      const target = getElementTarget(el)
+      if (target) {
+        if (typeof fraction === 'number' && Number.isFinite(fraction)) {
+          const clamped = Math.min(1, Math.max(0, fraction))
+          return {
+            ...target,
+            centerX: target.rect.left + target.rect.width * clamped,
+          }
+        }
+        return target
+      }
+    }
+  }
+
+  return null
+}
+
+/**
+ * Find Thumbnail Studio trigger
+ */
+export function resolveThumbnailStudioTarget(): ResolvedTarget | null {
+  if (typeof document === 'undefined') return null
+
+  const candidates = [
+    '[data-action="thumbnail-studio"]',
+    '[data-autonomous-target="thumbnail-studio"]',
+    'button[title*="Thumbnail Studio" i]',
+    'button[aria-label*="Thumbnail Studio" i]',
+  ]
+
+  for (const selector of candidates) {
+    const el = document.querySelector<HTMLElement>(selector)
+    if (el) {
+      const target = getElementTarget(el)
+      if (target) return target
+    }
+  }
+
+  return null
+}
+
+/**
+ * Find Master Review trigger
+ */
+export function resolveMasterReviewTarget(): ResolvedTarget | null {
+  if (typeof document === 'undefined') return null
+
+  const candidates = [
+    '[data-action="master-review"]',
+    '[data-autonomous-target="master-review"]',
+    'button[title*="Master Review" i]',
+    'button[aria-label*="Review Final Render" i]',
+  ]
+
+  for (const selector of candidates) {
+    const el = document.querySelector<HTMLElement>(selector)
+    if (el) {
+      const target = getElementTarget(el)
+      if (target) return target
+    }
+  }
+
+  return null
+}
+
 function getElementTarget(element: HTMLElement): ResolvedTarget | null {
   const rect = element.getBoundingClientRect()
-  // Ensure element is attached and has non-zero geometry
   if (rect.width === 0 && rect.height === 0 && rect.top === 0 && rect.left === 0) {
     return null
   }

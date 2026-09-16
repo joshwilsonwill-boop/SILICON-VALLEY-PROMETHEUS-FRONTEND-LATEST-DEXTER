@@ -93,6 +93,7 @@ function JarvisProvider({ ref, children, ...props }: JarvisProviderProps) {
   const cursorPosRef = React.useRef({ x: 0, y: 0 });
   const agentActiveRef = React.useRef(false);
   const frameRef = React.useRef(0);
+  const beatRef = React.useRef<number | undefined>(undefined);
 
   React.useEffect(() => {
     cursorPosRef.current = cursorPos;
@@ -125,6 +126,7 @@ function JarvisProvider({ ref, children, ...props }: JarvisProviderProps) {
       parent.removeEventListener('mousemove', handleMouseMove);
       parent.removeEventListener('mouseleave', handleMouseLeave);
       cancelAnimationFrame(frameRef.current);
+      window.clearTimeout(beatRef.current);
     };
   }, []);
 
@@ -132,12 +134,22 @@ function JarvisProvider({ ref, children, ...props }: JarvisProviderProps) {
     applyNativeCursor(containerRef.current?.parentElement ?? null, isActive);
   }, [isActive]);
 
+  const release = React.useCallback(() => {
+    cancelAnimationFrame(frameRef.current);
+    window.clearTimeout(beatRef.current);
+    agentActiveRef.current = false;
+    setAgentActive(false);
+    setThought(null);
+    setIsClicking(false);
+  }, []);
+
   const focusElement = React.useCallback(
     (el: HTMLElement | null, options: JarvisFocusOptions = {}) => {
       const parent = containerRef.current?.parentElement;
       if (!parent) return;
 
       cancelAnimationFrame(frameRef.current);
+      window.clearTimeout(beatRef.current);
 
       // Measured at the exact millisecond of dispatch — the causal anchor.
       const parentRect = parent.getBoundingClientRect();
@@ -199,24 +211,19 @@ function JarvisProvider({ ref, children, ...props }: JarvisProviderProps) {
             frameRef.current = requestAnimationFrame(driftFrame);
           };
           frameRef.current = requestAnimationFrame(driftFrame);
+        } else {
+          // Single-action step: hold the beat, then hand control back to the mouse.
+          beatRef.current = window.setTimeout(release, 1400);
         }
       };
 
       frameRef.current = requestAnimationFrame(glideFrame);
     },
-    [],
+    [release],
   );
 
   const say = React.useCallback((nextThought: string | null) => {
     setThought(nextThought);
-  }, []);
-
-  const release = React.useCallback(() => {
-    cancelAnimationFrame(frameRef.current);
-    agentActiveRef.current = false;
-    setAgentActive(false);
-    setThought(null);
-    setIsClicking(false);
   }, []);
 
   const motionValue = React.useMemo(

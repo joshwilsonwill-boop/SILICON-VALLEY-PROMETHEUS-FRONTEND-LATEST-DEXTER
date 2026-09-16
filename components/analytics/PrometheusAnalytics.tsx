@@ -125,6 +125,7 @@ function AnalyticsStage() {
   const chartCardRef = React.useRef<HTMLDivElement | null>(null)
   const cardRefs = React.useRef<Array<HTMLElement | null>>([])
   const sweepLandedOnChart = React.useRef(false)
+  const chartSettled = React.useRef(false)
   const bootDone = React.useRef(false)
   const releaseTimer = React.useRef<number | undefined>(undefined)
 
@@ -239,10 +240,21 @@ function AnalyticsStage() {
     }
   }, [focusElement, reduceMotion, release, say])
 
+  const settleChart = React.useCallback(
+    (announce: boolean) => {
+      if (announce && !chartSettled.current) say('Read complete · curves resolved')
+      chartSettled.current = true
+      window.clearTimeout(releaseTimer.current)
+      releaseTimer.current = window.setTimeout(release, 1100)
+    },
+    [release, say],
+  )
+
   React.useEffect(() => {
     if (!livePayload || reduceMotion) return
     setArmedCount(0)
     sweepLandedOnChart.current = false
+    chartSettled.current = false
 
     const steps: Array<{ thought: string; value: number }> = [
       { thought: `${metricCards[0]!.thought} · ${formatNumber(livePayload.totals.views)}`, value: livePayload.totals.views },
@@ -259,6 +271,10 @@ function AnalyticsStage() {
           duration: 560,
           click: true,
           linger: true,
+          onArrive: () => {
+            // Fallback settle: a chart mounted straight into ready may not emit a phase change.
+            releaseTimer.current = window.setTimeout(() => settleChart(true), 3000)
+          },
         })
         return
       }
@@ -273,18 +289,14 @@ function AnalyticsStage() {
     }
 
     runStep(0)
-  }, [focusElement, livePayload, reduceMotion])
+  }, [focusElement, livePayload, reduceMotion, settleChart])
 
   const handleChartPhase = React.useCallback(
     (phase: ChartPhase) => {
       if (phase === 'revealing') say('Curve locking · aligning domain')
-      if (phase === 'ready' && sweepLandedOnChart.current) {
-        say('Read complete · curves resolved')
-        window.clearTimeout(releaseTimer.current)
-        releaseTimer.current = window.setTimeout(release, 1100)
-      }
+      if (phase === 'ready' && sweepLandedOnChart.current) settleChart(!chartSettled.current)
     },
-    [release, say],
+    [say, settleChart],
   )
 
   const handleRangeChange = (range: AnalyticsRange, el: HTMLElement) => {
@@ -448,21 +460,24 @@ function AnalyticsStage() {
               </div>
             </div>
 
-            <div className="relative mt-4">
+            <div className="relative mt-4 min-h-[clamp(300px,42vh,440px)]">
               {loadState === 'error' ? (
                 <div className="grid h-[clamp(300px,42vh,440px)] place-items-center px-6 text-center text-[13px] leading-6 text-[#8D8E85]">
                   Unable to load analytics. Refresh the page to try again.
                 </div>
-              ) : (
+              ) : loadState === 'ready' && chartData.length > 0 ? (
                 <JarvisReachChart
                   data={chartData}
                   metric={activeMetric}
-                  loading={loadState === 'loading'}
                   dashFromIndex={dashFromIndex}
                   onPhaseChange={handleChartPhase}
                   revealSignature={`${activeRange}:${activeMetric}`}
                 />
-              )}
+              ) : loadState === 'ready' ? (
+                <div className="grid h-[clamp(300px,42vh,440px)] place-items-center px-6 text-center text-[13px] leading-6 text-[#8D8E85]">
+                  {livePayload?.metricsWarning ?? 'No video measurements are available for this period.'}
+                </div>
+              ) : null}
             </div>
 
             <p className="min-h-5 border-t border-white/[0.06] pt-2 text-[10px] uppercase tracking-[0.18em] text-[#66685F]">

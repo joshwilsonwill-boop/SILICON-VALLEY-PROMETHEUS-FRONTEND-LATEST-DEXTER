@@ -19,7 +19,12 @@ const nextConfig = {
   env: {
     NEXT_PUBLIC_API_BASE_URL: backendApiBaseUrl,
   },
+  poweredByHeader: false,
   images: {
+    // Lossless-ish delivery: AVIF first, WebP fallback — no perceptual quality loss.
+    formats: ['image/avif', 'image/webp'],
+    // Remote sources (ytimg, airtable, R2) are content-addressed; keep optimizer copies warm.
+    minimumCacheTTL: 86400,
     remotePatterns: [
       { protocol: 'https', hostname: 'dl.airtable.com' },
       { protocol: 'https', hostname: 'airtableusercontent.com' },
@@ -30,6 +35,10 @@ const nextConfig = {
       { protocol: 'https', hostname: 'cdn.prometheusstudio.tech' },
       { protocol: 'https', hostname: 'i.ytimg.com' },
     ],
+  },
+  experimental: {
+    // Barrel-import tree shaking for the heaviest UI packages in this bundle.
+    optimizePackageImports: ['lucide-react', 'framer-motion', 'motion', 'recharts'],
   },
 }
 

@@ -66,6 +66,7 @@ import { MobileVideoPlayer } from '@/app/editor/components/mobile-video-player'
 import { stopEditorMedia } from '@/app/editor/stores/audio-store'
 import { setEditorSourceStatus, setEditorSourceUrl } from '@/lib/editor/source-status-store'
 import { autonomousCoordinator } from '@/lib/autonomous-ui/coordinator'
+import type { AutonomousWorkspaceTab } from '@/lib/autonomous-ui/types'
 
 // Always-Fast Lobe System
 const LivingCanvas = safeDynamic(() => import('@/components/living-canvas').then((mod) => ({ default: mod.LivingCanvas })), {
@@ -8194,24 +8195,58 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
   }), [transportDurationSec, handlePreviewSeekSeconds, startPreviewPlayback, pausePreviewPlayback, isAgentTakeoverEnabled, project?.id, project?.sourceAssetId])
 
   const handleApplyChatActions = React.useCallback(async (drafts: EditorActionDraft[]) => {
-    if (isAgentTakeoverEnabled && drafts.length > 0) {
-      autonomousCoordinator.beginTakeover(`Jarvis applying: ${drafts[0].summary}`)
-      if (drafts[0].kind === 'seek' && typeof drafts[0].timeSec === 'number') {
-        await autonomousCoordinator.executeSeekTimeline(drafts[0].timeSec)
-      } else if (drafts[0].kind === 'switch_tab') {
-        await autonomousCoordinator.executeAutonomousTakeover(drafts[0].tab, (tab) => {
+    if (!drafts || drafts.length === 0) return
+
+    for (const draft of drafts) {
+      if (draft.kind === 'preview_control') {
+        await autonomousCoordinator.executePreviewControl(draft.command, () => {
+          if (draft.command === 'play') startPreviewPlayback()
+          else if (draft.command === 'pause') pausePreviewPlayback()
+          else if (draft.command === 'mute') setIsPreviewMuted(true)
+          else if (draft.command === 'unmute') setIsPreviewMuted(false)
+        })
+      } else if (draft.kind === 'seek' && typeof draft.timeSec === 'number') {
+        await autonomousCoordinator.executeSeekTimeline(
+          draft.timeSec,
+          transportDurationSec,
+          (time) => handlePreviewSeekSeconds(time)
+        )
+      } else if (draft.kind === 'switch_tab') {
+        await autonomousCoordinator.executeTabSwitch(draft.tab as AutonomousWorkspaceTab, (tab) => {
           setActiveWorkspaceTab(tab as HeaderNavMode)
           setBottomMode(tab === 'Music' ? 'Music' : 'Original')
+        })
+      } else if (draft.kind === 'start_render') {
+        await autonomousCoordinator.executeExportAction(draft.mode, () => {
+          if (draft.mode === 'final') {
+            setIsMasterReviewOpen(true)
+          } else {
+            handlePrepareExport()
+          }
+        })
+      } else if (draft.kind === 'open_thumbnail_studio') {
+        await autonomousCoordinator.executeThumbnailStudio(() => {
+          setIsThumbnailStudioOpen(true)
+        })
+      } else if (draft.kind === 'open_master_review') {
+        await autonomousCoordinator.executeMasterReview(() => {
+          setIsMasterReviewOpen(true)
         })
       } else {
-        await autonomousCoordinator.executeAutonomousTakeover('Motion', (tab) => {
-          setActiveWorkspaceTab(tab as HeaderNavMode)
-          setBottomMode(tab === 'Music' ? 'Music' : 'Original')
-        })
+        autonomousCoordinator.beginTakeover(`Jarvis: ${draft.summary}`)
+        await new Promise((r) => setTimeout(r, 250))
       }
     }
+
     applyEditorActionDrafts(drafts, chatEditorActionContext)
-  }, [chatEditorActionContext, isAgentTakeoverEnabled])
+  }, [
+    chatEditorActionContext,
+    startPreviewPlayback,
+    pausePreviewPlayback,
+    handlePreviewSeekSeconds,
+    transportDurationSec,
+    handlePrepareExport,
+  ])
 
   const handleToggleAgentTakeover = React.useCallback(() => {
     setIsAgentTakeoverEnabled((prev) => {
@@ -8238,13 +8273,24 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
     registerVoiceCompanionBridge({
       contextProvider: chatContextProvider,
       onApplyActions: handleApplyChatActions,
+      onSeek: (timeSec) => handleApplyChatActions([{ kind: 'seek', timeSec, summary: `Seek to ${timeSec.toFixed(1)}s` }]),
+      onPlay: () => handleApplyChatActions([{ kind: 'preview_control', command: 'play', summary: 'Play preview' }]),
+      onPause: () => handleApplyChatActions([{ kind: 'preview_control', command: 'pause', summary: 'Pause preview' }]),
+      onMute: () => handleApplyChatActions([{ kind: 'preview_control', command: 'mute', summary: 'Mute audio' }]),
+      onUnmute: () => handleApplyChatActions([{ kind: 'preview_control', command: 'unmute', summary: 'Unmute audio' }]),
+      onTabChange: (tab) => handleApplyChatActions([{ kind: 'switch_tab', tab, summary: `Switch to ${tab}` }]),
       isTakeoverEnabled: isAgentTakeoverEnabled,
       onToggleTakeover: handleToggleAgentTakeover,
     })
     return () => {
       unregisterVoiceCompanionBridge()
     }
-  }, [chatContextProvider, handleApplyChatActions, isAgentTakeoverEnabled, handleToggleAgentTakeover])
+  }, [
+    chatContextProvider,
+    handleApplyChatActions,
+    isAgentTakeoverEnabled,
+    handleToggleAgentTakeover,
+  ])
 
   React.useEffect(() => {
     const stopMedia = () => {

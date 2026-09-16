@@ -17,8 +17,8 @@
  */
 
 import { create } from 'zustand'
-
-export type AutonomousWorkspaceTab = 'Editor' | 'Music' | 'Motion'
+import type { AutonomousWorkspaceTab } from './types'
+export type { AutonomousWorkspaceTab } from './types'
 
 interface AutonomousCallbacks {
   onSeekSeconds?: (t: number) => void

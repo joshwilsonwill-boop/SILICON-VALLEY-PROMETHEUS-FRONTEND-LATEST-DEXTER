@@ -9,7 +9,7 @@
  * - Cinematic Takeover Layers (scrim, spotlight, escape hatch, bounding reticle)
  */
 
-export type AutonomousWorkspaceTab = 'Editor' | 'Music' | 'Motion'
+export type AutonomousWorkspaceTab = 'Editor' | 'Music' | 'Motion' | 'Export' | string
 
 export type AutonomousActionKind =
   | 'transcript_cut'
