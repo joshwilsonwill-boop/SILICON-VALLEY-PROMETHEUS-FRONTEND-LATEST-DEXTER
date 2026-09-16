@@ -60,7 +60,7 @@ type JarvisReachChartProps = {
   revealSignature?: string;
 };
 
-function JarvisReachChart({
+const JarvisReachChart = React.memo(function JarvisReachChart({
   data,
   metric,
   dashFromIndex,
@@ -165,6 +165,6 @@ function JarvisReachChart({
       </AreaChart>
     </div>
   );
-}
+});
 
 export { JarvisReachChart };

@@ -123,5 +123,12 @@ export async function GET(req: Request) {
     if (!offset) break
   }
 
-  return NextResponse.json({ ok: true, items }, { status: 200 })
+  return NextResponse.json(
+    { ok: true, items },
+    {
+      status: 200,
+      // Public preset imagery — edge-cache with long background refresh.
+      headers: { 'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=86400' },
+    },
+  )
 }

@@ -1,10 +1,21 @@
-import { NextResponse } from 'next/server'
+﻿import { NextResponse } from 'next/server'
 
 import { readYouTubeVideoMetrics } from '@/lib/analytics/youtube-metrics'
 import { getProviderMetadata, parseConnectionScopes, type ProviderStatus } from '@/lib/oauth/provider-metadata'
+import { createTtlCache } from '@/lib/server/ttl-cache'
 import { createClient } from '@/lib/supabase/server'
 
 const PUBLISHING_PROVIDERS = ['youtube', 'instagram', 'tiktok', 'x', 'facebook', 'linkedin'] as const
+
+/** Per-user fan-out (Supabase + optional YouTube sync) is expensive; serve repeats from a short TTL. */
+const ANALYTICS_CACHE_TTL_MS = 60_000
+
+type AnalyticsResult = {
+  status: number
+  body: Record<string, unknown>
+}
+
+const analyticsCache = createTtlCache<AnalyticsResult>({ ttlMs: ANALYTICS_CACHE_TTL_MS })
 
 type PublishingProvider = (typeof PUBLISHING_PROVIDERS)[number]
 
@@ -69,6 +80,10 @@ function errorResponse(status: number, code: string, message: string, details: u
     },
     { status },
   )
+}
+
+function errorBody(code: string, message: string, details: unknown = null): AnalyticsResult {
+  return { status: 500, body: { success: false, error: { code, message, details } } }
 }
 
 function deriveStatus(expiresAt: string | null, isActive: boolean | null): ProviderStatus {
@@ -142,15 +157,35 @@ export async function GET() {
     return errorResponse(401, 'UNAUTHORIZED', 'Unauthorized')
   }
 
+  const wasCached = analyticsCache.get(user.id) !== undefined
+  const result = await analyticsCache.resolve(
+    user.id,
+    () => composeAnalytics(supabase, user.id),
+    (value) => value.status === 200,
+  )
+
+  return NextResponse.json(result.body, {
+    status: result.status,
+    headers: {
+      'Cache-Control': 'private, max-age=0, must-revalidate',
+      'X-Analytics-Cache': wasCached ? 'HIT' : 'MISS',
+    },
+  })
+}
+
+async function composeAnalytics(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+): Promise<AnalyticsResult> {
   const { data: connectionRows, error: connectionsError } = await supabase
     .from('user_connections')
     .select('id, provider, provider_user_id, provider_username, scope, expires_at, updated_at, is_active')
-    .eq('user_id', user.id)
+    .eq('user_id', userId)
     .order('updated_at', { ascending: false })
     .returns<ConnectionRow[]>()
 
   if (connectionsError) {
-    return errorResponse(500, 'CONNECTIONS_FETCH_FAILED', connectionsError.message, connectionsError.details ?? null)
+    return errorBody('CONNECTIONS_FETCH_FAILED', connectionsError.message, connectionsError.details ?? null)
   }
 
   const connections = (connectionRows ?? [])
@@ -184,7 +219,7 @@ export async function GET() {
     supabase
       .from('video_platform_metrics')
       .select('project_id, export_id, platform, external_video_id, title, thumbnail_url, views, likes, comments, shares, watch_time_seconds, retention_rate, engagement_rate, published_url, captured_at')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .order('captured_at', { ascending: false })
       .limit(5000)
       .returns<MetricRow[]>()
@@ -197,11 +232,11 @@ export async function GET() {
 
   if (hasYouTubeConnection && isYouTubeStale) {
     try {
-      const snapshots = await readYouTubeVideoMetrics(user.id)
+      const snapshots = await readYouTubeVideoMetrics(userId)
       if (snapshots.length > 0) {
         const { error: syncError } = await supabase.from('video_platform_metrics').upsert(
           snapshots.map((snapshot) => ({
-            user_id: user.id,
+            user_id: userId,
             platform: 'youtube',
             external_video_id: snapshot.externalVideoId,
             title: snapshot.title,
@@ -234,13 +269,13 @@ export async function GET() {
   const { data: projectRows, error: projectsError } = await supabase
     .from('projects')
     .select('id, name, status, thumbnail_url, created_at, updated_at, source_profile, preview_kind')
-    .eq('user_id', user.id)
+    .eq('user_id', userId)
     .order('updated_at', { ascending: false })
     .limit(12)
     .returns<ProjectRow[]>()
 
   if (projectsError) {
-    return errorResponse(500, 'PROJECTS_FETCH_FAILED', projectsError.message, projectsError.details ?? null)
+    return errorBody('PROJECTS_FETCH_FAILED', projectsError.message, projectsError.details ?? null)
   }
 
   const projectIds = (projectRows ?? []).map((project) => project.id)
@@ -249,7 +284,7 @@ export async function GET() {
       ? await supabase
           .from('project_exports')
           .select('id, project_id, status, preset, completed_at, created_at, updated_at, file_size_bytes, duration_ms, metadata')
-          .eq('user_id', user.id)
+          .eq('user_id', userId)
           .in('project_id', projectIds)
           .order('created_at', { ascending: false })
           .limit(36)
@@ -424,26 +459,29 @@ export async function GET() {
     }
   })
 
-  return NextResponse.json({
-    success: true,
-    userId: user.id,
-    generatedAt: new Date().toISOString(),
-    dataSource: syncedYouTube ? 'youtube_live' : metricsAvailable ? 'cached_platform_reports' : 'unavailable',
-    metricsWarning: metricError
-      ? 'Analytics storage is unavailable. Apply the latest database migration, then reconnect the account.'
-      : metricsAvailable
-        ? null
-        : 'No platform reports are available yet. Connect a channel with analytics access to begin reading performance.',
-    needsConnections,
-    connections,
-    platforms: connectedPlatforms,
-    videos: allVideos,
-    timeSeries: buildTimeSeries(metricRows ?? []),
-    totals: {
-      ...totals,
-      connectedPlatformCount: activeProviders.size,
-      videoCount: allVideos.length,
-      exportCount: exportRows?.length ?? 0,
+  return {
+    status: 200,
+    body: {
+      success: true,
+      userId,
+      generatedAt: new Date().toISOString(),
+      dataSource: syncedYouTube ? 'youtube_live' : metricsAvailable ? 'cached_platform_reports' : 'unavailable',
+      metricsWarning: metricError
+        ? 'Analytics storage is unavailable. Apply the latest database migration, then reconnect the account.'
+        : metricsAvailable
+          ? null
+          : 'No platform reports are available yet. Connect a channel with analytics access to begin reading performance.',
+      needsConnections,
+      connections,
+      platforms: connectedPlatforms,
+      videos: allVideos,
+      timeSeries: buildTimeSeries(metricRows ?? []),
+      totals: {
+        ...totals,
+        connectedPlatformCount: activeProviders.size,
+        videoCount: allVideos.length,
+        exportCount: exportRows?.length ?? 0,
+      },
     },
-  })
+  }
 }

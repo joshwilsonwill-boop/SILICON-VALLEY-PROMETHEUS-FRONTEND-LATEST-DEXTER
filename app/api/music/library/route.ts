@@ -1,10 +1,15 @@
-import { NextResponse } from 'next/server'
+﻿import { NextResponse } from 'next/server'
 
 import { fetchCloudflareMusicCatalog, listAvailableMusicCatalog } from '@/lib/music-drive'
 import { findOwnedMusicTrackById, searchOwnedMusicLibrary } from '@/lib/music-library'
 import type { MusicPreference, MusicVideoContext } from '@/lib/types'
 
 export const runtime = 'nodejs'
+
+// Shared catalog data â€” safe for edge caching with background refresh.
+const CATALOG_HEADERS = {
+  'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=3600',
+}
 
 type MusicLibraryRequest = {
   query?: string
@@ -42,7 +47,7 @@ export async function GET(req: Request) {
         }),
         total: r2Tracks.length,
         source: 'r2',
-      })
+      }, { headers: CATALOG_HEADERS })
     }
 
     const catalog = await listAvailableMusicCatalog()
@@ -60,7 +65,7 @@ export async function GET(req: Request) {
         confidence: exactMatch ? 1 : 0,
         needsRefinement: !exactMatch,
         pace: 'medium',
-      })
+      }, { headers: CATALOG_HEADERS })
     }
 
     const result = searchOwnedMusicLibrary({ query, limit, videoContext: null, catalog })
@@ -70,7 +75,7 @@ export async function GET(req: Request) {
       confidence: buildConfidence(result.results),
       needsRefinement: shouldRefine(result.results, query),
       pace: 'medium',
-    })
+    }, { headers: CATALOG_HEADERS })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unable to search the music library right now.'
     return NextResponse.json({ error: message }, { status: 500 })
