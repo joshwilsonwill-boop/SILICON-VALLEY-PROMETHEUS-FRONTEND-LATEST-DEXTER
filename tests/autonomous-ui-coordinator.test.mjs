@@ -65,4 +65,17 @@ const editorPageSource = readFileSync('app/editor/[id]/page.tsx', 'utf8')
 assert.match(editorPageSource, /executeAutonomousEditingWorkflow/, 'editor page must route split/caption actions to executeAutonomousEditingWorkflow')
 assert.match(editorPageSource, /isContinuous/, 'editor page handleApplyChatActions must support isContinuous operator chaining')
 
+// 11. Check Silence Ripple-Cut Workflow and targets
+assert.match(coordinatorSource, /public async executeSilenceCutWorkflow\(/, 'coordinator must define executeSilenceCutWorkflow')
+assert.match(resolverSource, /export function resolveSilenceCutTarget\(/, 'target-resolver must export resolveSilenceCutTarget')
+const editorActionsSource = readFileSync('lib/editor-actions.ts', 'utf8')
+assert.match(editorActionsSource, /'cut_silence'/, 'editor-actions must support cut_silence action')
+assert.match(editorPageSource, /executeSilenceCutWorkflow/, 'editor page must route cut_silence action to executeSilenceCutWorkflow')
+
+// 12. Check Flagship Model Default (Gemini 2.5 Pro)
+const streamRouteSource = readFileSync('app/api/prometheus-chat/stream/route.ts', 'utf8')
+assert.match(streamRouteSource, /gemini-2\.5-pro/, 'stream route fallback must default to gemini-2.5-pro')
+const geminiStreamSource = readFileSync('lib/prometheus-assistant/gemini-stream.ts', 'utf8')
+assert.match(geminiStreamSource, /'gemini-2\.5-pro'/, 'gemini-stream preferred models must prioritize gemini-2.5-pro')
+
 console.log('autonomous-ui-coordinator: all verification checks passed successfully!')

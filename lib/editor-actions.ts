@@ -28,6 +28,7 @@ export type EditorActionDraft =
   | { kind: 'set_playback_rate'; rate: number; summary: string }
   | { kind: 'step_frames'; frames: number; summary: string }
   | { kind: 'split_at_playhead'; timeSec: number; summary: string }
+  | { kind: 'cut_silence'; minDurationSec?: number; summary: string }
   | { kind: 'set_typography'; preset: string; summary: string }
   | { kind: 'set_caption_style'; style: EditorCaptionStyle; summary: string }
   | { kind: 'start_render'; mode: EditorRenderMode; summary: string }
@@ -45,6 +46,7 @@ export const EDITOR_ACTION_KINDS: readonly EditorActionKind[] = [
   'set_playback_rate',
   'step_frames',
   'split_at_playhead',
+  'cut_silence',
   'set_typography',
   'set_caption_style',
   'start_render',
@@ -60,6 +62,7 @@ const RENDER_MODES: readonly EditorRenderMode[] = ['preview', 'final']
 /** Takeover-tier kinds: only executable when the editor enables mutations. */
 export const MUTATING_ACTION_KINDS: readonly EditorActionKind[] = [
   'split_at_playhead',
+  'cut_silence',
   'set_typography',
   'set_caption_style',
   'start_render',
@@ -168,6 +171,15 @@ export function parseEditorActionDraft(input: unknown): EditorActionDraft | null
         summary: cleanSummary(record.summary, `Split clip at ${time.toFixed(2)}s`),
       }
     }
+    case 'cut_silence': {
+      const minDuration = asFiniteNumber(record.minDurationSec ?? record.min_duration_sec ?? record.duration ?? record.threshold)
+      const clamped = minDuration !== null ? Math.max(0.1, Math.min(5, minDuration)) : 0.4
+      return {
+        kind: 'cut_silence',
+        minDurationSec: clamped,
+        summary: cleanSummary(record.summary, `Ripple-cut pauses and silences (> ${clamped}s)`),
+      }
+    }
     case 'set_typography': {
       const preset = typeof record.preset === 'string' ? record.preset.trim().slice(0, 60) : null
       if (!preset) return null
@@ -241,6 +253,7 @@ export interface EditorActionContext {
   setPlaybackRate?: (rate: number) => void
   stepFrames?: (frames: number) => void
   splitAtPlayhead?: (timeSec: number) => void
+  cutSilence?: (minDurationSec?: number) => void
   setTypography?: (preset: string) => void
   setCaptionStyle?: (style: EditorCaptionStyle) => void
   startRender?: (mode: EditorRenderMode) => void
@@ -282,7 +295,7 @@ export function applyEditorAction(action: EditorActionDraft, ctx: EditorActionCo
             : action.command === 'mute'
               ? ctx.mute
               : ctx.unmute
-      if (!handler) return { applied: false, message: `Preview "${action.command}" is unavailable right now.` }
+      if (!handler) return { applied: false, message: 'Playback control is unavailable right now.' }
       handler()
       return { applied: true, message: action.summary }
     }
@@ -292,7 +305,7 @@ export function applyEditorAction(action: EditorActionDraft, ctx: EditorActionCo
       return { applied: true, message: action.summary }
     }
     case 'switch_tab': {
-      if (!ctx.setWorkspaceTab) return { applied: false, message: 'Workspace switching is unavailable right now.' }
+      if (!ctx.setWorkspaceTab) return { applied: false, message: 'Workspace tabs are unavailable right now.' }
       ctx.setWorkspaceTab(action.tab)
       return { applied: true, message: action.summary }
     }
@@ -317,6 +330,7 @@ export function applyEditorAction(action: EditorActionDraft, ctx: EditorActionCo
       return { applied: true, message: action.summary }
     }
     case 'split_at_playhead':
+    case 'cut_silence':
     case 'set_typography':
     case 'set_caption_style':
     case 'start_render': {
@@ -326,6 +340,11 @@ export function applyEditorAction(action: EditorActionDraft, ctx: EditorActionCo
         const max = typeof ctx.durationSec === 'number' && Number.isFinite(ctx.durationSec) ? ctx.durationSec : null
         const target = max === null ? Math.max(0, action.timeSec) : Math.min(Math.max(0, action.timeSec), max)
         ctx.splitAtPlayhead(target)
+        return { applied: true, message: action.summary }
+      }
+      if (action.kind === 'cut_silence') {
+        if (!ctx.cutSilence) return { applied: false, message: 'Silence removal is unavailable right now.' }
+        ctx.cutSilence(action.minDurationSec)
         return { applied: true, message: action.summary }
       }
       if (action.kind === 'set_typography') {

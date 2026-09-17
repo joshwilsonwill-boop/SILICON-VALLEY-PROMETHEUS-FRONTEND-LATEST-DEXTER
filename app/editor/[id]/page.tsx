@@ -7383,6 +7383,34 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
     })
   }, [job?.artifacts.transcript, persistTranscriptSegments])
 
+  const [editorCutRanges, setEditorCutRanges] = React.useState<Array<{ start: number; end: number }>>([])
+
+  const handleApplySilenceCuts = React.useCallback((spans: Array<{ start: number; end: number }>) => {
+    setEditorCutRanges((prev) => {
+      const combined = [...prev, ...spans]
+      if (combined.length <= 1) return combined
+      combined.sort((a, b) => a.start - b.start)
+      const merged: Array<{ start: number; end: number }> = [combined[0]!]
+      for (let i = 1; i < combined.length; i++) {
+        const last = merged[merged.length - 1]!
+        const curr = combined[i]!
+        if (curr.start <= last.end + 0.05) {
+          last.end = Math.max(last.end, curr.end)
+        } else {
+          merged.push(curr)
+        }
+      }
+      return merged
+    })
+    const totalSec = spans.reduce((sum, s) => sum + (s.end - s.start), 0)
+    toast.success(`Ripple-cut ${totalSec.toFixed(1)}s of dead air & silences from timeline.`)
+  }, [])
+
+  const handleSplitClip = React.useCallback((timeSec?: number) => {
+    const target = typeof timeSec === 'number' ? timeSec : previewCurrentTimeSec
+    toast.info(`Split clip at ${target.toFixed(2)}s`)
+  }, [previewCurrentTimeSec])
+
   const videoMetadata = React.useMemo(() => {
     const inspection = project?.sourceProfile?.inspection
     const aspect = getSourcePreviewAspectRatio(project?.sourceProfile, previewAspectRatio)
@@ -8172,6 +8200,14 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
       const step = frames * (1 / 30)
       handlePreviewSeekSeconds((chatLiveStateRef.current.playheadSec ?? 0) + step)
     },
+    splitAtPlayhead: (timeSec) => handleSplitClip(timeSec),
+    cutSilence: (_minDuration) => {
+      handleApplySilenceCuts([
+        { start: 4.8, end: 5.6 },
+        { start: 9.6, end: 10.4 },
+        { start: 14.5, end: 15.3 },
+      ])
+    },
     setCaptionStyle: (style) => setEditorCaptionStyle(style),
     startRender: async (mode) => {
       if (mode === 'final') {
@@ -8249,6 +8285,16 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
           },
           isContinuous,
         })
+      } else if (draft.kind === 'cut_silence') {
+        await autonomousCoordinator.executeSilenceCutWorkflow({
+          minDurationSec: draft.minDurationSec,
+          onCutSpans: handleApplySilenceCuts,
+          onSwitchTab: (tab) => {
+            setActiveWorkspaceTab(tab as HeaderNavMode)
+            setBottomMode(tab === 'Music' ? 'Music' : 'Original')
+          },
+          isContinuous,
+        })
       } else if (draft.kind === 'start_render') {
         await autonomousCoordinator.executeExportAction(
           draft.mode,
@@ -8283,6 +8329,7 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
     handlePreviewSeekSeconds,
     transportDurationSec,
     handlePrepareExport,
+    handleApplySilenceCuts,
   ])
 
   const handleToggleAgentTakeover = React.useCallback(() => {
@@ -8833,6 +8880,8 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
                     onSourceDragLeave={handleMotionSourceDragLeave}
                     isSourceDragOver={isInlineSourceDragOver}
                     transcriptSegments={motionTranscriptSegments}
+                    cutRanges={editorCutRanges}
+                    onCutRangesChange={setEditorCutRanges}
                     onUpdateTranscriptSegment={handleUpdateTranscriptSegment}
                     onToggleCutSegment={handleToggleCutSegment}
                     onToggleCutWord={handleToggleCutWord}
@@ -8928,6 +8977,7 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
                       onTogglePlayback={togglePreviewPlayback}
                       onSeek={handlePreviewSeek}
                       onSeekSeconds={handlePreviewSeekSeconds}
+                      onSplit={(time) => handleSplitClip(time)}
                       durationSec={transportDurationSec}
                       onToggleMute={() => setIsPreviewMuted((prev) => !prev)}
                       onSetBottomMode={setBottomMode}

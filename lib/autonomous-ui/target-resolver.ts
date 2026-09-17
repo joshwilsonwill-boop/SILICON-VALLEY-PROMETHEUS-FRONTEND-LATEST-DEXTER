@@ -450,6 +450,30 @@ export function resolveSplitTarget(): ResolvedTarget | null {
 }
 
 /**
+ * Find silence-cut tool button or auto-cut trigger
+ */
+export function resolveSilenceCutTarget(): ResolvedTarget | null {
+  if (typeof document === 'undefined') return null
+
+  const candidates = [
+    '[data-action="cut-silence"]',
+    '[data-autonomous-target="cut-silence"]',
+    'button[title*="silence" i]',
+    'button[aria-label*="silence" i]',
+  ]
+
+  for (const selector of candidates) {
+    const el = document.querySelector<HTMLElement>(selector)
+    if (el) {
+      const target = getElementTarget(el)
+      if (target) return target
+    }
+  }
+
+  return resolveSplitTarget()
+}
+
+/**
  * Find caption styling or typography selector button
  */
 export function resolveStylingTarget(): ResolvedTarget | null {

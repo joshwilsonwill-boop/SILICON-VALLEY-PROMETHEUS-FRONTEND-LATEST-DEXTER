@@ -178,7 +178,7 @@ export async function POST(request: Request) {
               const geminiReply = await streamWithGemini(
                 {
                   apiKey: geminiApiKey,
-                  model: cleanText(process.env.GEMINI_CHAT_MODEL) || "gemini-2.5-flash",
+                  model: cleanText(process.env.GEMINI_CHAT_MODEL) || "gemini-2.5-pro",
                   systemPrompt,
                   history: history.slice(-10).map((m) => ({
                     role: m.role === "assistant" ? "model" as const : "user" as const,

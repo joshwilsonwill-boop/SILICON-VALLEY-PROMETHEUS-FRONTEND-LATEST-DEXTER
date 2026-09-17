@@ -21,6 +21,8 @@ export interface TimelinePanelProps {
   onSetBottomMode: (mode: BottomMode) => void
   /** Frame-accurate seek target in seconds (bypasses 0-100 quantization). */
   onSeekSeconds?: (timeSec: number) => void
+  /** Split clip at playhead or specified timestamp */
+  onSplit?: (timeSec?: number) => void
   /** Total preview duration in seconds; enables frame stepping + preview filmstrip. */
   durationSec?: number
 }
@@ -54,6 +56,7 @@ export function TimelinePanel({
   onSeek,
   onToggleMute,
   onSeekSeconds,
+  onSplit,
   durationSec = 0,
 }: TimelinePanelProps) {
   const trackRef = React.useRef<HTMLDivElement | null>(null)
@@ -340,6 +343,14 @@ export function TimelinePanel({
               data-autonomous-target="split"
               aria-label="Split clip at playhead"
               title="Split clip at playhead (S)"
+              onClick={() => {
+                const targetTime = displayFraction * durationSec
+                if (onSplit) {
+                  onSplit(targetTime)
+                } else if (onSeekSeconds) {
+                  onSeekSeconds(targetTime)
+                }
+              }}
               className="flex h-9 w-9 items-center justify-center rounded-lg text-white/40 transition-colors hover:bg-white/5 hover:text-white"
             >
               <Scissors className="size-4" />

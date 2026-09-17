@@ -103,14 +103,15 @@ export const PROMETHEUS_TOOLS = [
               properties: {
                 kind: {
                   type: 'string',
-                  enum: ['seek', 'preview_control', 'set_fit_mode', 'switch_tab', 'propose'],
+                  enum: ['seek', 'preview_control', 'set_fit_mode', 'switch_tab', 'split_at_playhead', 'cut_silence', 'propose'],
                   description:
-                    'seek → jump the playhead; preview_control → play/pause/mute/unmute; set_fit_mode → fill|fit; switch_tab → Editor|Music|Motion; propose → media-mutating change, planned only, never executed.',
+                    'seek → jump the playhead; preview_control → play/pause/mute/unmute; set_fit_mode → fill|fit; switch_tab → Editor|Music|Motion; split_at_playhead → split clip at playhead timeSec; cut_silence → ripple-cut silent dead air pauses; propose → media-mutating change, planned only.',
                 },
-                timeSec: { type: 'number', description: 'For kind "seek": target time in seconds.' },
+                timeSec: { type: 'number', description: 'For kind "seek" or "split_at_playhead": target time in seconds.' },
                 command: { type: 'string', enum: ['play', 'pause', 'mute', 'unmute'], description: 'For kind "preview_control".' },
                 mode: { type: 'string', enum: ['fill', 'fit'], description: 'For kind "set_fit_mode".' },
                 tab: { type: 'string', enum: ['Editor', 'Music', 'Motion'], description: 'For kind "switch_tab".' },
+                minDurationSec: { type: 'number', description: 'For kind "cut_silence": minimum pause length to cut (default 0.4s).' },
                 description: { type: 'string', description: 'For kind "propose": what the media-mutating change would do.' },
                 summary: { type: 'string', description: 'Short user-facing label for this action.' },
               },

@@ -100,6 +100,7 @@ export interface MotionEditWorkspaceProps {
   onToggleCutSegment?: (segmentId: string) => void
   onToggleCutWord?: (segmentId: string, wordIndex: number) => void
   cutRanges?: { start: number; end: number }[]
+  onCutRangesChange?: (ranges: { start: number; end: number }[]) => void
   onRequestTranscribe?: () => void
   isTranscribing?: boolean
   transcriptError?: string | null
@@ -242,7 +243,7 @@ export function MotionEditWorkspace({
   projectTitle, previewUrl, previewKind, hasPreviewMedia, sourceLabel, previewAspectRatio, fitMode,
   onFitModeChange, objectFit, mediaTransformStyle, currentTimeLabel, durationLabel, currentTimeSec,
   durationSec, previewPlaying, previewMuted, onPreviewMutedChange, videoRef, transcriptSegments,
-  onUpdateTranscriptSegment, onToggleCutSegment, onToggleCutWord, cutRanges, onRequestTranscribe, isTranscribing = false, transcriptError = null, isSourceUploading = false, videoMetadata,
+  onUpdateTranscriptSegment, onToggleCutSegment, onToggleCutWord, cutRanges, onCutRangesChange, onRequestTranscribe, isTranscribing = false, transcriptError = null, isSourceUploading = false, videoMetadata,
   onTogglePlayback, onPickSource, onSourceDrop, onSourceDragOver, onSourceDragLeave, isSourceDragOver = false,
   textPlacements, onSeek, onVideoLoadedMetadata, onVideoLoadedData, onVideoCanPlay,
   onVideoTimeUpdate, onVideoEnded, onVideoPlay, onVideoPause, onVideoError, onImageLoaded, onApplyPrompt,
@@ -282,8 +283,7 @@ export function MotionEditWorkspace({
   const activeTreatment = TREATMENTS.find((item) => item.id === treatment) ?? TREATMENTS[0]
 
   const effectiveCutRanges = React.useMemo(() => {
-    if (cutRanges && cutRanges.length > 0) return cutRanges
-    const ranges: { start: number; end: number }[] = []
+    const ranges: { start: number; end: number }[] = [...(cutRanges ?? [])]
     for (const segment of resolvedSegments) {
       if (segment.isCut) {
         ranges.push({ start: segment.start, end: segment.end })
@@ -658,6 +658,35 @@ export function MotionEditWorkspace({
               >
                 <Sparkles className="size-3.5 animate-pulse text-[#00f0ff]" />
                 <span>Jarvis Auto-Cut</span>
+              </button>
+              <button
+                type="button"
+                data-action="cut-silence"
+                data-autonomous-target="cut-silence"
+                onClick={() => {
+                  const spans: Array<{ start: number; end: number }> = []
+                  if (resolvedSegments.length > 1) {
+                    for (let i = 0; i < resolvedSegments.length - 1; i++) {
+                      const gap = resolvedSegments[i + 1]!.start - resolvedSegments[i]!.end
+                      if (gap >= 0.35) {
+                        spans.push({ start: resolvedSegments[i]!.end, end: resolvedSegments[i + 1]!.start })
+                      }
+                    }
+                  }
+                  autonomousCoordinator.executeSilenceCutWorkflow({
+                    silenceSpans: spans.length > 0 ? spans : undefined,
+                    onCutSpans: (cutSpans) => {
+                      if (onCutRangesChange) {
+                        onCutRangesChange([...(cutRanges ?? []), ...cutSpans])
+                      }
+                    },
+                  })
+                }}
+                className="inline-flex min-h-8 items-center gap-1.5 rounded-md border border-amber-400/40 bg-amber-400/10 px-2.5 py-1.5 text-xs font-semibold text-amber-300 shadow-[0_0_12px_rgba(251,191,36,0.18)] transition-all hover:bg-amber-400/20 hover:shadow-[0_0_20px_rgba(251,191,36,0.35)]"
+                title="Automatically detect speech pauses & ripple-cut dead air with autonomous cursor"
+              >
+                <Scissors className="size-3.5 text-amber-400" />
+                <span>Cut Silences</span>
               </button>
               <button
                 type="button"
