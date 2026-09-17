@@ -65,6 +65,10 @@ export interface GhostCursorState {
   statusText: string | null
   activeTargetRect: DOMRect | null
   phase: 'idle' | 'moving' | 'hovering' | 'clicking' | 'yielding'
+  /** Banking tilt angle in degrees (-8 to +8) derived from lateral velocity */
+  tiltAngleDeg?: number
+  /** Instantaneous velocity in pixels per frame */
+  velocity?: number
 
   /**
    * Cinematic Takeover extensions — new fields added for the full takeover UX.

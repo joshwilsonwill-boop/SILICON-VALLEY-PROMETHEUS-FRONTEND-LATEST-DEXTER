@@ -225,16 +225,17 @@ export function AgenticCursorLayer() {
     // Do NOT add a second subscriber here — it would create a duplicate.
   }, [])
 
-  const { x, y, visible, isClicking, statusText, pillMode, phase } = cursorState
+  const { x, y, visible, isClicking, statusText, pillMode, phase, tiltAngleDeg } = cursorState
 
   // Derive velocity-squish transforms from phase
   const isMovingFast = phase === 'moving'
   const isActuallyClicking = phase === 'clicking'
 
-  const scaleX = isActuallyClicking ? 1.18 : isMovingFast ? 0.82 : 1
-  const scaleY = isActuallyClicking ? 0.80 : isMovingFast ? 1.20 : 1
+  const scaleX = isActuallyClicking ? 1.18 : isMovingFast ? 0.86 : 1
+  const scaleY = isActuallyClicking ? 0.80 : isMovingFast ? 1.16 : 1
   // Spec: scale(0.97) micro-compression — tactile, not dramatic
   const cursorScale = isActuallyClicking ? 0.97 : 1
+  const cursorRotate = prefersReducedMotion ? 0 : (tiltAngleDeg ?? 0)
 
   // Show pill only when there is a label and not in idle mode
   const showPill = !!statusText && pillMode !== 'idle' && visible
@@ -284,18 +285,19 @@ export function AgenticCursorLayer() {
                 scale: cursorScale,
                 scaleX: prefersReducedMotion ? 1 : scaleX,
                 scaleY: prefersReducedMotion ? 1 : scaleY,
+                rotate: cursorRotate,
                 x: x,
                 y: y,
               }}
               exit={{ opacity: 0, scale: 0.65 }}
               transition={{
-                type: 'spring',
-                stiffness: 720,
-                damping: 42,
-                mass: 0.18,
-                opacity: { duration: 0.14 },
+                x: { duration: 0 },
+                y: { duration: 0 },
+                scale: { type: 'spring', stiffness: 680, damping: 36 },
                 scaleX: { type: 'spring', stiffness: 480, damping: 26 },
                 scaleY: { type: 'spring', stiffness: 480, damping: 26 },
+                rotate: { type: 'spring', stiffness: 450, damping: 28 },
+                opacity: { duration: 0.14 },
               }}
               className="pointer-events-none fixed left-0 top-0 will-change-transform"
             >

@@ -35,7 +35,12 @@ import {
   resolveSilenceCutTarget,
   resolveStylingTarget,
 } from './target-resolver'
-import { animateGlide, ensureElementInView } from './motion-driver'
+import {
+  animateGlide,
+  ensureElementInView,
+  computeFittsDuration,
+  getFreshTargetPoint,
+} from './motion-driver'
 import { useAutonomousStore } from './autonomous-store'
 
 class AutonomousUICoordinator {
@@ -281,14 +286,16 @@ class AutonomousUICoordinator {
 
 
   /**
-   * Move the ghost cursor smoothly to a screen coordinate and execute an action
+   * Move the ghost cursor smoothly to a screen coordinate and execute an action.
+   * Calibrates biological travel time via Fitts's Law when not explicitly forced.
+   * Tracks instantaneous velocity and banking tilt angle.
    */
   public async glideTo(
     targetX: number,
     targetY: number,
     statusText: string,
     targetRect?: DOMRect | null,
-    durationMs = 600
+    durationMs?: number
   ): Promise<boolean> {
     if (this.isHumanInteracting) return false
 
@@ -298,6 +305,16 @@ class AutonomousUICoordinator {
 
     const startX = this.state.visible ? this.state.x : targetX - 60
     const startY = this.state.visible ? this.state.y : targetY + 80
+
+    // Calibrate movement duration according to Fitts's Law if not explicitly forced
+    const effectiveDuration =
+      typeof durationMs === 'number' && durationMs > 0
+        ? durationMs
+        : computeFittsDuration(
+            { x: startX, y: startY },
+            { x: targetX, y: targetY },
+            targetRect?.width
+          )
 
     this.state = {
       ...this.state,
@@ -317,19 +334,49 @@ class AutonomousUICoordinator {
       this.cancelCurrentMotion = animateGlide(
         { x: startX, y: startY },
         { x: targetX, y: targetY },
-        durationMs,
+        effectiveDuration,
         (p) => {
           this.state.x = p.x
           this.state.y = p.y
+          this.state.tiltAngleDeg = p.tiltAngleDeg
           this.notify()
         },
         () => {
+          this.state.x = targetX
+          this.state.y = targetY
+          this.state.tiltAngleDeg = 0
           this.state.phase = 'hovering'
           this.notify()
           resolve(true)
         }
       )
     })
+  }
+
+  /**
+   * High-precision targeting: scrolls element into view, pre-signals intent,
+   * re-samples exact coordinates post-scroll, and executes a Fitts's-scaled trajectory.
+   */
+  public async glideToTarget(
+    target: { element: HTMLElement; rect?: DOMRect },
+    label: string,
+    explicitDuration?: number
+  ): Promise<boolean> {
+    await ensureElementInView(target.element)
+    this.anticipateTarget(target.element)
+    await new Promise((r) => setTimeout(r, 60))
+
+    // Re-sample post-scroll rect to ensure sub-pixel accuracy
+    const fresh = getFreshTargetPoint(target.element)
+    const duration =
+      explicitDuration ??
+      computeFittsDuration(
+        { x: this.state.x, y: this.state.y },
+        { x: fresh.x, y: fresh.y },
+        fresh.rect.width
+      )
+
+    return this.glideTo(fresh.x, fresh.y, label, fresh.rect, duration)
   }
 
   /**
@@ -965,17 +1012,7 @@ class AutonomousUICoordinator {
     const target = isMuting ? resolveMuteTarget() : resolvePlaybackTarget(command)
 
     if (target) {
-      await ensureElementInView(target.element)
-      this.anticipateTarget(target.element)
-      await new Promise((resolve) => setTimeout(resolve, 140))
-
-      const glided = await this.glideTo(
-        target.centerX,
-        target.centerY,
-        label,
-        target.rect,
-        360
-      )
+      const glided = await this.glideToTarget(target, label)
       if (!glided) return false
 
       // Tactile click with micro-compression and shockwaves
@@ -1021,17 +1058,7 @@ class AutonomousUICoordinator {
     const target = mode === 'final' ? (resolveMasterReviewTarget() || resolveExportTarget()) : resolveExportTarget()
 
     if (target) {
-      await ensureElementInView(target.element)
-      this.anticipateTarget(target.element)
-      await new Promise((resolve) => setTimeout(resolve, 140))
-
-      const glided = await this.glideTo(
-        target.centerX,
-        target.centerY,
-        label,
-        target.rect,
-        420
-      )
+      const glided = await this.glideToTarget(target, label)
       if (!glided) return false
 
       await this.simulateClick()
@@ -1061,17 +1088,7 @@ class AutonomousUICoordinator {
 
     const target = resolveThumbnailStudioTarget()
     if (target) {
-      await ensureElementInView(target.element)
-      this.anticipateTarget(target.element)
-      await new Promise((resolve) => setTimeout(resolve, 140))
-
-      const glided = await this.glideTo(
-        target.centerX,
-        target.centerY,
-        label,
-        target.rect,
-        400
-      )
+      const glided = await this.glideToTarget(target, label)
       if (!glided) return false
 
       await this.simulateClick()
@@ -1101,17 +1118,7 @@ class AutonomousUICoordinator {
 
     const target = resolveMasterReviewTarget() || resolveExportTarget()
     if (target) {
-      await ensureElementInView(target.element)
-      this.anticipateTarget(target.element)
-      await new Promise((resolve) => setTimeout(resolve, 140))
-
-      const glided = await this.glideTo(
-        target.centerX,
-        target.centerY,
-        label,
-        target.rect,
-        400
-      )
+      const glided = await this.glideToTarget(target, label)
       if (!glided) return false
 
       await this.simulateClick()

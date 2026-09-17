@@ -17,7 +17,7 @@ interface Agent3DCursorProps {
 
 export function Agent3DCursor({ className = '', isClicking = false }: Agent3DCursorProps) {
   return (
-    <div className={`relative select-none pointer-events-none ${className}`}>
+    <div className={`relative select-none pointer-events-none -translate-x-[6.4px] -translate-y-[5.2px] ${className}`}>
       <svg
         width="36"
         height="36"
