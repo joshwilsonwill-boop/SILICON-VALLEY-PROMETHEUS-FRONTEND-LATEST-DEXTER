@@ -128,7 +128,7 @@ export function getPrometheusIntentInstruction(intent: PrometheusChatIntent) {
   }
 
   if (intent.kind === "editor-action") {
-    return "Interpret the request as an editor change. Use the supplied project and live editor context to propose a concrete first pass; do not ask a broad follow-up when the requested outcome is already clear. Draft only non-destructive actions and ask for approval before claiming anything was applied.";
+    return "Interpret the request as an editor change and execute the matching whitelisted tool. A direct instruction is consent to apply that client-side action; do not ask for a broad follow-up when the requested outcome is clear. Be precise about evidence: use timed transcript gaps for silence removal, and state plainly when the required transcript or video evidence is unavailable.";
   }
 
   if (intent.kind === "editing") {

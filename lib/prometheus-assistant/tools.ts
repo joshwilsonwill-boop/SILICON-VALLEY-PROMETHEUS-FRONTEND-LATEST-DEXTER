@@ -97,7 +97,7 @@ export const PROMETHEUS_TOOLS = [
           intent: { type: 'string', description: 'The editing intent.' },
           actions: {
             type: 'array',
-            description: 'Machine-readable non-destructive editor actions.',
+            description: 'Machine-readable editor actions.',
             items: {
               type: 'object',
               properties: {
@@ -224,7 +224,7 @@ export function executePrometheusTool(
       id: toolCall.id,
       name: toolCall.name,
       label: 'Draft editor actions',
-      status: 'needs_approval',
+      status: executable > 0 ? 'completed' : 'needs_approval',
       input: {
         intent,
         projectId: context.projectId,
@@ -235,12 +235,12 @@ export function executePrometheusTool(
         actions,
         note:
           executable > 0
-            ? `${executable} action${executable === 1 ? '' : 's'} can be applied in the editor on approval.${proposed > 0 ? ` ${proposed} require${proposed === 1 ? 's' : ''} render processing and are plan-only.` : ''}`
+            ? `${executable} action${executable === 1 ? '' : 's'} prepared for the live editor.${proposed > 0 ? ` ${proposed} require${proposed === 1 ? 's' : ''} render processing and are plan-only.` : ''}`
             : 'Proposed only. These changes require render processing and are not applied here.',
       },
       summary:
         actions.length > 0
-          ? `${actions.length} editor action${actions.length === 1 ? '' : 's'} drafted for approval.`
+          ? `${actions.length} editor action${actions.length === 1 ? '' : 's'} prepared for the live editor.`
           : 'No actionable editor steps could be parsed; intent captured as a plan.',
     }
   }

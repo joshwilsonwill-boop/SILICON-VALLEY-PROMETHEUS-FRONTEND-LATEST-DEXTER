@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { Pause, Play, Volume2, VolumeX, Layers, Scissors, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Pause, Play, Volume2, VolumeX, Layers, Scissors, ChevronLeft, ChevronRight, AudioLines } from 'lucide-react'
 import type { Project, HeaderNavMode, PreviewMediaKind, BottomMode } from '@/lib/types'
 
 export interface TimelinePanelProps {
@@ -23,6 +23,8 @@ export interface TimelinePanelProps {
   onSeekSeconds?: (timeSec: number) => void
   /** Split clip at playhead or specified timestamp */
   onSplit?: (timeSec?: number) => void
+  /** Remove transcript-derived silent gaps from the editable timeline. */
+  onRemoveSilence?: () => void
   /** Total preview duration in seconds; enables frame stepping + preview filmstrip. */
   durationSec?: number
 }
@@ -57,6 +59,7 @@ export function TimelinePanel({
   onToggleMute,
   onSeekSeconds,
   onSplit,
+  onRemoveSilence,
   durationSec = 0,
 }: TimelinePanelProps) {
   const trackRef = React.useRef<HTMLDivElement | null>(null)
@@ -354,6 +357,18 @@ export function TimelinePanel({
               className="flex h-9 w-9 items-center justify-center rounded-lg text-white/40 transition-colors hover:bg-white/5 hover:text-white"
             >
               <Scissors className="size-4" />
+            </button>
+            <button
+              type="button"
+              onClick={onRemoveSilence}
+              disabled={scrubberDisabled || !onRemoveSilence}
+              data-action="remove-silence"
+              data-autonomous-target="silence-cut"
+              aria-label="Remove transcript-detected silences"
+              title="Remove transcript-detected silences"
+              className="flex h-9 w-9 items-center justify-center rounded-lg text-white/40 transition-colors hover:bg-white/5 hover:text-white disabled:opacity-20"
+            >
+              <AudioLines className="size-4" />
             </button>
           </div>
         </div>

@@ -627,15 +627,16 @@ class AutonomousUICoordinator {
     this.setPillMode('waiting', `Jarvis: Detecting pauses (> ${threshold.toFixed(1)}s)...`)
     await new Promise((r) => setTimeout(r, 380))
 
-    // 4. Resolve silence spans
-    let spans = options?.silenceSpans
-    if (!spans || spans.length === 0) {
-      // Collect speech gaps from DOM or use realistic default silence gaps
-      spans = [
-        { start: 4.8, end: 5.6 },
-        { start: 9.6, end: 10.4 },
-        { start: 14.5, end: 15.3 },
-      ]
+    // 4. Silence spans must come from the live, timed transcript. Never invent
+    // placeholder cuts: an empty result is an honest "nothing to remove" state.
+    const spans = options?.silenceSpans ?? []
+    if (spans.length === 0) {
+      this.setPillMode('action', 'Jarvis: No pauses met the removal threshold')
+      if (!options?.isContinuous) {
+        await new Promise((r) => setTimeout(r, 450))
+        this.abortAction('cancelled')
+      }
+      return true
     }
 
     // 5. Navigate to Cut Silence / Split tool
@@ -1145,4 +1146,3 @@ if (typeof window !== 'undefined') {
   ;(window as unknown as { autonomousCoordinator?: AutonomousUICoordinator }).autonomousCoordinator =
     autonomousCoordinator
 }
-

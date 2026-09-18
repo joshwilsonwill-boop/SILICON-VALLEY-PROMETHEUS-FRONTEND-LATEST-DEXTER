@@ -86,6 +86,7 @@ export function PrometheusChat({
   projectId = null,
   contextProvider,
   onApplyActions,
+  autoApplyActions = false,
   onSeekToSec,
   workspaceTab = null,
 }: {
@@ -103,6 +104,7 @@ export function PrometheusChat({
   projectId?: string | null
   contextProvider?: AIChatContextProvider
   onApplyActions?: (drafts: EditorActionDraft[], messageId: string) => void
+  autoApplyActions?: boolean
   onSeekToSec?: (seconds: number) => void
   workspaceTab?: string | null
 }) {
@@ -115,6 +117,8 @@ export function PrometheusChat({
   const [voiceMode, setVoiceMode] = React.useState(false)
   const [speakingMessageId, setSpeakingMessageId] = React.useState<string | null>(null)
   const [actionOutcomes, setActionOutcomes] = React.useState<Record<string, 'applied' | 'dismissed'>>({})
+  const observedActionMessageIdsRef = React.useRef(new Set<string>())
+  const hasObservedInitialActionMessagesRef = React.useRef(false)
   const historyButtonRef = React.useRef<HTMLButtonElement | null>(null)
   const inputRef = React.useRef<HTMLInputElement | null>(null)
   const scrollViewportRef = React.useRef<HTMLDivElement | null>(null)
@@ -152,6 +156,32 @@ export function PrometheusChat({
   }, [])
   const usesPersistentChat = true
   const renderedMessages = usesPersistentChat ? persistedMessages : messages
+
+  React.useEffect(() => {
+    const candidates = renderedMessages.filter(
+      (message) =>
+        message.role === 'assistant' &&
+        message.isComplete !== false &&
+        (message.actionDrafts ?? []).some((draft) => draft.kind !== 'propose'),
+    )
+
+    // Never replay action drafts loaded from chat history on mount.
+    if (!hasObservedInitialActionMessagesRef.current) {
+      candidates.forEach((message) => observedActionMessageIdsRef.current.add(message.id))
+      hasObservedInitialActionMessagesRef.current = true
+      return
+    }
+
+    for (const message of candidates) {
+      if (observedActionMessageIdsRef.current.has(message.id)) continue
+      observedActionMessageIdsRef.current.add(message.id)
+      if (!autoApplyActions || !onApplyActions) continue
+      handleApplyActions(
+        (message.actionDrafts ?? []).filter((draft) => draft.kind !== 'propose'),
+        message.id,
+      )
+    }
+  }, [autoApplyActions, handleApplyActions, onApplyActions, renderedMessages])
   const composedDraft = usesPersistentChat ? persistentChat.draft : draft ?? internalDraft
   const hasDraft = composedDraft.trim().length > 0
   const showingThinking = usesPersistentChat

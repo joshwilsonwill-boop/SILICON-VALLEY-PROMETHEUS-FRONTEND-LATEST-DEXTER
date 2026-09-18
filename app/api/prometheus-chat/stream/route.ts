@@ -188,6 +188,47 @@ export async function POST(request: Request) {
                   frameRefs: geminiFrameRefs,
                   abortSignal: request.signal,
                   maxOutputTokens: 8192,
+                  tools: toolsEnabled
+                    ? PROMETHEUS_TOOLS.map((tool) => ({ functionDeclarations: [tool.function] }))
+                    : undefined,
+                  onToolCall: toolsEnabled
+                    ? async (toolCall) => {
+                        if (toolCall.name === "submit_editor_job") {
+                          const submitted = await submitEditorJob(toolCall, { message, projectId, sessionId });
+                          toolCalls.push(submitted.toolCall);
+                          send({
+                            type: "tool",
+                            toolCall: {
+                              id: submitted.toolCall.id,
+                              name: submitted.toolCall.name,
+                              label: submitted.toolCall.label,
+                              status: submitted.toolCall.status,
+                              summary: submitted.toolCall.summary,
+                            },
+                          });
+                          return submitted.toolCall.output;
+                        }
+
+                        const completedToolCall = executePrometheusTool(toolCall, {
+                          latestMessage: message,
+                          knowledge,
+                          frameReferences,
+                          projectId,
+                        });
+                        toolCalls.push(completedToolCall);
+                        send({
+                          type: "tool",
+                          toolCall: {
+                            id: completedToolCall.id,
+                            name: completedToolCall.name,
+                            label: completedToolCall.label,
+                            status: completedToolCall.status,
+                            summary: completedToolCall.summary,
+                          },
+                        });
+                        return completedToolCall.output;
+                      }
+                    : undefined,
                 },
                 {
                   onDelta: (chunk) => {
@@ -728,12 +769,12 @@ function buildStreamSystemPrompt({
     "You are Prometheus — the elite, authoritative AI creative intelligence operating within Prometheus Studio. Speak with quiet mastery, extreme clarity, and absolute technical precision, analogous to JARVIS for post-production and editorial engineering.",
     intentInstruction,
     "Deliver immediate, high-value insight first. Maintain an effortless, authoritative tone. Never expose underlying LLM providers, internal APIs, tool execution mechanics, or system errors to the user.",
-    "Use valid GitHub-flavored Markdown. When a comparison or plan has repeated fields, use a complete Markdown table with a header and separator row. Never emit a table as escaped or plain pipe-delimited text. Do not state an editor action occurred until it has been explicitly approved and confirmed.",
+    "Use valid GitHub-flavored Markdown. When a comparison or plan has repeated fields, use a complete Markdown table with a header and separator row. Never emit a table as escaped or plain pipe-delimited text. Do not state an editor action occurred until its tool result confirms it; a direct user instruction is approval for whitelisted client-side actions.",
     "Ground every editorial plan in the supplied project metadata, duration, transcript, analysis, playhead, and frame references. Explicitly label missing evidence instead of inventing scene details. Vary the plan with the actual footage and request; never reuse a generic fixed plan.",
     "When the plan needs a user decision, end with one concise question and 2-4 explicit choices so the interface can present them as actionable controls.",
     "When the user's question is unrelated to video editing (e.g., general knowledge, casual conversation), answer naturally and concisely without forcing video-editing advice. If the user asks about a specific editing style or person you don't have knowledge of, be honest and offer to work with the video's existing material to find a comparable approach.",
     toolsEnabled
-      ? "Execute available tools decisively. For editor navigation, transport, or layout shifts (seek, play/pause, fit, workspace), call draft_editor_actions with machine-readable actions immediately. For media-mutating changes (trim, split, captions, style, render), use kind \"propose\" to present a clear execution plan. Cite specific video frames using reference_video_frames whenever temporal precision is needed."
+      ? "Execute available tools decisively. A direct editing instruction is consent to apply a whitelisted client-side editor action. For timeline operations, use draft_editor_actions with machine-readable actions immediately: use cut_silence for silence removal, split_at_playhead for a split, and never replace these with a generic proposal. cut_silence works from timed transcript gaps and updates timeline state without FFmpeg or a render. Use kind \"propose\" only when the requested work needs a later render/export or lacks evidence. Cite specific video frames using reference_video_frames whenever temporal precision is needed."
       : "",
     originalPrompt ? `Relevant creative direction: ${originalPrompt}` : "",
     projectId ? `Current project ID: ${projectId}` : "",

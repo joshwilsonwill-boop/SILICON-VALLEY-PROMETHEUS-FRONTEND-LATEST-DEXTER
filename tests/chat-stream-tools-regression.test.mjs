@@ -48,10 +48,16 @@ function run() {
   assert.match(route, /Available video frame thumbnails/);
   assert.match(route, /draft_editor_actions/);
   assert.match(route, /reference_video_frames/);
-  assert.match(route, /use kind \\\"propose\\\" to present a clear execution plan/);
+  assert.match(route, /direct editing instruction is consent to apply a whitelisted client-side editor action/i);
+  assert.match(route, /cut_silence works from timed transcript gaps/i);
+  assert.match(route, /functionDeclarations/);
+  const geminiStream = read("lib/prometheus-assistant/gemini-stream.ts");
+  assert.match(geminiStream, /onToolCall/);
+  assert.match(geminiStream, /functionCalls/);
+  assert.match(geminiStream, /functionResponse/);
   assert.match(
     route,
-    /Do not state an editor action occurred until it has been explicitly approved and confirmed/,
+    /Do not state an editor action occurred until its tool result confirms it/,
   );
 
   // Structured assistant payload is delivered as a metadata stream event

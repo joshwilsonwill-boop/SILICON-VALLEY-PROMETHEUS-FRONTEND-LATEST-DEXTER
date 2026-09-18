@@ -51,6 +51,10 @@ function run() {
   assert.doesNotMatch(editorPage, /clipPath: 'inset/);
   assert.doesNotMatch(editorPage, /round 999px/);
   assert.match(editorPage, /PrometheusChat/);
+  assert.match(editorPage, /captureChatFrameThumbs/);
+  assert.match(editorPage, /frameThumbs: captureChatFrameThumbs\(\)/);
+  assert.match(editorPage, /autoApplyActions/);
+  assert.match(editorPage, /onRemoveSilence/);
   assert.match(editorPage, /editorOverlayMessages/);
   assert.match(editorPage, /function MagneticSparkleButton/);
   assert.match(editorPage, /MessageCircle/);
@@ -97,6 +101,9 @@ function run() {
   );
 
   assert.match(route, /import Groq from 'groq-sdk'/);
+  const timeline = read("components/editor/TimelinePanel.tsx");
+  assert.match(timeline, /data-action="remove-silence"/);
+  assert.match(timeline, /Remove transcript-detected silences/);
   assert.match(tools, /const PROMETHEUS_TOOLS =/);
   assert.match(tools, /name: 'search_prometheus_knowledge'/);
   assert.match(tools, /name: 'reference_video_frames'/);

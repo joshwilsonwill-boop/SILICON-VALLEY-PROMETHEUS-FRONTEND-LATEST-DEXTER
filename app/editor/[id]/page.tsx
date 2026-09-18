@@ -88,6 +88,7 @@ import { useSourceStage } from '@/hooks/use-source-stage'
 import { useViralClipJob } from '@/hooks/use-viral-clip-job'
 import { buildTimedTranscriptWords } from '@/lib/editor/modal-viral-clip-workflow'
 import { buildMotionTranscriptSegments, isLegacyMockTranscriptText } from '@/lib/editor/motion-transcript'
+import { findTranscriptSilenceCuts } from '@/lib/editor/silence-cuts'
 import { clearPendingEditorNavigation, getRememberedEditorReturnPath } from '@/lib/editor-navigation'
 import { useFrameTargeting } from '@/hooks/use-frame-targeting'
 import { parseFrameReference } from '@/lib/editorial-frame/parse-frame-reference'
@@ -3558,6 +3559,7 @@ function FloatingChatComposer({
                     onAttachImage={() => attachmentInputRef.current?.click()}
                     contextProvider={chatContextProvider}
                     onApplyActions={onApplyChatActions}
+                    autoApplyActions
                     onSeekToSec={onChatSeekToSec}
                     workspaceTab={workspaceTab}
                     className="min-h-full"
@@ -8178,7 +8180,44 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
     }
   }, [previewCurrentTimeSec, transportDurationSec, activeWorkspaceTab, fitMode, isPreviewMuted, project, job])
 
-  const chatContextProvider = React.useCallback<AIChatContextProvider>(() => chatLiveStateRef.current, [])
+  const captureChatFrameThumbs = React.useCallback(() => {
+    const video = previewVideoRef.current
+    if (!video || video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA || !video.videoWidth || !video.videoHeight) {
+      return []
+    }
+
+    const maxWidth = 480
+    const width = Math.min(maxWidth, video.videoWidth)
+    const height = Math.max(1, Math.round((width / video.videoWidth) * video.videoHeight))
+    const canvas = document.createElement('canvas')
+    canvas.width = width
+    canvas.height = height
+    const context = canvas.getContext('2d')
+    if (!context) return []
+
+    try {
+      context.drawImage(video, 0, 0, width, height)
+      return [{
+        timeSec: video.currentTime,
+        label: `Current frame ${video.currentTime.toFixed(1)}s`,
+        url: canvas.toDataURL('image/jpeg', 0.78),
+      }]
+    } catch {
+      // Cross-origin media can be non-readable; preserve the text-only path.
+      return []
+    }
+  }, [])
+
+  const chatContextProvider = React.useCallback<AIChatContextProvider>(
+    () => ({ ...chatLiveStateRef.current, frameThumbs: captureChatFrameThumbs() }),
+    [captureChatFrameThumbs],
+  )
+
+  const resolveSilenceCuts = React.useCallback(
+    (minDurationSec?: number) =>
+      findTranscriptSilenceCuts(job?.artifacts.transcript, minDurationSec, transportDurationSec),
+    [job?.artifacts.transcript, transportDurationSec],
+  )
 
   const chatEditorActionContext = React.useMemo<EditorActionContext>(() => ({
     durationSec: transportDurationSec,
@@ -8201,13 +8240,7 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
       handlePreviewSeekSeconds((chatLiveStateRef.current.playheadSec ?? 0) + step)
     },
     splitAtPlayhead: (timeSec) => handleSplitClip(timeSec),
-    cutSilence: (_minDuration) => {
-      handleApplySilenceCuts([
-        { start: 4.8, end: 5.6 },
-        { start: 9.6, end: 10.4 },
-        { start: 14.5, end: 15.3 },
-      ])
-    },
+    cutSilence: (minDurationSec) => handleApplySilenceCuts(resolveSilenceCuts(minDurationSec)),
     setCaptionStyle: (style) => setEditorCaptionStyle(style),
     startRender: async (mode) => {
       if (mode === 'final') {
@@ -8227,8 +8260,9 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
         toast.error(error instanceof Error ? error.message : 'Could not start the viral batch.')
       }
     },
-    allowMutations: isAgentTakeoverEnabled,
-  }), [transportDurationSec, handlePreviewSeekSeconds, startPreviewPlayback, pausePreviewPlayback, isAgentTakeoverEnabled, project?.id, project?.sourceAssetId])
+    // A direct chat instruction is explicit consent for this whitelisted action set.
+    allowMutations: true,
+  }), [transportDurationSec, handlePreviewSeekSeconds, startPreviewPlayback, pausePreviewPlayback, handleApplySilenceCuts, resolveSilenceCuts, project?.id, project?.sourceAssetId])
 
   const handleApplyChatActions = React.useCallback(async (drafts: EditorActionDraft[]) => {
     if (!drafts || drafts.length === 0) return
@@ -8288,6 +8322,7 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
       } else if (draft.kind === 'cut_silence') {
         await autonomousCoordinator.executeSilenceCutWorkflow({
           minDurationSec: draft.minDurationSec,
+          silenceSpans: resolveSilenceCuts(draft.minDurationSec),
           onCutSpans: handleApplySilenceCuts,
           onSwitchTab: (tab) => {
             setActiveWorkspaceTab(tab as HeaderNavMode)
@@ -8321,7 +8356,9 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
       }
     }
 
-    applyEditorActionDrafts(drafts, chatEditorActionContext)
+    // The workflow above already applies silence spans. Do not dispatch the
+    // same timeline mutation a second time through the generic executor.
+    applyEditorActionDrafts(drafts.filter((draft) => draft.kind !== 'cut_silence'), chatEditorActionContext)
   }, [
     chatEditorActionContext,
     startPreviewPlayback,
@@ -8330,6 +8367,7 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
     transportDurationSec,
     handlePrepareExport,
     handleApplySilenceCuts,
+    resolveSilenceCuts,
   ])
 
   const handleToggleAgentTakeover = React.useCallback(() => {
@@ -8978,6 +9016,11 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
                       onSeek={handlePreviewSeek}
                       onSeekSeconds={handlePreviewSeekSeconds}
                       onSplit={(time) => handleSplitClip(time)}
+                      onRemoveSilence={() => {
+                        void handleApplyChatActions([
+                          { kind: 'cut_silence', minDurationSec: 0.4, summary: 'Remove transcript-detected silences' },
+                        ])
+                      }}
                       durationSec={transportDurationSec}
                       onToggleMute={() => setIsPreviewMuted((prev) => !prev)}
                       onSetBottomMode={setBottomMode}

@@ -37,6 +37,9 @@ export type GeminiStreamRequest = {
   frameRefs: GeminiFrameRef[]
   abortSignal?: AbortSignal
   maxOutputTokens?: number
+  /** Gemini-compatible function declarations. */
+  tools?: unknown
+  onToolCall?: (call: { id: string; name: string; arguments: unknown }) => Promise<unknown>
 }
 
 // ---------------------------------------------------------------------------
@@ -227,6 +230,7 @@ export async function streamWithGemini(
       const model = genAI.getGenerativeModel({
         model: modelName,
         systemInstruction: systemPrompt,
+        ...(req.tools ? { tools: req.tools as never } : {}),
         generationConfig: {
           maxOutputTokens,
           temperature: 0.42,
@@ -236,15 +240,51 @@ export async function streamWithGemini(
 
       const chat = model.startChat({ history: geminiHistory })
 
-      // First streaming pass
-      let currentPassResult = await chat.sendMessageStream(userParts as never)
+      // Ask for a tool plan before streaming when tools are available. Gemini
+      // returns function calls in a complete response, then accepts their
+      // functionResponse parts as the next chat turn.
+      let currentPassResult: Awaited<ReturnType<typeof chat.sendMessageStream>> | null = null
+      if (req.tools && req.onToolCall) {
+        const planning = await chat.sendMessage(userParts as never)
+        const planningResponse = await planning.response
+        const functionCalls = (planningResponse as unknown as {
+          functionCalls?: () => Array<{ name?: string; args?: unknown }>
+        }).functionCalls?.() ?? []
 
-      for await (const chunk of currentPassResult.stream) {
-        if (abortSignal?.aborted) break
-        const text = chunk.text()
-        if (!text) continue
-        accumulatedReply += text
-        callbacks.onDelta(text)
+        if (functionCalls.length > 0) {
+          callbacks.onStatus('Running editorial tools')
+          const functionResponses = await Promise.all(
+            functionCalls.slice(0, 4).map(async (call, index) => ({
+              functionResponse: {
+                name: call.name ?? 'unknown_tool',
+                response: await req.onToolCall!({
+                  id: `gemini-tool-${index + 1}`,
+                  name: call.name ?? '',
+                  arguments: call.args ?? {},
+                }),
+              },
+            })),
+          )
+          currentPassResult = await chat.sendMessageStream(functionResponses as never)
+        } else {
+          const text = planningResponse.text()
+          if (text) {
+            accumulatedReply += text
+            callbacks.onDelta(text)
+          }
+        }
+      } else {
+        currentPassResult = await chat.sendMessageStream(userParts as never)
+      }
+
+      if (currentPassResult) {
+        for await (const chunk of currentPassResult.stream) {
+          if (abortSignal?.aborted) break
+          const text = chunk.text()
+          if (!text) continue
+          accumulatedReply += text
+          callbacks.onDelta(text)
+        }
       }
 
       // Multi-pass continuation loop if output was truncated mid-sentence
