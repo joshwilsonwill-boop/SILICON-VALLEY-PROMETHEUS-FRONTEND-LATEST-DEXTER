@@ -89,6 +89,7 @@ import { useViralClipJob } from '@/hooks/use-viral-clip-job'
 import { buildTimedTranscriptWords } from '@/lib/editor/modal-viral-clip-workflow'
 import { buildMotionTranscriptSegments, isLegacyMockTranscriptText } from '@/lib/editor/motion-transcript'
 import { findTranscriptSilenceCuts } from '@/lib/editor/silence-cuts'
+import { buildEditorialReadiness, type EditorialReadiness } from '@/lib/editor/editorial-readiness'
 import { clearPendingEditorNavigation, getRememberedEditorReturnPath } from '@/lib/editor-navigation'
 import { useFrameTargeting } from '@/hooks/use-frame-targeting'
 import { parseFrameReference } from '@/lib/editorial-frame/parse-frame-reference'
@@ -6195,6 +6196,8 @@ function OriginalEditorPage() {
   const [projectLoadError, setProjectLoadError] = React.useState<string | null>(null)
   const [isProjectLoading, setIsProjectLoading] = React.useState(true)
   const [job, setJob] = React.useState<ProcessingJob | null>(null)
+  const [editorialReadiness, setEditorialReadiness] = React.useState<EditorialReadiness | null>(null)
+  const announcedEditorialReadinessRef = React.useRef<string | null>(null)
   const [saveStatus, setSaveStatus] = React.useState<'saved' | 'saving' | 'error'>('saved')
   const [fitMode, setFitMode] = React.useState<PreviewFitMode>('fill')
   const [scale, setScale] = React.useState(100)
@@ -6612,6 +6615,7 @@ function OriginalEditorPage() {
         if (!response.ok) return
         const analysis = await response.json() as SourceAnalysisResponse
         if (!active) return
+        if (project?.sourceAssetId && analysis.sourceAssetId !== project.sourceAssetId) return
 
         const existing = projects.getJob(projectId)
         const nextJob = buildProcessingJobFromSourceAnalysis({
@@ -6636,6 +6640,30 @@ function OriginalEditorPage() {
           }
           return nextJob
         })
+
+        const readiness = buildEditorialReadiness({
+          analysis,
+          transcript: nextJob.artifacts.transcript,
+        })
+        if (readiness) {
+          setEditorialReadiness(readiness)
+          if (announcedEditorialReadinessRef.current !== readiness.analysisJobId) {
+            announcedEditorialReadinessRef.current = readiness.analysisJobId
+            if (readiness.silenceCuts.length > 0) {
+              setActiveWorkspaceTab('Motion')
+              setBottomMode('Original')
+              toast.info(`Source assessment found ${readiness.silenceCuts.length} cut-ready pause${readiness.silenceCuts.length === 1 ? '' : 's'}.`, {
+                description: 'Review the highlighted timeline ranges in Motion before applying them.',
+              })
+            } else {
+              toast.info('Source assessment is ready.', {
+                description: readiness.silenceAssessment === 'none'
+                  ? 'No transcript-aligned pauses meet the cut threshold, so no timeline cuts were proposed.'
+                  : 'Transcript timing was not available, so no silence cuts were proposed.',
+              })
+            }
+          }
+        }
 
         if (analysis.status === 'queued' && !dispatched) {
           dispatched = true
@@ -7388,6 +7416,10 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
   const [editorCutRanges, setEditorCutRanges] = React.useState<Array<{ start: number; end: number }>>([])
 
   const handleApplySilenceCuts = React.useCallback((spans: Array<{ start: number; end: number }>) => {
+    if (spans.length === 0) {
+      toast.info('No transcript-aligned pauses meet the current cut threshold.')
+      return
+    }
     setEditorCutRanges((prev) => {
       const combined = [...prev, ...spans]
       if (combined.length <= 1) return combined
@@ -8267,92 +8299,39 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
   const handleApplyChatActions = React.useCallback(async (drafts: EditorActionDraft[]) => {
     if (!drafts || drafts.length === 0) return
 
-    for (let i = 0; i < drafts.length; i++) {
-      const draft = drafts[i]
-      const isContinuous = i < drafts.length - 1
-
+    for (const draft of drafts) {
       if (draft.kind === 'preview_control') {
-        await autonomousCoordinator.executePreviewControl(
-          draft.command,
-          () => {
-            if (draft.command === 'play') startPreviewPlayback()
-            else if (draft.command === 'pause') pausePreviewPlayback()
-            else if (draft.command === 'mute') setIsPreviewMuted(true)
-            else if (draft.command === 'unmute') setIsPreviewMuted(false)
-          },
-          isContinuous
-        )
+        if (draft.command === 'play') startPreviewPlayback()
+        else if (draft.command === 'pause') pausePreviewPlayback()
+        else if (draft.command === 'mute') setIsPreviewMuted(true)
+        else if (draft.command === 'unmute') setIsPreviewMuted(false)
       } else if (draft.kind === 'seek' && typeof draft.timeSec === 'number') {
-        await autonomousCoordinator.executeSeekTimeline(
-          draft.timeSec,
-          transportDurationSec,
-          (time) => handlePreviewSeekSeconds(time),
-          isContinuous
-        )
+        handlePreviewSeekSeconds(Math.max(0, Math.min(transportDurationSec, draft.timeSec)))
       } else if (draft.kind === 'switch_tab') {
-        await autonomousCoordinator.executeTabSwitch(
-          draft.tab as AutonomousWorkspaceTab,
-          (tab) => {
-            setActiveWorkspaceTab(tab as HeaderNavMode)
-            setBottomMode(tab === 'Music' ? 'Music' : 'Original')
-          },
-          isContinuous
-        )
+        setActiveWorkspaceTab(draft.tab as HeaderNavMode)
+        setBottomMode(draft.tab === 'Music' ? 'Music' : 'Original')
       } else if (draft.kind === 'split_at_playhead' && typeof draft.timeSec === 'number') {
-        await autonomousCoordinator.executeAutonomousEditingWorkflow({
-          type: 'split',
-          timeSec: draft.timeSec,
-          onSwitchTab: (tab) => {
-            setActiveWorkspaceTab(tab as HeaderNavMode)
-            setBottomMode(tab === 'Music' ? 'Music' : 'Original')
-          },
-          onSeek: handlePreviewSeekSeconds,
-          isContinuous,
-        })
+        setActiveWorkspaceTab('Motion')
+        setBottomMode('Original')
+        handlePreviewSeekSeconds(draft.timeSec)
+        handleSplitClip(draft.timeSec)
       } else if (draft.kind === 'set_caption_style') {
-        await autonomousCoordinator.executeAutonomousEditingWorkflow({
-          type: 'caption_style',
-          style: draft.style,
-          onSwitchTab: (tab) => {
-            setActiveWorkspaceTab(tab as HeaderNavMode)
-            setBottomMode(tab === 'Music' ? 'Music' : 'Original')
-          },
-          isContinuous,
-        })
+        setActiveWorkspaceTab('Motion')
+        setBottomMode('Original')
+        setEditorCaptionStyle(draft.style)
       } else if (draft.kind === 'cut_silence') {
-        await autonomousCoordinator.executeSilenceCutWorkflow({
-          minDurationSec: draft.minDurationSec,
-          silenceSpans: resolveSilenceCuts(draft.minDurationSec),
-          onCutSpans: handleApplySilenceCuts,
-          onSwitchTab: (tab) => {
-            setActiveWorkspaceTab(tab as HeaderNavMode)
-            setBottomMode(tab === 'Music' ? 'Music' : 'Original')
-          },
-          isContinuous,
-        })
+        setActiveWorkspaceTab('Motion')
+        setBottomMode('Original')
+        handleApplySilenceCuts(resolveSilenceCuts(draft.minDurationSec))
       } else if (draft.kind === 'start_render') {
-        await autonomousCoordinator.executeExportAction(
-          draft.mode,
-          () => {
-            if (draft.mode === 'final') {
-              setIsMasterReviewOpen(true)
-            } else {
-              handlePrepareExport()
-            }
-          },
-          isContinuous
-        )
+        if (draft.mode === 'final') setIsMasterReviewOpen(true)
+        else handlePrepareExport()
       } else if (draft.kind === 'open_thumbnail_studio') {
-        await autonomousCoordinator.executeThumbnailStudio(() => {
-          setIsThumbnailStudioOpen(true)
-        }, isContinuous)
+        setIsThumbnailStudioOpen(true)
       } else if (draft.kind === 'open_master_review') {
-        await autonomousCoordinator.executeMasterReview(() => {
-          setIsMasterReviewOpen(true)
-        }, isContinuous)
+        setIsMasterReviewOpen(true)
       } else {
-        autonomousCoordinator.beginTakeover(`Jarvis: ${draft.summary}`)
-        await new Promise((r) => setTimeout(r, 250))
+        toast.info(draft.summary)
       }
     }
 
@@ -8368,6 +8347,7 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
     handlePrepareExport,
     handleApplySilenceCuts,
     resolveSilenceCuts,
+    handleSplitClip,
   ])
 
   const handleToggleAgentTakeover = React.useCallback(() => {
@@ -8562,6 +8542,9 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
         })
 
         if (nextProject) setProject(nextProject)
+        announcedEditorialReadinessRef.current = null
+        setEditorialReadiness(null)
+        setEditorCutRanges([])
         setJob((current) => current ? {
           ...current,
           artifacts: { ...current.artifacts, transcript: [] },
@@ -8920,6 +8903,8 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
                     transcriptSegments={motionTranscriptSegments}
                     cutRanges={editorCutRanges}
                     onCutRangesChange={setEditorCutRanges}
+                    editorialReadiness={editorialReadiness}
+                    onApplySuggestedSilenceCuts={handleApplySilenceCuts}
                     onUpdateTranscriptSegment={handleUpdateTranscriptSegment}
                     onToggleCutSegment={handleToggleCutSegment}
                     onToggleCutWord={handleToggleCutWord}

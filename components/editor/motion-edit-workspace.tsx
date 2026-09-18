@@ -34,8 +34,8 @@ import {
 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
-import { autonomousCoordinator } from '@/lib/autonomous-ui/coordinator'
 import { StyleCloneCard } from '@/components/editor/style-clone-card'
+import type {EditorialReadiness} from '@/lib/editor/editorial-readiness'
 
 type PreviewMediaKind = 'video' | 'image'
 type MotionToolId = 'enhance' | 'captions' | 'media' | 'layout'
@@ -101,6 +101,8 @@ export interface MotionEditWorkspaceProps {
   onToggleCutWord?: (segmentId: string, wordIndex: number) => void
   cutRanges?: { start: number; end: number }[]
   onCutRangesChange?: (ranges: { start: number; end: number }[]) => void
+  editorialReadiness?: EditorialReadiness | null
+  onApplySuggestedSilenceCuts?: (ranges: { start: number; end: number }[]) => void
   onRequestTranscribe?: () => void
   isTranscribing?: boolean
   transcriptError?: string | null
@@ -243,7 +245,7 @@ export function MotionEditWorkspace({
   projectTitle, previewUrl, previewKind, hasPreviewMedia, sourceLabel, previewAspectRatio, fitMode,
   onFitModeChange, objectFit, mediaTransformStyle, currentTimeLabel, durationLabel, currentTimeSec,
   durationSec, previewPlaying, previewMuted, onPreviewMutedChange, videoRef, transcriptSegments,
-  onUpdateTranscriptSegment, onToggleCutSegment, onToggleCutWord, cutRanges, onCutRangesChange, onRequestTranscribe, isTranscribing = false, transcriptError = null, isSourceUploading = false, videoMetadata,
+  onUpdateTranscriptSegment, onToggleCutSegment, onToggleCutWord, cutRanges, onCutRangesChange, editorialReadiness, onApplySuggestedSilenceCuts, onRequestTranscribe, isTranscribing = false, transcriptError = null, isSourceUploading = false, videoMetadata,
   onTogglePlayback, onPickSource, onSourceDrop, onSourceDragOver, onSourceDragLeave, isSourceDragOver = false,
   textPlacements, onSeek, onVideoLoadedMetadata, onVideoLoadedData, onVideoCanPlay,
   onVideoTimeUpdate, onVideoEnded, onVideoPlay, onVideoPause, onVideoError, onImageLoaded, onApplyPrompt,
@@ -645,19 +647,63 @@ export function MotionEditWorkspace({
               </div>
             ) : null}
 
+            {editorialReadiness ? (
+              <section className="mb-4 border border-[#98f237]/25 bg-[#98f237]/[0.06] p-3 text-xs" aria-label="Source assessment">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-white">Source assessment</p>
+                    <p className="mt-1 leading-5 text-white/64">
+                      {editorialReadiness.summary ?? `${editorialReadiness.transcriptSegmentCount} aligned transcript segments and ${editorialReadiness.motionSegmentCount} motion regions are ready for review.`}
+                    </p>
+                  </div>
+                  <span className="shrink-0 font-mono text-[10px] text-[#b4fb60]">READY</span>
+                </div>
+                {editorialReadiness.recommendations.slice(0, 2).map((recommendation) => (
+                  <button
+                    key={recommendation.id}
+                    type="button"
+                    onClick={() => recommendation.startSec !== null && onSeek(recommendation.startSec)}
+                    disabled={recommendation.startSec === null}
+                    className="mt-2 block w-full border-l-2 border-[#98f237]/60 bg-black/20 px-2 py-1.5 text-left text-white/76 transition-colors hover:bg-white/[0.06] disabled:cursor-default disabled:hover:bg-black/20"
+                    title={recommendation.startSec === null ? recommendation.title : `Review at ${formatTime(recommendation.startSec)}`}
+                  >
+                    <span className="font-medium text-white">{recommendation.title}</span>
+                    {recommendation.rationale ? <span className="mt-0.5 block text-white/54">{recommendation.rationale}</span> : null}
+                  </button>
+                ))}
+                {editorialReadiness.silenceAssessment === 'suggested' ? (
+                  <div className="mt-3 flex items-center justify-between gap-3 border-t border-white/10 pt-2.5">
+                    <p className="leading-5 text-amber-200/90">{editorialReadiness.silenceCuts.length} transcript-aligned pause{editorialReadiness.silenceCuts.length === 1 ? '' : 's'} highlighted on the timeline.</p>
+                    <button
+                      type="button"
+                      onClick={() => onApplySuggestedSilenceCuts?.(editorialReadiness.silenceCuts)}
+                      className="inline-flex shrink-0 items-center gap-1.5 border border-amber-400/45 bg-amber-400/10 px-2.5 py-1.5 font-semibold text-amber-200 transition-colors hover:bg-amber-400/20"
+                    >
+                      <Scissors className="size-3.5" /> Apply cuts
+                    </button>
+                  </div>
+                ) : (
+                  <p className="mt-3 border-t border-white/10 pt-2.5 leading-5 text-white/58">
+                    {editorialReadiness.silenceAssessment === 'none'
+                      ? 'No transcript-aligned pauses meet the cut threshold. No timeline cuts were proposed.'
+                      : 'Transcript timing was not available, so no silence cuts were proposed.'}
+                  </p>
+                )}
+              </section>
+            ) : null}
+
             <div className="mb-4 flex flex-wrap items-center gap-2">
               <button
                 type="button"
                 onClick={() => {
                   const targetSegment = visibleSegments.find((s) => !s.isCut) ?? visibleSegments[0]
-                  const phrase = targetSegment?.text ? targetSegment.text.split(' ').slice(0, 4).join(' ') : 'at the same part'
-                  autonomousCoordinator.executeTranscriptCut(phrase)
+                  if (targetSegment) onToggleCutSegment?.(targetSegment.id)
                 }}
                 className="inline-flex min-h-8 items-center gap-1.5 rounded-md border border-[#00f0ff]/40 bg-[#00f0ff]/10 px-2.5 py-1.5 text-xs font-semibold text-[#00f0ff] shadow-[0_0_12px_rgba(0,240,255,0.2)] transition-all hover:bg-[#00f0ff]/20 hover:shadow-[0_0_20px_rgba(0,240,255,0.4)]"
-                title="Trigger autonomous Ghost Cursor to cut transcript on-screen"
+                title="Remove the next visible transcript segment"
               >
-                <Sparkles className="size-3.5 animate-pulse text-[#00f0ff]" />
-                <span>Jarvis Auto-Cut</span>
+                <Scissors className="size-3.5 text-[#00f0ff]" />
+                <span>Cut speech</span>
               </button>
               <button
                 type="button"
@@ -673,17 +719,15 @@ export function MotionEditWorkspace({
                       }
                     }
                   }
-                  autonomousCoordinator.executeSilenceCutWorkflow({
-                    silenceSpans: spans.length > 0 ? spans : undefined,
-                    onCutSpans: (cutSpans) => {
-                      if (onCutRangesChange) {
-                        onCutRangesChange([...(cutRanges ?? []), ...cutSpans])
-                      }
-                    },
-                  })
+                  const resolvedSpans = editorialReadiness?.silenceCuts ?? spans
+                  if (editorialReadiness) {
+                    onApplySuggestedSilenceCuts?.(editorialReadiness.silenceCuts)
+                  } else if (onCutRangesChange && resolvedSpans.length > 0) {
+                    onCutRangesChange([...(cutRanges ?? []), ...resolvedSpans])
+                  }
                 }}
                 className="inline-flex min-h-8 items-center gap-1.5 rounded-md border border-amber-400/40 bg-amber-400/10 px-2.5 py-1.5 text-xs font-semibold text-amber-300 shadow-[0_0_12px_rgba(251,191,36,0.18)] transition-all hover:bg-amber-400/20 hover:shadow-[0_0_20px_rgba(251,191,36,0.35)]"
-                title="Automatically detect speech pauses & ripple-cut dead air with autonomous cursor"
+                title="Apply transcript-aligned silence cuts directly to the editable timeline"
               >
                 <Scissors className="size-3.5 text-amber-400" />
                 <span>Cut Silences</span>
