@@ -24,7 +24,6 @@ import { PrometheusChatContextBrief } from './prometheus-chat-context-brief'
 import { PrometheusChatLoadingSkeleton } from './prometheus-chat-loading-skeleton'
 import { PrometheusChatMedia } from './prometheus-chat-media'
 import { VoiceWaveform } from './voice-waveform'
-import { StreamingControls } from '@/components/chat/streaming-controls'
 
 export type PrometheusChatMessage = {
   id: string
@@ -293,15 +292,41 @@ export function PrometheusChat({
     [onDraftChange, persistentChat, usesPersistentChat],
   )
 
+  const submitVoiceTurn = React.useCallback(async (text: string) => {
+    const message = text.trim()
+    if (!message) return
+
+    setVoiceMode(true)
+    pinnedToBottomRef.current = true
+    setShowJumpToLatest(false)
+
+    if (usesPersistentChat) {
+      if (onStartAutonomousEdit) {
+        onStartAutonomousEdit(message)
+      } else {
+        window.dispatchEvent(new CustomEvent('prometheus:start-editorial-cleanup', { detail: { prompt: message } }))
+      }
+      await persistentChat.sendMessage(message, { interrupt: true })
+      return
+    }
+
+    if (!onDraftChange) setInternalDraft('')
+    await onSend(message)
+  }, [onDraftChange, onSend, onStartAutonomousEdit, persistentChat, usesPersistentChat])
+
   const voice = useVoiceInput({
     onTranscript: (text) => {
-      // Auto-enable spoken replies when user speaks with their microphone
-      setVoiceMode(true)
-      const prefix = composedDraft.trim() ? `${composedDraft.trim()} ` : ''
-      setDraft(`${prefix}${text}`)
-      inputRef.current?.focus()
+      void submitVoiceTurn(text)
     },
   })
+
+  const startVoiceBargeIn = React.useCallback(() => {
+    stopSpokenReply()
+    if (usesPersistentChat && (persistentChat.isSending || persistentChat.isAwaitingResponse)) {
+      persistentChat.stopStreaming()
+    }
+    void voice.start()
+  }, [persistentChat, stopSpokenReply, usesPersistentChat, voice])
 
   // Stream-provided suggestions from the latest assistant turn override the
   // deterministic workspace-tab chips; older turns never leak forward.
@@ -602,24 +627,18 @@ export function PrometheusChat({
                   aria-label="Message Prometheus"
                   className="min-w-0 flex-1 border-none bg-transparent text-[15px] leading-6 text-white/88 outline-none placeholder:text-white/30"
                 />
-                <StreamingControls
-                  isStreaming={persistentChat.isSending || persistentChat.isAwaitingResponse}
-                  onStop={persistentChat.stopStreaming}
-                />
                 <button
                   type="button"
                   onClick={() => {
                     if (voice.state === 'transcribing') {
                       voice.stop()
                     } else {
-                      stopSpokenReply()
-                      void voice.start()
+                      startVoiceBargeIn()
                     }
                   }}
-                  disabled={persistentChat.isSending || persistentChat.isAwaitingResponse}
-                  aria-label="Record voice input"
+                  aria-label={showingThinking ? 'Interrupt and record voice input' : 'Record voice input'}
                   className={cn(
-                    'grid size-8 shrink-0 place-items-center rounded-full text-white/70 transition-colors hover:bg-white/[0.06] hover:text-white disabled:pointer-events-none disabled:opacity-20',
+                    'grid size-8 shrink-0 place-items-center rounded-full text-white/70 transition-colors hover:bg-white/[0.06] hover:text-white',
                   )}
                 >
                   {voice.state === 'transcribing' ? (
