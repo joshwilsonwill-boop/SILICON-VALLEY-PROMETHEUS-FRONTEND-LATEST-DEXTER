@@ -18,6 +18,9 @@ import {
   Palette,
   Eye,
   TriangleAlert,
+  Plus,
+  Upload,
+  Trash2,
 } from 'lucide-react'
 
 import {
@@ -30,6 +33,10 @@ import {
 } from '@/lib/thumbnails/thumbnail-engine'
 import { SHORT_FORM_ARCHETYPES, type ShortFormStyleConfig } from '@/lib/thumbnails/short-form-styles'
 import { cn } from '@/lib/utils'
+import SpotlightFrames from '@/components/editor/SpotlightFrames'
+import LiquidCarveButton from '@/components/editor/LiquidCarveButton'
+import DitherReveal from '@/components/editor/DitherReveal'
+import PixelReveal from '@/components/editor/PixelReveal'
 
 interface ThumbnailStudioModalProps {
   isOpen: boolean
@@ -138,6 +145,33 @@ export function ThumbnailStudioModal({
   const [previewDataUrl, setPreviewDataUrl] = React.useState<string | null>(null)
   const [isExporting, setIsExporting] = React.useState(false)
   const [savedSuccess, setSavedSuccess] = React.useState(false)
+  const [isGeneratingNano, setIsGeneratingNano] = React.useState(false)
+  const [nanoSuccessMessage, setNanoSuccessMessage] = React.useState<string | null>(null)
+  const [nanoErrorMessage, setNanoErrorMessage] = React.useState<string | null>(null)
+  const [channelReferences, setChannelReferences] = React.useState<string[]>([])
+  const [lockedStyleDna, setLockedStyleDna] = React.useState<any>(null)
+  const [previewMode, setPreviewMode] = React.useState<'render' | 'dither' | 'pixel'>('render')
+  const [ditherStyle, setDitherStyle] = React.useState<'bayer8' | 'lines' | 'noise'>('bayer8')
+  const [keyframeReelMode, setKeyframeReelMode] = React.useState<'spotlight' | 'stagger-matrix'>('spotlight')
+  const [pixelDissolveKey, setPixelDissolveKey] = React.useState(0)
+
+  const handleAddReferenceImage = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files || !files.length) return
+    const file = files[0]
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      const dataUrl = event.target?.result as string
+      if (dataUrl) {
+        setChannelReferences((prev) => [...prev.slice(-3), dataUrl])
+      }
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleRemoveReferenceImage = (idx: number) => {
+    setChannelReferences((prev) => prev.filter((_, i) => i !== idx))
+  }
 
   const handleSelectArchetype = (archetype: ShortFormStyleConfig) => {
     setSelectedArchetype(archetype)
@@ -334,6 +368,58 @@ export function ThumbnailStudioModal({
     }, 450)
   }
 
+  const handleGenerateNanoBanana = async () => {
+    if (!candidates.length || selectedFrameIndex >= candidates.length) return
+    const activeFrame = candidates[selectedFrameIndex]
+    setIsGeneratingNano(true)
+    setNanoErrorMessage(null)
+    setNanoSuccessMessage(null)
+
+    try {
+      const res = await fetch(`/api/projects/${projectId}/thumbnails/nano-banana`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          frameDataUrl: activeFrame.dataUrl,
+          headline,
+          scriptAccent,
+          subtitle,
+          styleId: selectedArchetype.id,
+          brandColor,
+          aspectRatio,
+          referenceImages: channelReferences,
+          lockChannelStyle: true,
+        }),
+      })
+
+      if (!res.ok) {
+        throw new Error(`Server returned status ${res.status}`)
+      }
+
+      const data = await res.json()
+      if (data.styleDna) {
+        setLockedStyleDna(data.styleDna)
+        if (data.styleDna.colorPalette?.accent) {
+          setBrandColor(data.styleDna.colorPalette.accent)
+        }
+        if (data.styleDna.composition?.textPlacement) {
+          setTextLayer(data.styleDna.composition.textPlacement)
+        }
+      }
+      if (data.dataUrl) {
+        setPreviewDataUrl(data.dataUrl)
+        setNanoSuccessMessage('Synthesized viral cover with Multimodal Nano Banana!')
+      } else if (data.styleDna) {
+        setNanoSuccessMessage('Channel Style-Lock DNA extracted & applied to studio canvas!')
+      }
+    } catch (err: any) {
+      console.warn('[Nano Banana Generation Failed]', err)
+      setNanoErrorMessage(err?.message || 'Nano Banana synthesis failed. Using Canvas engine.')
+    } finally {
+      setIsGeneratingNano(false)
+    }
+  }
+
   if (!isOpen) return null
 
   const currentDisplayUrl = previewDataUrl
@@ -408,7 +494,86 @@ export function ThumbnailStudioModal({
 
           <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-12">
             <div className="flex flex-col justify-between border-b border-white/[0.06] bg-[#060608] p-4 lg:col-span-7 lg:border-b-0 lg:border-r lg:p-6">
-              <div className="relative flex flex-1 items-center justify-center overflow-hidden py-1">
+              <div className="relative flex flex-1 flex-col items-center justify-center overflow-hidden py-1">
+                {/* Cinematic Stage Mode Navigation Bar */}
+                <div className="z-20 mb-3 flex flex-wrap items-center justify-center gap-1.5 rounded-full border border-white/10 bg-black/60 p-1 backdrop-blur-xl shadow-lg">
+                  <button
+                    type="button"
+                    onClick={() => setPreviewMode('render')}
+                    className={cn(
+                      'flex items-center gap-1.5 rounded-full px-3 py-1 font-mono text-[10px] uppercase tracking-wider transition-all',
+                      previewMode === 'render'
+                        ? 'bg-white/15 text-white font-semibold shadow-sm'
+                        : 'text-white/40 hover:text-white/80',
+                    )}
+                  >
+                    <Sparkles className="size-3 text-[#7ff2d4]" />
+                    <span>Compositor</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setPreviewMode('dither')}
+                    className={cn(
+                      'flex items-center gap-1.5 rounded-full px-3 py-1 font-mono text-[10px] uppercase tracking-wider transition-all',
+                      previewMode === 'dither'
+                        ? 'bg-[#7ff2d4]/20 text-[#7ff2d4] font-semibold border border-[#7ff2d4]/40 shadow-sm'
+                        : 'text-white/40 hover:text-white/80',
+                    )}
+                  >
+                    <span className="text-[11px] leading-none">〰</span>
+                    <span>Dither Wave</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPreviewMode('pixel')
+                      setPixelDissolveKey((k) => k + 1)
+                    }}
+                    className={cn(
+                      'flex items-center gap-1.5 rounded-full px-3 py-1 font-mono text-[10px] uppercase tracking-wider transition-all',
+                      previewMode === 'pixel'
+                        ? 'bg-white/15 text-white font-semibold shadow-sm'
+                        : 'text-white/40 hover:text-white/80',
+                    )}
+                  >
+                    <span className="text-[11px] leading-none">▦</span>
+                    <span>Pixel Matrix</span>
+                  </button>
+
+                  {previewMode === 'dither' ? (
+                    <div className="flex items-center gap-1 border-l border-white/10 pl-2">
+                      {(['bayer8', 'lines', 'noise'] as const).map((style) => (
+                        <button
+                          key={style}
+                          type="button"
+                          onClick={() => setDitherStyle(style)}
+                          className={cn(
+                            'rounded px-1.5 py-0.5 font-mono text-[9px] uppercase transition-colors',
+                            ditherStyle === style
+                              ? 'bg-[#7ff2d4]/30 text-[#7ff2d4] font-bold'
+                              : 'text-white/40 hover:text-white/70',
+                          )}
+                        >
+                          {style}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+
+                  {previewMode === 'pixel' ? (
+                    <button
+                      type="button"
+                      onClick={() => setPixelDissolveKey((k) => k + 1)}
+                      className="ml-1 rounded border border-white/20 bg-white/10 px-2 py-0.5 font-mono text-[9px] uppercase tracking-wider text-white hover:bg-white/20 transition-colors"
+                      title="Re-trigger Pixel Dissolve"
+                    >
+                      Re-Dissolve
+                    </button>
+                  ) : null}
+                </div>
+
                 {currentDisplayUrl ? (
                   <div
                     aria-hidden
@@ -421,7 +586,7 @@ export function ThumbnailStudioModal({
                   />
                 ) : null}
 
-                <div className="relative z-10 flex h-full max-h-[520px] w-full items-center justify-center">
+                <div className="relative z-10 flex h-full max-h-[500px] w-full items-center justify-center">
                   {currentDisplayUrl ? (
                     <motion.div
                       layout
@@ -429,19 +594,55 @@ export function ThumbnailStudioModal({
                       className={cn(
                         'relative overflow-hidden rounded-xl border border-white/12 bg-black shadow-[0_24px_64px_rgba(0,0,0,0.95)] ring-1 ring-white/[0.06]',
                         activeAspectConfig.cssAspect,
-                        aspectRatio === '9:16' || aspectRatio === '9:6' ? 'h-full max-h-[520px] w-auto' : 'w-full max-w-[540px] h-auto',
+                        aspectRatio === '9:16' || aspectRatio === '9:6' ? 'h-full max-h-[500px] w-auto' : 'w-full max-w-[520px] h-auto',
                       )}
                     >
-                      <img
-                        src={currentDisplayUrl}
-                        alt="Active Studio Cover Art"
-                        className="size-full object-contain"
-                      />
+                      {previewMode === 'dither' ? (
+                        <DitherReveal
+                          key={`dither-${selectedFrameIndex}-${currentDisplayUrl}-${ditherStyle}`}
+                          image={currentDisplayUrl}
+                          fit="contain"
+                          ditherStyle={ditherStyle}
+                          dotSize={5}
+                          revealRadius={140}
+                          revealSoftness={45}
+                          wave={true}
+                          waveSpeed={80}
+                          waveDensity={26}
+                          className="size-full"
+                        />
+                      ) : previewMode === 'pixel' ? (
+                        <PixelReveal
+                          key={`pixel-${selectedFrameIndex}-${pixelDissolveKey}`}
+                          imageSrc={currentDisplayUrl}
+                          gridSize={12}
+                          edgeHeight={20}
+                          transitionColor="#060608"
+                          transition={{ type: 'tween', duration: 1.0, ease: 'easeInOut' }}
+                          direction="down"
+                          objectFit="contain"
+                          className="size-full"
+                        />
+                      ) : (
+                        <PixelReveal
+                          key={`render-${selectedFrameIndex}-${selectedArchetype.id}-${headline}-${aspectRatio}`}
+                          imageSrc={currentDisplayUrl}
+                          gridSize={16}
+                          edgeHeight={14}
+                          transitionColor="#060608"
+                          transition={{ type: 'tween', duration: 0.85, ease: [0.16, 1, 0.3, 1] }}
+                          direction="up"
+                          objectFit="contain"
+                          className="size-full"
+                        />
+                      )}
 
-                      <div className="pointer-events-none absolute bottom-2 left-2.5 flex items-center gap-1.5 rounded bg-black/75 px-2 py-0.5 font-mono text-[9px] uppercase tracking-widest text-white/70 backdrop-blur-md">
+                      <div className="pointer-events-none absolute bottom-2 left-2.5 z-20 flex items-center gap-1.5 rounded bg-black/75 px-2 py-0.5 font-mono text-[9px] uppercase tracking-widest text-white/70 backdrop-blur-md">
                         <span>{activeAspectConfig.width} × {activeAspectConfig.height}</span>
                         <span className="text-white/30">{'//'}</span>
                         <span style={{ color: brandColor }}>{selectedArchetype.name}</span>
+                        <span className="text-white/30">{'//'}</span>
+                        <span className="text-[#7ff2d4]">{previewMode.toUpperCase()}</span>
                       </div>
                     </motion.div>
                   ) : (
@@ -455,24 +656,115 @@ export function ThumbnailStudioModal({
 
               <div className="mt-3 shrink-0 space-y-2 border-t border-white/[0.06] pt-3">
                 <div className="flex items-center justify-between">
-                  <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/40">
-                    Source Keyframes
-                  </span>
-                  {videoElement ? (
-                    <button
-                      type="button"
-                      onClick={handleCaptureCurrentPlayhead}
-                      className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-white/60 transition-colors hover:text-white"
-                    >
-                      <Camera className="size-3 text-white/50" />
-                      Sample Playhead
-                    </button>
-                  ) : null}
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/40">
+                      Source Keyframes
+                    </span>
+                    <span className="rounded bg-white/[0.04] px-1.5 py-0.5 font-mono text-[9px] text-white/40">
+                      {candidates.length} Captures
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center rounded-lg border border-white/[0.08] bg-white/[0.02] p-0.5">
+                      <button
+                        type="button"
+                        onClick={() => setKeyframeReelMode('spotlight')}
+                        className={cn(
+                          'rounded px-2 py-0.5 font-mono text-[9px] uppercase tracking-wider transition-colors',
+                          keyframeReelMode === 'spotlight'
+                            ? 'bg-[#7ff2d4]/20 text-[#7ff2d4] font-semibold'
+                            : 'text-white/40 hover:text-white/80',
+                        )}
+                        title="Cinematic Spotlight Ribbon"
+                      >
+                        Spotlight Ribbon
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setKeyframeReelMode('stagger-matrix')}
+                        className={cn(
+                          'rounded px-2 py-0.5 font-mono text-[9px] uppercase tracking-wider transition-colors',
+                          keyframeReelMode === 'stagger-matrix'
+                            ? 'bg-[#7ff2d4]/20 text-[#7ff2d4] font-semibold'
+                            : 'text-white/40 hover:text-white/80',
+                        )}
+                        title="Staggered Pixel Matrix"
+                      >
+                        Stagger Matrix
+                      </button>
+                    </div>
+
+                    {videoElement ? (
+                      <button
+                        type="button"
+                        onClick={handleCaptureCurrentPlayhead}
+                        className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-white/60 transition-colors hover:text-white"
+                      >
+                        <Camera className="size-3 text-white/50" />
+                        Sample Playhead
+                      </button>
+                    ) : null}
+                  </div>
                 </div>
 
                 {isExtracting ? (
-                  <div className="flex h-14 items-center justify-center rounded-lg border border-white/[0.06] bg-white/[0.01]">
-                    <Loader2 className="size-4 animate-spin text-white/30" />
+                  <div className="flex h-24 items-center justify-center rounded-lg border border-white/[0.06] bg-white/[0.01]">
+                    <div className="flex items-center gap-2 text-white/40">
+                      <Loader2 className="size-4 animate-spin text-[#7ff2d4]" />
+                      <span className="font-mono text-xs">Extracting cinematic candidate keyframes…</span>
+                    </div>
+                  </div>
+                ) : keyframeReelMode === 'spotlight' && candidates.length > 0 ? (
+                  <div className="relative h-28 w-full overflow-hidden rounded-xl border border-white/[0.08] bg-black/40">
+                    <SpotlightFrames
+                      images={candidates.map((c) => ({ image: c.dataUrl, offsetY: 0 }))}
+                      selectedIndex={selectedFrameIndex}
+                      onSelectIndex={(idx) => setSelectedFrameIndex(idx)}
+                      background="transparent"
+                      panels={candidates.length}
+                      track={{
+                        collapsedWidth: 70,
+                        expandedWidth: 260,
+                        gap: 4,
+                      }}
+                      panel={{
+                        height: 104,
+                        radius: 8,
+                        dim: 4,
+                      }}
+                      selector={{
+                        box: true,
+                        lines: true,
+                        lineLength: 70,
+                        thickness: 2,
+                        color: '#7ff2d4',
+                      }}
+                      entrance={{
+                        animate: true,
+                        duration: 0.6,
+                        stagger: 0.04,
+                      }}
+                      trigger="hover"
+                      renderOverlay={(idx, isOpen) => {
+                        const candidate = candidates[idx]
+                        if (!candidate) return null
+                        return (
+                          <div className="pointer-events-none absolute inset-0 flex flex-col justify-between p-1.5">
+                            <div className="flex items-center justify-between">
+                              <span className="rounded bg-black/85 px-1.5 py-0.5 font-mono text-[8px] text-white/80 backdrop-blur-md">
+                                {candidate.timecode}
+                              </span>
+                              {isOpen && (
+                                <span className="rounded border border-[#7ff2d4]/40 bg-[#7ff2d4]/20 px-1.5 py-0.5 font-mono text-[7px] font-semibold text-[#7ff2d4] backdrop-blur-md">
+                                  FRAME #{idx + 1}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      }}
+                    />
                   </div>
                 ) : (
                   <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
@@ -484,20 +776,29 @@ export function ThumbnailStudioModal({
                           type="button"
                           onClick={() => setSelectedFrameIndex(idx)}
                           className={cn(
-                            'group relative h-14 w-22 shrink-0 overflow-hidden rounded-lg border transition-all duration-200',
+                            'group relative h-20 w-32 shrink-0 overflow-hidden rounded-lg border transition-all duration-200',
                             isSelected
-                              ? 'border-white ring-1 ring-white/60'
+                              ? 'border-[#7ff2d4] ring-2 ring-[#7ff2d4]/50 shadow-[0_0_12px_rgba(127,242,212,0.25)]'
                               : 'border-white/10 opacity-70 hover:border-white/30 hover:opacity-100',
                           )}
                         >
-                          <img
-                            src={candidate.dataUrl}
+                          <PixelReveal
+                            imageSrc={candidate.dataUrl}
+                            gridSize={8}
+                            edgeHeight={12}
+                            transitionColor="#060608"
+                            transition={{ type: 'tween', duration: 0.8, ease: 'easeInOut' }}
+                            direction="up"
+                            staggerDelay={idx * 0.12}
                             alt={`Candidate at ${candidate.timecode}`}
-                            className="size-full object-cover"
+                            className="size-full"
                           />
-                          <span className="absolute bottom-1 right-1 rounded bg-black/80 px-1 py-0.2 font-mono text-[8px] text-white/70">
+                          <span className="absolute bottom-1 right-1 z-10 rounded bg-black/80 px-1 py-0.2 font-mono text-[8px] text-white/70">
                             {candidate.timecode}
                           </span>
+                          {isSelected && (
+                            <span className="absolute top-1 left-1 z-10 size-2 rounded-full bg-[#7ff2d4] shadow-[0_0_8px_#7ff2d4]" />
+                          )}
                         </button>
                       )
                     })}
@@ -762,13 +1063,96 @@ export function ThumbnailStudioModal({
               </div>
 
               <div className="mt-6 border-t border-white/[0.06] pt-4 space-y-2.5">
-                <div className="flex items-start gap-2 rounded-lg border border-amber-300/25 bg-amber-300/[0.06] px-3 py-2 text-[11px] leading-relaxed text-amber-200/90">
-                  <TriangleAlert className="mt-0.5 size-3.5 shrink-0" />
-                  <span>
-                    Synthetic AI image generation is deprecated for covers — it hallucinates faces and
-                    misspells titles. The deterministic Canvas Compositor below uses real frames from
-                    your video and is now the standard engine.
-                  </span>
+                {/* Multimodal Nano Banana Channel Style-Lock Card */}
+                <div className="rounded-xl border border-amber-400/25 bg-amber-500/[0.04] p-3 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-amber-300">
+                      <Sparkles className="size-3.5" />
+                      <span>Nano Banana Multimodal</span>
+                    </div>
+                    <span className="rounded bg-amber-400/10 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-widest text-amber-300/80">
+                      Style-Lock AI
+                    </span>
+                  </div>
+                  <p className="text-[11px] leading-relaxed text-white/60">
+                    Conditions directly on your talking-head video frame and extracts channel aesthetic DNA to synthesize a viral, high-retention cover.
+                  </p>
+
+                  <div className="space-y-1.5 pt-1 border-t border-white/[0.06]">
+                    <div className="flex items-center justify-between text-[10px] font-mono text-white/50">
+                      <span>Channel References ({channelReferences.length})</span>
+                      <label className="flex items-center gap-1 cursor-pointer text-amber-300 hover:text-amber-200 transition-colors">
+                        <Plus className="size-3" />
+                        <span>Add Ref Image</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleAddReferenceImage}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
+
+                    {channelReferences.length > 0 ? (
+                      <div className="flex gap-1.5 overflow-x-auto py-1 [scrollbar-width:none]">
+                        {channelReferences.map((refImg, idx) => (
+                          <div key={idx} className="relative group size-10 shrink-0 rounded border border-white/20 overflow-hidden bg-black">
+                            <img src={refImg} alt={`Ref ${idx}`} className="size-full object-cover" />
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveReferenceImage(idx)}
+                              className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity"
+                            >
+                              <Trash2 className="size-3 text-rose-400" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+
+                  {lockedStyleDna ? (
+                    <div className="rounded-lg bg-black/40 p-2 text-[10px] font-mono space-y-1 border border-amber-400/20">
+                      <div className="flex items-center justify-between text-white/70">
+                        <span className="text-white/40 uppercase">Locked DNA</span>
+                        <span className="text-amber-300 font-semibold">{lockedStyleDna.composition?.proofArtifactType || 'Custom Blueprint'}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-white/60">
+                        <span>Accent: {lockedStyleDna.colorPalette?.accent || brandColor}</span>
+                        <span>•</span>
+                        <span>Bust Scale: {lockedStyleDna.composition?.bustScalePercent || 118}%</span>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  <button
+                    type="button"
+                    onClick={handleGenerateNanoBanana}
+                    disabled={isGeneratingNano || !candidates.length}
+                    className="flex w-full items-center justify-center gap-2 rounded-lg border border-amber-400/30 bg-gradient-to-r from-amber-500/20 via-orange-500/20 to-amber-500/20 py-2.5 text-xs font-semibold text-amber-200 shadow-sm transition-all hover:border-amber-400/50 hover:from-amber-500/30 hover:to-orange-500/30 disabled:opacity-50"
+                  >
+                    {isGeneratingNano ? (
+                      <>
+                        <Loader2 className="size-3.5 animate-spin text-amber-300" />
+                        <span>Locking Style & Synthesizing…</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="size-3.5 text-amber-300" />
+                        <span>Synthesize with Nano Banana</span>
+                      </>
+                    )}
+                  </button>
+
+                  {nanoSuccessMessage ? (
+                    <div className="flex items-center gap-1.5 text-[11px] text-emerald-400">
+                      <Check className="size-3 shrink-0" />
+                      <span>{nanoSuccessMessage}</span>
+                    </div>
+                  ) : null}
+                  {nanoErrorMessage ? (
+                    <div className="text-[11px] text-rose-400">{nanoErrorMessage}</div>
+                  ) : null}
                 </div>
 
                 <div className="grid grid-cols-2 gap-2.5">
@@ -781,25 +1165,37 @@ export function ThumbnailStudioModal({
                     Download PNG
                   </button>
 
-                  <motion.button
-                    type="button"
-                    whileTap={{ scale: 0.98 }}
+                  <LiquidCarveButton
+                    label={savedSuccess ? "Cover Saved" : "Save Project Cover"}
                     onClick={handleSaveCover}
                     disabled={isExporting}
-                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-white px-4 py-2.5 text-xs font-semibold text-black transition-opacity hover:opacity-95 disabled:opacity-50"
-                  >
-                    {savedSuccess ? (
-                      <>
-                        <Check className="size-3.5 text-black" />
-                        Cover Saved
-                      </>
-                    ) : (
-                      <>
-                        <ImageIcon className="size-3.5" />
-                        Save Project Cover
-                      </>
-                    )}
-                  </motion.button>
+                    colors={{
+                      fill: "#ffffff",
+                      textColor: "#000000",
+                    }}
+                    blob={{
+                      color: "#7ff2d4",
+                      size: 44,
+                      smoothness: 60,
+                    }}
+                    padding="8px 16px"
+                    rounded={12}
+                    font={{
+                      fontFamily: "inherit",
+                      fontWeight: 600,
+                      fontSize: 12,
+                      letterSpacing: "0.02em",
+                    }}
+                    addIcon={true}
+                    icon={{
+                      type: "symbol",
+                      symbol: savedSuccess ? "✓" : "✦",
+                      color: "#000000",
+                      size: 13,
+                      side: "left",
+                    }}
+                    className="w-full shadow-md"
+                  />
                 </div>
               </div>
             </div>

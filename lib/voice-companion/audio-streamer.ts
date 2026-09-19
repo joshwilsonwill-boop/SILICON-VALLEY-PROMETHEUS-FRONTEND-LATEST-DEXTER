@@ -124,8 +124,8 @@ export interface AudioRecorderOptions {
 
 // Barge-in tuning: echo bleed from speakers rarely exceeds these levels while a
 // genuine user interruption sustains much louder energy across multiple frames.
-const BARGE_IN_RMS_THRESHOLD = 0.085
-const BARGE_IN_SUSTAINED_FRAMES = 3
+const BARGE_IN_RMS_THRESHOLD = 0.04
+const BARGE_IN_SUSTAINED_FRAMES = 2
 const SILENCE_CHUNK_SAMPLES = 1600 // 100ms at 16kHz keeps server VAD stream continuous
 
 /**
@@ -145,6 +145,7 @@ export class AudioRecorder {
   private currentVolume = 0
   private bargeFrames = 0
   private silenceChunkBase64: string | null = null
+  private lastSpeechTimestamp = 0
 
   constructor(options?: AudioRecorderOptions) {
     this.getIsSpeaking = options?.getIsSpeaking
@@ -189,6 +190,10 @@ export class AudioRecorder {
       const rms = calculateRMS(inputData)
       this.currentVolume = Math.min(1, rms * 4)
 
+      if (rms > 0.035) {
+        this.lastSpeechTimestamp = Date.now()
+      }
+
       // ACOUSTIC ECHO GATING (turn-aware, with silence-fill):
       // Browser echo cancellation does NOT cancel our own Web Audio speaker
       // output, so while the assistant turn is active we only transmit after
@@ -199,6 +204,7 @@ export class AudioRecorder {
       if (isAssistantSpeaking) {
         if (rms > BARGE_IN_RMS_THRESHOLD) {
           this.bargeFrames += 1
+          this.lastSpeechTimestamp = Date.now()
         } else {
           this.bargeFrames = 0
         }
@@ -231,6 +237,7 @@ export class AudioRecorder {
   stop(): void {
     this.isRecording = false
     this.bargeFrames = 0
+    this.lastSpeechTimestamp = 0
     this.silenceChunkBase64 = null
     this.processor?.disconnect()
     this.analyser?.disconnect()
@@ -249,6 +256,19 @@ export class AudioRecorder {
 
   getVolume(): number {
     return this.isRecording ? this.currentVolume : 0
+  }
+
+  hasRecentSpeech(windowMs: number = 1000): boolean {
+    if (!this.isRecording) return false
+    return Date.now() - this.lastSpeechTimestamp <= windowMs
+  }
+
+  resetBargeFrames(): void {
+    this.bargeFrames = 0
+  }
+
+  getLastSpeechTimestamp(): number {
+    return this.lastSpeechTimestamp
   }
 }
 

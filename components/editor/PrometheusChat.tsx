@@ -75,6 +75,15 @@ export const demoThinkingMessages: PrometheusChatMessage[] = [
   },
 ]
 
+export function isVoiceCeaseOrStopIntent(text: string): boolean {
+  const normalized = text.trim().toLowerCase().replace(/[.,!?;:]/g, '')
+  return (
+    /^(stop|stop talking|stop speech|cease|cease speech|shut up|be quiet|quiet|silence|shh|halt|pause|pause speech|hold on|nevermind|cancel)$/i.test(normalized) ||
+    /^(please\s+)?(stop|cease|shut up|be quiet|halt)(\s+please)?$/i.test(normalized) ||
+    /^(stop|cancel|halt)\s+(it|this|that|talking|speaking)$/i.test(normalized)
+  )
+}
+
 export function PrometheusChat({
   messages,
   onSend,
@@ -194,21 +203,26 @@ export function PrometheusChat({
   const isVideoContextLoading = persistentChat.isVideoContextLoading
   const videoPresent = videoContext?.status === 'video' || Boolean(videoContext?.video)
 
+  const activeUtterancesRef = React.useRef<SpeechSynthesisUtterance[]>([])
+
   const stopSpokenReply = React.useCallback(() => {
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       window.speechSynthesis.cancel()
     }
+    activeUtterancesRef.current = []
     setSpeakingMessageId(null)
   }, [])
 
   const latestSpeakableMessage = React.useMemo(
     () => [...renderedMessages].reverse().find((message) =>
-      message.role === 'assistant' && message.isComplete !== false && message.content.trim().length > 0,
+      message.role === 'assistant' &&
+      message.isComplete !== false &&
+      message.content.trim().length > 0 &&
+      !message.content.includes('[Stopped]') &&
+      !message.content.includes('[Interrupted]')
     ) ?? null,
     [renderedMessages],
   )
-
-  const activeUtterancesRef = React.useRef<SpeechSynthesisUtterance[]>([])
 
   React.useEffect(() => {
     if (!voiceMode || !latestSpeakableMessage || typeof window === 'undefined' || !('speechSynthesis' in window)) return
@@ -296,6 +310,16 @@ export function PrometheusChat({
     const message = text.trim()
     if (!message) return
 
+    stopSpokenReply()
+
+    // Cease speech immediately on explicit stop/cancel/cease requests without triggering new LLM turns
+    if (isVoiceCeaseOrStopIntent(message)) {
+      if (usesPersistentChat && (persistentChat.isSending || persistentChat.isAwaitingResponse)) {
+        persistentChat.stopStreaming()
+      }
+      return
+    }
+
     setVoiceMode(true)
     pinnedToBottomRef.current = true
     setShowJumpToLatest(false)
@@ -312,7 +336,7 @@ export function PrometheusChat({
 
     if (!onDraftChange) setInternalDraft('')
     await onSend(message)
-  }, [onDraftChange, onSend, onStartAutonomousEdit, persistentChat, usesPersistentChat])
+  }, [onDraftChange, onSend, onStartAutonomousEdit, persistentChat, stopSpokenReply, usesPersistentChat])
 
   const voice = useVoiceInput({
     onTranscript: (text) => {

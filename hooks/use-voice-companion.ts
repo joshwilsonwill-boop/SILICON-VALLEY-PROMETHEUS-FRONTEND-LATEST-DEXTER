@@ -402,14 +402,23 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
             })
           },
           onInterrupted: () => {
-            // The server VAD frequently "hears" our own speaker output (browser
-            // AEC does not cover Web Audio playback). Only honor the interrupt
-            // when the mic shows sustained, speech-level user energy; otherwise
-            // ignore it so the assistant never self-cancels into silence.
+            // When Gemini Live server sends an interrupted event, its server-side VAD
+            // detected user speech barge-in. We honor the interrupt whenever:
+            // 1. Instantaneous mic volume is above minimal background noise (> 0.04), OR
+            // 2. The recorder detected speech energy recently (hasRecentSpeech), OR
+            // 3. Audio was playing or queued and the user is unmuted.
+            // This guarantees Jarvis stops immediately when the user interrupts instead
+            // of forcing statement completion.
             const userVol = recorderRef.current?.getVolume() ?? 0
-            if (userVol > 0.34) {
+            const hadRecentSpeech = recorderRef.current?.hasRecentSpeech(1200) ?? false
+            const isPlayingOrPending =
+              (playerRef.current?.getIsPlaying() ?? false) ||
+              ((playerRef.current?.getPendingMs() ?? 0) > 0)
+
+            if (userVol > 0.04 || hadRecentSpeech || isPlayingOrPending) {
               assistantTurnActiveRef.current = false
               player.flush()
+              recorderRef.current?.resetBargeFrames()
               setUserStatus('interrupted')
               setTimeout(() => {
                 setUserStatus((prev) => (prev === 'interrupted' ? 'listening' : prev))

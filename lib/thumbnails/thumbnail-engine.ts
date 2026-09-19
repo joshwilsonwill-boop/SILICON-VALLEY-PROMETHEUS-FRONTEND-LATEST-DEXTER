@@ -447,15 +447,15 @@ export class ThumbnailEngine {
     if (config.scriptAccent?.trim()) {
       // Tuck the script just above a bottom headline block (or below a top one)
       // instead of always stamping it at a fixed 0.88 height over the text.
-      let scriptY = targetHeight * 0.88
+      let accentY = targetHeight * 0.88
       if (foregroundBlock) {
         const blockBottom = foregroundBlock.centerY + foregroundBlock.totalHeight / 2
         const blockTop = foregroundBlock.centerY - foregroundBlock.totalHeight / 2
-        if (config.position === 'bottom') scriptY = Math.max(targetHeight * 0.6, blockBottom - foregroundBlock.totalHeight * 0.72)
-        else if (config.position === 'top') scriptY = Math.min(targetHeight * 0.42, blockTop + foregroundBlock.totalHeight * 1.15)
-        else scriptY = blockBottom + targetHeight * 0.035
+        if (config.position === 'bottom') accentY = Math.max(targetHeight * 0.6, blockBottom - foregroundBlock.totalHeight * 0.72)
+        else if (config.position === 'top') accentY = Math.min(targetHeight * 0.42, blockTop + foregroundBlock.totalHeight * 1.15)
+        else accentY = blockBottom + targetHeight * 0.035
       }
-      ThumbnailEngine.drawScriptAccent(ctx, config.scriptAccent.trim(), targetWidth, targetHeight, brandColor, scriptY)
+      ThumbnailEngine.drawScriptAccent(ctx, config.scriptAccent.trim(), targetWidth, targetHeight, brandColor, accentY)
     }
 
     // 8. Photo Treatments: Vignette

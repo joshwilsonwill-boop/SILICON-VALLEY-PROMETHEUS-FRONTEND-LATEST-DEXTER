@@ -597,7 +597,24 @@ export function useAIChat({
         setStreamStatus(null);
         void refreshSessions();
       } catch (requestError) {
-        if (requestError instanceof DOMException && requestError.name === "AbortError") return;
+        if (requestError instanceof DOMException && requestError.name === "AbortError") {
+          if (activeAssistantMessageId) {
+            const assistantMessageId = activeAssistantMessageId;
+            const partialContent = streamedContentRef.current.get(assistantMessageId)?.trim() ?? "";
+            pendingAssistantMessagesRef.current.delete(assistantMessageId);
+            streamedContentRef.current.delete(assistantMessageId);
+            setMessages((current) =>
+              partialContent
+                ? current.map((entry) =>
+                    entry.id === assistantMessageId
+                      ? { ...entry, content: `${partialContent}\n\n[Interrupted]`, isComplete: true }
+                      : entry,
+                  )
+                : current.filter((entry) => entry.id !== assistantMessageId),
+            );
+          }
+          return;
+        }
         if (activeAssistantMessageId) {
           const assistantMessageId = activeAssistantMessageId;
           const partialContent = streamedContentRef.current.get(assistantMessageId)?.trim() ?? "";

@@ -33,7 +33,7 @@ assert.match(geminiLiveClient, /realtimeInput:\s*\{\s*video:\s*\{/s, 'Live clien
 assert.match(useVoiceCompanion, /primeAudioContext\(\)/, 'useVoiceCompanion must synchronously prime Web Audio on connect gesture')
 assert.match(useVoiceCompanion, /getIsSpeaking:\s*\(\)\s*=>\s*\n?\s*assistantTurnActiveRef\.current/, 'useVoiceCompanion must gate the recorder on the assistant turn flag, not just playback state')
 assert.match(useVoiceCompanion, /setUserStatus\(\(prev\) => \(prev === 'error' \? 'error' : 'disconnected'\)\)/, 'useVoiceCompanion must preserve error state on socket close')
-assert.match(useVoiceCompanion, /userVol > 0\.34/, 'useVoiceCompanion must only honor server interruptions backed by real user speech level')
+assert.match(useVoiceCompanion, /userVol > 0\.04 \|\| hadRecentSpeech/, 'useVoiceCompanion must honor server interruptions backed by speech level or recent speech memory')
 
 // 4. Session Route: Models & Candidate Keys
 assert.match(sessionRoute, /models\/gemini-3\.1-flash-live-preview/, 'Session route must provide a supported Gemini Live model')

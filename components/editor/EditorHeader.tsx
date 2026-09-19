@@ -8,6 +8,7 @@ import { CinematicExportCluster } from '@/components/editor/cinematic-export-clu
 import { cn } from '@/lib/utils'
 import type { Project, ProcessingJob, ProjectExport, HeaderNavMode } from '@/lib/types'
 import { toast } from 'sonner'
+import LiquidCarveButton from '@/components/editor/LiquidCarveButton'
 
 export interface EditorHeaderProps {
   project: Project | null
@@ -176,18 +177,41 @@ export function EditorHeader({
         {/* Right: Quick Studio Tools */}
         <div className="flex items-center gap-2.5">
           {onOpenThumbnailStudio ? (
-            <button
-              type="button"
+            <LiquidCarveButton
+              label="Thumbnail"
               onClick={onOpenThumbnailStudio}
               data-action="thumbnail-studio"
               data-autonomous-target="thumbnail-studio"
               aria-label="Open Thumbnail Studio"
-              className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs text-white/70 transition-all hover:border-[#7ff2d4]/30 hover:bg-[#7ff2d4]/[0.04] hover:text-[#7ff2d4]"
-              title="Open Thumbnail Studio"
-            >
-              <ImageIcon className="size-3.5 text-[#7ff2d4]" />
-              <span className="hidden sm:inline">Thumbnail</span>
-            </button>
+              title="Open Thumbnail Studio (T)"
+              colors={{
+                fill: "#0b0c10",
+                textColor: "#7ff2d4",
+              }}
+              blob={{
+                color: "#7ff2d4",
+                size: 38,
+                smoothness: 60,
+              }}
+              padding="5px 14px"
+              rounded={24}
+              font={{
+                fontFamily: "inherit",
+                fontWeight: 600,
+                fontSize: 12,
+                letterSpacing: "0.02em",
+              }}
+              addIcon={true}
+              icon={{
+                type: "symbol",
+                symbol: "✦",
+                color: "#7ff2d4",
+                size: 13,
+                side: "left",
+              }}
+              gap={6}
+              className="border border-white/10 hover:border-[#7ff2d4]/40 transition-colors shadow-sm"
+            />
           ) : null}
 
           {latestExport?.status === 'completed' && onOpenMasterReview ? (

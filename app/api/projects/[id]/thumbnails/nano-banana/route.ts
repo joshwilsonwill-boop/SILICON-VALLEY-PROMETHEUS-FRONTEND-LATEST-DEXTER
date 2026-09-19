@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { GoogleGenerativeAI } from '@google/generative-ai'
 import { resolveGeminiApiKey } from '@/lib/prometheus-assistant/gemini-stream'
 import { SHORT_FORM_ARCHETYPES } from '@/lib/thumbnails/short-form-styles'
 
@@ -13,6 +14,35 @@ interface NanoBananaRequestBody {
   brandColor?: string
   userPrompt?: string
   aspectRatio?: '9:16' | '9:6' | '1:1' | '16:9'
+  referenceImages?: string[]
+  lockChannelStyle?: boolean
+}
+
+interface ChannelStyleDna {
+  colorPalette: {
+    primary: string
+    accent: string
+    background: string
+    rimLight: string
+  }
+  composition: {
+    subjectPosition: 'center' | 'right' | 'left'
+    bustScalePercent: number
+    textPlacement: 'behind' | 'foreground' | 'split'
+    proofArtifactType: 'ios_card' | 'metric_badge' | 'chalk_arrows' | 'paper_collage' | 'highlighter_chip'
+  }
+  lighting: {
+    rimColor: string
+    rimThicknessPx: number
+    keyLightMood: string
+  }
+  headlineTreatment: {
+    fontStyle: 'ultra_bold_condensed_sans' | 'editorial_serif' | 'stencil_grunge'
+    backgroundChipColor?: string
+    highlighterAccent?: boolean
+  }
+  expression: string
+  refinedPrompt: string
 }
 
 function parseBase64(dataUrl: string): { mimeType: string; base64: string } | null {
@@ -37,26 +67,125 @@ export async function POST(
     const brandColor = body?.brandColor || '#3E5C76'
     const userPrompt = body?.userPrompt || ''
     const aspectRatio = body?.aspectRatio || '9:16'
+    const referenceImages = body?.referenceImages || []
+    const lockChannelStyle = body?.lockChannelStyle ?? true
 
     const archetype = SHORT_FORM_ARCHETYPES.find((a) => a.id === styleId) || SHORT_FORM_ARCHETYPES[0]
 
     const apiKey = resolveGeminiApiKey()
 
-    // Craft prompt based on extracted tenants from the short-form reference library
-    const enrichedPrompt = `Generate a viral, ultra-high-resolution 9:16 vertical short-form video cover art (Shorts / Reels / TikTok).
-Main subject: The central speaker/creator, high focal clarity, cinematic portrait lighting.
+    let channelDna: ChannelStyleDna | null = null
+    let synthesizedPrompt = ''
+
+    // 1. Channel Style-Lock Analysis via Gemini Multimodal Vision
+    if (apiKey && lockChannelStyle && (referenceImages.length > 0 || frameDataUrl)) {
+      try {
+        const genAI = new GoogleGenerativeAI(apiKey)
+        const visionModel = genAI.getGenerativeModel({
+          model: 'gemini-2.5-flash',
+          generationConfig: {
+            responseMimeType: 'application/json',
+            temperature: 0.2,
+          },
+          systemInstruction: `You are an elite thumbnail art director and visual style profiler for top-tier creators.
+Analyze the provided reference thumbnail(s) and the talking-head keyframe.
+Extract the creator's channel visual DNA and construct a high-conversion, photorealistic image generation prompt.
+Preserve the speaker's facial identity, bust crop, and high emotional arousal.
+Return ONLY valid JSON matching this schema:
+{
+  "colorPalette": {
+    "primary": string,
+    "accent": string,
+    "background": string,
+    "rimLight": string
+  },
+  "composition": {
+    "subjectPosition": "center" | "right" | "left",
+    "bustScalePercent": number,
+    "textPlacement": "behind" | "foreground" | "split",
+    "proofArtifactType": "ios_card" | "metric_badge" | "chalk_arrows" | "paper_collage" | "highlighter_chip"
+  },
+  "lighting": {
+    "rimColor": string,
+    "rimThicknessPx": number,
+    "keyLightMood": string
+  },
+  "headlineTreatment": {
+    "fontStyle": "ultra_bold_condensed_sans" | "editorial_serif" | "stencil_grunge",
+    "backgroundChipColor": string,
+    "highlighterAccent": boolean
+  },
+  "expression": string,
+  "refinedPrompt": string
+}`,
+        })
+
+        type InlineDataPart = { inlineData: { mimeType: string; data: string } }
+        type TextPart = { text: string }
+        type Part = TextPart | InlineDataPart
+
+        const parts: Part[] = [
+          {
+            text: `Analyze this creator's channel thumbnail aesthetic and talking-head keyframe.
+Headline: "${headline}".
+Script accent: "${scriptAccent}".
+Subtitle: "${subtitle}".
+Selected Archetype: "${archetype.name} - ${archetype.tagline}".
+Brand accent: "${brandColor}".
+${userPrompt ? `Creative direction: "${userPrompt}".` : ''}
+
+Extract the exact Channel Style DNA (lighting ratios, color contrast, proof card style, contour wrap, typography) and construct a refined Imagen prompt that faithfully preserves the principal speaker's head/bust while applying this viral thumbnail style.`,
+          },
+        ]
+
+        // Feed talking-head frame as principal subject anchor
+        if (frameDataUrl) {
+          const parsedFrame = parseBase64(frameDataUrl)
+          if (parsedFrame) {
+            parts.push({ text: 'Principal Speaker Video Keyframe (Talking Head Anchor):' })
+            parts.push({ inlineData: { mimeType: parsedFrame.mimeType, data: parsedFrame.base64 } })
+          }
+        }
+
+        // Feed reference images to lock onto channel aesthetic
+        referenceImages.slice(0, 4).forEach((ref, idx) => {
+          const parsedRef = parseBase64(ref)
+          if (parsedRef) {
+            parts.push({ text: `Channel Reference Thumbnail #${idx + 1}:` })
+            parts.push({ inlineData: { mimeType: parsedRef.mimeType, data: parsedRef.base64 } })
+          }
+        })
+
+        const analysisResult = await visionModel.generateContent(parts as never)
+        const analysisText = analysisResult.response?.text()
+        if (analysisText) {
+          channelDna = JSON.parse(analysisText) as ChannelStyleDna
+          if (channelDna?.refinedPrompt) {
+            synthesizedPrompt = channelDna.refinedPrompt
+          }
+        }
+      } catch (err) {
+        console.warn('[Nano Banana Style-Lock Analysis]', err)
+      }
+    }
+
+    // Baseline fallback prompt if multimodal analysis was skipped or failed
+    if (!synthesizedPrompt) {
+      synthesizedPrompt = `Generate a viral, ultra-high-resolution 9:16 vertical short-form video cover art (Shorts / Reels / TikTok).
+Main subject: The central speaker/creator from the video, high focal clarity, cinematic portrait lighting, scaled up 15-20% bust crop.
 Text placement & styling:
 - Text: "${headline.toUpperCase()}"
 ${scriptAccent ? `- Script accent: "${scriptAccent}" in flowing luxury cursive script overlapping the headline` : ''}
 ${subtitle ? `- Subtitle: "${subtitle.toUpperCase()}" in clean monospace or sans badge` : ''}
-- Depth composition: Bold typography placed ${archetype.textLayer === 'behind' ? 'BEHIND the speaker\'s head and shoulders' : 'as high-contrast foreground overlay'}.
+- Depth composition: Bold typography placed ${archetype.textLayer === 'behind' ? "BEHIND the speaker's head and shoulders" : 'as high-contrast foreground overlay'}.
 - Visual style: ${archetype.name} - ${archetype.tagline}.
 - Brand Accent Color: ${brandColor}. Apply this color to glowing halos, colored rim lighting on the speaker silhouette, and highlight badges.
 - Photo & Lens treatments: Clean editorial contrast, a restrained bottom vignette for text legibility, and a subtle film grain. Avoid heavy stylization, lens flares, or neon glows.
 ${archetype.defaultFloatingAssets.length > 0 ? `- Floating accent: A single staged icon (${archetype.defaultFloatingAssets.join(', ')}) positioned as an editorial mark.` : ''}
 ${userPrompt ? `Additional creative direction: ${userPrompt}` : ''}`
+    }
 
-    // 1. Try Google Imagen 3 (Nano Banana Image Model)
+    // 2. Try Google Imagen 3 (Nano Banana Image Model)
     if (apiKey) {
       try {
         const imagenUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generateImages:predict?key=${apiKey}`
@@ -65,7 +194,7 @@ ${userPrompt ? `Additional creative direction: ${userPrompt}` : ''}`
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            instances: [{ prompt: enrichedPrompt }],
+            instances: [{ prompt: synthesizedPrompt }],
             parameters: {
               sampleCount: 1,
               aspectRatio: aspectRatio === '16:9' ? '16:9' : aspectRatio === '1:1' ? '1:1' : '9:16',
@@ -84,8 +213,9 @@ ${userPrompt ? `Additional creative direction: ${userPrompt}` : ''}`
               success: true,
               mode: 'nano_banana_imagen',
               dataUrl: `data:image/jpeg;base64,${imageBase64}`,
-              prompt: enrichedPrompt,
+              prompt: synthesizedPrompt,
               style: archetype,
+              styleDna: channelDna,
               projectId,
             })
           }
@@ -95,29 +225,30 @@ ${userPrompt ? `Additional creative direction: ${userPrompt}` : ''}`
       }
     }
 
-    // 2. Return synthesized prompt specifications & metadata
+    // 3. Return synthesized Channel Style-Lock specifications & metadata
     return NextResponse.json({
       success: true,
       mode: 'nano_banana_spec',
-      prompt: enrichedPrompt,
+      prompt: synthesizedPrompt,
       style: archetype,
+      styleDna: channelDna,
       headline,
       scriptAccent,
       subtitle,
-      brandColor,
-      textLayer: archetype.textLayer,
+      brandColor: channelDna?.colorPalette?.accent || brandColor,
+      textLayer: channelDna?.composition?.textPlacement || archetype.textLayer,
       treatments: {
         vignette: archetype.hasVignette,
         vignetteIntensity: archetype.defaultVignetteIntensity,
         filmGrain: archetype.hasFilmGrain,
         fringeBlur: archetype.hasFringeBlur,
         inkBleed: archetype.hasInkBleed,
-        rimLight: archetype.hasRimLight,
+        rimLight: true,
         backgroundGrid: archetype.backgroundGrid,
         telemetryRuler: archetype.telemetryRuler,
       },
       floatingAssets: archetype.defaultFloatingAssets,
-      fallbackMessage: 'Nano Banana prompt synthesized and applied to studio canvas engine.',
+      fallbackMessage: 'Channel Style-Lock DNA synthesized and mapped to studio canvas engine.',
     })
   } catch (error) {
     console.error('[Nano Banana Route Error]', error)
