@@ -36,6 +36,7 @@ import {
 import { cn } from '@/lib/utils'
 import { StyleCloneCard } from '@/components/editor/style-clone-card'
 import type {EditorialReadiness} from '@/lib/editor/editorial-readiness'
+import type {EditorialCleanupRun} from '@/lib/editor/editorial-run'
 
 type PreviewMediaKind = 'video' | 'image'
 type MotionToolId = 'enhance' | 'captions' | 'media' | 'layout'
@@ -102,6 +103,7 @@ export interface MotionEditWorkspaceProps {
   cutRanges?: { start: number; end: number }[]
   onCutRangesChange?: (ranges: { start: number; end: number }[]) => void
   editorialReadiness?: EditorialReadiness | null
+  editorialCleanupRun?: EditorialCleanupRun | null
   onApplySuggestedSilenceCuts?: (ranges: { start: number; end: number }[]) => void
   onRequestTranscribe?: () => void
   isTranscribing?: boolean
@@ -245,7 +247,7 @@ export function MotionEditWorkspace({
   projectTitle, previewUrl, previewKind, hasPreviewMedia, sourceLabel, previewAspectRatio, fitMode,
   onFitModeChange, objectFit, mediaTransformStyle, currentTimeLabel, durationLabel, currentTimeSec,
   durationSec, previewPlaying, previewMuted, onPreviewMutedChange, videoRef, transcriptSegments,
-  onUpdateTranscriptSegment, onToggleCutSegment, onToggleCutWord, cutRanges, onCutRangesChange, editorialReadiness, onApplySuggestedSilenceCuts, onRequestTranscribe, isTranscribing = false, transcriptError = null, isSourceUploading = false, videoMetadata,
+  onUpdateTranscriptSegment, onToggleCutSegment, onToggleCutWord, cutRanges, onCutRangesChange, editorialReadiness, editorialCleanupRun, onApplySuggestedSilenceCuts, onRequestTranscribe, isTranscribing = false, transcriptError = null, isSourceUploading = false, videoMetadata,
   onTogglePlayback, onPickSource, onSourceDrop, onSourceDragOver, onSourceDragLeave, isSourceDragOver = false,
   textPlacements, onSeek, onVideoLoadedMetadata, onVideoLoadedData, onVideoCanPlay,
   onVideoTimeUpdate, onVideoEnded, onVideoPlay, onVideoPause, onVideoError, onImageLoaded, onApplyPrompt,
@@ -689,6 +691,23 @@ export function MotionEditWorkspace({
                       : 'Transcript timing was not available, so no silence cuts were proposed.'}
                   </p>
                 )}
+              </section>
+            ) : null}
+
+            {editorialCleanupRun ? (
+              <section className="mb-4 border border-cyan-300/25 bg-cyan-300/[0.05] p-3 text-xs" aria-label="Autonomous cleanup run">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="font-semibold text-white">Autonomous cleanup</p>
+                  <span className="font-mono text-[10px] text-cyan-200">{editorialCleanupRun.status === 'ready' ? 'COMPLETE' : 'WAITING'}</span>
+                </div>
+                <p className="mt-1 leading-5 text-white/60">{editorialCleanupRun.reason ?? 'Applied only the timeline changes supported by transcript timing.'}</p>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {editorialCleanupRun.steps.map((step) => (
+                    <span key={step.id} className={cn('border px-1.5 py-1 text-[10px]', step.state === 'complete' ? 'border-cyan-200/25 bg-cyan-200/[0.08] text-cyan-100' : 'border-white/10 text-white/42')}>
+                      {step.label}
+                    </span>
+                  ))}
+                </div>
               </section>
             ) : null}
 

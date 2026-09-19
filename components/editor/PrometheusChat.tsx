@@ -24,6 +24,7 @@ import { PrometheusChatContextBrief } from './prometheus-chat-context-brief'
 import { PrometheusChatLoadingSkeleton } from './prometheus-chat-loading-skeleton'
 import { PrometheusChatMedia } from './prometheus-chat-media'
 import { VoiceWaveform } from './voice-waveform'
+import { StreamingControls } from '@/components/chat/streaming-controls'
 
 export type PrometheusChatMessage = {
   id: string
@@ -87,6 +88,7 @@ export function PrometheusChat({
   contextProvider,
   onApplyActions,
   autoApplyActions = false,
+  onStartAutonomousEdit,
   onSeekToSec,
   workspaceTab = null,
 }: {
@@ -105,6 +107,7 @@ export function PrometheusChat({
   contextProvider?: AIChatContextProvider
   onApplyActions?: (drafts: EditorActionDraft[], messageId: string) => void
   autoApplyActions?: boolean
+  onStartAutonomousEdit?: (prompt: string) => void
   onSeekToSec?: (seconds: number) => void
   workspaceTab?: string | null
 }) {
@@ -383,13 +386,23 @@ export function PrometheusChat({
     stopSpokenReply()
 
     if (usesPersistentChat) {
+      if (persistentChat.isSending || persistentChat.isAwaitingResponse) {
+        persistentChat.stopStreaming()
+        await persistentChat.sendMessage(message, {interrupt: true})
+        return
+      }
+      if (onStartAutonomousEdit) {
+        onStartAutonomousEdit(message)
+      } else {
+        window.dispatchEvent(new CustomEvent('prometheus:start-editorial-cleanup', { detail: {prompt: message} }))
+      }
       await persistentChat.sendMessage(message)
       return
     }
 
     if (!onDraftChange) setInternalDraft('')
     await onSend(message)
-  }, [composedDraft, onDraftChange, onSend, persistentChat, stopSpokenReply, usesPersistentChat])
+  }, [composedDraft, onDraftChange, onSend, onStartAutonomousEdit, persistentChat, stopSpokenReply, usesPersistentChat])
 
   const closeHistory = React.useCallback(() => {
     setHistoryOpen(false)
@@ -588,6 +601,10 @@ export function PrometheusChat({
                   placeholder="Ask Prometheus…"
                   aria-label="Message Prometheus"
                   className="min-w-0 flex-1 border-none bg-transparent text-[15px] leading-6 text-white/88 outline-none placeholder:text-white/30"
+                />
+                <StreamingControls
+                  isStreaming={persistentChat.isSending || persistentChat.isAwaitingResponse}
+                  onStop={persistentChat.stopStreaming}
                 />
                 <button
                   type="button"

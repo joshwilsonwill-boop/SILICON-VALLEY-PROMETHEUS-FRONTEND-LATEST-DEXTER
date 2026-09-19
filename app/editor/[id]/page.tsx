@@ -90,6 +90,7 @@ import { buildTimedTranscriptWords } from '@/lib/editor/modal-viral-clip-workflo
 import { buildMotionTranscriptSegments, isLegacyMockTranscriptText } from '@/lib/editor/motion-transcript'
 import { findTranscriptSilenceCuts } from '@/lib/editor/silence-cuts'
 import { buildEditorialReadiness, type EditorialReadiness } from '@/lib/editor/editorial-readiness'
+import { buildEditorialCleanupRun, isAutonomousEditRequest, type EditorialCleanupRun } from '@/lib/editor/editorial-run'
 import { clearPendingEditorNavigation, getRememberedEditorReturnPath } from '@/lib/editor-navigation'
 import { useFrameTargeting } from '@/hooks/use-frame-targeting'
 import { parseFrameReference } from '@/lib/editorial-frame/parse-frame-reference'
@@ -6197,6 +6198,7 @@ function OriginalEditorPage() {
   const [isProjectLoading, setIsProjectLoading] = React.useState(true)
   const [job, setJob] = React.useState<ProcessingJob | null>(null)
   const [editorialReadiness, setEditorialReadiness] = React.useState<EditorialReadiness | null>(null)
+  const [editorialCleanupRun, setEditorialCleanupRun] = React.useState<EditorialCleanupRun | null>(null)
   const announcedEditorialReadinessRef = React.useRef<string | null>(null)
   const [saveStatus, setSaveStatus] = React.useState<'saved' | 'saving' | 'error'>('saved')
   const [fitMode, setFitMode] = React.useState<PreviewFitMode>('fill')
@@ -7414,14 +7416,62 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
   }, [job?.artifacts.transcript, persistTranscriptSegments])
 
   const [editorCutRanges, setEditorCutRanges] = React.useState<Array<{ start: number; end: number }>>([])
+  const editorCutRangesRef = React.useRef<Array<{ start: number; end: number }>>([])
+  const hydratedTimelineSourceRef = React.useRef<string | null>(null)
+
+  React.useEffect(() => {
+    const sourceKey = `${project?.id ?? ''}:${project?.sourceAssetId ?? ''}`
+    if (!project?.id || hydratedTimelineSourceRef.current === sourceKey) return
+    hydratedTimelineSourceRef.current = sourceKey
+    const timeline = project.editorState && typeof project.editorState === 'object'
+      ? (project.editorState as {timeline?: {sourceAssetId?: string; cutRanges?: unknown}}).timeline
+      : undefined
+    const savedRanges = timeline && timeline.sourceAssetId === project.sourceAssetId && Array.isArray(timeline.cutRanges)
+      ? timeline.cutRanges.filter((range): range is {start: number; end: number} =>
+          Boolean(range) && typeof range === 'object'
+          && Number.isFinite((range as {start?: unknown}).start)
+          && Number.isFinite((range as {end?: unknown}).end)
+          && Number((range as {end: number}).end) > Number((range as {start: number}).start),
+        )
+      : []
+    editorCutRangesRef.current = savedRanges
+    setEditorCutRanges(savedRanges)
+  }, [project?.editorState, project?.id, project?.sourceAssetId])
+
+  const persistTimelineCutRanges = React.useCallback((ranges: Array<{ start: number; end: number }>, run?: EditorialCleanupRun | null) => {
+    const currentProject = projects.get(projectId) ?? project
+    if (!currentProject) return
+    const currentState = currentProject.editorState && typeof currentProject.editorState === 'object'
+      ? currentProject.editorState
+      : {}
+    const currentTimeline = currentState.timeline && typeof currentState.timeline === 'object'
+      ? currentState.timeline
+      : {}
+    const editorState = {
+      ...currentState,
+      timeline: {
+        ...currentTimeline,
+        sourceAssetId: currentProject.sourceAssetId ?? null,
+        cutRanges: ranges,
+        ...(run ? {lastAutonomousCleanupRun: run} : {}),
+      },
+    }
+    const nextProject = projects.update(currentProject.id, {editorState})
+    if (nextProject) setProject(nextProject)
+    void fetch(`/api/projects/${projectId}`, {
+      method: 'PATCH',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({editorState}),
+    }).catch(() => undefined)
+  }, [project, projectId])
 
   const handleApplySilenceCuts = React.useCallback((spans: Array<{ start: number; end: number }>) => {
     if (spans.length === 0) {
       toast.info('No transcript-aligned pauses meet the current cut threshold.')
       return
     }
-    setEditorCutRanges((prev) => {
-      const combined = [...prev, ...spans]
+    const combined = [...editorCutRangesRef.current, ...spans]
+    const nextRanges = (() => {
       if (combined.length <= 1) return combined
       combined.sort((a, b) => a.start - b.start)
       const merged: Array<{ start: number; end: number }> = [combined[0]!]
@@ -7435,10 +7485,56 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
         }
       }
       return merged
-    })
+    })()
+    editorCutRangesRef.current = nextRanges
+    setEditorCutRanges(nextRanges)
+    persistTimelineCutRanges(nextRanges)
     const totalSec = spans.reduce((sum, s) => sum + (s.end - s.start), 0)
     toast.success(`Ripple-cut ${totalSec.toFixed(1)}s of dead air & silences from timeline.`)
-  }, [])
+  }, [persistTimelineCutRanges])
+
+  const handleCutRangesChange = React.useCallback((ranges: Array<{ start: number; end: number }>) => {
+    editorCutRangesRef.current = ranges
+    setEditorCutRanges(ranges)
+    persistTimelineCutRanges(ranges)
+  }, [persistTimelineCutRanges])
+
+  const handleAutonomousEditRequest = React.useCallback((prompt: string) => {
+    if (!isAutonomousEditRequest(prompt)) return
+    const run = buildEditorialCleanupRun({
+      id: `cleanup-${crypto.randomUUID()}`,
+      prompt,
+      transcript: job?.artifacts.transcript,
+      recommendations: editorialReadiness?.recommendations ?? [],
+    })
+    setEditorialCleanupRun(run)
+    setActiveWorkspaceTab('Motion')
+    setBottomMode('Original')
+
+    if (run.status === 'blocked') {
+      toast.info('Autonomous cleanup is waiting for source analysis.', {description: run.reason ?? undefined})
+      return
+    }
+
+    if (run.silenceCuts.length > 0) {
+      handleApplySilenceCuts(run.silenceCuts)
+      persistTimelineCutRanges(editorCutRangesRef.current, run)
+    } else {
+      persistTimelineCutRanges(editorCutRangesRef.current, run)
+    }
+    toast.success('Autonomous cleanup completed.', {
+      description: run.reason ?? 'Transcript timing, pause cuts, and available editorial recommendations were reviewed.',
+    })
+  }, [editorialReadiness?.recommendations, handleApplySilenceCuts, job?.artifacts.transcript, persistTimelineCutRanges])
+
+  React.useEffect(() => {
+    const handleStart = (event: Event) => {
+      const prompt = (event as CustomEvent<{prompt?: string}>).detail?.prompt
+      if (prompt) handleAutonomousEditRequest(prompt)
+    }
+    window.addEventListener('prometheus:start-editorial-cleanup', handleStart)
+    return () => window.removeEventListener('prometheus:start-editorial-cleanup', handleStart)
+  }, [handleAutonomousEditRequest])
 
   const handleSplitClip = React.useCallback((timeSec?: number) => {
     const target = typeof timeSec === 'number' ? timeSec : previewCurrentTimeSec
@@ -8544,7 +8640,9 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
         if (nextProject) setProject(nextProject)
         announcedEditorialReadinessRef.current = null
         setEditorialReadiness(null)
+        setEditorialCleanupRun(null)
         setEditorCutRanges([])
+        editorCutRangesRef.current = []
         setJob((current) => current ? {
           ...current,
           artifacts: { ...current.artifacts, transcript: [] },
@@ -8902,8 +9000,9 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
                     isSourceDragOver={isInlineSourceDragOver}
                     transcriptSegments={motionTranscriptSegments}
                     cutRanges={editorCutRanges}
-                    onCutRangesChange={setEditorCutRanges}
+                    onCutRangesChange={handleCutRangesChange}
                     editorialReadiness={editorialReadiness}
+                    editorialCleanupRun={editorialCleanupRun}
                     onApplySuggestedSilenceCuts={handleApplySilenceCuts}
                     onUpdateTranscriptSegment={handleUpdateTranscriptSegment}
                     onToggleCutSegment={handleToggleCutSegment}

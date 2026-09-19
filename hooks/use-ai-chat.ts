@@ -327,11 +327,11 @@ export function useAIChat({
   }, [currentSessionId, enabled]);
 
   const sendMessage = useCallback(
-    async (message?: string, options?: { history?: AIChatMessage[]; persistUser?: boolean; reuseMessage?: AIChatMessage }) => {
+    async (message?: string, options?: { history?: AIChatMessage[]; persistUser?: boolean; reuseMessage?: AIChatMessage; interrupt?: boolean }) => {
       const text = (message ?? draft).trim();
       const activeSessionId = currentSessionIdRef.current;
       const isSessionMemoryReady = !activeSessionId || memorySessionIdRef.current === activeSessionId;
-      if (!text || isSending || isHistoryLoading || !isSessionMemoryReady) return;
+      if (!text || (isSending && !options?.interrupt) || isHistoryLoading || !isSessionMemoryReady) return;
 
       const userMessage = options?.reuseMessage ?? {
         id: `user-${crypto.randomUUID()}`,
@@ -658,6 +658,7 @@ export function useAIChat({
 
   const stopStreaming = useCallback(() => {
     abortControllerRef.current?.abort();
+    abortControllerRef.current = null;
     const pendingMessages = [...pendingAssistantMessagesRef.current.values()];
     pendingAssistantMessagesRef.current.clear();
     setMessages((current) => current.map((message) => {
