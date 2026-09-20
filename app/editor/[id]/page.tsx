@@ -8488,6 +8488,11 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
       },
       onToggleCutWord: handleToggleCutWord,
       onToggleCutSegment: handleToggleCutSegment,
+      hasVideo: Boolean(project?.sourceAssetId || motionTranscriptSegments.length > 0),
+      videoTitle: project?.title ?? 'Untitled Project',
+      videoDurationSec: transportDurationSec,
+      videoMusicContext: videoContext,
+      onSelectMusicTrack: (trackId: string) => setSelectedEditorMusicTrackId(trackId),
     })
     return () => {
       unregisterVoiceCompanionBridge()
@@ -8502,6 +8507,9 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
     handleToggleCutWord,
     handleToggleCutSegment,
     project?.title,
+    project?.sourceAssetId,
+    transportDurationSec,
+    videoContext,
   ])
 
   React.useEffect(() => {

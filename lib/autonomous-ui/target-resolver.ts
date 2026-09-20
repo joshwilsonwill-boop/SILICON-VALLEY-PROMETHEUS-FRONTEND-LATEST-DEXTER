@@ -119,6 +119,91 @@ export function resolveTranscriptPhraseElements(phrase: string): ResolvedTarget[
   return results
 }
 
+export interface TranscriptChunkCutResolution {
+  segmentId: string
+  segmentButtonTarget: ResolvedTarget | null
+  strategy: 'segment_cut' | 'inverse_restore' | 'individual_words'
+  matchedTargets: ResolvedTarget[]
+  unmatchedTargets: ResolvedTarget[]
+}
+
+/**
+ * Evaluates whether a target phrase can be cut faster at the segment/chunk level,
+ * with the option of an inverse restore (cut full chunk, restore 1-2 unselected words).
+ */
+export function resolveTranscriptChunkCutTarget(phrase: string): TranscriptChunkCutResolution | null {
+  if (typeof document === 'undefined' || !phrase.trim()) return null
+
+  const cleanTargetWords = phrase
+    .toLowerCase()
+    .replace(/[.,!?]/g, '')
+    .split(/\s+/)
+    .filter(Boolean)
+
+  if (cleanTargetWords.length === 0) return null
+
+  const segmentContainers = Array.from(
+    document.querySelectorAll<HTMLElement>('[data-transcript-segment-id]')
+  )
+
+  for (const seg of segmentContainers) {
+    const segId = seg.getAttribute('data-transcript-segment-id') || ''
+    const wordElements = Array.from(seg.querySelectorAll<HTMLElement>('[data-word-index]'))
+    if (wordElements.length === 0) continue
+
+    const matchedTargets: ResolvedTarget[] = []
+    const unmatchedTargets: ResolvedTarget[] = []
+
+    const segWords = wordElements.map((el) =>
+      (el.textContent ?? '')
+        .toLowerCase()
+        .replace(/[.,!?]/g, '')
+        .trim()
+    )
+
+    // Check how many target words appear in this segment
+    wordElements.forEach((el, idx) => {
+      const wText = segWords[idx]
+      const isMatch = cleanTargetWords.some((tw) => wText.includes(tw) || tw.includes(wText))
+      const target = getElementTarget(el)
+      if (target) {
+        if (isMatch) matchedTargets.push(target)
+        else unmatchedTargets.push(target)
+      }
+    })
+
+    // If >= 60% of the segment or at least 3 matching words found
+    if (
+      matchedTargets.length >= Math.min(cleanTargetWords.length, 3) &&
+      matchedTargets.length >= wordElements.length * 0.6
+    ) {
+      const segBtn = seg.querySelector<HTMLElement>(
+        '[data-action="cut-segment"], [data-autonomous-target="transcript-segment-cut"], button[title*="sentence"]'
+      )
+      const segmentButtonTarget = segBtn ? getElementTarget(segBtn) : null
+
+      let strategy: 'segment_cut' | 'inverse_restore' | 'individual_words' = 'segment_cut'
+      if (unmatchedTargets.length === 0) {
+        strategy = 'segment_cut'
+      } else if (unmatchedTargets.length <= 2 && unmatchedTargets.length < matchedTargets.length) {
+        strategy = 'inverse_restore'
+      } else {
+        strategy = 'individual_words'
+      }
+
+      return {
+        segmentId: segId,
+        segmentButtonTarget,
+        strategy,
+        matchedTargets,
+        unmatchedTargets,
+      }
+    }
+  }
+
+  return null
+}
+
 /**
  * Find soundtrack track card or action button in Music catalog
  */

@@ -33,3 +33,19 @@ Scope: Upgrade Jarvis from repeated rigid animations to intelligent video-aware 
   CHECK: node tests/jarvis-backend-alignment-audit.test.mjs
   EXPECT: jarvis-backend-alignment-audit: all checks passed
   EVIDENCE: automatic-evidence=v1; definition-sha256=b4c9b22fbcda6efba279230213b82ed69dd7c621cb6ee2f42b092b66453d3d18; exit=0; EXPECT=matched; output-sha256=2273e62066057a34a0af026135101ab3fd48bdbaf1723156ce9d4f1445d7b458; output-bytes=606; shell=C:\Windows\system32\cmd.exe; cwd=C:\Users\HomePC\Documents\THE FRONT END, PROMETHEUS; path=86e75c2a2287/32 entries
+
+- [x] G7: Chunk-level transcript cutting and rapid phrase batching optimization
+  CHECK: node tests/jarvis-chunk-transcript-cut-regression.test.mjs
+  EXPECT: jarvis-chunk-transcript-cut-regression: all checks passed
+  EVIDENCE: automatic-evidence=v1; definition-sha256=55e1b9da7a2913801eb4004e16336efbcf00bc01a6271b23b793294d4dd5f44f; exit=0; EXPECT=matched; output-sha256=96aabbf89b3318e245ec9345b39a3951813ffa17e2588e360f6741ed64da13de; output-bytes=619; shell=C:\Windows\system32\cmd.exe; cwd=C:\Users\HomePC\Documents\THE FRONT END, PROMETHEUS; path=86e75c2a2287/32 entries
+
+- [x] G8: Music catalog tag/mood filtering, video mood extraction, and reliable preview playback
+  CHECK: node tests/jarvis-music-playback-mood-regression.test.mjs
+  EXPECT: jarvis-music-playback-mood-regression: all checks passed
+  EVIDENCE: automatic-evidence=v1; definition-sha256=b111ddea2fa1da688b76ab3dd53b4588d324c1ffe47aeb692e0655901aa4c674; exit=0; EXPECT=matched; output-sha256=59cace77b6af5507003a6ed452a4eddea9e13ae834273c6905b4448f7603d560; output-bytes=621; shell=C:\Windows\system32\cmd.exe; cwd=C:\Users\HomePC\Documents\THE FRONT END, PROMETHEUS; path=86e75c2a2287/32 entries
+
+- [x] G9: Cross-workspace persistent video awareness & cached frame continuity
+  CHECK: node tests/jarvis-cross-workspace-video-context-regression.test.mjs
+  EXPECT: jarvis-cross-workspace-video-context-regression: all checks passed
+  EVIDENCE: automatic-evidence=v1; definition-sha256=3ff9a5c867624c4eb6b13c4f74e4d9a2434ae4b79680337243cc8607637748c4; exit=0; EXPECT=matched; output-sha256=59b103f4ed5110c9ee52352124dc1364259d05901a6c7b48bac13aa0c85724f7; output-bytes=131; shell=C:\Windows\system32\cmd.exe; cwd=C:\Users\HomePC\Documents\THE FRONT END, PROMETHEUS; path=86e75c2a2287/32 entries
+

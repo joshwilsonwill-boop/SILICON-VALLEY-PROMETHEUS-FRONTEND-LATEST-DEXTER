@@ -1043,10 +1043,47 @@ export function MusicTabPanel({
   const filteredTracks = React.useMemo(() => {
     if (!normalizedQuery) return collectionTracks
     return collectionTracks.filter((track) => {
+      const anyTrack = track as unknown as Record<string, unknown>
       const title = track.title.toLowerCase()
       const artist = track.artist.toLowerCase()
+      const genre = (track.genre ?? '').toLowerCase()
+      const mood = (typeof track.mood === 'string' ? track.mood : '').toLowerCase()
+      const category = (typeof anyTrack.category === 'string' ? anyTrack.category : '').toLowerCase()
+      const genreTags = Array.isArray(anyTrack.genreTags) ? (anyTrack.genreTags as string[]) : []
+      const moodTags = Array.isArray(anyTrack.moodTags) ? (anyTrack.moodTags as string[]) : []
+      const tags = [
+        ...genreTags,
+        ...moodTags,
+        ...(track.vibeTags ?? []),
+      ].map((t) => t.toLowerCase())
 
-      return title.includes(normalizedQuery) || artist.includes(normalizedQuery)
+      // 1. Direct substring match on any metadata field
+      if (
+        title.includes(normalizedQuery) ||
+        artist.includes(normalizedQuery) ||
+        genre.includes(normalizedQuery) ||
+        mood.includes(normalizedQuery) ||
+        category.includes(normalizedQuery) ||
+        tags.some((t) => t.includes(normalizedQuery) || normalizedQuery.includes(t))
+      ) {
+        return true
+      }
+
+      // 2. Tokenized multi-word search
+      const queryTokens = normalizedQuery.split(/\s+/).filter((t) => t.length > 2)
+      if (queryTokens.length > 0) {
+        return queryTokens.some(
+          (token) =>
+            title.includes(token) ||
+            artist.includes(token) ||
+            genre.includes(token) ||
+            mood.includes(token) ||
+            category.includes(token) ||
+            tags.some((t) => t.includes(token))
+        )
+      }
+
+      return false
     })
   }, [collectionTracks, normalizedQuery])
   const visibleTracks = React.useMemo(() => filteredTracks.slice(0, visibleTrackCount), [filteredTracks, visibleTrackCount])

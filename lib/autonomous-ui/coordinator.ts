@@ -20,6 +20,7 @@ import {
   resolveTabElement,
   resolveTranscriptWordElement,
   resolveTranscriptPhraseElements,
+  resolveTranscriptChunkCutTarget,
   resolveMusicTrackElement,
   resolveDomSelector,
   resolveMuteTarget,
@@ -398,7 +399,7 @@ class AutonomousUICoordinator {
   /**
    * High-level Workflow: Descript-style autonomous transcript cut
    */
-  public async executeTranscriptCut(
+   public async executeTranscriptCut(
     phrase: string,
     options?: {
       onSwitchTab?: (tab: AutonomousWorkspaceTab) => void
@@ -411,6 +412,8 @@ class AutonomousUICoordinator {
       type: 'transcript_cut',
       phrase,
       onSwitchTab: options?.onSwitchTab,
+      onToggleCutWord: options?.onToggleCutWord,
+      onToggleCutSegment: options?.onToggleCutSegment,
       isContinuous: options?.isContinuous,
     })
   }
@@ -433,6 +436,8 @@ class AutonomousUICoordinator {
     onSplit?: () => void
     onStyle?: (style: string) => void
     onPlayback?: () => void
+    onToggleCutWord?: (segmentId: string, wordIndex: number) => void
+    onToggleCutSegment?: (segmentId: string) => void
     isContinuous?: boolean
   }): Promise<boolean> {
     if (this.isHumanInteracting) return false
@@ -466,36 +471,75 @@ class AutonomousUICoordinator {
 
     // 2. Perform editing tasks on said page
     if (options.type === 'transcript_cut' && options.phrase) {
-      const targets = resolveTranscriptPhraseElements(options.phrase)
-      if (targets.length > 0) {
-        for (const target of targets) {
-          await ensureElementInView(target.element)
-          const updatedRect = target.element.getBoundingClientRect()
-          this.anticipateTarget(target.element)
-          await new Promise((r) => setTimeout(r, 100))
+      // 2a. Check if this phrase can be cut faster as an entire chunk or via inverse restore
+      const chunkRes = resolveTranscriptChunkCutTarget(options.phrase)
+      if (chunkRes && chunkRes.segmentButtonTarget && (chunkRes.strategy === 'segment_cut' || chunkRes.strategy === 'inverse_restore')) {
+        await ensureElementInView(chunkRes.segmentButtonTarget.element)
+        const updatedRect = chunkRes.segmentButtonTarget.element.getBoundingClientRect()
+        this.anticipateTarget(chunkRes.segmentButtonTarget.element)
+        await this.glideTo(
+          updatedRect.left + updatedRect.width / 2,
+          updatedRect.top + updatedRect.height / 2,
+          `Jarvis: ${chunkRes.strategy === 'segment_cut' ? 'Cutting whole transcript chunk' : 'Inverse cutting transcript chunk'}`,
+          updatedRect,
+          320
+        )
+        this.setPillMode('action', `Jarvis: Cutting chunk (${chunkRes.segmentId})`)
+        await this.simulateClick()
+        chunkRes.segmentButtonTarget.element.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+        if (options.onToggleCutSegment) {
+          options.onToggleCutSegment(chunkRes.segmentId)
+        }
 
-          await this.glideTo(
-            updatedRect.left + updatedRect.width / 2,
-            updatedRect.top + updatedRect.height / 2,
-            `Jarvis: Cutting "${target.element.textContent?.trim()}"`,
-            updatedRect,
-            380
-          )
-          await this.simulateClick()
-          target.element.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
-          await new Promise((r) => setTimeout(r, 150))
+        // If inverse restore, rapidly un-cut the few unselected words
+        if (chunkRes.strategy === 'inverse_restore' && chunkRes.unmatchedTargets.length > 0) {
+          for (const target of chunkRes.unmatchedTargets) {
+            target.element.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+            const wIdx = Number(target.element.getAttribute('data-word-index'))
+            if (!Number.isNaN(wIdx) && options.onToggleCutWord) {
+              options.onToggleCutWord(chunkRes.segmentId, wIdx)
+            }
+            await new Promise((r) => setTimeout(r, 30))
+          }
         }
       } else {
-        const transcriptHeader = resolveDomSelector('[data-motion-chamber] aside')
-        if (transcriptHeader) {
+        // 2b. Multi-word phrase cutting: glide to first word, then rapid micro-batch remaining words
+        const targets = resolveTranscriptPhraseElements(options.phrase)
+        if (targets.length > 0) {
+          const first = targets[0]
+          await ensureElementInView(first.element)
+          const firstRect = first.element.getBoundingClientRect()
+          this.anticipateTarget(first.element)
+          await new Promise((r) => setTimeout(r, 80))
+
           await this.glideTo(
-            transcriptHeader.centerX,
-            transcriptHeader.centerY,
-            `Jarvis: Editing transcript for "${options.phrase}"`,
-            transcriptHeader.rect,
-            420
+            firstRect.left + firstRect.width / 2,
+            firstRect.top + firstRect.height / 2,
+            `Jarvis: Cutting "${options.phrase}"`,
+            firstRect,
+            320
           )
+          this.setPillMode('action', `Jarvis: Cutting phrase "${options.phrase}"`)
           await this.simulateClick()
+          first.element.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+
+          // Rapid batch strike for remaining words in the phrase without redundant 850ms glides
+          for (let i = 1; i < targets.length; i++) {
+            targets[i].element.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+            await new Promise((r) => setTimeout(r, 35))
+          }
+        } else {
+          const transcriptHeader = resolveDomSelector('[data-motion-chamber] aside')
+          if (transcriptHeader) {
+            await this.glideTo(
+              transcriptHeader.centerX,
+              transcriptHeader.centerY,
+              `Jarvis: Editing transcript for "${options.phrase}"`,
+              transcriptHeader.rect,
+              420
+            )
+            await this.simulateClick()
+          }
         }
       }
     } else if (options.type === 'split' && typeof options.timeSec === 'number') {
@@ -739,6 +783,12 @@ class AutonomousUICoordinator {
       trackId?: string
       genreOrMood?: string
       query?: string
+      action?: 'preview' | 'select'
+      context?: {
+        transcript?: string
+        pace?: string
+        mood?: string
+      }
       onSwitchTab?: (tab: AutonomousWorkspaceTab) => void
       onSelectTrack?: (trackId: string) => void
       onPlayPreview?: (trackId: string) => void
@@ -747,7 +797,11 @@ class AutonomousUICoordinator {
   ): Promise<boolean> {
     if (this.isHumanInteracting) return false
 
-    const phrase = options?.query || options?.genreOrMood || 'cinematic soundtrack'
+    const rawPhrase = options?.query || options?.genreOrMood || 'cinematic'
+    // Extract concise keyword to prevent conversational tokens from breaking the catalog filter
+    const stopWords = new Set(['something', 'high', 'tear', 'tier', 'whatnot', 'like', 'song', 'music', 'soundtrack', 'recommend', 'me', 'please', 'for', 'this', 'video', 'playing', 'timeline'])
+    const cleanTokens = rawPhrase.toLowerCase().replace(/[.,!?]/g, ' ').split(/\s+/).filter(t => t.length > 2 && !stopWords.has(t))
+    const searchPhrase = cleanTokens[0] || 'cinematic'
 
     // 1. Physically glide to and click the Music workspace navigation tab
     this.beginTakeover('Jarvis: Navigating to Music Studio')
@@ -774,22 +828,22 @@ class AutonomousUICoordinator {
 
     await new Promise((resolve) => setTimeout(resolve, 320))
 
-    // 2. Locate search input and expressively query the catalog
+    // 2. Locate search input and expressively query the catalog with clean keyword
     const searchTarget = resolveMusicSearchTarget()
     if (searchTarget) {
       this.anticipateTarget(searchTarget.element)
       await this.glideTo(
         searchTarget.centerX,
         searchTarget.centerY,
-        `Jarvis: Searching library for "${phrase}"`,
+        `Jarvis: Searching library for "${searchPhrase}"`,
         searchTarget.rect,
         420
       )
-      this.setPillMode('typing', `Jarvis: Searching "${phrase}"`)
+      this.setPillMode('typing', `Jarvis: Searching "${searchPhrase}"`)
       await this.simulateClick()
       searchTarget.element.focus()
       if ('value' in searchTarget.element) {
-        searchTarget.element.value = phrase
+        searchTarget.element.value = searchPhrase
         searchTarget.element.dispatchEvent(new Event('input', { bubbles: true }))
         searchTarget.element.dispatchEvent(new Event('change', { bubbles: true }))
       }
@@ -799,9 +853,11 @@ class AutonomousUICoordinator {
     this.setPillMode('waiting', 'Jarvis: Scoring catalog against video context...')
     await new Promise((r) => setTimeout(r, 450))
 
-    // Determine target track intelligently
-    const recommendedTrack = options?.trackId ? null : getBestMatchingTrack(phrase)
+    // Determine target track intelligently with video mood/context
+    const recommendedTrack = options?.trackId ? null : getBestMatchingTrack(rawPhrase, options?.context)
     const effectiveTrackId = options?.trackId || recommendedTrack?.id
+
+    const isPreviewOnly = options?.action === 'preview' || (!options?.action && !options?.trackId)
 
     // 4. Audition candidate track via Play button
     const playTarget = resolveMusicPlayTarget(effectiveTrackId)
@@ -813,37 +869,42 @@ class AutonomousUICoordinator {
         playTarget.centerY,
         `Jarvis: Auditioning "${recommendedTrack?.title || 'soundtrack'}" candidate...`,
         playTarget.rect,
-        420
+        380
       )
       this.setPillMode('action', `Jarvis: Auditioning ${recommendedTrack?.title || 'soundtrack'}...`)
       await this.simulateClick()
       playTarget.element.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
-      // Hover while auditioning
-      await new Promise((r) => setTimeout(r, 650))
     }
 
-    // 5. Stage soundtrack by clicking select button
-    const selectTarget = resolveMusicSelectTarget(effectiveTrackId) || resolveMusicTrackElement(effectiveTrackId)
-    if (selectTarget) {
-      await ensureElementInView(selectTarget.element)
-      this.anticipateTarget(selectTarget.element)
-      await this.glideTo(
-        selectTarget.centerX,
-        selectTarget.centerY,
-        `Jarvis: Staging "${recommendedTrack?.title || 'soundtrack'}" to timeline...`,
-        selectTarget.rect,
-        380
-      )
-      await this.simulateClick()
-      selectTarget.element.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    if (options?.onPlayPreview && effectiveTrackId) {
+      options.onPlayPreview(effectiveTrackId)
     }
 
-    if (options?.onSelectTrack && effectiveTrackId) {
-      options.onSelectTrack(effectiveTrackId)
+    // 5. Stage soundtrack only when explicitly requested (action === 'select')
+    if (!isPreviewOnly) {
+      const selectTarget = resolveMusicSelectTarget(effectiveTrackId) || resolveMusicTrackElement(effectiveTrackId)
+      if (selectTarget) {
+        await ensureElementInView(selectTarget.element)
+        this.anticipateTarget(selectTarget.element)
+        await this.glideTo(
+          selectTarget.centerX,
+          selectTarget.centerY,
+          `Jarvis: Staging "${recommendedTrack?.title || 'soundtrack'}" to timeline...`,
+          selectTarget.rect,
+          360
+        )
+        await this.simulateClick()
+        selectTarget.element.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+      }
+
+      if (options?.onSelectTrack && effectiveTrackId) {
+        options.onSelectTrack(effectiveTrackId)
+      }
+      this.setPillMode('action', `Jarvis: "${recommendedTrack?.title || 'Soundtrack'}" staged to timeline`)
+    } else {
+      this.setPillMode('action', `Jarvis: Previewing "${recommendedTrack?.title || 'Soundtrack'}" in Music Studio`)
     }
 
-    // 6. Confirm status
-    this.setPillMode('action', `Jarvis: "${recommendedTrack?.title || 'Soundtrack'}" staged to timeline`)
     if (!options?.isContinuous) {
       await new Promise((resolve) => setTimeout(resolve, 450))
       this.abortAction('cancelled')

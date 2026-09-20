@@ -880,6 +880,9 @@ export function MotionEditWorkspace({
                         {onToggleCutSegment ? (
                           <button
                             type="button"
+                            data-action="cut-segment"
+                            data-autonomous-target="transcript-segment-cut"
+                            data-segment-id={segment.id}
                             onClick={(e) => {
                               e.stopPropagation()
                               onToggleCutSegment(segment.id)

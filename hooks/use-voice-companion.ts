@@ -99,6 +99,7 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
     [],
   )
   const offscreenCanvasRef = useRef<HTMLCanvasElement | null>(null)
+  const lastVideoFrameBase64Ref = useRef<string | null>(null)
   const isMutedRef = useRef(isMuted)
   isMutedRef.current = isMuted
 
@@ -142,7 +143,15 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
         targetSource = videoEl
       }
 
-      if (!targetSource) return
+      if (!targetSource) {
+        // Fallback: When on Music/Studio tabs where DOM <video> is unmounted,
+        // send cached last visual frame so Jarvis preserves continuous visual context of the video.
+        if (lastVideoFrameBase64Ref.current) {
+          clientRef.current.sendVisualFrame(lastVideoFrameBase64Ref.current)
+          setLastSeenFrameTime(Date.now())
+        }
+        return
+      }
 
       if (!offscreenCanvasRef.current) {
         offscreenCanvasRef.current = document.createElement('canvas')
@@ -169,6 +178,7 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
       const base64 = dataUrl.split(',')[1]
 
       if (base64) {
+        lastVideoFrameBase64Ref.current = base64
         clientRef.current.sendVisualFrame(base64)
         setLastSeenFrameTime(Date.now())
       }
@@ -231,13 +241,19 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
 
         case 'get_editor_state': {
           const liveContext = contextProvider?.()
+          const bridge = handlersRef.current
           return {
             success: true,
             playheadSec: liveContext?.playheadSec ?? 0,
-            durationSec: liveContext?.durationSec ?? 0,
+            durationSec: liveContext?.durationSec ?? bridge.videoDurationSec ?? 0,
             workspaceTab: liveContext?.workspaceTab ?? 'Editor',
             fitMode: liveContext?.fitMode ?? 'fit',
             muted: liveContext?.muted ?? false,
+            hasVideo: bridge.hasVideo ?? Boolean((liveContext?.durationSec ?? 0) > 0),
+            videoTitle: bridge.videoTitle ?? 'Prometheus Project',
+            videoDurationSec: bridge.videoDurationSec ?? liveContext?.durationSec ?? 0,
+            videoMusicContext: bridge.videoMusicContext,
+            transcriptAvailable: Boolean(bridge.transcriptText),
           }
         }
 
@@ -245,6 +261,8 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
           const phrase = String(args.phrase ?? '')
           const success = await autonomousCoordinator.executeTranscriptCut(phrase, {
             onSwitchTab: onTabChange ? (tab) => onTabChange(tab as 'Editor' | 'Music' | 'Motion') : undefined,
+            onToggleCutWord: handlersRef.current.onToggleCutWord,
+            onToggleCutSegment: handlersRef.current.onToggleCutSegment,
           })
           return { success, cutPhrase: phrase }
         }
@@ -252,13 +270,31 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
         case 'autonomous_music_action': {
           const trackId = args.trackId ? String(args.trackId) : undefined
           const genreOrMood = args.genreOrMood ? String(args.genreOrMood) : undefined
+          const action = (args.action as 'preview' | 'select') || 'preview'
+          const musicContext = handlersRef.current.videoMusicContext as { summary?: string; pace?: string; intent?: unknown } | undefined
           const success = await autonomousCoordinator.executeMusicSelection({
             trackId,
             genreOrMood,
             query: genreOrMood,
+            action,
+            context: {
+              transcript: handlersRef.current.transcriptText,
+              mood: musicContext?.summary || musicContext?.pace,
+              pace: musicContext?.pace,
+            },
             onSwitchTab: onTabChange ? (tab) => onTabChange(tab as 'Editor' | 'Music' | 'Motion') : undefined,
+            onSelectTrack: handlersRef.current.onSelectMusicTrack,
+            onPlayPreview: handlersRef.current.onPlayMusicPreview,
           })
-          return { success, action: args.action, genreOrMood }
+          return {
+            success,
+            action,
+            genreOrMood,
+            isAuditioning: action === 'preview',
+            status: action === 'preview'
+              ? 'Now previewing candidate track in Music Studio.'
+              : 'Soundtrack staged to timeline.',
+          }
         }
 
         case 'toggle_agent_takeover': {
@@ -456,10 +492,14 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
           },
           onSetupConfirmed: () => {
             setUserStatus('listening')
-            if (bridgeHandlers.transcriptText) {
-              const preBriefingContext = `[PRE-BRIEFING CONTEXT] Full video transcript loaded: "${bridgeHandlers.transcriptText}". Use this transcript and dialogue to provide intelligent, contextual editing decisions, music recommendations, and filler-word detection.`
-              client.sendContextText(preBriefingContext)
-            }
+            const bridge = bridgeHandlers
+            const videoTitle = bridge.videoTitle || 'Prometheus Video'
+            const durationInfo = bridge.videoDurationSec ? ` Duration: ${bridge.videoDurationSec.toFixed(1)}s.` : ''
+            const moodInfo = (bridge.videoMusicContext as any)?.summary ? ` Video Mood/Pace: ${(bridge.videoMusicContext as any).summary}.` : ''
+            const transcriptSnippet = bridge.transcriptText ? ` Full video transcript: "${bridge.transcriptText}".` : ''
+
+            const preBriefingContext = `[PRE-BRIEFING CONTEXT] Video "${videoTitle}" is active in the Editor workspace.${durationInfo}${moodInfo}${transcriptSnippet} Use this context to provide intelligent, contextual editing decisions, music recommendations, and filler-word detection. The video is loaded and persistent across all tabs.`
+            client.sendContextText(preBriefingContext)
           },
           onAudio: (base64Pcm24k) => {
             // Assistant turn is live: keep the echo gate engaged even between

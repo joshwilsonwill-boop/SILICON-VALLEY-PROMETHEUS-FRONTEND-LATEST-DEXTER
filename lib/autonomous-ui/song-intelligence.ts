@@ -168,7 +168,26 @@ export function scoreSongCandidates(
       }
     }
 
-    // 4. Default baseline for catalog validity
+    // 4. Video Contextual Mood & Pace Matching
+    if (context?.mood) {
+      const moodLower = context.mood.toLowerCase()
+      if (track.moodTags.some((m) => moodLower.includes(m) || m.includes(moodLower)) || track.genreTags.some((g) => moodLower.includes(g))) {
+        score += 25
+        reasons.push(`Matches video inferred mood "${context.mood}"`)
+      }
+    }
+    if (context?.pace) {
+      const paceLower = context.pace.toLowerCase()
+      if (paceLower === 'fast' && track.intensity === 'hard') {
+        score += 15
+        reasons.push('High tempo matches fast video pace')
+      } else if (paceLower === 'slow' && track.intensity === 'soft') {
+        score += 15
+        reasons.push('Soft intensity matches slow video pace')
+      }
+    }
+
+    // 5. Default baseline for catalog validity
     score += 5
 
     results.push({

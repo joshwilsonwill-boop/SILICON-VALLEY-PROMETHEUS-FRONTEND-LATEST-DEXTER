@@ -30,6 +30,16 @@ export interface VoiceCompanionBridgeHandlers {
   /** Direct word cut handler for transcript inline strike-out ("read canceled out") */
   onToggleCutWord?: (segmentId: string, wordIndex: number) => void
   onToggleCutSegment?: (segmentId: string) => void
+  /** Direct music track staging and audition handlers */
+  onSelectMusicTrack?: (trackId: string) => void
+  onPlayMusicPreview?: (trackId: string) => void
+  /** Inferred video mood, tempo, and audio energy context */
+  videoMusicContext?: unknown
+  /** Video existence and project metadata across all tabs */
+  hasVideo?: boolean
+  videoTitle?: string
+  videoDurationSec?: number
+  videoThumbnailUrl?: string
 }
 
 let currentHandlers: VoiceCompanionBridgeHandlers = {}
