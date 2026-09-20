@@ -6,12 +6,16 @@
  * Supports multi-key pool failover across candidate API keys.
  */
 
+import { getJarvisMemory, formatMemoryForSystemInstruction } from './memory'
+
 export interface GeminiLiveConfig {
   wsUrl: string
   wsUrls?: string[]
   model?: string
   voiceName?: string
   systemInstruction?: string
+  projectId?: string
+  videoTranscript?: string
 }
 
 export type ToolCallHandler = (
@@ -185,6 +189,14 @@ You have direct visual perception of the video timeline and canvas.
 When the user asks you to navigate, play, pause, seek, or change views, ALWAYS execute the appropriate tool function.
 Keep your spoken responses fluid, punchy, conversational, and helpful. Never read out raw JSON or markup. Respond directly as an elite studio collaborator.`
 
+    const memory = getJarvisMemory(this.config.projectId)
+    const memoryInstruction = formatMemoryForSystemInstruction(memory)
+    const transcriptInstruction = this.config.videoTranscript
+      ? `\n\n### FULL VIDEO TRANSCRIPT & SPOKEN DIALOGUE (PRE-BRIEFED UPON VIDEO INGEST):\n${this.config.videoTranscript}`
+      : ''
+    const baseInstruction = this.config.systemInstruction || defaultInstruction
+    const combinedInstruction = `${baseInstruction}\n\n${memoryInstruction}${transcriptInstruction}`
+
     const setupPayload = {
       setup: {
         model: this.config.model || 'models/gemini-3.1-flash-live-preview',
@@ -199,7 +211,7 @@ Keep your spoken responses fluid, punchy, conversational, and helpful. Never rea
           },
         },
         systemInstruction: {
-          parts: [{ text: this.config.systemInstruction || defaultInstruction }],
+          parts: [{ text: combinedInstruction }],
         },
         tools: [
           {
@@ -287,7 +299,7 @@ Keep your spoken responses fluid, punchy, conversational, and helpful. Never rea
               },
               {
                 name: 'autonomous_music_action',
-                description: 'Autonomously navigate to Music workspace, browse recommended tracks, and preview or select a soundtrack.',
+                description: 'Autonomously navigate to Music workspace, curate and score candidate tracks against the video context, browse video-aware recommended tracks, and preview or select a soundtrack.',
                 parameters: {
                   type: 'object',
                   properties: {
@@ -372,6 +384,55 @@ Keep your spoken responses fluid, punchy, conversational, and helpful. Never rea
                     },
                   },
                   required: ['mode'],
+                },
+              },
+              {
+                name: 'detect_filler_words',
+                description: 'Analyze the video transcript for verbal disfluencies and filler words (such as um, uh, ah, like, basically). Report the truthful count to the user (never pretend there are filler words if none exist). Set applyCuts to true to strike them with red cut styling and remove them from the video.',
+                parameters: {
+                  type: 'object',
+                  properties: {
+                    applyCuts: {
+                      type: 'boolean',
+                      description: 'Whether to immediately cut and strike through detected filler words on the transcript and timeline.',
+                    },
+                  },
+                },
+              },
+              {
+                name: 'cut_silence',
+                description: 'Cut awkward silences and dead-air pauses from the video timeline based on transcript timing gaps.',
+                parameters: {
+                  type: 'object',
+                  properties: {
+                    minDurationSec: {
+                      type: 'number',
+                      description: 'Minimum duration in seconds of dead air to cut (default: 0.5s).',
+                    },
+                    paddingSec: {
+                      type: 'number',
+                      description: 'Padding in seconds to preserve before and after speech (default: 0.1s).',
+                    },
+                  },
+                },
+              },
+              {
+                name: 'apply_editorial_plan',
+                description: 'Execute an editorial plan on the timeline JSON document, applying camera zooms (joseph_edit, smooth_zoom_in, punch_zoom), caption presets, color LUTs, and music pacing.',
+                parameters: {
+                  type: 'object',
+                  properties: {
+                    prompt: {
+                      type: 'string',
+                      description: 'The creative or cinematic instruction (e.g. "Make this look high-tier documentary style with punch zooms").',
+                    },
+                    captionStyle: {
+                      type: 'string',
+                      enum: ['clean_bold', 'karaoke_pop', 'typewriter', 'lower_third'],
+                      description: 'Optional caption style override.',
+                    },
+                  },
+                  required: ['prompt'],
                 },
               },
             ],

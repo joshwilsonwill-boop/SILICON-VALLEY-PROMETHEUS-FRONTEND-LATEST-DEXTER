@@ -8479,6 +8479,15 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
       onTabChange: (tab) => handleApplyChatActions([{ kind: 'switch_tab', tab, summary: `Switch to ${tab}` }]),
       isTakeoverEnabled: isAgentTakeoverEnabled,
       onToggleTakeover: handleToggleAgentTakeover,
+      transcriptText: motionTranscriptSegments.map((s) => s.text).join(' '),
+      transcriptSegments: motionTranscriptSegments,
+      brandProfile: {
+        brandName: project?.title ?? 'Prometheus Creator',
+        tone: 'Cinematic High-Tech',
+        preferredCaptionStyle: editorCaptionStyle,
+      },
+      onToggleCutWord: handleToggleCutWord,
+      onToggleCutSegment: handleToggleCutSegment,
     })
     return () => {
       unregisterVoiceCompanionBridge()
@@ -8488,6 +8497,11 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
     handleApplyChatActions,
     isAgentTakeoverEnabled,
     handleToggleAgentTakeover,
+    motionTranscriptSegments,
+    editorCaptionStyle,
+    handleToggleCutWord,
+    handleToggleCutSegment,
+    project?.title,
   ])
 
   React.useEffect(() => {

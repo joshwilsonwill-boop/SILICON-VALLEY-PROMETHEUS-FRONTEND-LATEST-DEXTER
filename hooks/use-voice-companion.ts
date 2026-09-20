@@ -11,6 +11,9 @@ import {
 import type { EditorActionDraft } from '@/lib/editor-actions'
 import type { ChatEditorContext } from '@/lib/prometheus-assistant/editor-context'
 import { autonomousCoordinator } from '@/lib/autonomous-ui/coordinator'
+import { getJarvisMemory, saveJarvisMemory } from '@/lib/voice-companion/memory'
+import { detectFillerWords } from '@/lib/voice-companion/filler-words'
+import { buildEditorialPlan } from '@/lib/editor/timeline-document'
 
 export type VoiceCompanionStatus =
   | 'disconnected'
@@ -291,6 +294,87 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
           return { success: true, mode }
         }
 
+        case 'detect_filler_words': {
+          const rawSegments = handlersRef.current.transcriptSegments
+          const segments = Array.isArray(rawSegments) ? rawSegments : []
+          const result = detectFillerWords(segments)
+          const shouldApply = Boolean(args.applyCuts)
+
+          if (shouldApply && result.items.length > 0 && handlersRef.current.onToggleCutWord) {
+            for (const item of result.items) {
+              handlersRef.current.onToggleCutWord(item.segmentId, item.wordIndex)
+            }
+          }
+
+          return {
+            success: true,
+            count: result.count,
+            items: result.items,
+            summary: result.summary,
+            appliedCuts: shouldApply,
+          }
+        }
+
+        case 'cut_silence':
+        case 'remove_silence': {
+          const minDurationSec = typeof args.minDurationSec === 'number' ? args.minDurationSec : 0.4
+          if (onApplyActions) {
+            await onApplyActions([
+              {
+                kind: 'cut_silence',
+                minDurationSec,
+                summary: `Remove transcript-detected silences (> ${minDurationSec}s)`,
+              },
+            ])
+          }
+          return {
+            success: true,
+            minDurationSec,
+            summary: `Applied ripple-cut to dead air pauses over ${minDurationSec}s`,
+          }
+        }
+
+        case 'apply_editorial_plan':
+        case 'execute_timeline_plan': {
+          const prompt = String(args.prompt || 'Cinematic documentary pass')
+          const liveContext = contextProvider?.()
+          const durationSec = liveContext?.durationSec || 45
+          const transcriptText = handlersRef.current.transcriptText || ''
+          const brandProfile = handlersRef.current.brandProfile
+
+          const plan = buildEditorialPlan(prompt, {
+            durationSec,
+            transcriptText,
+            brandProfile: brandProfile as any,
+          })
+
+          if (args.captionStyle && typeof args.captionStyle === 'string') {
+            plan.captionStyle = args.captionStyle as any
+          }
+
+          // Visually scrub timeline to first dynamic zoom/event to show user active execution
+          if (plan.zooms.length > 0 && onSeek) {
+            await onSeek(plan.zooms[0].startSec)
+          }
+
+          // Apply caption style and modifications via editor actions
+          if (onApplyActions) {
+            await onApplyActions([
+              {
+                kind: 'set_caption_style',
+                style: plan.captionStyle,
+                summary: `Editorial Plan: Restyle captions to ${plan.captionStyle}`,
+              },
+            ])
+          }
+
+          return {
+            success: true,
+            plan,
+            summary: plan.summary,
+          }
+        }
+
         default:
           return { error: `Tool ${name} not found` }
       }
@@ -357,12 +441,14 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
       playerRef.current = player
 
       // 3. Initialize Gemini Live Client
+      const bridgeHandlers = getVoiceCompanionBridge()
       const client = new GeminiLiveClient(
         {
           wsUrl: sessionData.wsUrl,
           wsUrls: sessionData.wsUrls,
           model: sessionData.model,
           voiceName: selectedVoice || sessionData.voiceName,
+          videoTranscript: bridgeHandlers.transcriptText,
         },
         {
           onOpen: () => {
@@ -370,6 +456,10 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
           },
           onSetupConfirmed: () => {
             setUserStatus('listening')
+            if (bridgeHandlers.transcriptText) {
+              const preBriefingContext = `[PRE-BRIEFING CONTEXT] Full video transcript loaded: "${bridgeHandlers.transcriptText}". Use this transcript and dialogue to provide intelligent, contextual editing decisions, music recommendations, and filler-word detection.`
+              client.sendContextText(preBriefingContext)
+            }
           },
           onAudio: (base64Pcm24k) => {
             // Assistant turn is live: keep the echo gate engaged even between
@@ -452,6 +542,15 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
           assistantTurnActiveRef.current ||
           (playerRef.current?.getIsPlaying() ?? false) ||
           (playerRef.current?.getPendingMs() ?? 0) > 0,
+        onSpeechOnset: () => {
+          if (
+            (playerRef.current?.getIsPlaying() ?? false) ||
+            ((playerRef.current?.getPendingMs() ?? 0) > 0) ||
+            assistantTurnActiveRef.current
+          ) {
+            playerRef.current?.duck(0.0, 15)
+          }
+        },
       })
       await recorder.start((base64Chunk) => {
         if (!isMutedRef.current && client.isConnected()) {
@@ -466,6 +565,16 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
         const nextAssistant = playerRef.current?.getVolume() ?? 0
         setUserVolume((prev) => (Math.abs(prev - nextUser) > 0.02 ? nextUser : prev))
         setAssistantVolume((prev) => (Math.abs(prev - nextAssistant) > 0.02 ? nextAssistant : prev))
+
+        // If the assistant was ducked on user speech onset, but user stopped speaking
+        // without an interruption arriving after 1400ms, gently unduck so playback resumes
+        if (
+          playerRef.current?.getIsDucked() &&
+          assistantTurnActiveRef.current &&
+          !recorderRef.current?.hasRecentSpeech(1400)
+        ) {
+          playerRef.current.unduck(50)
+        }
       }, 90)
 
       // 7. Start visual frame sync interval (every 2.2 seconds)

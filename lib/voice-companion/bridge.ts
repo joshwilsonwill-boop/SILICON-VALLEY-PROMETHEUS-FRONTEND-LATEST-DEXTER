@@ -22,6 +22,14 @@ export interface VoiceCompanionBridgeHandlers {
   isTakeoverEnabled?: boolean
   /** Toggles the editor's agent takeover mode (mutating action gate). */
   onToggleTakeover?: () => void
+  /** Pre-briefed transcript text and segments from AssemblyAI/source */
+  transcriptText?: string
+  transcriptSegments?: unknown
+  /** User brand context and stylistic DNA */
+  brandProfile?: unknown
+  /** Direct word cut handler for transcript inline strike-out ("read canceled out") */
+  onToggleCutWord?: (segmentId: string, wordIndex: number) => void
+  onToggleCutSegment?: (segmentId: string) => void
 }
 
 let currentHandlers: VoiceCompanionBridgeHandlers = {}

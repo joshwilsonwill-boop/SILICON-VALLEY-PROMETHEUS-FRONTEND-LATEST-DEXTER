@@ -342,6 +342,12 @@ export function PrometheusChat({
     onTranscript: (text) => {
       void submitVoiceTurn(text)
     },
+    onSpeechOnset: () => {
+      stopSpokenReply()
+      if (usesPersistentChat && (persistentChat.isSending || persistentChat.isAwaitingResponse)) {
+        persistentChat.stopStreaming()
+      }
+    },
   })
 
   const startVoiceBargeIn = React.useCallback(() => {

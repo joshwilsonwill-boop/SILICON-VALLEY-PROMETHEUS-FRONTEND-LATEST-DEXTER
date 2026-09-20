@@ -9,11 +9,15 @@ interface IWindowWithSpeech extends Window {
   webkitSpeechRecognition?: any;
 }
 
+export interface UseVoiceInputOptions {
+  onTranscript: (text: string) => void;
+  onSpeechOnset?: () => void;
+}
+
 export function useVoiceInput({
   onTranscript,
-}: {
-  onTranscript: (text: string) => void;
-}) {
+  onSpeechOnset,
+}: UseVoiceInputOptions) {
   const [state, setState] = useState<VoiceInputState>("idle");
   const [error, setError] = useState<string | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -24,6 +28,10 @@ export function useVoiceInput({
   const analyserRef = useRef<AnalyserNode | null>(null);
   const recognitionRef = useRef<any>(null);
   const recognizedTextRef = useRef<string>("");
+  const onSpeechOnsetRef = useRef(onSpeechOnset);
+  onSpeechOnsetRef.current = onSpeechOnset;
+  const onsetProcessorRef = useRef<ScriptProcessorNode | null>(null);
+  const silentGainRef = useRef<GainNode | null>(null);
 
   const cleanup = useCallback(() => {
     activeRef.current = false;
@@ -46,6 +54,10 @@ export function useVoiceInput({
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
     chunksRef.current = [];
+    onsetProcessorRef.current?.disconnect();
+    onsetProcessorRef.current = null;
+    silentGainRef.current?.disconnect();
+    silentGainRef.current = null;
     audioContextRef.current?.close().catch(() => {});
     audioContextRef.current = null;
     analyserRef.current = null;
@@ -100,7 +112,17 @@ export function useVoiceInput({
             recognition.continuous = true;
             recognition.interimResults = true;
             recognition.lang = "en-US";
+            recognition.onspeechstart = () => {
+              onSpeechOnsetRef.current?.();
+            };
+            recognition.onaudiostart = () => {
+              onSpeechOnsetRef.current?.();
+            };
+            recognition.onsoundstart = () => {
+              onSpeechOnsetRef.current?.();
+            };
             recognition.onresult = (event: any) => {
+              onSpeechOnsetRef.current?.();
               let finalTranscript = "";
               for (let i = 0; i < event.results.length; ++i) {
                 finalTranscript += event.results[i][0].transcript;
@@ -132,8 +154,30 @@ export function useVoiceInput({
         analyser.fftSize = 512;
         analyser.smoothingTimeConstant = 0.8;
         source.connect(analyser);
+
+        const onsetProcessor = audioContext.createScriptProcessor(2048, 1, 1);
+        const silentGain = audioContext.createGain();
+        silentGain.gain.value = 0;
+        onsetProcessor.onaudioprocess = (e) => {
+          if (!activeRef.current) return;
+          const input = e.inputBuffer.getChannelData(0);
+          let sum = 0;
+          for (let i = 0; i < input.length; i++) {
+            sum += input[i] * input[i];
+          }
+          const rms = Math.sqrt(sum / input.length);
+          if (rms > 0.04) {
+            onSpeechOnsetRef.current?.();
+          }
+        };
+        source.connect(onsetProcessor);
+        onsetProcessor.connect(silentGain);
+        silentGain.connect(audioContext.destination);
+
         audioContextRef.current = audioContext;
         analyserRef.current = analyser;
+        onsetProcessorRef.current = onsetProcessor;
+        silentGainRef.current = silentGain;
       }
 
       const MimeType = (() => {

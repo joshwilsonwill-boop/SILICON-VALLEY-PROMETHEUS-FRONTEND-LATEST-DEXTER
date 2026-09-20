@@ -120,6 +120,7 @@ function calculateRMS(samples: Float32Array): number {
 
 export interface AudioRecorderOptions {
   getIsSpeaking?: () => boolean
+  onSpeechOnset?: () => void
 }
 
 // Barge-in tuning: echo bleed from speakers rarely exceeds these levels while a
@@ -142,6 +143,7 @@ export class AudioRecorder {
   private onAudioChunk: ((base64Chunk: string) => void) | null = null
   private isRecording = false
   private getIsSpeaking?: () => boolean
+  private onSpeechOnset?: () => void
   private currentVolume = 0
   private bargeFrames = 0
   private silenceChunkBase64: string | null = null
@@ -149,6 +151,7 @@ export class AudioRecorder {
 
   constructor(options?: AudioRecorderOptions) {
     this.getIsSpeaking = options?.getIsSpeaking
+    this.onSpeechOnset = options?.onSpeechOnset
   }
 
   async start(onAudioChunk: (base64Chunk: string) => void): Promise<void> {
@@ -205,6 +208,7 @@ export class AudioRecorder {
         if (rms > BARGE_IN_RMS_THRESHOLD) {
           this.bargeFrames += 1
           this.lastSpeechTimestamp = Date.now()
+          this.onSpeechOnset?.()
         } else {
           this.bargeFrames = 0
         }
@@ -219,6 +223,9 @@ export class AudioRecorder {
         }
       } else {
         this.bargeFrames = 0
+        if (rms > BARGE_IN_RMS_THRESHOLD) {
+          this.onSpeechOnset?.()
+        }
       }
 
       const downsampled = downsampleBuffer(inputData, inputSampleRate, targetSampleRate)
@@ -273,14 +280,17 @@ export class AudioRecorder {
 }
 
 /**
- * Manages seamless playback of 24kHz PCM audio chunks with instant barge-in flush.
+ * Manages seamless playback of 24kHz PCM audio chunks with instant barge-in flush
+ * and acoustic ducking to pause speech playback when the speaker begins talking.
  */
 export class AudioPlayer {
   private audioContext: AudioContext | null = null
   private analyser: AnalyserNode | null = null
+  private gainNode: GainNode | null = null
   private scheduledSources: AudioBufferSourceNode[] = []
   private nextPlayTime = 0
   private isPlaying = false
+  private isDucked = false
   private playbackQueue: string[] = []
   private playbackDrain: Promise<void> = Promise.resolve()
   private playbackGeneration = 0
@@ -293,10 +303,14 @@ export class AudioPlayer {
   private initContext(): AudioContext {
     if (!this.audioContext || this.audioContext.state === 'closed') {
       this.audioContext = primeAudioContext()
+      this.gainNode = this.audioContext.createGain()
+      this.gainNode.gain.value = 1.0
       this.analyser = this.audioContext.createAnalyser()
       this.analyser.fftSize = 512
       this.analyser.smoothingTimeConstant = 0.4
+      this.gainNode.connect(this.analyser)
       this.analyser.connect(this.audioContext.destination)
+      this.isDucked = false
     }
     return this.audioContext
   }
@@ -310,6 +324,45 @@ export class AudioPlayer {
 
   getIsPlaying(): boolean {
     return this.isPlaying
+  }
+
+  getIsDucked(): boolean {
+    return this.isDucked
+  }
+
+  /**
+   * Ducks the assistant playback volume instantly to pause/silence assistant speech
+   * when the speaker starts talking, letting their words go through cleanly.
+   */
+  duck(targetGain: number = 0.0, rampMs: number = 15): void {
+    if (!this.gainNode || !this.audioContext) return
+    const currTime = this.audioContext.currentTime
+    const rampSec = Math.max(0.005, rampMs / 1000)
+    try {
+      this.gainNode.gain.cancelScheduledValues(currTime)
+      this.gainNode.gain.setValueAtTime(this.gainNode.gain.value, currTime)
+      this.gainNode.gain.linearRampToValueAtTime(targetGain, currTime + rampSec)
+    } catch {
+      this.gainNode.gain.value = targetGain
+    }
+    this.isDucked = true
+  }
+
+  /**
+   * Restores assistant playback volume smoothly back to 1.0.
+   */
+  unduck(rampMs: number = 40): void {
+    if (!this.gainNode || !this.audioContext || !this.isDucked) return
+    const currTime = this.audioContext.currentTime
+    const rampSec = Math.max(0.01, rampMs / 1000)
+    try {
+      this.gainNode.gain.cancelScheduledValues(currTime)
+      this.gainNode.gain.setValueAtTime(this.gainNode.gain.value, currTime)
+      this.gainNode.gain.linearRampToValueAtTime(1.0, currTime + rampSec)
+    } catch {
+      this.gainNode.gain.value = 1.0
+    }
+    this.isDucked = false
   }
 
   /**
@@ -355,7 +408,9 @@ export class AudioPlayer {
     const source = ctx.createBufferSource()
     source.buffer = audioBuffer
 
-    if (this.analyser) {
+    if (this.gainNode) {
+      source.connect(this.gainNode)
+    } else if (this.analyser) {
       source.connect(this.analyser)
     } else {
       source.connect(ctx.destination)
@@ -402,13 +457,22 @@ export class AudioPlayer {
     this.scheduledSources = []
     if (this.audioContext) {
       this.nextPlayTime = this.audioContext.currentTime
+      if (this.gainNode) {
+        try {
+          this.gainNode.gain.cancelScheduledValues(this.audioContext.currentTime)
+          this.gainNode.gain.setValueAtTime(1.0, this.audioContext.currentTime)
+        } catch {
+          this.gainNode.gain.value = 1.0
+        }
+      }
     }
+    this.isDucked = false
     this.isPlaying = false
     this.onPlaybackStateChange?.(false)
   }
 
   getVolume(): number {
-    if (!this.analyser || !this.isPlaying) return 0
+    if (!this.analyser || !this.isPlaying || this.isDucked) return 0
     const buffer = new Uint8Array(this.analyser.frequencyBinCount)
     this.analyser.getByteTimeDomainData(buffer)
     let sum = 0
@@ -422,6 +486,8 @@ export class AudioPlayer {
   stop(): void {
     this.flush()
     this.playbackDrain = Promise.resolve()
+    this.gainNode?.disconnect()
+    this.gainNode = null
     this.audioContext = null
     this.analyser = null
   }

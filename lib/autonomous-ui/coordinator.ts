@@ -42,6 +42,7 @@ import {
   getFreshTargetPoint,
 } from './motion-driver'
 import { useAutonomousStore } from './autonomous-store'
+import { scoreSongCandidates, getBestMatchingTrack } from './song-intelligence'
 
 class AutonomousUICoordinator {
   private state: GhostCursorState = {
@@ -787,26 +788,34 @@ class AutonomousUICoordinator {
       this.setPillMode('typing', `Jarvis: Searching "${phrase}"`)
       await this.simulateClick()
       searchTarget.element.focus()
+      if ('value' in searchTarget.element) {
+        searchTarget.element.value = phrase
+        searchTarget.element.dispatchEvent(new Event('input', { bubbles: true }))
+        searchTarget.element.dispatchEvent(new Event('change', { bubbles: true }))
+      }
     }
 
     // 3. Dynamic cache / collection download simulation step
-    // Gives physical expression to downloading/fetching from storage when not locally staged
-    this.setPillMode('waiting', 'Jarvis: Fetching collection asset...')
+    this.setPillMode('waiting', 'Jarvis: Scoring catalog against video context...')
     await new Promise((r) => setTimeout(r, 450))
 
+    // Determine target track intelligently
+    const recommendedTrack = options?.trackId ? null : getBestMatchingTrack(phrase)
+    const effectiveTrackId = options?.trackId || recommendedTrack?.id
+
     // 4. Audition candidate track via Play button
-    const playTarget = resolveMusicPlayTarget(options?.trackId)
+    const playTarget = resolveMusicPlayTarget(effectiveTrackId)
     if (playTarget) {
       await ensureElementInView(playTarget.element)
       this.anticipateTarget(playTarget.element)
       await this.glideTo(
         playTarget.centerX,
         playTarget.centerY,
-        'Jarvis: Auditioning soundtrack candidate...',
+        `Jarvis: Auditioning "${recommendedTrack?.title || 'soundtrack'}" candidate...`,
         playTarget.rect,
         420
       )
-      this.setPillMode('action', 'Jarvis: Auditioning soundtrack...')
+      this.setPillMode('action', `Jarvis: Auditioning ${recommendedTrack?.title || 'soundtrack'}...`)
       await this.simulateClick()
       playTarget.element.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
       // Hover while auditioning
@@ -814,14 +823,14 @@ class AutonomousUICoordinator {
     }
 
     // 5. Stage soundtrack by clicking select button
-    const selectTarget = resolveMusicSelectTarget(options?.trackId) || resolveMusicTrackElement(options?.trackId)
+    const selectTarget = resolveMusicSelectTarget(effectiveTrackId) || resolveMusicTrackElement(effectiveTrackId)
     if (selectTarget) {
       await ensureElementInView(selectTarget.element)
       this.anticipateTarget(selectTarget.element)
       await this.glideTo(
         selectTarget.centerX,
         selectTarget.centerY,
-        'Jarvis: Staging soundtrack to timeline...',
+        `Jarvis: Staging "${recommendedTrack?.title || 'soundtrack'}" to timeline...`,
         selectTarget.rect,
         380
       )
@@ -829,12 +838,12 @@ class AutonomousUICoordinator {
       selectTarget.element.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
     }
 
-    if (options?.onSelectTrack && options.trackId) {
-      options.onSelectTrack(options.trackId)
+    if (options?.onSelectTrack && effectiveTrackId) {
+      options.onSelectTrack(effectiveTrackId)
     }
 
     // 6. Confirm status
-    this.setPillMode('action', 'Jarvis: Soundtrack staged')
+    this.setPillMode('action', `Jarvis: "${recommendedTrack?.title || 'Soundtrack'}" staged to timeline`)
     if (!options?.isContinuous) {
       await new Promise((resolve) => setTimeout(resolve, 450))
       this.abortAction('cancelled')
