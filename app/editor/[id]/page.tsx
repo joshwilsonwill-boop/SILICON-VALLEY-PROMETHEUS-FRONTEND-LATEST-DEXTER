@@ -9130,8 +9130,6 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
                       durationSec={transportDurationSec}
                       onToggleMute={() => setIsPreviewMuted((prev) => !prev)}
                       onSetBottomMode={setBottomMode}
-                      transcriptSegments={motionTranscriptSegments}
-                      cutRanges={editorCutRanges}
                     />
                   </>
                 )}

@@ -1,8 +1,8 @@
 # Gates: Jarvis Autonomous Intelligence & Editorial Upgrade
 
-OWNS: lib/autonomous-ui/**, lib/voice-companion/**, lib/exports/**, lib/server/**, hooks/use-voice-companion.ts, components/editor/**, components/navigation/**, app/api/**, tests/**
+OWNS: lib/autonomous-ui/**, lib/voice-companion/**, hooks/use-voice-companion.ts, components/editor/**, components/navigation/**, tests/**
 
-Scope: Upgrade Jarvis from repeated rigid animations to intelligent video-aware song curation, persistent memory across refreshes, automatic transcript and brand pre-briefing, honest filler-word/silence detection, multi-track timeline JSON document control, cinematic multi-track timeline with draggable text clips, and real Modal video treatment export pipeline.
+Scope: Upgrade Jarvis from repeated rigid animations to intelligent video-aware song curation, persistent memory across refreshes, automatic transcript and brand pre-briefing, honest filler-word/silence detection, and multi-track timeline JSON document control.
 
 - [x] G1: Intelligent song selection and search input dispatch in Music Studio
   CHECK: node tests/jarvis-song-intelligence-regression.test.mjs
@@ -48,19 +48,4 @@ Scope: Upgrade Jarvis from repeated rigid animations to intelligent video-aware 
   CHECK: node tests/jarvis-cross-workspace-video-context-regression.test.mjs
   EXPECT: jarvis-cross-workspace-video-context-regression: all checks passed
   EVIDENCE: automatic-evidence=v1; definition-sha256=3ff9a5c867624c4eb6b13c4f74e4d9a2434ae4b79680337243cc8607637748c4; exit=0; EXPECT=matched; output-sha256=59b103f4ed5110c9ee52352124dc1364259d05901a6c7b48bac13aa0c85724f7; output-bytes=131; shell=C:\Windows\system32\cmd.exe; cwd=C:\Users\HomePC\Documents\THE FRONT END, PROMETHEUS; path=86e75c2a2287/32 entries
-
-- [x] G10: Interactive text and caption timeline clips with drag-to-shift and trim controls
-  CHECK: node tests/timeline-interactive-text-clips.test.mjs
-  EXPECT: timeline-interactive-text-clips: all checks passed
-  EVIDENCE: automatic-evidence=v1; definition-sha256=2115fb89df2ccebcd35b1d515cbb4bedd20d3f0383940cc2f8183f4f2912e05c; exit=0; EXPECT=matched; output-sha256=bb61137ca35092372603499982b3302e5876664b87dc093cbbbfb2c73732cd52; output-bytes=613; shell=C:\Windows\system32\cmd.exe; cwd=C:\Users\HomePC\Documents\THE FRONT END, PROMETHEUS; path=86e75c2a2287/32 entries
-
-- [x] G11: Cinematic multi-track timeline navigation and scrubbing synchronization
-  CHECK: node tests/timeline-cinematic-multitrack-sync.test.mjs
-  EXPECT: timeline-cinematic-multitrack-sync: all checks passed
-  EVIDENCE: automatic-evidence=v1; definition-sha256=739bd0dace5efa484d3c3b5081275111842796474b52e382eace1bc122b58e9f; exit=0; EXPECT=matched; output-sha256=011ef1b39da3d81885d0240b414438ed0a87b17ada518269a1cf2a32f25eb2da; output-bytes=620; shell=C:\Windows\system32\cmd.exe; cwd=C:\Users\HomePC\Documents\THE FRONT END, PROMETHEUS; path=86e75c2a2287/32 entries
-
-- [x] G12: Real Modal video treatment export pipeline dispatch and video state update
-  CHECK: node tests/modal-export-treatment-pipeline.test.mjs
-  EXPECT: modal-export-treatment-pipeline: all checks passed
-  EVIDENCE: automatic-evidence=v1; definition-sha256=0bdd4d5f98b629d5468e8bacbaa91db35f2497f8d4d39a80e471d2e5af424958; exit=0; EXPECT=matched; output-sha256=e4ae86f6f87da5e9a5153c5a865292dae1bbfc056c762783f1b6dc4bbab61920; output-bytes=615; shell=C:\Windows\system32\cmd.exe; cwd=C:\Users\HomePC\Documents\THE FRONT END, PROMETHEUS; path=86e75c2a2287/32 entries
 

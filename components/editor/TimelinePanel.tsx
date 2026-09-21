@@ -3,9 +3,6 @@
 import * as React from 'react'
 import { Pause, Play, Volume2, VolumeX, Layers, Scissors, ChevronLeft, ChevronRight, AudioLines } from 'lucide-react'
 import type { Project, HeaderNavMode, PreviewMediaKind, BottomMode } from '@/lib/types'
-import type { MotionTranscriptSegment, MotionTextPlacement } from './motion-edit-workspace'
-import { CinematicMultiTrackTimeline } from './CinematicMultiTrackTimeline'
-import { cn } from '@/lib/utils'
 
 export interface TimelinePanelProps {
   activeWorkspaceTab: HeaderNavMode
@@ -30,10 +27,6 @@ export interface TimelinePanelProps {
   onRemoveSilence?: () => void
   /** Total preview duration in seconds; enables frame stepping + preview filmstrip. */
   durationSec?: number
-  transcriptSegments?: MotionTranscriptSegment[]
-  textPlacements?: MotionTextPlacement[]
-  cutRanges?: Array<{ start: number; end: number }>
-  onTextPlacementsChange?: (placements: MotionTextPlacement[]) => void
 }
 
 const FRAME_STEP_SEC = 1 / 30
@@ -61,26 +54,18 @@ export function TimelinePanel({
   transportTime,
   transportProgress,
   isPreviewMuted,
-  project,
-  bottomMode,
   onTogglePlayback,
   onSeek,
   onToggleMute,
-  onSetBottomMode,
   onSeekSeconds,
   onSplit,
   onRemoveSilence,
   durationSec = 0,
-  transcriptSegments = [],
-  textPlacements = [],
-  cutRanges = [],
-  onTextPlacementsChange,
 }: TimelinePanelProps) {
   const trackRef = React.useRef<HTMLDivElement | null>(null)
   const rafRef = React.useRef<number | null>(null)
   const wasMutedBeforeScrubRef = React.useRef<boolean | null>(null)
 
-  const [isMultiTrackOpen, setIsMultiTrackOpen] = React.useState(true)
   const [isDragging, setIsDragging] = React.useState(false)
   const [dragFraction, setDragFraction] = React.useState<number | null>(null)
   const [hoverFraction, setHoverFraction] = React.useState<number | null>(null)
@@ -353,17 +338,7 @@ export function TimelinePanel({
               {isPreviewMuted ? <VolumeX className="size-4" /> : <Volume2 className="size-4" />}
             </button>
             <div className="mx-1 h-6 w-px bg-white/8" />
-            <button
-              type="button"
-              onClick={() => setIsMultiTrackOpen((prev) => !prev)}
-              data-action="toggle-multitrack"
-              aria-label={isMultiTrackOpen ? 'Collapse multi-track timeline' : 'Expand multi-track timeline'}
-              title={isMultiTrackOpen ? 'Collapse multi-track timeline' : 'Expand multi-track timeline'}
-              className={cn(
-                'flex h-9 w-9 items-center justify-center rounded-lg transition-colors hover:bg-white/5',
-                isMultiTrackOpen ? 'bg-white/10 text-cyan-400' : 'text-white/40 hover:text-white',
-              )}
-            >
+            <button className="flex h-9 w-9 items-center justify-center rounded-lg text-white/40 transition-colors hover:bg-white/5 hover:text-white">
               <Layers className="size-4" />
             </button>
             <button
@@ -397,29 +372,6 @@ export function TimelinePanel({
             </button>
           </div>
         </div>
-
-        {isMultiTrackOpen && (
-          <div className="mt-2 border-t border-white/8 pt-3">
-            <CinematicMultiTrackTimeline
-              effectiveDuration={durationSec}
-              currentTimeSec={displayFraction * durationSec}
-              previewPlaying={previewPlaying}
-              previewMuted={isPreviewMuted}
-              sourceLabel={project?.title || 'Master Video'}
-              transcriptSegments={transcriptSegments}
-              textPlacements={textPlacements}
-              cutRanges={cutRanges}
-              onSeek={(targetSec) => {
-                if (onSeekSeconds) onSeekSeconds(targetSec)
-                else onSeek(durationSec > 0 ? (targetSec / durationSec) * 100 : 0)
-              }}
-              onTogglePlayback={onTogglePlayback}
-              onToggleMute={onToggleMute}
-              onSplit={onSplit}
-              onTextPlacementsChange={onTextPlacementsChange}
-            />
-          </div>
-        )}
       </div>
 
       {previewKind === 'video' && previewUrl && (
