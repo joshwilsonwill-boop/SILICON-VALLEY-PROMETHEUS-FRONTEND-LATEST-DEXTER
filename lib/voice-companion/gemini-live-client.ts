@@ -557,6 +557,10 @@ Keep your spoken responses fluid, punchy, conversational, and helpful. Never rea
     this.ws.send(JSON.stringify(payload))
   }
 
+  sendTextMessage(text: string): void {
+    this.sendContextText(text)
+  }
+
   private sendToolResponse(functionResponses: Array<{ id: string; response: unknown }>): void {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return
 

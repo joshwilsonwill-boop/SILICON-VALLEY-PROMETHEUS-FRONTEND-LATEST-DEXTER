@@ -148,6 +148,7 @@ export class AudioRecorder {
   private bargeFrames = 0
   private silenceChunkBase64: string | null = null
   private lastSpeechTimestamp = 0
+  private suppressUntil = 0
 
   constructor(options?: AudioRecorderOptions) {
     this.getIsSpeaking = options?.getIsSpeaking
@@ -197,6 +198,11 @@ export class AudioRecorder {
         this.lastSpeechTimestamp = Date.now()
       }
 
+      if (Date.now() < this.suppressUntil) {
+        // Transmission temporarily paused (e.g. while clientContent text turn is in-flight)
+        return
+      }
+
       // ACOUSTIC ECHO GATING (turn-aware, with silence-fill):
       // Browser echo cancellation does NOT cancel our own Web Audio speaker
       // output, so while the assistant turn is active we only transmit after
@@ -213,12 +219,13 @@ export class AudioRecorder {
           this.bargeFrames = 0
         }
         if (this.bargeFrames < BARGE_IN_SUSTAINED_FRAMES) {
-          if (!this.silenceChunkBase64) {
-            this.silenceChunkBase64 = arrayBufferToBase64(
-              floatTo16BitPCM(new Float32Array(SILENCE_CHUNK_SAMPLES)),
-            )
-          }
-          this.onAudioChunk?.(this.silenceChunkBase64)
+          const targetSilenceSamples = Math.max(
+            1,
+            Math.round(inputData.length / (inputSampleRate / targetSampleRate))
+          )
+          const silencePcm = floatTo16BitPCM(new Float32Array(targetSilenceSamples))
+          const silenceBase64 = arrayBufferToBase64(silencePcm)
+          this.onAudioChunk?.(silenceBase64)
           return
         }
       } else {
@@ -272,6 +279,10 @@ export class AudioRecorder {
 
   resetBargeFrames(): void {
     this.bargeFrames = 0
+  }
+
+  suppressTransmission(durationMs: number = 2000): void {
+    this.suppressUntil = Date.now() + durationMs
   }
 
   getLastSpeechTimestamp(): number {
@@ -434,6 +445,9 @@ export class AudioPlayer {
       }
       if (this.scheduledSources.length === 0) {
         this.isPlaying = false
+        if (this.audioContext) {
+          this.nextPlayTime = this.audioContext.currentTime
+        }
         this.onPlaybackStateChange?.(false)
       }
     }

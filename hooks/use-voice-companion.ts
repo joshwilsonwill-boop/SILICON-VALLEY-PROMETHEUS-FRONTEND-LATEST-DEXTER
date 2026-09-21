@@ -466,7 +466,10 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
       // 2. Initialize Audio Player and unlock Web Audio context
       const player = new AudioPlayer({
         onPlaybackStateChange: (playing) => {
-          if (!playing) assistantTurnActiveRef.current = false
+          if (!playing) {
+            assistantTurnActiveRef.current = false
+            recorderRef.current?.resetBargeFrames()
+          }
           setUserStatus((prev) => {
             if (prev === 'disconnected' || prev === 'error') return prev
             return playing ? 'speaking' : 'listening'
@@ -557,6 +560,9 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
           },
           onTurnComplete: () => {
             assistantTurnActiveRef.current = false
+            if (!playerRef.current?.getIsPlaying() && (playerRef.current?.getPendingMs() ?? 0) <= 0) {
+              setUserStatus((prev) => (prev === 'speaking' ? 'listening' : prev))
+            }
           },
           onError: (err) => {
             setError(err.message)
@@ -583,12 +589,19 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
           (playerRef.current?.getIsPlaying() ?? false) ||
           (playerRef.current?.getPendingMs() ?? 0) > 0,
         onSpeechOnset: () => {
-          if (
-            (playerRef.current?.getIsPlaying() ?? false) ||
-            ((playerRef.current?.getPendingMs() ?? 0) > 0) ||
-            assistantTurnActiveRef.current
-          ) {
-            playerRef.current?.duck(0.0, 15)
+          const isPlaying = playerRef.current?.getIsPlaying() ?? false
+          const pendingMs = playerRef.current?.getPendingMs() ?? 0
+          if (isPlaying || pendingMs > 0 || assistantTurnActiveRef.current) {
+            // If the server generation turn already completed, user speaking is an
+            // immediate follow-up: flush residual audio immediately so echo gating
+            // clears and user speech transmits in full without clipping!
+            if (!assistantTurnActiveRef.current) {
+              playerRef.current?.flush()
+              recorderRef.current?.resetBargeFrames()
+              setUserStatus('listening')
+            } else {
+              playerRef.current?.duck(0.0, 15)
+            }
           }
         },
       })
@@ -647,18 +660,30 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
   }, [])
 
   const sendTextMessage = useCallback((text: string) => {
-    if (!clientRef.current?.isConnected()) return
-    clientRef.current.sendContextText(text)
+    const trimmed = text.trim()
+    if (!trimmed || !clientRef.current?.isConnected()) return
+
+    // Immediately stop any residual assistant playback so it does not talk over the user
+    playerRef.current?.flush()
+    assistantTurnActiveRef.current = false
+    setUserStatus('listening')
+
+    // Suppress continuous mic audio streaming temporarily (2500ms) to ensure
+    // ambient room audio doesn't clobber the clientContent text turn on Google's WebSocket
+    recorderRef.current?.suppressTransmission(2500)
+    recorderRef.current?.resetBargeFrames()
+
+    clientRef.current.sendContextText(trimmed)
     setTranscripts((prev) => [
       ...prev,
       {
         id: `tr-${Date.now()}`,
         role: 'user',
-        text,
+        text: trimmed,
         timestamp: Date.now(),
       },
     ])
-  }, [])
+  }, [setUserStatus])
 
   useEffect(() => {
     return () => {

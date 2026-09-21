@@ -342,7 +342,10 @@ export function useAIChat({
       } satisfies AIChatMessage;
       const history = buildPrometheusChatMemory(options?.history ?? messagesRef.current);
 
-      if (!options?.reuseMessage) setMessages((current) => [...current, userMessage]);
+      if (!options?.reuseMessage) {
+        messagesRef.current = [...messagesRef.current, userMessage];
+        setMessages((current) => [...current, userMessage]);
+      }
       setDraft("");
       setError(null);
       setIsSending(true);
@@ -436,6 +439,7 @@ export function useAIChat({
         };
         pendingAssistantMessagesRef.current.set(assistantMessage.id, { message: assistantMessage, sessionId });
         streamedContentRef.current.set(assistantMessage.id, "");
+        messagesRef.current = [...messagesRef.current, assistantMessage];
         setMessages((current) => [...current, assistantMessage]);
         setIsAwaitingResponse(false);
         let reply = "";
@@ -450,6 +454,11 @@ export function useAIChat({
         const flushReply = () => {
           renderFrame = null;
           const content = reply;
+          messagesRef.current = messagesRef.current.map((entry) =>
+            entry.id === assistantMessage.id
+              ? { ...entry, content, isComplete: false }
+              : entry,
+          );
           setMessages((current) => {
             const target = current.find((e) => e.id === assistantMessage.id);
             if (target && target.content === content) return current;
@@ -549,22 +558,24 @@ export function useAIChat({
 
         pendingAssistantMessagesRef.current.delete(assistantMessage.id);
         streamedContentRef.current.delete(assistantMessage.id);
+        const completedAssistantMessage: AIChatMessage = {
+          ...assistantMessage,
+          content: reply,
+          isComplete: true,
+          ...(streamFrames.length ? { frames: streamFrames } : {}),
+          ...(streamToolCalls.length ? { toolCalls: streamToolCalls } : {}),
+          ...(streamActionDrafts.length ? { actionDrafts: streamActionDrafts } : {}),
+          ...(streamCarousel.length ? { carousel: streamCarousel } : {}),
+          ...(streamSuggestions.length ? { suggestions: streamSuggestions } : {}),
+          ...(streamJobs.length ? { jobs: streamJobs } : {}),
+          ...inferPostMetadata(`${text}\n${reply}`),
+        };
+        messagesRef.current = messagesRef.current.map((entry) =>
+          entry.id === assistantMessage.id ? completedAssistantMessage : entry,
+        );
         setMessages((current) =>
           current.map((entry) =>
-            entry.id === assistantMessage.id
-              ? {
-                  ...entry,
-                  content: reply,
-                  isComplete: true,
-                  ...(streamFrames.length ? { frames: streamFrames } : {}),
-                  ...(streamToolCalls.length ? { toolCalls: streamToolCalls } : {}),
-                  ...(streamActionDrafts.length ? { actionDrafts: streamActionDrafts } : {}),
-                  ...(streamCarousel.length ? { carousel: streamCarousel } : {}),
-                  ...(streamSuggestions.length ? { suggestions: streamSuggestions } : {}),
-                  ...(streamJobs.length ? { jobs: streamJobs } : {}),
-                  ...inferPostMetadata(`${text}\n${reply}`),
-                }
-              : entry,
+            entry.id === assistantMessage.id ? completedAssistantMessage : entry,
           ),
         );
         if (!persistedByServer && sessionId) {
@@ -603,6 +614,13 @@ export function useAIChat({
             const partialContent = streamedContentRef.current.get(assistantMessageId)?.trim() ?? "";
             pendingAssistantMessagesRef.current.delete(assistantMessageId);
             streamedContentRef.current.delete(assistantMessageId);
+            messagesRef.current = partialContent
+              ? messagesRef.current.map((entry) =>
+                  entry.id === assistantMessageId
+                    ? { ...entry, content: `${partialContent}\n\n[Interrupted]`, isComplete: true }
+                    : entry,
+                )
+              : messagesRef.current.filter((entry) => entry.id !== assistantMessageId);
             setMessages((current) =>
               partialContent
                 ? current.map((entry) =>
@@ -620,6 +638,13 @@ export function useAIChat({
           const partialContent = streamedContentRef.current.get(assistantMessageId)?.trim() ?? "";
           pendingAssistantMessagesRef.current.delete(assistantMessageId);
           streamedContentRef.current.delete(assistantMessageId);
+          messagesRef.current = partialContent
+            ? messagesRef.current.map((entry) =>
+                entry.id === assistantMessageId
+                  ? { ...entry, content: `${partialContent}\n\n[Interrupted]`, isComplete: true }
+                  : entry,
+              )
+            : messagesRef.current.filter((entry) => entry.id !== assistantMessageId);
           setMessages((current) =>
             partialContent
               ? current.map((entry) =>
@@ -655,6 +680,7 @@ export function useAIChat({
     const pending = pendingAssistantMessagesRef.current.get(messageId);
     pendingAssistantMessagesRef.current.delete(messageId);
     streamedContentRef.current.delete(messageId);
+    messagesRef.current = messagesRef.current.map((message) => message.id === messageId ? { ...message, isComplete: true } : message);
     setMessages((current) => current.map((message) => message.id === messageId ? { ...message, isComplete: true } : message));
     setIsSending(false);
     setIsAwaitingResponse(false);
@@ -678,6 +704,11 @@ export function useAIChat({
     abortControllerRef.current = null;
     const pendingMessages = [...pendingAssistantMessagesRef.current.values()];
     pendingAssistantMessagesRef.current.clear();
+    messagesRef.current = messagesRef.current.map((message) => {
+      if (message.isComplete !== false) return message;
+      const content = streamedContentRef.current.get(message.id) ?? message.content;
+      return { ...message, content: `${content}\n\n[Stopped]`, isComplete: true };
+    });
     setMessages((current) => current.map((message) => {
       if (message.isComplete !== false) return message;
       const content = streamedContentRef.current.get(message.id) ?? message.content;
