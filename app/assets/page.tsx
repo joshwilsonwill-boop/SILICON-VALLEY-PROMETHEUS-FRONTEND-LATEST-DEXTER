@@ -20,6 +20,7 @@ import {
 } from '@/components/assets/cinematic-library'
 import { LibraryCollection } from '@/components/assets/library-collection'
 import { BrandCanvas } from '@/components/assets/brand-canvas'
+import { BrandDnaStudio } from '@/components/assets/brand-dna-studio'
 import { PrometheusShell } from '@/components/prometheus-shell'
 import { readLocalStorageJSON, writeLocalStorageJSON } from '@/lib/storage'
 import type { AssetItem, AssetKind } from '@/lib/types'
@@ -117,6 +118,8 @@ export default function AssetsPage() {
       />
 
       <BrandCanvas />
+
+      <BrandDnaStudio />
 
       <Dialog
         open={libraryOpen}

@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
-import { ArrowUpRight, Asterisk, Check, Mic, Plus, Sparkles, Volume2, X } from 'lucide-react'
+import { ArrowDown, ArrowUpRight, Asterisk, Check, Mic, Plus, Sparkles, Volume2, X } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 
@@ -362,6 +362,13 @@ export function BrandCanvas() {
 
         <footer className="absolute bottom-5 left-5 right-5 z-20 flex items-end justify-between sm:bottom-8 sm:left-8 sm:right-8 lg:left-12 lg:right-12">
           <p className="max-w-[210px] text-[10px] font-medium leading-relaxed text-white/65 sm:max-w-[250px] sm:text-[11px]">Click any title or detail directly on a card to tune the direction. Changes stay with this brand room.</p>
+          <a
+            href="#brand-dna-studio"
+            className="group hidden items-center gap-2 rounded-full border border-white/25 bg-[#120d26]/80 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-white backdrop-blur-md transition hover:border-[#55ff9b]/60 hover:text-[#55ff9b] sm:flex"
+          >
+            <span>Brand DNA Studio</span>
+            <ArrowDown className="size-3 text-[#55ff9b] transition-transform group-hover:translate-y-0.5" />
+          </a>
           <span className="hidden items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/52 sm:inline-flex"><Volume2 className="size-3.5" /> Voice at top right</span>
         </footer>
 
