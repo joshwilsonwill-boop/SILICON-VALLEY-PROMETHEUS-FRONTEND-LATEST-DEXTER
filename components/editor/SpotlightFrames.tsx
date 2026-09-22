@@ -34,6 +34,8 @@ export interface SpotlightSelector {
     lineLength?: number
     thickness?: number
     color?: string
+    reticle?: boolean
+    spotlight?: boolean
 }
 
 export interface SpotlightEntrance {
@@ -58,6 +60,8 @@ export interface SpotlightFramesProps {
     style?: CSSProperties
     className?: string
     renderOverlay?: (index: number, isOpen: boolean) => React.ReactNode
+    enableCursorSpotlight?: boolean
+    enableParallaxTilt?: boolean
 }
 
 const DEFAULT_IMAGES: SpotlightImage[] = [
@@ -97,6 +101,8 @@ const DEFAULT_SELECTOR: Required<SpotlightSelector> = {
     lineLength: 600,
     thickness: 3,
     color: "#ffffff",
+    reticle: true,
+    spotlight: true,
 }
 
 const DEFAULT_ENTRANCE: Required<SpotlightEntrance> = {
@@ -180,12 +186,40 @@ export default function SpotlightFrames(props: SpotlightFramesProps) {
         style,
         className,
         renderOverlay,
+        enableCursorSpotlight = true,
+        enableParallaxTilt = true,
     } = props
 
     const trackOpts = { ...DEFAULT_TRACK, ...track }
     const panelOpts = { ...DEFAULT_PANEL, ...panel }
     const selectorOpts = { ...DEFAULT_SELECTOR, ...selector }
     const entranceOpts = { ...DEFAULT_ENTRANCE, ...entrance }
+
+    const [pointerPos, setPointerPos] = useState({
+        x: 0,
+        y: 0,
+        normalizedX: 0.5,
+        normalizedY: 0.5,
+        active: false,
+    })
+
+    const handlePointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+        if (!frameRef.current) return
+        const rect = frameRef.current.getBoundingClientRect()
+        const x = e.clientX - rect.left
+        const y = e.clientY - rect.top
+        setPointerPos({
+            x,
+            y,
+            normalizedX: clamp(x / (rect.width || 1), 0, 1),
+            normalizedY: clamp(y / (rect.height || 1), 0, 1),
+            active: true,
+        })
+    }, [])
+
+    const handlePointerLeave = useCallback(() => {
+        setPointerPos((prev) => ({ ...prev, active: false }))
+    }, [])
 
     const sources = useMemo<Frame[]>(() => {
         const supplied = (images ?? [])
@@ -318,6 +352,8 @@ export default function SpotlightFrames(props: SpotlightFramesProps) {
         <div
             ref={frameRef}
             className={className}
+            onPointerMove={handlePointerMove}
+            onPointerLeave={handlePointerLeave}
             style={{
                 position: "relative",
                 width: "100%",
@@ -327,6 +363,21 @@ export default function SpotlightFrames(props: SpotlightFramesProps) {
                 ...style,
             }}
         >
+            {/* Dynamic Cursor Spotlight Beam */}
+            {enableCursorSpotlight && selectorOpts.spotlight && pointerPos.active && (
+                <div
+                    aria-hidden
+                    style={{
+                        position: "absolute",
+                        inset: 0,
+                        pointerEvents: "none",
+                        zIndex: 40,
+                        background: `radial-gradient(220px circle at ${pointerPos.x}px ${pointerPos.y}px, rgba(127, 242, 212, 0.16), transparent 70%)`,
+                        transition: "opacity 200ms ease",
+                    }}
+                />
+            )}
+
             <div
                 style={{
                     position: "absolute",
@@ -341,6 +392,13 @@ export default function SpotlightFrames(props: SpotlightFramesProps) {
                     sources.map(({ src, offsetY }, index) => {
                         const slot = slots[index]
                         const isOpen = index === focused
+                        const parallaxOffset = enableParallaxTilt && isOpen && pointerPos.active
+                            ? {
+                                x: (pointerPos.normalizedX - 0.5) * 14,
+                                y: (pointerPos.normalizedY - 0.5) * 8,
+                            }
+                            : { x: 0, y: 0 }
+
                         return (
                             <motion.div
                                 key={index}
@@ -403,7 +461,8 @@ export default function SpotlightFrames(props: SpotlightFramesProps) {
                                                 position: "absolute",
                                                 left: "50%",
                                                 top: 0,
-                                                transform: "translateX(-50%)",
+                                                transform: `translateX(calc(-50% + ${parallaxOffset.x}px)) translateY(${parallaxOffset.y}px)`,
+                                                transition: "transform 140ms ease-out",
                                                 width: expandedWidth,
                                                 height: "100%",
                                                 objectFit: "cover",
@@ -451,8 +510,80 @@ export default function SpotlightFrames(props: SpotlightFramesProps) {
                             pointerEvents: "none",
                             zIndex: 100,
                             willChange: "left, width",
+                            boxShadow: box ? `0 0 16px ${color}33, inset 0 0 12px ${color}22` : "none",
                         }}
                     >
+                        {/* Optical Corner Reticle Brackets */}
+                        {selectorOpts.reticle && (
+                            <>
+                                <div
+                                    style={{
+                                        position: "absolute",
+                                        top: -3,
+                                        left: -3,
+                                        width: 10,
+                                        height: 10,
+                                        borderTop: `2px solid ${color}`,
+                                        borderLeft: `2px solid ${color}`,
+                                        borderTopLeftRadius: 3,
+                                    }}
+                                />
+                                <div
+                                    style={{
+                                        position: "absolute",
+                                        top: -3,
+                                        right: -3,
+                                        width: 10,
+                                        height: 10,
+                                        borderTop: `2px solid ${color}`,
+                                        borderRight: `2px solid ${color}`,
+                                        borderTopRightRadius: 3,
+                                    }}
+                                />
+                                <div
+                                    style={{
+                                        position: "absolute",
+                                        bottom: -3,
+                                        left: -3,
+                                        width: 10,
+                                        height: 10,
+                                        borderBottom: `2px solid ${color}`,
+                                        borderLeft: `2px solid ${color}`,
+                                        borderBottomLeftRadius: 3,
+                                    }}
+                                />
+                                <div
+                                    style={{
+                                        position: "absolute",
+                                        bottom: -3,
+                                        right: -3,
+                                        width: 10,
+                                        height: 10,
+                                        borderBottom: `2px solid ${color}`,
+                                        borderRight: `2px solid ${color}`,
+                                        borderBottomRightRadius: 3,
+                                    }}
+                                />
+                                <div
+                                    style={{
+                                        position: "absolute",
+                                        top: "50%",
+                                        left: "50%",
+                                        transform: "translate(-50%, -50%)",
+                                        width: 14,
+                                        height: 14,
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        opacity: 0.75,
+                                    }}
+                                >
+                                    <div style={{ width: 1, height: "100%", background: color }} />
+                                    <div style={{ position: "absolute", width: "100%", height: 1, background: color }} />
+                                </div>
+                            </>
+                        )}
+
                         {lines && (
                             <>
                                 <div
@@ -463,7 +594,7 @@ export default function SpotlightFrames(props: SpotlightFramesProps) {
                                         transform: "translateX(-50%)",
                                         width: thickness,
                                         height: lineLength,
-                                        background: color,
+                                        background: `linear-gradient(to top, ${color}, transparent)`,
                                     }}
                                 />
                                 <div
@@ -474,7 +605,7 @@ export default function SpotlightFrames(props: SpotlightFramesProps) {
                                         transform: "translateX(-50%)",
                                         width: thickness,
                                         height: lineLength,
-                                        background: color,
+                                        background: `linear-gradient(to bottom, ${color}, transparent)`,
                                     }}
                                 />
                             </>

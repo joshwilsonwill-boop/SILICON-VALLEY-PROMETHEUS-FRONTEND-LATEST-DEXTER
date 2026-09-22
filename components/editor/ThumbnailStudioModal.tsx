@@ -96,6 +96,36 @@ const AVAILABLE_FLOATING_ASSETS = [
   { id: 'doodle_arrow', label: 'Doodle Arrow' },
 ]
 
+export type SpatialPointId =
+  | 'top-left'
+  | 'top-center'
+  | 'top-right'
+  | 'center-left'
+  | 'center'
+  | 'center-right'
+  | 'bottom-left'
+  | 'bottom-center'
+  | 'bottom-right'
+
+export interface SpatialPositionConfig {
+  id: SpatialPointId
+  label: string
+  row: ThumbnailTextPosition
+  align: 'left' | 'center' | 'right'
+}
+
+export const SPATIAL_POSITIONS: SpatialPositionConfig[] = [
+  { id: 'top-left', label: 'TL', row: 'top', align: 'left' },
+  { id: 'top-center', label: 'TC', row: 'top', align: 'center' },
+  { id: 'top-right', label: 'TR', row: 'top', align: 'right' },
+  { id: 'center-left', label: 'CL', row: 'center', align: 'left' },
+  { id: 'center', label: 'CC', row: 'center', align: 'center' },
+  { id: 'center-right', label: 'CR', row: 'center', align: 'right' },
+  { id: 'bottom-left', label: 'BL', row: 'bottom', align: 'left' },
+  { id: 'bottom-center', label: 'BC', row: 'bottom', align: 'center' },
+  { id: 'bottom-right', label: 'BR', row: 'bottom', align: 'right' },
+]
+
 export function ThumbnailStudioModal({
   isOpen,
   onClose,
@@ -124,8 +154,22 @@ export function ThumbnailStudioModal({
   const [scriptAccent, setScriptAccent] = React.useState("READING'DA")
   const [subtitle, setSubtitle] = React.useState('')
   const [position, setPosition] = React.useState<ThumbnailTextPosition>('bottom')
+  const [spatialPoint, setSpatialPoint] = React.useState<SpatialPointId>('bottom-center')
   const [fontSizeScale, setFontSizeScale] = React.useState(1.0)
   const [showBadge, setShowBadge] = React.useState(true)
+
+  const [stageTilt, setStageTilt] = React.useState({
+    rotateX: 0,
+    rotateY: 0,
+    glareX: 50,
+    glareY: 50,
+    active: false,
+  })
+  const [canvasPlacementFeedback, setCanvasPlacementFeedback] = React.useState<{
+    x: number
+    y: number
+    label: string
+  } | null>(null)
 
   const [textLayer, setTextLayer] = React.useState<TextLayerMode>('behind')
 
@@ -154,6 +198,84 @@ export function ThumbnailStudioModal({
   const [ditherStyle, setDitherStyle] = React.useState<'bayer8' | 'lines' | 'noise'>('bayer8')
   const [keyframeReelMode, setKeyframeReelMode] = React.useState<'spotlight' | 'stagger-matrix'>('spotlight')
   const [pixelDissolveKey, setPixelDissolveKey] = React.useState(0)
+
+  const handleSelectSpatialPoint = (point: SpatialPositionConfig) => {
+    setSpatialPoint(point.id)
+    setPosition(point.row)
+  }
+
+  const handleStageMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect()
+    if (!rect.width || !rect.height) return
+    const x = e.clientX - rect.left
+    const y = e.clientY - rect.top
+    const centerX = rect.width / 2
+    const centerY = rect.height / 2
+    const rotateX = ((y - centerY) / centerY) * -10
+    const rotateY = ((x - centerX) / centerX) * 10
+    const glareX = (x / rect.width) * 100
+    const glareY = (y / rect.height) * 100
+    setStageTilt({
+      rotateX,
+      rotateY,
+      glareX,
+      glareY,
+      active: true,
+    })
+  }
+
+  const handleStageMouseLeave = () => {
+    setStageTilt({
+      rotateX: 0,
+      rotateY: 0,
+      glareX: 50,
+      glareY: 50,
+      active: false,
+    })
+  }
+
+  const handleCanvasPlacement = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect()
+    if (!rect.width || !rect.height) return
+    const clickY = e.clientY - rect.top
+    const clickX = e.clientX - rect.left
+    const normalizedY = clickY / rect.height
+    const normalizedX = clickX / rect.width
+
+    let newRow: ThumbnailTextPosition = 'bottom'
+    let newRowName = 'Bottom'
+    if (normalizedY < 0.36) {
+      newRow = 'top'
+      newRowName = 'Top'
+    } else if (normalizedY < 0.64) {
+      newRow = 'center'
+      newRowName = 'Center'
+    }
+
+    let colId = 'center'
+    let colName = 'Center'
+    if (normalizedX < 0.33) {
+      colId = 'left'
+      colName = 'Left'
+    } else if (normalizedX > 0.66) {
+      colId = 'right'
+      colName = 'Right'
+    }
+
+    const pointId =
+      newRow === 'center' && colId === 'center'
+        ? 'center'
+        : (`${newRow}-${colId}` as SpatialPointId)
+
+    setPosition(newRow)
+    setSpatialPoint(pointId)
+    setCanvasPlacementFeedback({
+      x: clickX,
+      y: clickY,
+      label: `${newRowName} ${colName}`,
+    })
+    setTimeout(() => setCanvasPlacementFeedback(null), 1200)
+  }
 
   const handleAddReferenceImage = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
@@ -586,17 +708,62 @@ export function ThumbnailStudioModal({
                   />
                 ) : null}
 
-                <div className="relative z-10 flex h-full max-h-[500px] w-full items-center justify-center">
+                <div className="relative z-10 flex h-full max-h-[500px] w-full items-center justify-center [perspective:1000px]">
                   {currentDisplayUrl ? (
                     <motion.div
                       layout
+                      onMouseMove={handleStageMouseMove}
+                      onMouseLeave={handleStageMouseLeave}
+                      onClick={handleCanvasPlacement}
                       transition={{ type: 'spring', stiffness: 320, damping: 30 }}
+                      style={{
+                        transform: stageTilt.active
+                          ? `perspective(1000px) rotateX(${stageTilt.rotateX}deg) rotateY(${stageTilt.rotateY}deg) scale3d(1.02, 1.02, 1.02)`
+                          : 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)',
+                        transition: stageTilt.active
+                          ? 'transform 75ms ease-out'
+                          : 'transform 500ms cubic-bezier(0.16, 1, 0.3, 1)',
+                      }}
                       className={cn(
-                        'relative overflow-hidden rounded-xl border border-white/12 bg-black shadow-[0_24px_64px_rgba(0,0,0,0.95)] ring-1 ring-white/[0.06]',
+                        'relative cursor-crosshair overflow-hidden rounded-xl border border-white/12 bg-black shadow-[0_24px_64px_rgba(0,0,0,0.95)] ring-1 ring-white/[0.06] transition-shadow duration-300 hover:shadow-[0_32px_80px_rgba(0,0,0,0.98)]',
                         activeAspectConfig.cssAspect,
                         aspectRatio === '9:16' || aspectRatio === '9:6' ? 'h-full max-h-[500px] w-auto' : 'w-full max-w-[520px] h-auto',
                       )}
                     >
+                      {/* Dynamic Cursor Spotlight Glare Beam */}
+                      {stageTilt.active && (
+                        <div
+                          aria-hidden
+                          className="pointer-events-none absolute inset-0 z-30 opacity-75 transition-opacity duration-200"
+                          style={{
+                            background: `radial-gradient(380px circle at ${stageTilt.glareX}% ${stageTilt.glareY}%, rgba(255,255,255,0.18), transparent 70%)`,
+                          }}
+                        />
+                      )}
+
+                      {/* Interactive Thirds Spatial Guide Lines */}
+                      {stageTilt.active && (
+                        <div aria-hidden className="pointer-events-none absolute inset-0 z-25 flex flex-col justify-between opacity-30 transition-opacity">
+                          <div className="h-1/3 border-b border-dashed border-[#7ff2d4]/50" />
+                          <div className="h-1/3 border-b border-dashed border-[#7ff2d4]/50" />
+                          <div className="h-1/3" />
+                        </div>
+                      )}
+
+                      {/* Click Placement Feedback Ripple */}
+                      {canvasPlacementFeedback && (
+                        <motion.div
+                          initial={{ scale: 0.6, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          className="pointer-events-none absolute z-40 -translate-x-1/2 -translate-y-1/2 flex items-center gap-1.5 rounded-full border border-[#7ff2d4]/70 bg-black/90 px-3 py-1 text-[9px] font-mono font-semibold uppercase tracking-wider text-[#7ff2d4] shadow-[0_0_24px_rgba(127,242,212,0.45)] backdrop-blur-md"
+                          style={{ left: canvasPlacementFeedback.x, top: canvasPlacementFeedback.y }}
+                        >
+                          <span className="size-1.5 rounded-full bg-[#7ff2d4] animate-ping" />
+                          <span>Text Anchor: {canvasPlacementFeedback.label}</span>
+                        </motion.div>
+                      )}
+
                       {previewMode === 'dither' ? (
                         <DitherReveal
                           key={`dither-${selectedFrameIndex}-${currentDisplayUrl}-${ditherStyle}`}
@@ -739,7 +906,11 @@ export function ThumbnailStudioModal({
                         lineLength: 70,
                         thickness: 2,
                         color: '#7ff2d4',
+                        reticle: true,
+                        spotlight: true,
                       }}
+                      enableCursorSpotlight={true}
+                      enableParallaxTilt={true}
                       entrance={{
                         animate: true,
                         duration: 0.6,
@@ -847,65 +1018,109 @@ export function ThumbnailStudioModal({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 border-t border-white/[0.06] pt-4">
-                  <div className="space-y-1.5">
+                {/* Spatial Text Placement Matrix & Depth Layering */}
+                <div className="space-y-2.5 border-t border-white/[0.06] pt-4">
+                  <div className="flex items-center justify-between">
                     <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/40">
-                      Depth Layering
+                      Spatial Placement (9-Point Grid)
                     </span>
-                    <div className="flex flex-col gap-1 rounded-lg border border-white/[0.08] bg-white/[0.02] p-1">
-                      {(
-                        [
-                          { id: 'behind', label: 'Behind Speaker' },
-                          { id: 'foreground', label: 'Foreground Overlay' },
-                          { id: 'split', label: 'Split Dual-Layer' },
-                        ] as const
-                      ).map(({ id, label }) => {
-                        const isCurrent = textLayer === id
-                        return (
-                          <button
-                            key={id}
-                            type="button"
-                            onClick={() => setTextLayer(id)}
-                            className={cn(
-                              'rounded px-2 py-1 text-left text-xs transition-colors',
-                              isCurrent ? 'bg-white/15 text-white font-semibold' : 'text-white/50 hover:text-white',
-                            )}
-                          >
-                            {label}
-                          </button>
-                        )
-                      })}
-                    </div>
+                    <span className="rounded bg-white/[0.04] px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-[#7ff2d4]">
+                      Row: {position.toUpperCase()} • {spatialPoint.toUpperCase()}
+                    </span>
                   </div>
 
-                  <div className="space-y-1.5">
-                    <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/40">
-                      Brand Palette
-                    </span>
-                    <div className="flex flex-wrap gap-1.5 pt-1">
-                      {BRAND_PALETTES.map((p) => {
-                        const isSelected = brandColor.toLowerCase() === p.color.toLowerCase()
-                        return (
-                          <button
-                            key={p.color}
-                            type="button"
-                            title={p.name}
-                            onClick={() => setBrandColor(p.color)}
-                            className={cn(
-                              'size-6 rounded-md border transition-all',
-                              isSelected ? 'scale-110 border-white ring-2 ring-white/50' : 'border-white/20 opacity-80 hover:opacity-100',
-                            )}
-                            style={{ backgroundColor: p.color }}
-                          />
-                        )
-                      })}
-                      <input
-                        type="color"
-                        value={brandColor}
-                        onChange={(e) => setBrandColor(e.target.value)}
-                        className="size-6 cursor-pointer rounded border border-white/20 bg-transparent p-0"
-                      />
+                  <div className="grid grid-cols-12 gap-3">
+                    {/* 3x3 Spatial Grid Selector */}
+                    <div className="col-span-5 flex flex-col justify-center rounded-xl border border-white/[0.08] bg-black/40 p-2 shadow-inner">
+                      <div className="grid grid-cols-3 gap-1.5 aspect-square">
+                        {SPATIAL_POSITIONS.map((point) => {
+                          const isActive = spatialPoint === point.id
+                          return (
+                            <button
+                              key={point.id}
+                              type="button"
+                              onClick={() => handleSelectSpatialPoint(point)}
+                              className={cn(
+                                'flex items-center justify-center rounded-md font-mono text-[9px] font-semibold transition-all duration-150',
+                                isActive
+                                  ? 'bg-[#7ff2d4] text-black shadow-[0_0_12px_rgba(127,242,212,0.6)] scale-105'
+                                  : 'bg-white/[0.04] text-white/40 hover:bg-white/[0.1] hover:text-white',
+                              )}
+                              title={`Align ${point.label} (${point.row})`}
+                            >
+                              {point.label}
+                            </button>
+                          )
+                        })}
+                      </div>
+                      <span className="mt-1.5 text-center font-mono text-[8px] text-white/30">
+                        Click on stage or grid
+                      </span>
                     </div>
+
+                    {/* Depth Layering (Z-Space) */}
+                    <div className="col-span-7 flex flex-col justify-between space-y-1.5">
+                      <span className="font-mono text-[9px] uppercase tracking-wider text-white/40">
+                        Z-Space Depth Layer
+                      </span>
+                      <div className="flex flex-col gap-1 rounded-xl border border-white/[0.08] bg-white/[0.015] p-1.5">
+                        {(
+                          [
+                            { id: 'behind', label: 'Behind Speaker', desc: 'Subject AI Cutout' },
+                            { id: 'foreground', label: 'Foreground Overlay', desc: 'High-Impact Top' },
+                            { id: 'split', label: 'Split Dual-Layer', desc: 'Headline Behind / Script Front' },
+                          ] as const
+                        ).map(({ id, label, desc }) => {
+                          const isCurrent = textLayer === id
+                          return (
+                            <button
+                              key={id}
+                              type="button"
+                              onClick={() => setTextLayer(id)}
+                              className={cn(
+                                'flex flex-col items-start rounded-lg px-2 py-1 text-left transition-all',
+                                isCurrent
+                                  ? 'bg-white/15 text-white font-medium border border-white/20 shadow-sm'
+                                  : 'text-white/50 hover:bg-white/[0.04] hover:text-white',
+                              )}
+                            >
+                              <span className="text-[11px] leading-tight font-medium">{label}</span>
+                              <span className="text-[8px] font-mono text-white/35">{desc}</span>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5 border-t border-white/[0.06] pt-3">
+                  <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/40">
+                    Brand Palette
+                  </span>
+                  <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                    {BRAND_PALETTES.map((p) => {
+                      const isSelected = brandColor.toLowerCase() === p.color.toLowerCase()
+                      return (
+                        <button
+                          key={p.color}
+                          type="button"
+                          title={p.name}
+                          onClick={() => setBrandColor(p.color)}
+                          className={cn(
+                            'size-6 rounded-md border transition-all',
+                            isSelected ? 'scale-110 border-white ring-2 ring-white/50' : 'border-white/20 opacity-80 hover:opacity-100',
+                          )}
+                          style={{ backgroundColor: p.color }}
+                        />
+                      )
+                    })}
+                    <input
+                      type="color"
+                      value={brandColor}
+                      onChange={(e) => setBrandColor(e.target.value)}
+                      className="size-6 cursor-pointer rounded border border-white/20 bg-transparent p-0"
+                    />
                   </div>
                 </div>
 
@@ -933,33 +1148,109 @@ export function ThumbnailStudioModal({
                   </div>
                 ) : null}
 
-                <div className="space-y-2 border-t border-white/[0.06] pt-4">
-                  <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/40">
-                    Typography & Multi-Script
-                  </span>
+                {/* Typography & Multi-Script Command Center */}
+                <div className="space-y-3 border-t border-white/[0.06] pt-4">
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/40">
+                      Typography & Multi-Script
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-[9px] text-white/40">
+                        Scale: {(fontSizeScale * 100).toFixed(0)}%
+                      </span>
+                      <input
+                        type="range"
+                        min="0.6"
+                        max="1.8"
+                        step="0.05"
+                        value={fontSizeScale}
+                        onChange={(e) => setFontSizeScale(parseFloat(e.target.value))}
+                        className="h-1.5 w-16 cursor-pointer accent-[#7ff2d4] bg-white/10 rounded-lg"
+                      />
+                    </div>
+                  </div>
+
                   <div className="space-y-2">
-                    <input
-                      type="text"
-                      value={headline}
-                      onChange={(e) => setHeadline(e.target.value)}
-                      placeholder="Primary bold headline (e.g. $ 1,000,000)"
-                      className="w-full rounded-lg border border-white/[0.08] bg-black/60 px-3 py-2 text-xs text-white placeholder:text-white/25 focus:border-white/30 focus:outline-none"
-                    />
-                    <div className="grid grid-cols-2 gap-2">
+                    {/* Primary Headline Input */}
+                    <div className="relative">
                       <input
                         type="text"
-                        value={scriptAccent}
-                        onChange={(e) => setScriptAccent(e.target.value)}
-                        placeholder="Luxury cursive script accent"
-                        className="w-full rounded-lg border border-white/[0.08] bg-black/60 px-3 py-1.5 text-xs text-[#D8D2C4] placeholder:text-white/25 focus:border-white/30 focus:outline-none"
+                        value={headline}
+                        onChange={(e) => setHeadline(e.target.value)}
+                        placeholder="Primary bold headline (e.g. $ 1,000,000)"
+                        className="w-full rounded-xl border border-white/[0.1] bg-black/60 px-3 py-2 text-xs font-semibold text-white placeholder:text-white/25 focus:border-[#7ff2d4]/50 focus:outline-none focus:ring-1 focus:ring-[#7ff2d4]/30"
                       />
-                      <input
-                        type="text"
-                        value={subtitle}
-                        onChange={(e) => setSubtitle(e.target.value)}
-                        placeholder="Optional subtitle / badge"
-                        className="w-full rounded-lg border border-white/[0.08] bg-black/60 px-3 py-1.5 text-xs text-white/80 placeholder:text-white/25 focus:border-white/30 focus:outline-none"
-                      />
+                      <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setHeadline((h) => h.toUpperCase())}
+                          className="rounded bg-white/[0.06] px-1.5 py-0.5 font-mono text-[8px] uppercase tracking-wider text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+                          title="Auto Uppercase"
+                        >
+                          Caps
+                        </button>
+                        <span className="font-mono text-[9px] text-white/30">
+                          {headline.length}/32
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Signature Cursive Script Accent */}
+                    <div className="space-y-1">
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={scriptAccent}
+                          onChange={(e) => setScriptAccent(e.target.value)}
+                          placeholder="Luxury cursive script accent (e.g. READING'DA)"
+                          className="w-full rounded-xl border border-white/[0.08] bg-black/60 px-3 py-1.5 text-xs italic text-[#D8D2C4] placeholder:text-white/25 focus:border-[#7ff2d4]/40 focus:outline-none"
+                        />
+                        <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 font-mono text-[9px] text-white/30">
+                          Signature Accent
+                        </span>
+                      </div>
+                      {/* Script Preset Chips */}
+                      <div className="flex flex-wrap gap-1 pt-0.5">
+                        {["READING'DA", "VIRAL SECRETS", "EPISODE 01", "BREAKTHROUGH", "UNFILTERED"].map((preset) => (
+                          <button
+                            key={preset}
+                            type="button"
+                            onClick={() => setScriptAccent(preset)}
+                            className={cn(
+                              'rounded-full border border-white/[0.06] bg-white/[0.02] px-2 py-0.5 font-mono text-[8px] transition-colors',
+                              scriptAccent === preset
+                                ? 'border-[#7ff2d4]/40 bg-[#7ff2d4]/10 text-[#7ff2d4]'
+                                : 'text-white/40 hover:text-white hover:bg-white/[0.06]',
+                            )}
+                          >
+                            {preset}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Subtitle & Badge */}
+                    <div className="grid grid-cols-12 gap-2">
+                      <div className="col-span-8">
+                        <input
+                          type="text"
+                          value={subtitle}
+                          onChange={(e) => setSubtitle(e.target.value)}
+                          placeholder="Optional subtitle / badge text"
+                          className="w-full rounded-xl border border-white/[0.08] bg-black/60 px-3 py-1.5 text-xs text-white/80 placeholder:text-white/25 focus:border-white/30 focus:outline-none"
+                        />
+                      </div>
+                      <div className="col-span-4 flex items-center justify-end">
+                        <label className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-white/[0.08] bg-white/[0.02] px-2 py-1 text-[10px] text-white/60 hover:text-white transition-colors">
+                          <input
+                            type="checkbox"
+                            checked={showBadge}
+                            onChange={(e) => setShowBadge(e.target.checked)}
+                            className="size-3 rounded border-white/20 bg-black text-[#7ff2d4] focus:ring-0"
+                          />
+                          <span>Pill Badge</span>
+                        </label>
+                      </div>
                     </div>
                   </div>
                 </div>
