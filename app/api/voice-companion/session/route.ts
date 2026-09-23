@@ -1,6 +1,7 @@
 import 'server-only'
 
 import { NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
 
 export const runtime = 'nodejs'
 
@@ -20,6 +21,26 @@ function resolveLiveModel(value: string | undefined): string {
 
 export async function GET() {
   try {
+    // Require authenticated user session to protect Gemini Live credentials from anonymous scraping
+    try {
+      const supabase = await createClient()
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser()
+
+      if (authError || !user) {
+        return NextResponse.json(
+          { error: 'Unauthorized', detail: 'Authentication required for voice companion session.' },
+          { status: 401 }
+        )
+      }
+    } catch {
+      return NextResponse.json(
+        { error: 'Unauthorized', detail: 'Authentication required for voice companion session.' },
+        { status: 401 }
+      )
+    }
     // Collect all candidate keys in order of freshness
     const candidates = [
       process.env.GEMINI_API_KEY_3,

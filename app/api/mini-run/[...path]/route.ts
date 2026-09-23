@@ -1,6 +1,7 @@
 import {NextResponse} from 'next/server'
 
 import {proxyMiniRunRequest} from '@/lib/server/mini-run-proxy'
+import {createClient} from '@/lib/supabase/server'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -8,6 +9,27 @@ export const dynamic = 'force-dynamic'
 type RouteContext = {params: Promise<{path: string[]}>}
 
 async function handleMiniRun(request: Request, params: {path: string[]}) {
+  const rawPath = params.path || []
+  const joinedPath = rawPath.join('/')
+  const isHealthCheck = request.method.toUpperCase() === 'GET' && joinedPath === 'health'
+
+  // Pipeline execution endpoints must be protected: verify authenticated session
+  if (!isHealthCheck) {
+    try {
+      const supabase = await createClient()
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser()
+
+      if (error || !user) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      }
+    } catch {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+  }
+
   // The environment is resolved lazily by the proxy; fail fast with a clear
   // status when the Mini-Runs app is not configured for this deployment.
   if (!process.env.MINI_RUN_BACKEND_URL) {

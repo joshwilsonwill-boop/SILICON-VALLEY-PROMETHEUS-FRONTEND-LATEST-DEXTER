@@ -40,20 +40,32 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'GEMINI_API_KEY is not configured.' }, { status: 500 })
     }
 
-    // Auth: prefer the session user; allow a caller-supplied userId for direct testing.
-    let userId = ''
+    // Auth: verify authenticated session user.
+    let sessionUserId: string | null = null
     let supabase: Awaited<ReturnType<typeof createClient>> | null = null
     try {
       supabase = await createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) userId = user.id
+      const { data: { user }, error } = await supabase.auth.getUser()
+      if (user && !error) {
+        sessionUserId = user.id
+      }
     } catch {
       supabase = null
     }
-    if (!userId) userId = typeof body.userId === 'string' && body.userId ? body.userId : 'anonymous'
 
-    const memoryStore = supabase ? new SupabaseHermesMemoryStore(supabase) : new InMemoryHermesMemoryStore()
-    const getDriveToken = supabase ? () => getValidAccessToken(userId, 'google_drive') : undefined
+    // Security: Only verified session users can access persistent Supabase memories and OAuth tokens.
+    // When authenticated, the session user ID strictly overrides any caller-supplied body.userId (prevents IDOR).
+    // For unauthenticated callers, fallback to ephemeral in-memory storage and NEVER provide Google Drive tokens.
+    const isAuthenticated = Boolean(sessionUserId)
+    const effectiveUserId = sessionUserId || (typeof body.userId === 'string' && body.userId ? body.userId : 'anonymous')
+
+    const memoryStore = (supabase && isAuthenticated)
+      ? new SupabaseHermesMemoryStore(supabase)
+      : new InMemoryHermesMemoryStore()
+
+    const getDriveToken = (supabase && isAuthenticated && sessionUserId)
+      ? () => getValidAccessToken(sessionUserId, 'google_drive')
+      : undefined
 
     const deps: HermesTurnDeps = {
       apiKey,
@@ -64,7 +76,7 @@ export async function POST(request: NextRequest) {
       brand: typeof body.brand === 'string' ? body.brand : undefined,
     }
 
-    const result = await handleHermesTurn({ ...body, transcript, userId }, deps)
+    const result = await handleHermesTurn({ ...body, transcript, userId: effectiveUserId }, deps)
     return NextResponse.json(result)
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Internal error while talking to Hermes.'
