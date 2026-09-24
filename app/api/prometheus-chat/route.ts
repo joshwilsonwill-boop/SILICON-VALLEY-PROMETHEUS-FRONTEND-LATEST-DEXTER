@@ -2,6 +2,7 @@ import 'server-only'
 
 import Groq from 'groq-sdk'
 import { NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
 
 import {
   classifyPrometheusChatIntent,
@@ -84,6 +85,12 @@ type PrometheusChatRequest = {
 }
 
 export async function POST(req: Request) {
+  const supabase = await createClient()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (authError || !user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   const abortController = new AbortController()
   const timeoutId = setTimeout(() => abortController.abort(), REQUEST_TIMEOUT_MS)
   let fallbackContext: {

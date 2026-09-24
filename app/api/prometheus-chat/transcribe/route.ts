@@ -1,6 +1,8 @@
 import "server-only";
+import { NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { assemblyTranscriptToSegments } from "@/lib/r2/assembly-transcript";
+import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 
@@ -201,6 +203,12 @@ async function transcribeWithAssemblyAI(audioFile: File, apiKey: string): Promis
 }
 
 export async function POST(request: Request) {
+  const supabase = await createClient()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (authError || !user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   const geminiKey = getGeminiKey();
   const assemblyKey = getAssemblyAiKey();
   const groqKey = getGroqKey();

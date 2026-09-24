@@ -1,5 +1,6 @@
-﻿import { NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 
+import { createClient } from '@/lib/supabase/server'
 import { fetchCloudflareMusicCatalog, listAvailableMusicCatalog } from '@/lib/music-drive'
 import { findOwnedMusicTrackById, searchOwnedMusicLibrary } from '@/lib/music-library'
 import type { MusicPreference, MusicVideoContext } from '@/lib/types'
@@ -84,6 +85,12 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
+    const supabase = await createClient()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const body = (await req.json().catch(() => ({}))) as MusicLibraryRequest
     const query = sanitizeInline(body.query ?? '')
     const trackId = sanitizeInline(body.trackId ?? '')

@@ -1,30 +1,68 @@
-# Gates: revamp-thumbnail-studio-lusion-awwwards
+# GATES.md — Prometheus Security Hardening
+# Scope: Seal all 7 critical gaps identified in the live security audit
+# Date: 2026-09-23
+# Branch: feat/thinking-orb-chat-indicator
 
-OWNS: components/editor/ThumbnailStudioModal.tsx, components/editor/SpotlightFrames.tsx, scripts/verify-thumbnail-studio-revamp.mjs, scripts/verify-thumbnail-spatial-text.mjs
+## G1 — middleware.ts exists at repo root
+CHECK: node -e "const fs=require('fs'); if(!fs.existsSync('middleware.ts'))throw new Error('missing'); console.log('G1 PASS');"
+EXPECT: G1 PASS
 
-Scope: Revamp the Prometheus Thumbnail Studio to Awwwards and Lusion.co caliber with interactive 3D cursor movement, mouse-following spotlight reflections, optical track reticles, spatial 9-point text placement matrix, dual-script typographic stacking, and Originkit integrations.
+## G2 — Security headers (CSP, X-Frame, HSTS, X-Content-Type-Options) present in middleware.ts
+CHECK: node -e "const s=require('fs').readFileSync('middleware.ts','utf8'); const ok=['Content-Security-Policy','X-Frame-Options','Strict-Transport-Security','X-Content-Type-Options'].every(h=>s.includes(h)); if(!ok)throw new Error('headers missing'); console.log('G2 PASS');"
+EXPECT: G2 PASS
 
-- [x] G1: Awwwards-tier 3D mouse tracking, cursor spotlight reflection, and optical track reticles pass unit verification
-  CHECK: node scripts/verify-thumbnail-studio-revamp.mjs
-  EXPECT: thumbnail-studio-revamp-verified
-  EVIDENCE: automatic-evidence=v1; definition-sha256=5e5ef5456a5fd52bde9b256723c6ed3b2cd2dc3e86e7f806060af76652dd5214; exit=0; EXPECT=matched; output-sha256=cd7d4f8f694447a440bd14a60ce1537f6c44d650203e0ca7deb634bef656c90b; output-bytes=106; shell=C:\Windows\system32\cmd.exe; cwd=C:\Users\HomePC\Documents\THE FRONT END, PROMETHEUS; path=86e75c2a2287/32 entries
+## G3 — Rate limiting import and invocation present in middleware.ts
+CHECK: node -e "const s=require('fs').readFileSync('middleware.ts','utf8'); if(!s.includes('Ratelimit')&&!s.includes('ratelimit'))throw new Error('no ratelimit'); if(!s.includes('@upstash'))throw new Error('no upstash'); console.log('G3 PASS');"
+EXPECT: G3 PASS
 
-- [x] G2: Spatial 9-point text placement, dual-script typography, and Archetype showcase pass verification
-  CHECK: node scripts/verify-thumbnail-spatial-text.mjs
-  EXPECT: thumbnail-spatial-text-verified
-  EVIDENCE: automatic-evidence=v1; definition-sha256=b371ccedf9a1828a072e972fb5edeeb9b57ab7669fb4d88c436a2f2d137c04a3; exit=0; EXPECT=matched; output-sha256=f5e7f10c598a345afe7c3e6c986d8a544a4944da0c8d33f599f8b7975e7ec38c; output-bytes=113; shell=C:\Windows\system32\cmd.exe; cwd=C:\Users\HomePC\Documents\THE FRONT END, PROMETHEUS; path=86e75c2a2287/32 entries
+## G4 — Auth guard on /api/projects (POST)
+CHECK: node -e "const s=require('fs').readFileSync('app/api/projects/route.ts','utf8'); if(!s.includes('auth.getUser')&&!s.includes('createClient'))throw new Error('no auth'); if(!s.includes('Unauthorized')||!s.includes('401'))throw new Error('no 401'); console.log('G4 PASS');"
+EXPECT: G4 PASS
 
-- [x] G3: Existing Thumbnail Studio pipeline and master review regression checks pass
-  CHECK: node tests/thumbnail-studio-pipeline.test.mjs
-  EXPECT: Thumbnail Studio and Master Video Review regression checks passed!
-  EVIDENCE: automatic-evidence=v1; definition-sha256=e8879828f763237599dd9159b21ccb9a7d256dcbc461dfb6490bc43e4ac80f69; exit=0; EXPECT=matched; output-sha256=788d7f9376c92963f91278e87fffd545e6de07ec183d5ca69f5431871b03bb0e; output-bytes=67; shell=C:\Windows\system32\cmd.exe; cwd=C:\Users\HomePC\Documents\THE FRONT END, PROMETHEUS; path=86e75c2a2287/32 entries
+## G5 — Auth guard on /api/prometheus-chat (POST)
+CHECK: node -e "const s=require('fs').readFileSync('app/api/prometheus-chat/route.ts','utf8'); if(!s.includes('auth.getUser')&&!s.includes('createClient'))throw new Error('no auth'); if(!s.includes('401'))throw new Error('no 401'); console.log('G5 PASS');"
+EXPECT: G5 PASS
 
-- [x] G4: Short-form thumbnail engine and Nano Banana regression checks pass
-  CHECK: node tests/short-form-thumbnail-engine.test.mjs
-  EXPECT: short-form-thumbnail-engine: all checks passed successfully!
-  EVIDENCE: automatic-evidence=v1; definition-sha256=b78bf6c3c964c36f8fd912160e1b6312e7ef041769825229987e87428b55fdcb; exit=0; EXPECT=matched; output-sha256=b622562584ca223666abe04da476a32aec30be08e41bdfc6fe6d23873c2c4fe4; output-bytes=131; shell=C:\Windows\system32\cmd.exe; cwd=C:\Users\HomePC\Documents\THE FRONT END, PROMETHEUS; path=86e75c2a2287/32 entries
+## G6 — Auth guard on /api/prometheus-chat/transcribe (POST)
+CHECK: node -e "const s=require('fs').readFileSync('app/api/prometheus-chat/transcribe/route.ts','utf8'); if(!s.includes('auth.getUser')&&!s.includes('createClient'))throw new Error('no auth'); if(!s.includes('401'))throw new Error('no 401'); console.log('G6 PASS');"
+EXPECT: G6 PASS
 
-- [x] G5: TypeScript typecheck passes cleanly with zero errors
-  CHECK: node scripts/verify-typecheck-clean.mjs
-  EXPECT: typecheck-clean-passed
-  EVIDENCE: automatic-evidence=v1; definition-sha256=e80e7c690010ebbe4d20b8d139c0063ce2add28f480fd51b8822361be47499f6; exit=0; EXPECT=matched; output-sha256=309814c0f7dc7e959bf7bf4c1e99b255d1ab51baeb7f264d71a76fc79737eaa6; output-bytes=61; shell=C:\Windows\system32\cmd.exe; cwd=C:\Users\HomePC\Documents\THE FRONT END, PROMETHEUS; path=86e75c2a2287/32 entries
+## G7 — Auth guard on /api/music/library (POST)
+CHECK: node -e "const s=require('fs').readFileSync('app/api/music/library/route.ts','utf8'); if(!s.includes('auth.getUser')&&!s.includes('createClient'))throw new Error('no auth'); if(!s.includes('401'))throw new Error('no 401'); console.log('G7 PASS');"
+EXPECT: G7 PASS
+
+## G8 — Auth guard on /api/music/match (POST)
+CHECK: node -e "const s=require('fs').readFileSync('app/api/music/match/route.ts','utf8'); if(!s.includes('auth.getUser')&&!s.includes('createClient'))throw new Error('no auth'); if(!s.includes('401'))throw new Error('no 401'); console.log('G8 PASS');"
+EXPECT: G8 PASS
+
+## G9 — Auth guard on /api/music/recommendations (POST)
+CHECK: node -e "const s=require('fs').readFileSync('app/api/music/recommendations/route.ts','utf8'); if(!s.includes('auth.getUser')&&!s.includes('createClient'))throw new Error('no auth'); if(!s.includes('401'))throw new Error('no 401'); console.log('G9 PASS');"
+EXPECT: G9 PASS
+
+## G10 — Auth guard on /api/cinematic/split-preview (POST)
+CHECK: node -e "const s=require('fs').readFileSync('app/api/cinematic/split-preview/route.ts','utf8'); if(!s.includes('auth.getUser')&&!s.includes('createClient'))throw new Error('no auth'); if(!s.includes('401'))throw new Error('no 401'); console.log('G10 PASS');"
+EXPECT: G10 PASS
+
+## G11 — isomorphic-dompurify installed in package.json
+CHECK: node -e "const p=JSON.parse(require('fs').readFileSync('package.json','utf8')); if(!p.dependencies['isomorphic-dompurify'])throw new Error('not installed'); console.log('G11 PASS');"
+EXPECT: G11 PASS
+
+## G12 — Dependabot config exists at .github/dependabot.yml
+CHECK: node -e "const fs=require('fs'); if(!fs.existsSync('.github/dependabot.yml'))throw new Error('missing'); const s=fs.readFileSync('.github/dependabot.yml','utf8'); if(!s.includes('npm'))throw new Error('no npm ecosystem'); console.log('G12 PASS');"
+EXPECT: G12 PASS
+
+## G13 — CodeQL workflow exists at .github/workflows/codeql.yml
+CHECK: node -e "const fs=require('fs'); if(!fs.existsSync('.github/workflows/codeql.yml'))throw new Error('missing'); const s=fs.readFileSync('.github/workflows/codeql.yml','utf8'); if(!s.includes('codeql-action'))throw new Error('no codeql-action'); console.log('G13 PASS');"
+EXPECT: G13 PASS
+
+## G14 — All existing gateway tests still pass (regression)
+CHECK: node tests/gateway-security-hardening.test.mjs
+EXPECT: pass 12
+
+## G15 — All existing voice companion tests still pass (regression)
+CHECK: node tests/prometheus-jarvis-voice-companion.test.mjs
+EXPECT: all checks passed
+
+## G16 — TypeScript compiles clean with no errors
+CHECK: cmd /c "set NODE_OPTIONS=--max-old-space-size=4096 && npx tsc --noEmit 2>&1 | findstr /I error || echo TSC CLEAN"
+EXPECT: TSC CLEAN

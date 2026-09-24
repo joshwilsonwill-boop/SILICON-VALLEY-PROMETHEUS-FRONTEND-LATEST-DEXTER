@@ -5,12 +5,19 @@ import { NextResponse } from 'next/server'
 
 import { r2Client } from '@/lib/r2/client'
 import { requireProjectSourceUploadContext } from '@/lib/r2/project-source-multipart'
+import { createClient } from '@/lib/supabase/server'
 
 export async function POST(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const supabase = await createClient()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const { id: projectId } = await params
     const encodedFilename = req.headers.get('x-file-name')?.trim()
     const mimeType = req.headers.get('x-mime-type')?.trim()

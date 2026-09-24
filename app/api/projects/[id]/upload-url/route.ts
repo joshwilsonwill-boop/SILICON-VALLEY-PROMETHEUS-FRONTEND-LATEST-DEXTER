@@ -1,12 +1,19 @@
 import { NextResponse } from 'next/server'
 import { requireProjectSourceUploadContext } from '@/lib/r2/project-source-multipart'
 import { getPresignedPutUrl } from '@/lib/r2/presigned-url'
+import { createClient } from '@/lib/supabase/server'
 
 export async function POST(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const supabase = await createClient()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const { id: projectId } = await params
     const body = await req.json().catch(() => ({}))
     const context = await requireProjectSourceUploadContext(projectId, {
