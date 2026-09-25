@@ -3,15 +3,30 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 import { resolveGeminiApiKey } from '@/lib/prometheus-assistant/gemini-stream'
 import { SHORT_FORM_ARCHETYPES } from '@/lib/thumbnails/short-form-styles'
 import { createClient } from '@/lib/supabase/server'
+import {
+  buildNanoBananaPrompt,
+  VIRAL_THUMBNAIL_RECIPES,
+  BACKGROUND_SNIPPETS,
+  TEXT_TREATMENT_SNIPPETS,
+  PROOF_ARTIFACT_SNIPPETS,
+  DIRECTIONAL_SNIPPETS,
+} from '@/lib/thumbnails/nano-banana-rulebook'
 
 export const runtime = 'nodejs'
 
 interface NanoBananaRequestBody {
   frameDataUrl?: string
   headline?: string
+  highlightWord?: string
   scriptAccent?: string
   subtitle?: string
   styleId?: string
+  recipeId?: string
+  backgroundId?: string
+  textTreatmentId?: string
+  proofArtifactId?: string
+  directionalId?: string
+  lightingId?: string
   brandColor?: string
   userPrompt?: string
   aspectRatio?: '9:16' | '9:6' | '1:1' | '16:9'
@@ -176,20 +191,22 @@ Extract the exact Channel Style DNA (lighting ratios, color contrast, proof card
       }
     }
 
-    // Baseline fallback prompt if multimodal analysis was skipped or failed
+    const recipe = VIRAL_THUMBNAIL_RECIPES.find((r) => r.id === body?.recipeId)
+    const effectiveAspect = aspectRatio === '16:9' ? '16:9' : aspectRatio === '1:1' ? '1:1' : '9:16'
+
+    // High-conversion prompt synthesized via empirical Nano Banana rulebook
     if (!synthesizedPrompt) {
-      synthesizedPrompt = `Generate a viral, ultra-high-resolution 9:16 vertical short-form video cover art (Shorts / Reels / TikTok).
-Main subject: The central speaker/creator from the video, high focal clarity, cinematic portrait lighting, scaled up 15-20% bust crop.
-Text placement & styling:
-- Text: "${headline.toUpperCase()}"
-${scriptAccent ? `- Script accent: "${scriptAccent}" in flowing luxury cursive script overlapping the headline` : ''}
-${subtitle ? `- Subtitle: "${subtitle.toUpperCase()}" in clean monospace or sans badge` : ''}
-- Depth composition: Bold typography placed ${archetype.textLayer === 'behind' ? "BEHIND the speaker's head and shoulders" : 'as high-contrast foreground overlay'}.
-- Visual style: ${archetype.name} - ${archetype.tagline}.
-- Brand Accent Color: ${brandColor}. Apply this color to glowing halos, colored rim lighting on the speaker silhouette, and highlight badges.
-- Photo & Lens treatments: Clean editorial contrast, a restrained bottom vignette for text legibility, and a subtle film grain. Avoid heavy stylization, lens flares, or neon glows.
-${archetype.defaultFloatingAssets.length > 0 ? `- Floating accent: A single staged icon (${archetype.defaultFloatingAssets.join(', ')}) positioned as an editorial mark.` : ''}
-${userPrompt ? `Additional creative direction: ${userPrompt}` : ''}`
+      synthesizedPrompt = buildNanoBananaPrompt({
+        headline,
+        highlightWord: body?.highlightWord || recipe?.highlightWord,
+        aspectRatio: effectiveAspect,
+        backgroundId: body?.backgroundId || recipe?.backgroundStyle,
+        textTreatmentId: body?.textTreatmentId || recipe?.textTreatmentStyle,
+        proofArtifactId: body?.proofArtifactId || recipe?.proofArtifact,
+        directionalId: body?.directionalId || recipe?.directionalStyle,
+        lightingId: body?.lightingId || recipe?.lightingStyle,
+        userCreativeDirection: userPrompt,
+      })
     }
 
     // 2. Try Google Imagen 3 (Nano Banana Image Model)

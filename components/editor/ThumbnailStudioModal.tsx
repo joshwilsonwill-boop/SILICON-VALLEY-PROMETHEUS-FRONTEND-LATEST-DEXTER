@@ -32,6 +32,15 @@ import {
   type TextLayerMode,
 } from '@/lib/thumbnails/thumbnail-engine'
 import { SHORT_FORM_ARCHETYPES, type ShortFormStyleConfig } from '@/lib/thumbnails/short-form-styles'
+import {
+  VIRAL_THUMBNAIL_RECIPES,
+  BACKGROUND_SNIPPETS,
+  TEXT_TREATMENT_SNIPPETS,
+  PROOF_ARTIFACT_SNIPPETS,
+  DIRECTIONAL_SNIPPETS,
+  LIGHTING_SNIPPETS,
+  type ThumbnailRecipe,
+} from '@/lib/thumbnails/nano-banana-rulebook'
 import { cn } from '@/lib/utils'
 import SpotlightFrames from '@/components/editor/SpotlightFrames'
 import LiquidCarveButton from '@/components/editor/LiquidCarveButton'
@@ -157,6 +166,25 @@ export function ThumbnailStudioModal({
   const [spatialPoint, setSpatialPoint] = React.useState<SpatialPointId>('bottom-center')
   const [fontSizeScale, setFontSizeScale] = React.useState(1.0)
   const [showBadge, setShowBadge] = React.useState(true)
+
+  const [selectedRecipe, setSelectedRecipe] = React.useState<ThumbnailRecipe>(VIRAL_THUMBNAIL_RECIPES[0])
+  const [highlightWord, setHighlightWord] = React.useState<string>(VIRAL_THUMBNAIL_RECIPES[0].highlightWord || 'EASY')
+  const [highlightColor, setHighlightColor] = React.useState<string>('#FFE600')
+  const [selectedProofArtifactId, setSelectedProofArtifactId] = React.useState<string>(VIRAL_THUMBNAIL_RECIPES[0].proofArtifact)
+  const [selectedDirectionalId, setSelectedDirectionalId] = React.useState<string>(VIRAL_THUMBNAIL_RECIPES[0].directionalStyle)
+
+  const handleSelectRecipe = (recipe: ThumbnailRecipe) => {
+    setSelectedRecipe(recipe)
+    setAspectRatio(recipe.aspectRatio as StudioAspectRatio)
+    setSelectedProofArtifactId(recipe.proofArtifact)
+    setSelectedDirectionalId(recipe.directionalStyle)
+    if (recipe.highlightWord) {
+      setHighlightWord(recipe.highlightWord)
+    }
+    if (recipe.exampleHeadline && (!headline || headline === 'TIME MANAGEMENT')) {
+      setHeadline(recipe.exampleHeadline)
+    }
+  }
 
   const [stageTilt, setStageTilt] = React.useState({
     rotateX: 0,
@@ -504,13 +532,20 @@ export function ThumbnailStudioModal({
         body: JSON.stringify({
           frameDataUrl: activeFrame.dataUrl,
           headline,
+          highlightWord,
           scriptAccent,
           subtitle,
+          recipeId: selectedRecipe.id,
           styleId: selectedArchetype.id,
+          backgroundId: selectedRecipe.backgroundStyle,
+          textTreatmentId: selectedRecipe.textTreatmentStyle,
+          proofArtifactId: selectedProofArtifactId,
+          directionalId: selectedDirectionalId,
+          lightingId: selectedRecipe.lightingStyle,
           brandColor,
           aspectRatio,
           referenceImages: channelReferences,
-          lockChannelStyle: true,
+          lockChannelStyle: channelReferences.length > 0,
         }),
       })
 
@@ -979,402 +1014,249 @@ export function ThumbnailStudioModal({
             </div>
 
             <div className="flex flex-col justify-between overflow-y-auto p-5 lg:col-span-5 lg:p-6">
-              <div className="space-y-5">
+              <div className="space-y-4">
+                {/* Header */}
+                <div className="flex items-center justify-between border-b border-white/[0.06] pb-3">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="size-4 text-amber-400" />
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-white">
+                        Nano Banana Studio
+                      </h3>
+                    </div>
+                    <p className="mt-0.5 text-[10px] text-white/40">
+                      High-conversion AI thumbnails conditioned on your video frame
+                    </p>
+                  </div>
+                  <span className="rounded-full border border-amber-400/30 bg-amber-400/10 px-2 py-0.5 font-mono text-[9px] font-semibold text-amber-300">
+                    Multimodal v2.5
+                  </span>
+                </div>
+
+                {/* STEP 1: HOOK & POWER WORD */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/40">
-                      Short-Form Archetypes
+                    <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/50">
+                      1. Hook Headline & Power Word
                     </span>
                     <span className="font-mono text-[9px] text-white/30">
-                      {SHORT_FORM_ARCHETYPES.length} Curated Styles
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 max-h-[155px] overflow-y-auto pr-1 [scrollbar-width:thin]">
-                    {SHORT_FORM_ARCHETYPES.map((arch) => {
-                      const isSelected = selectedArchetype.id === arch.id
-                      return (
-                        <button
-                          key={arch.id}
-                          type="button"
-                          onClick={() => handleSelectArchetype(arch)}
-                          className={cn(
-                            'flex flex-col items-start gap-1 rounded-lg border p-2 text-left transition-all',
-                            isSelected
-                              ? 'border-white/40 bg-white/[0.08] text-white'
-                              : 'border-white/[0.08] bg-white/[0.015] text-white/50 hover:border-white/20 hover:text-white',
-                          )}
-                        >
-                          <div className="flex items-center gap-1.5">
-                            <span
-                              className="size-2 rounded-full"
-                              style={{ backgroundColor: arch.defaultBrandColor }}
-                            />
-                            <span className="truncate text-xs font-semibold">{arch.name}</span>
-                          </div>
-                          <span className="line-clamp-1 text-[9px] text-white/40">{arch.tagline}</span>
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-
-                {/* Spatial Text Placement Matrix & Depth Layering */}
-                <div className="space-y-2.5 border-t border-white/[0.06] pt-4">
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/40">
-                      Spatial Placement (9-Point Grid)
-                    </span>
-                    <span className="rounded bg-white/[0.04] px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-[#7ff2d4]">
-                      Row: {position.toUpperCase()} • {spatialPoint.toUpperCase()}
+                      Click word to highlight
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-12 gap-3">
-                    {/* 3x3 Spatial Grid Selector */}
-                    <div className="col-span-5 flex flex-col justify-center rounded-xl border border-white/[0.08] bg-black/40 p-2 shadow-inner">
-                      <div className="grid grid-cols-3 gap-1.5 aspect-square">
-                        {SPATIAL_POSITIONS.map((point) => {
-                          const isActive = spatialPoint === point.id
-                          return (
-                            <button
-                              key={point.id}
-                              type="button"
-                              onClick={() => handleSelectSpatialPoint(point)}
-                              className={cn(
-                                'flex items-center justify-center rounded-md font-mono text-[9px] font-semibold transition-all duration-150',
-                                isActive
-                                  ? 'bg-[#7ff2d4] text-black shadow-[0_0_12px_rgba(127,242,212,0.6)] scale-105'
-                                  : 'bg-white/[0.04] text-white/40 hover:bg-white/[0.1] hover:text-white',
-                              )}
-                              title={`Align ${point.label} (${point.row})`}
-                            >
-                              {point.label}
-                            </button>
-                          )
-                        })}
-                      </div>
-                      <span className="mt-1.5 text-center font-mono text-[8px] text-white/30">
-                        Click on stage or grid
-                      </span>
-                    </div>
-
-                    {/* Depth Layering (Z-Space) */}
-                    <div className="col-span-7 flex flex-col justify-between space-y-1.5">
-                      <span className="font-mono text-[9px] uppercase tracking-wider text-white/40">
-                        Z-Space Depth Layer
-                      </span>
-                      <div className="flex flex-col gap-1 rounded-xl border border-white/[0.08] bg-white/[0.015] p-1.5">
-                        {(
-                          [
-                            { id: 'behind', label: 'Behind Speaker', desc: 'Subject AI Cutout' },
-                            { id: 'foreground', label: 'Foreground Overlay', desc: 'High-Impact Top' },
-                            { id: 'split', label: 'Split Dual-Layer', desc: 'Headline Behind / Script Front' },
-                          ] as const
-                        ).map(({ id, label, desc }) => {
-                          const isCurrent = textLayer === id
-                          return (
-                            <button
-                              key={id}
-                              type="button"
-                              onClick={() => setTextLayer(id)}
-                              className={cn(
-                                'flex flex-col items-start rounded-lg px-2 py-1 text-left transition-all',
-                                isCurrent
-                                  ? 'bg-white/15 text-white font-medium border border-white/20 shadow-sm'
-                                  : 'text-white/50 hover:bg-white/[0.04] hover:text-white',
-                              )}
-                            >
-                              <span className="text-[11px] leading-tight font-medium">{label}</span>
-                              <span className="text-[8px] font-mono text-white/35">{desc}</span>
-                            </button>
-                          )
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-1.5 border-t border-white/[0.06] pt-3">
-                  <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/40">
-                    Brand Palette
-                  </span>
-                  <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                    {BRAND_PALETTES.map((p) => {
-                      const isSelected = brandColor.toLowerCase() === p.color.toLowerCase()
-                      return (
-                        <button
-                          key={p.color}
-                          type="button"
-                          title={p.name}
-                          onClick={() => setBrandColor(p.color)}
-                          className={cn(
-                            'size-6 rounded-md border transition-all',
-                            isSelected ? 'scale-110 border-white ring-2 ring-white/50' : 'border-white/20 opacity-80 hover:opacity-100',
-                          )}
-                          style={{ backgroundColor: p.color }}
-                        />
-                      )
-                    })}
+                  <div className="relative">
                     <input
-                      type="color"
-                      value={brandColor}
-                      onChange={(e) => setBrandColor(e.target.value)}
-                      className="size-6 cursor-pointer rounded border border-white/20 bg-transparent p-0"
+                      type="text"
+                      value={headline}
+                      onChange={(e) => {
+                        const val = e.target.value
+                        setHeadline(val)
+                        const words = val.trim().split(/\s+/)
+                        if (words.length > 0 && !words.includes(highlightWord)) {
+                          setHighlightWord(words[words.length - 1])
+                        }
+                      }}
+                      placeholder="e.g. EASY MODE or Control your MIND"
+                      className="w-full rounded-xl border border-white/[0.12] bg-black/60 px-3.5 py-2 text-xs font-semibold text-white placeholder:text-white/25 focus:border-amber-400/50 focus:outline-none focus:ring-1 focus:ring-amber-400/30"
                     />
                   </div>
+
+                  {/* Word-by-word Click-to-Highlight Chips */}
+                  {headline.trim() ? (
+                    <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                      <span className="text-[10px] font-mono text-white/40 mr-1">Highlight:</span>
+                      {headline
+                        .trim()
+                        .split(/\s+/)
+                        .map((w, idx) => {
+                          const cleanW = w.replace(/[^a-zA-Z0-9$]/g, '')
+                          const isHighlighted =
+                            highlightWord.toLowerCase() === cleanW.toLowerCase() ||
+                            highlightWord.toLowerCase() === w.toLowerCase()
+                          return (
+                            <button
+                              key={`${w}-${idx}`}
+                              type="button"
+                              onClick={() => setHighlightWord(isHighlighted ? '' : w)}
+                              className={cn(
+                                'rounded px-2 py-0.5 font-mono text-[10px] font-bold transition-all',
+                                isHighlighted
+                                  ? 'bg-[#FFE600] text-black shadow-[0_0_12px_rgba(255,230,0,0.5)] scale-105'
+                                  : 'bg-white/[0.04] text-white/50 hover:bg-white/[0.1] hover:text-white',
+                              )}
+                            >
+                              {w}
+                            </button>
+                          )
+                        })}
+                    </div>
+                  ) : null}
+
+                  {/* Highlight Color Swatches */}
+                  <div className="flex items-center gap-2 pt-0.5">
+                    <span className="text-[10px] font-mono text-white/35">Style:</span>
+                    {[
+                      { id: '#FFE600', label: 'Safety Yellow' },
+                      { id: '#7FF2D4', label: 'Neon Mint' },
+                      { id: '#2563EB', label: 'Cobalt Pill' },
+                      { id: '#EF4444', label: 'Crimson' },
+                    ].map((col) => (
+                      <button
+                        key={col.id}
+                        type="button"
+                        onClick={() => {
+                          setHighlightColor(col.id)
+                          setBrandColor(col.id)
+                        }}
+                        className={cn(
+                          'flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[9px] font-mono border transition-all',
+                          highlightColor === col.id
+                            ? 'border-white bg-white/10 text-white font-semibold'
+                            : 'border-white/10 text-white/40 hover:text-white/70',
+                        )}
+                      >
+                        <span className="size-2 rounded-full" style={{ backgroundColor: col.id }} />
+                        <span>{col.label}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
-                {/* AI Viral Hooks */}
-                {aiData?.hookTitles && aiData.hookTitles.length > 0 ? (
-                  <div className="space-y-1.5 border-t border-white/[0.06] pt-3">
-                    <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/40">
-                      AI Viral Hooks
-                    </span>
-                    <div className="flex flex-wrap gap-1.5 pt-0.5">
-                      {aiData.hookTitles.map((hook, idx) => (
-                        <button
-                          key={idx}
-                          type="button"
-                          onClick={() => setHeadline(hook)}
-                          className={cn(
-                            'rounded border border-white/10 bg-white/[0.03] px-2 py-1 text-left text-[11px] text-white/70 transition-all hover:border-white/30 hover:text-white',
-                            headline === hook && 'border-white/40 bg-white/10 text-white font-medium',
-                          )}
-                        >
-                          {hook}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
-
-                {/* Typography & Multi-Script Command Center */}
-                <div className="space-y-3 border-t border-white/[0.06] pt-4">
+                {/* STEP 2: VIRAL RECIPES */}
+                <div className="space-y-2 border-t border-white/[0.06] pt-3">
                   <div className="flex items-center justify-between">
-                    <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/40">
-                      Typography & Multi-Script
+                    <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/50">
+                      2. Viral Archetype Recipe
                     </span>
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-[9px] text-white/40">
-                        Scale: {(fontSizeScale * 100).toFixed(0)}%
-                      </span>
-                      <input
-                        type="range"
-                        min="0.6"
-                        max="1.8"
-                        step="0.05"
-                        value={fontSizeScale}
-                        onChange={(e) => setFontSizeScale(parseFloat(e.target.value))}
-                        className="h-1.5 w-16 cursor-pointer accent-[#7ff2d4] bg-white/10 rounded-lg"
-                      />
-                    </div>
+                    <span className="font-mono text-[9px] text-amber-300/80">
+                      {selectedRecipe.name}
+                    </span>
                   </div>
 
-                  <div className="space-y-2">
-                    {/* Primary Headline Input */}
-                    <div className="relative">
-                      <input
-                        type="text"
-                        value={headline}
-                        onChange={(e) => setHeadline(e.target.value)}
-                        placeholder="Primary bold headline (e.g. $ 1,000,000)"
-                        className="w-full rounded-xl border border-white/[0.1] bg-black/60 px-3 py-2 text-xs font-semibold text-white placeholder:text-white/25 focus:border-[#7ff2d4]/50 focus:outline-none focus:ring-1 focus:ring-[#7ff2d4]/30"
-                      />
-                      <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => setHeadline((h) => h.toUpperCase())}
-                          className="rounded bg-white/[0.06] px-1.5 py-0.5 font-mono text-[8px] uppercase tracking-wider text-white/60 hover:text-white hover:bg-white/10 transition-colors"
-                          title="Auto Uppercase"
-                        >
-                          Caps
-                        </button>
-                        <span className="font-mono text-[9px] text-white/30">
-                          {headline.length}/32
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Signature Cursive Script Accent */}
-                    <div className="space-y-1">
-                      <div className="relative">
-                        <input
-                          type="text"
-                          value={scriptAccent}
-                          onChange={(e) => setScriptAccent(e.target.value)}
-                          placeholder="Luxury cursive script accent (e.g. READING'DA)"
-                          className="w-full rounded-xl border border-white/[0.08] bg-black/60 px-3 py-1.5 text-xs italic text-[#D8D2C4] placeholder:text-white/25 focus:border-[#7ff2d4]/40 focus:outline-none"
-                        />
-                        <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 font-mono text-[9px] text-white/30">
-                          Signature Accent
-                        </span>
-                      </div>
-                      {/* Script Preset Chips */}
-                      <div className="flex flex-wrap gap-1 pt-0.5">
-                        {["READING'DA", "VIRAL SECRETS", "EPISODE 01", "BREAKTHROUGH", "UNFILTERED"].map((preset) => (
-                          <button
-                            key={preset}
-                            type="button"
-                            onClick={() => setScriptAccent(preset)}
-                            className={cn(
-                              'rounded-full border border-white/[0.06] bg-white/[0.02] px-2 py-0.5 font-mono text-[8px] transition-colors',
-                              scriptAccent === preset
-                                ? 'border-[#7ff2d4]/40 bg-[#7ff2d4]/10 text-[#7ff2d4]'
-                                : 'text-white/40 hover:text-white hover:bg-white/[0.06]',
-                            )}
-                          >
-                            {preset}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Subtitle & Badge */}
-                    <div className="grid grid-cols-12 gap-2">
-                      <div className="col-span-8">
-                        <input
-                          type="text"
-                          value={subtitle}
-                          onChange={(e) => setSubtitle(e.target.value)}
-                          placeholder="Optional subtitle / badge text"
-                          className="w-full rounded-xl border border-white/[0.08] bg-black/60 px-3 py-1.5 text-xs text-white/80 placeholder:text-white/25 focus:border-white/30 focus:outline-none"
-                        />
-                      </div>
-                      <div className="col-span-4 flex items-center justify-end">
-                        <label className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-white/[0.08] bg-white/[0.02] px-2 py-1 text-[10px] text-white/60 hover:text-white transition-colors">
-                          <input
-                            type="checkbox"
-                            checked={showBadge}
-                            onChange={(e) => setShowBadge(e.target.checked)}
-                            className="size-3 rounded border-white/20 bg-black text-[#7ff2d4] focus:ring-0"
-                          />
-                          <span>Pill Badge</span>
-                        </label>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-2 border-t border-white/[0.06] pt-4">
-                  <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/40">
-                    Floating Contextual Assets
-                  </span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {AVAILABLE_FLOATING_ASSETS.map((asset) => {
-                      const isActive = activeAssets.includes(asset.id)
+                  <div className="grid grid-cols-2 gap-2">
+                    {VIRAL_THUMBNAIL_RECIPES.map((recipe) => {
+                      const isSelected = selectedRecipe.id === recipe.id
                       return (
                         <button
-                          key={asset.id}
+                          key={recipe.id}
                           type="button"
-                          onClick={() => toggleFloatingAsset(asset.id)}
+                          onClick={() => handleSelectRecipe(recipe)}
                           className={cn(
-                            'rounded-md border px-2.5 py-1 text-xs transition-colors',
-                            isActive
-                              ? 'border-white/40 bg-white/10 text-white font-medium'
-                              : 'border-white/[0.08] bg-white/[0.02] text-white/50 hover:text-white',
+                            'group flex flex-col items-start gap-1 rounded-xl border p-2.5 text-left transition-all',
+                            isSelected
+                              ? 'border-amber-400/50 bg-amber-500/[0.08] shadow-[0_0_16px_rgba(251,191,36,0.12)]'
+                              : 'border-white/[0.08] bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.04]',
                           )}
                         >
-                          {asset.label}
+                          <div className="flex w-full items-center justify-between">
+                            <span className="font-mono text-[11px] font-bold text-white">
+                              {recipe.name}
+                            </span>
+                            <span className="rounded bg-white/[0.05] px-1 py-0.2 font-mono text-[8px] text-white/40">
+                              {recipe.aspectRatio}
+                            </span>
+                          </div>
+                          <span className="line-clamp-2 text-[9px] leading-relaxed text-white/50">
+                            {recipe.description}
+                          </span>
                         </button>
                       )
                     })}
                   </div>
                 </div>
 
-                <div className="space-y-2 border-t border-white/[0.06] pt-4">
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/40">
-                      Photo & Film Treatments
-                    </span>
-                    <span className="font-mono text-[9px] text-white/30">Vignette: {Math.round(vignetteIntensity * 100)}%</span>
-                  </div>
+                {/* STEP 3: PROOF ARTIFACT & DIRECTIONAL POINTER */}
+                <div className="space-y-2.5 border-t border-white/[0.06] pt-3">
+                  <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/50">
+                    3. Proof Artifact & Directional Cue
+                  </span>
 
-                  <div className="grid grid-cols-2 gap-2 text-xs text-white/70">
-                    <label className="flex cursor-pointer items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={hasVignette}
-                        onChange={(e) => setHasVignette(e.target.checked)}
-                        className="size-3.5 rounded border-white/20 bg-black text-white focus:ring-0"
-                      />
-                      <span>Deep Vignette</span>
-                    </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {/* Proof Artifact Selector */}
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-mono uppercase text-white/40">
+                        Proof Artifact / Prop
+                      </label>
+                      <select
+                        value={selectedProofArtifactId}
+                        onChange={(e) => setSelectedProofArtifactId(e.target.value)}
+                        className="w-full rounded-lg border border-white/[0.1] bg-black/80 px-2 py-1.5 text-xs text-white focus:border-amber-400/50 focus:outline-none"
+                      >
+                        {Object.values(PROOF_ARTIFACT_SNIPPETS).map((snip) => (
+                          <option key={snip.id} value={snip.id} className="bg-neutral-900 text-white">
+                            {snip.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
 
-                    <label className="flex cursor-pointer items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={hasRimLight}
-                        onChange={(e) => setHasRimLight(e.target.checked)}
-                        className="size-3.5 rounded border-white/20 bg-black text-white focus:ring-0"
-                      />
-                      <span>Color Rim Light</span>
-                    </label>
-
-                    <label className="flex cursor-pointer items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={hasFilmGrain}
-                        onChange={(e) => setHasFilmGrain(e.target.checked)}
-                        className="size-3.5 rounded border-white/20 bg-black text-white focus:ring-0"
-                      />
-                      <span>Film Dust & Grain</span>
-                    </label>
-
-                    <label className="flex cursor-pointer items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={hasFringeBlur}
-                        onChange={(e) => setHasFringeBlur(e.target.checked)}
-                        className="size-3.5 rounded border-white/20 bg-black text-white focus:ring-0"
-                      />
-                      <span>Fringe Blur</span>
-                    </label>
-
-                    <label className="flex cursor-pointer items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={hasInkBleed}
-                        onChange={(e) => setHasInkBleed(e.target.checked)}
-                        className="size-3.5 rounded border-white/20 bg-black text-white focus:ring-0"
-                      />
-                      <span>Text Ink Bleed</span>
-                    </label>
-
-                    <label className="flex cursor-pointer items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={hasTelemetryRuler}
-                        onChange={(e) => setHasTelemetryRuler(e.target.checked)}
-                        className="size-3.5 rounded border-white/20 bg-black text-white focus:ring-0"
-                      />
-                      <span>Telemetry Ruler</span>
-                    </label>
+                    {/* Directional Pointer Selector */}
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-mono uppercase text-white/40">
+                        Directional Pointer
+                      </label>
+                      <select
+                        value={selectedDirectionalId}
+                        onChange={(e) => setSelectedDirectionalId(e.target.value)}
+                        className="w-full rounded-lg border border-white/[0.1] bg-black/80 px-2 py-1.5 text-xs text-white focus:border-amber-400/50 focus:outline-none"
+                      >
+                        {Object.values(DIRECTIONAL_SNIPPETS).map((snip) => (
+                          <option key={snip.id} value={snip.id} className="bg-neutral-900 text-white">
+                            {snip.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="mt-6 border-t border-white/[0.06] pt-4 space-y-2.5">
-                {/* Multimodal Nano Banana Channel Style-Lock Card */}
-                <div className="rounded-xl border border-amber-400/25 bg-amber-500/[0.04] p-3 space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-amber-300">
-                      <Sparkles className="size-3.5" />
-                      <span>Nano Banana Multimodal</span>
+                {/* STEP 4: HERO NANO BANANA SYNTHESIZER */}
+                <div className="space-y-2 border-t border-white/[0.06] pt-3">
+                  <button
+                    type="button"
+                    onClick={handleGenerateNanoBanana}
+                    disabled={isGeneratingNano || !candidates.length}
+                    className="relative group flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl border border-amber-400/40 bg-gradient-to-r from-amber-500/25 via-orange-500/25 to-amber-500/25 py-3 text-xs font-bold text-amber-200 shadow-[0_0_24px_rgba(251,191,36,0.18)] transition-all hover:border-amber-400/70 hover:from-amber-500/35 hover:to-orange-500/35 hover:shadow-[0_0_32px_rgba(251,191,36,0.28)] disabled:opacity-50"
+                  >
+                    {isGeneratingNano ? (
+                      <>
+                        <Loader2 className="size-4 animate-spin text-amber-300" />
+                        <span>Synthesizing with Nano Banana…</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="size-4 text-amber-300 animate-pulse" />
+                        <span>SYNTHESIZE WITH NANO BANANA</span>
+                      </>
+                    )}
+                  </button>
+
+                  {nanoSuccessMessage ? (
+                    <motion.div
+                      initial={{ opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-2 text-[11px] text-emerald-300"
+                    >
+                      <Check className="size-3.5 shrink-0 text-emerald-400" />
+                      <span>{nanoSuccessMessage}</span>
+                    </motion.div>
+                  ) : null}
+
+                  {nanoErrorMessage ? (
+                    <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 p-2 text-[11px] text-rose-300">
+                      {nanoErrorMessage}
                     </div>
-                    <span className="rounded bg-amber-400/10 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-widest text-amber-300/80">
-                      Style-Lock AI
-                    </span>
-                  </div>
-                  <p className="text-[11px] leading-relaxed text-white/60">
-                    Conditions directly on your talking-head video frame and extracts channel aesthetic DNA to synthesize a viral, high-retention cover.
-                  </p>
+                  ) : null}
 
-                  <div className="space-y-1.5 pt-1 border-t border-white/[0.06]">
-                    <div className="flex items-center justify-between text-[10px] font-mono text-white/50">
-                      <span>Channel References ({channelReferences.length})</span>
-                      <label className="flex items-center gap-1 cursor-pointer text-amber-300 hover:text-amber-200 transition-colors">
+                  {/* Collapsible Channel References Drawer */}
+                  <div className="rounded-lg border border-white/[0.06] bg-black/40 p-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono text-[9px] uppercase tracking-wider text-white/40">
+                        Channel Style-Lock ({channelReferences.length} refs)
+                      </span>
+                      <label className="flex cursor-pointer items-center gap-1 font-mono text-[9px] text-amber-300 hover:text-amber-200 transition-colors">
                         <Plus className="size-3" />
-                        <span>Add Ref Image</span>
+                        <span>Add Ref</span>
                         <input
                           type="file"
                           accept="image/*"
@@ -1385,14 +1267,17 @@ export function ThumbnailStudioModal({
                     </div>
 
                     {channelReferences.length > 0 ? (
-                      <div className="flex gap-1.5 overflow-x-auto py-1 [scrollbar-width:none]">
+                      <div className="flex gap-1.5 overflow-x-auto pt-2 [scrollbar-width:none]">
                         {channelReferences.map((refImg, idx) => (
-                          <div key={idx} className="relative group size-10 shrink-0 rounded border border-white/20 overflow-hidden bg-black">
+                          <div
+                            key={idx}
+                            className="group relative size-10 shrink-0 overflow-hidden rounded border border-white/20 bg-black"
+                          >
                             <img src={refImg} alt={`Ref ${idx}`} className="size-full object-cover" />
                             <button
                               type="button"
                               onClick={() => handleRemoveReferenceImage(idx)}
-                              className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity"
+                              className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 transition-opacity group-hover:opacity-100"
                             >
                               <Trash2 className="size-3 text-rose-400" />
                             </button>
@@ -1401,93 +1286,51 @@ export function ThumbnailStudioModal({
                       </div>
                     ) : null}
                   </div>
-
-                  {lockedStyleDna ? (
-                    <div className="rounded-lg bg-black/40 p-2 text-[10px] font-mono space-y-1 border border-amber-400/20">
-                      <div className="flex items-center justify-between text-white/70">
-                        <span className="text-white/40 uppercase">Locked DNA</span>
-                        <span className="text-amber-300 font-semibold">{lockedStyleDna.composition?.proofArtifactType || 'Custom Blueprint'}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-white/60">
-                        <span>Accent: {lockedStyleDna.colorPalette?.accent || brandColor}</span>
-                        <span>•</span>
-                        <span>Bust Scale: {lockedStyleDna.composition?.bustScalePercent || 118}%</span>
-                      </div>
-                    </div>
-                  ) : null}
-
-                  <button
-                    type="button"
-                    onClick={handleGenerateNanoBanana}
-                    disabled={isGeneratingNano || !candidates.length}
-                    className="flex w-full items-center justify-center gap-2 rounded-lg border border-amber-400/30 bg-gradient-to-r from-amber-500/20 via-orange-500/20 to-amber-500/20 py-2.5 text-xs font-semibold text-amber-200 shadow-sm transition-all hover:border-amber-400/50 hover:from-amber-500/30 hover:to-orange-500/30 disabled:opacity-50"
-                  >
-                    {isGeneratingNano ? (
-                      <>
-                        <Loader2 className="size-3.5 animate-spin text-amber-300" />
-                        <span>Locking Style & Synthesizing…</span>
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="size-3.5 text-amber-300" />
-                        <span>Synthesize with Nano Banana</span>
-                      </>
-                    )}
-                  </button>
-
-                  {nanoSuccessMessage ? (
-                    <div className="flex items-center gap-1.5 text-[11px] text-emerald-400">
-                      <Check className="size-3 shrink-0" />
-                      <span>{nanoSuccessMessage}</span>
-                    </div>
-                  ) : null}
-                  {nanoErrorMessage ? (
-                    <div className="text-[11px] text-rose-400">{nanoErrorMessage}</div>
-                  ) : null}
                 </div>
+              </div>
 
-                <div className="grid grid-cols-2 gap-2.5">
-                  <button
-                    type="button"
-                    onClick={handleDownload}
-                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/15 bg-white/[0.03] px-4 py-2.5 text-xs font-medium text-white/85 transition-colors hover:border-white/30 hover:bg-white/[0.06] hover:text-white"
-                  >
-                    <Download className="size-3.5" />
-                    Download PNG
-                  </button>
+              {/* Bottom Action Row */}
+              <div className="mt-4 grid grid-cols-2 gap-2.5 border-t border-white/[0.06] pt-3">
+                <button
+                  type="button"
+                  onClick={handleDownload}
+                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/15 bg-white/[0.03] px-4 py-2.5 text-xs font-medium text-white/85 transition-colors hover:border-white/30 hover:bg-white/[0.06] hover:text-white"
+                >
+                  <Download className="size-3.5" />
+                  Download PNG
+                </button>
 
-                  <LiquidCarveButton
-                    label={savedSuccess ? "Cover Saved" : "Save Project Cover"}
-                    onClick={handleSaveCover}
-                    disabled={isExporting}
-                    colors={{
-                      fill: "#ffffff",
-                      textColor: "#000000",
-                    }}
-                    blob={{
-                      color: "#7ff2d4",
-                      size: 44,
-                      smoothness: 60,
-                    }}
-                    padding="8px 16px"
-                    rounded={12}
-                    font={{
-                      fontFamily: "inherit",
-                      fontWeight: 600,
-                      fontSize: 12,
-                      letterSpacing: "0.02em",
-                    }}
-                    addIcon={true}
-                    icon={{
-                      type: "symbol",
-                      symbol: savedSuccess ? "✓" : "✦",
-                      color: "#000000",
-                      size: 13,
-                      side: "left",
-                    }}
-                    className="w-full shadow-md"
-                  />
-                </div>
+                <LiquidCarveButton
+                  label={savedSuccess ? 'Cover Saved' : 'Save Project Cover'}
+                  onClick={handleSaveCover}
+                  disabled={isExporting}
+                  colors={{
+                    fill: '#ffffff',
+                    textColor: '#000000',
+                  }}
+                  blob={{
+                    color: '#7ff2d4',
+                    size: 44,
+                    smoothness: 60,
+                  }}
+                  padding="8px 16px"
+                  rounded={12}
+                  font={{
+                    fontFamily: 'inherit',
+                    fontWeight: 600,
+                    fontSize: 12,
+                    letterSpacing: '0.02em',
+                  }}
+                  addIcon={true}
+                  icon={{
+                    type: 'symbol',
+                    symbol: savedSuccess ? '✓' : '✦',
+                    color: '#000000',
+                    size: 13,
+                    side: 'left',
+                  }}
+                  className="w-full shadow-md"
+                />
               </div>
             </div>
           </div>

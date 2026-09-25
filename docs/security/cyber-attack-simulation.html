@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PROMETHEUS — CYBER THREAT SIMULATION</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --red: #ff2244;
+    --orange: #ff6600;
+    --yellow: #ffcc00;
+    --green: #00ff88;
+    --cyan: #00ccff;
+    --blue: #3366ff;
+    --purple: #aa44ff;
+    --white: #e8f4f8;
+    --dim: rgba(0,204,255,0.08);
+    --grid: rgba(0,204,255,0.06);
+  }
+
+  html, body {
+    width: 100%; height: 100%;
+    background: #020810;
+    font-family: 'Share Tech Mono', monospace;
+    overflow: hidden;
+    color: var(--white);
+  }
+
+  /* GRID BACKGROUND */
+  .grid-bg {
+    position: fixed; inset: 0; z-index: 0;
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 60px 60px;
+    animation: gridPulse 4s ease-in-out infinite;
+  }
+  @keyframes gridPulse {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 0.7; }
+  }
+
+  /* SCANLINE */
+  .scanline {
+    position: fixed; inset: 0; z-index: 1; pointer-events: none;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent, transparent 2px,
+      rgba(0,0,0,0.15) 2px, rgba(0,0,0,0.15) 4px
+    );
+  }
+
+  /* VIGNETTE */
+  .vignette {
+    position: fixed; inset: 0; z-index: 2; pointer-events: none;
+    background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.8) 100%);
+  }
+
+  /* MAIN STAGE */
+  #stage {
+    position: fixed; inset: 0; z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* TITLE */
+  .title-bar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+    padding: 18px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid rgba(0,204,255,0.2);
+    background: rgba(2,8,16,0.9);
+    backdrop-filter: blur(8px);
+  }
+  .title-brand {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 900;
+    font-size: 18px;
+    letter-spacing: 0.3em;
+    color: var(--cyan);
+    text-shadow: 0 0 20px rgba(0,204,255,0.8);
+  }
+  .title-status {
+    font-size: 11px;
+    color: var(--red);
+    letter-spacing: 0.2em;
+    animation: blink 1s step-end infinite;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  .title-clock {
+    font-size: 12px;
+    color: rgba(0,204,255,0.6);
+    letter-spacing: 0.15em;
+  }
+
+  /* FORTRESS — CENTER */
+  .fortress {
+    position: relative;
+    width: 200px; height: 200px;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 30;
+  }
+
+  .fortress-ring {
+    position: absolute;
+    border-radius: 50%;
+    border: 1px solid;
+    animation: ringRotate linear infinite;
+  }
+
+  .ring-1 {
+    width: 200px; height: 200px;
+    border-color: rgba(0,204,255,0.3);
+    animation-duration: 20s;
+  }
+  .ring-2 {
+    width: 260px; height: 260px;
+    border-color: rgba(0,255,136,0.2);
+    border-style: dashed;
+    animation-duration: 30s;
+    animation-direction: reverse;
+  }
+  .ring-3 {
+    width: 340px; height: 340px;
+    border-color: rgba(170,68,255,0.15);
+    animation-duration: 45s;
+  }
+  .ring-4 {
+    width: 440px; height: 440px;
+    border-color: rgba(0,204,255,0.08);
+    border-style: dotted;
+    animation-duration: 60s;
+    animation-direction: reverse;
+  }
+
+  @keyframes ringRotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  .fortress-core {
+    position: relative;
+    width: 140px; height: 140px;
+    border-radius: 50%;
+    background: radial-gradient(ellipse at center,
+      rgba(0,204,255,0.15) 0%,
+      rgba(0,100,200,0.08) 50%,
+      transparent 70%
+    );
+    border: 2px solid rgba(0,204,255,0.5);
+    box-shadow:
+      0 0 30px rgba(0,204,255,0.3),
+      0 0 60px rgba(0,204,255,0.1),
+      inset 0 0 30px rgba(0,204,255,0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: coreBreath 3s ease-in-out infinite;
+    z-index: 31;
+  }
+  @keyframes coreBreath {
+    0%, 100% { box-shadow: 0 0 30px rgba(0,204,255,0.3), 0 0 60px rgba(0,204,255,0.1), inset 0 0 30px rgba(0,204,255,0.08); }
+    50% { box-shadow: 0 0 50px rgba(0,204,255,0.6), 0 0 100px rgba(0,204,255,0.2), inset 0 0 50px rgba(0,204,255,0.15); }
+  }
+
+  .fortress-label {
+    text-align: center;
+  }
+  .fortress-label .logo {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 900;
+    font-size: 13px;
+    letter-spacing: 0.2em;
+    color: var(--cyan);
+    text-shadow: 0 0 15px rgba(0,204,255,0.9);
+    display: block;
+  }
+  .fortress-label .sub {
+    font-size: 8px;
+    letter-spacing: 0.15em;
+    color: rgba(0,204,255,0.5);
+    margin-top: 4px;
+  }
+  .fortress-label .shield-icon {
+    font-size: 28px;
+    display: block;
+    margin-bottom: 4px;
+    animation: shieldPulse 2s ease-in-out infinite;
+  }
+  @keyframes shieldPulse {
+    0%, 100% { transform: scale(1); filter: drop-shadow(0 0 4px rgba(0,204,255,0.5)); }
+    50% { transform: scale(1.1); filter: drop-shadow(0 0 12px rgba(0,204,255,0.9)); }
+  }
+
+  /* ATTACK NODES */
+  .attack-node {
+    position: absolute;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .attack-dot {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: var(--red);
+    box-shadow: 0 0 10px var(--red), 0 0 20px rgba(255,34,68,0.5);
+    animation: dotPulse 1.5s ease-in-out infinite;
+  }
+  @keyframes dotPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.4); }
+  }
+
+  .attack-label {
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-align: center;
+    max-width: 90px;
+    line-height: 1.4;
+  }
+  .attack-label .name { color: var(--red); font-weight: bold; display: block; font-size: 10px; }
+  .attack-label .desc { color: rgba(255,100,100,0.7); font-size: 8px; }
+
+  /* DEFENSE LAYERS */
+  .defense-layer {
+    position: absolute;
+    z-index: 25;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .defense-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green), 0 0 16px rgba(0,255,136,0.4);
+    animation: defensePulse 2s ease-in-out infinite;
+  }
+  @keyframes defensePulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+  .defense-label {
+    font-size: 8px;
+    color: var(--green);
+    text-align: center;
+    max-width: 80px;
+    line-height: 1.3;
+    text-shadow: 0 0 8px rgba(0,255,136,0.5);
+    letter-spacing: 0.05em;
+  }
+
+  /* SVG LAYER — missiles + beams */
+  #beam-layer {
+    position: fixed; inset: 0; z-index: 15; pointer-events: none;
+  }
+
+  /* MISSILE PARTICLE */
+  .missile {
+    position: absolute;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--red);
+    box-shadow: 0 0 12px var(--red);
+    pointer-events: none;
+    z-index: 16;
+  }
+
+  /* INTERCEPT FLASH */
+  .intercept {
+    position: absolute;
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: transparent;
+    border: 2px solid var(--green);
+    pointer-events: none;
+    z-index: 22;
+    animation: interceptAnim 0.6s ease-out forwards;
+  }
+  @keyframes interceptAnim {
+    0% { transform: scale(0.2); opacity: 1; border-color: var(--yellow); }
+    50% { transform: scale(1.5); opacity: 0.8; border-color: var(--green); }
+    100% { transform: scale(2.5); opacity: 0; }
+  }
+
+  /* LOG PANEL */
+  .log-panel {
+    position: fixed;
+    bottom: 0; left: 0;
+    width: 380px;
+    height: 200px;
+    background: rgba(2,8,16,0.95);
+    border-top: 1px solid rgba(0,204,255,0.2);
+    border-right: 1px solid rgba(0,204,255,0.1);
+    padding: 12px 16px;
+    overflow: hidden;
+    z-index: 50;
+  }
+  .log-title {
+    font-size: 10px;
+    color: var(--cyan);
+    letter-spacing: 0.2em;
+    margin-bottom: 10px;
+    border-bottom: 1px solid rgba(0,204,255,0.15);
+    padding-bottom: 6px;
+  }
+  .log-entries {
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 3px;
+    overflow: hidden;
+    height: 150px;
+  }
+  .log-entry {
+    font-size: 10px;
+    line-height: 1.4;
+    opacity: 0;
+    animation: logAppear 0.3s ease-out forwards;
+  }
+  @keyframes logAppear {
+    from { opacity: 0; transform: translateX(-8px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  .log-entry.block { color: var(--green); }
+  .log-entry.attack { color: var(--red); }
+  .log-entry.warn { color: var(--yellow); }
+
+  /* STATS PANEL */
+  .stats-panel {
+    position: fixed;
+    bottom: 0; right: 0;
+    width: 320px;
+    height: 200px;
+    background: rgba(2,8,16,0.95);
+    border-top: 1px solid rgba(0,204,255,0.2);
+    border-left: 1px solid rgba(0,204,255,0.1);
+    padding: 12px 16px;
+    z-index: 50;
+  }
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .stat-label { font-size: 9px; color: rgba(0,204,255,0.6); letter-spacing: 0.15em; }
+  .stat-value { font-size: 14px; font-weight: bold; }
+  .stat-value.green { color: var(--green); text-shadow: 0 0 8px rgba(0,255,136,0.5); }
+  .stat-value.red { color: var(--red); text-shadow: 0 0 8px rgba(255,34,68,0.5); }
+  .stat-value.cyan { color: var(--cyan); text-shadow: 0 0 8px rgba(0,204,255,0.5); }
+
+  .bar-track {
+    height: 4px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 2px;
+  }
+  .bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: var(--green);
+    transition: width 0.5s ease;
+    box-shadow: 0 0 6px var(--green);
+  }
+
+  /* ARSENAL PANEL */
+  .arsenal-panel {
+    position: fixed;
+    top: 62px;
+    right: 0;
+    width: 260px;
+    background: rgba(2,8,16,0.95);
+    border-left: 1px solid rgba(0,204,255,0.15);
+    border-bottom: 1px solid rgba(0,204,255,0.1);
+    padding: 12px 16px;
+    z-index: 50;
+  }
+  .arsenal-title {
+    font-size: 9px;
+    color: var(--cyan);
+    letter-spacing: 0.25em;
+    margin-bottom: 10px;
+  }
+  .arsenal-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 7px;
+  }
+  .arsenal-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .arsenal-text {
+    font-size: 9px;
+    color: rgba(232,244,248,0.7);
+    line-height: 1.3;
+  }
+  .arsenal-text strong { color: var(--white); }
+
+  /* ATTACK INTEL PANEL */
+  .intel-panel {
+    position: fixed;
+    top: 62px;
+    left: 0;
+    width: 260px;
+    background: rgba(2,8,16,0.95);
+    border-right: 1px solid rgba(0,204,255,0.15);
+    border-bottom: 1px solid rgba(0,204,255,0.1);
+    padding: 12px 16px;
+    z-index: 50;
+  }
+  .intel-title {
+    font-size: 9px;
+    color: var(--red);
+    letter-spacing: 0.25em;
+    margin-bottom: 10px;
+  }
+  .intel-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 7px;
+  }
+  .intel-text {
+    font-size: 9px;
+    color: rgba(255,150,150,0.7);
+    line-height: 1.3;
+  }
+  .intel-text strong { color: rgba(255,80,80,1); }
+
+  /* THREAT LEVEL */
+  .threat-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    border: 1px solid var(--red);
+    border-radius: 2px;
+    font-size: 9px;
+    color: var(--red);
+    letter-spacing: 0.2em;
+    animation: threatGlow 2s ease-in-out infinite;
+  }
+  @keyframes threatGlow {
+    0%, 100% { box-shadow: 0 0 8px rgba(255,34,68,0.3); }
+    50% { box-shadow: 0 0 20px rgba(255,34,68,0.6); }
+  }
+
+  /* BOTTOM CENTER LEGEND */
+  .legend {
+    position: fixed;
+    bottom: 210px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 24px;
+    z-index: 50;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+  }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+</style>
+</head>
+<body>
+<div class="grid-bg"></div>
+<div class="scanline"></div>
+<div class="vignette"></div>
+
+<!-- TITLE BAR -->
+<div class="title-bar">
+  <div class="title-brand">⬡ PROMETHEUS · THREAT SIM</div>
+  <div class="threat-badge">⚠ ACTIVE THREAT SIMULATION</div>
+  <div class="title-clock" id="clock"></div>
+</div>
+
+<!-- ATTACK INTEL -->
+<div class="intel-panel">
+  <div class="intel-title">⚔ INBOUND ATTACK VECTORS</div>
+  <div class="intel-item"><div class="arsenal-dot" style="background:#ff2244"></div><div class="intel-text"><strong>XSS INJECTION</strong> — malicious scripts via unsanitized user input fields</div></div>
+  <div class="intel-item"><div class="arsenal-dot" style="background:#ff4400"></div><div class="intel-text"><strong>CSRF FORGING</strong> — cross-site state mutations via forged requests</div></div>
+  <div class="intel-item"><div class="arsenal-dot" style="background:#ff6600"></div><div class="intel-text"><strong>BOT FLOOD / DDoS</strong> — automated scraping, credential stuffing</div></div>
+  <div class="intel-item"><div class="arsenal-dot" style="background:#ff8800"></div><div class="intel-text"><strong>IDOR EXPLOIT</strong> — unauthorized resource access via ID enumeration</div></div>
+  <div class="intel-item"><div class="arsenal-dot" style="background:#ffaa00"></div><div class="intel-text"><strong>SESSION HIJACK</strong> — stolen JWT/cookie token replay attacks</div></div>
+  <div class="intel-item"><div class="arsenal-dot" style="background:#ffcc00"></div><div class="intel-text"><strong>API KEY SCRAPE</strong> — anonymous harvest of server credentials</div></div>
+  <div class="intel-item"><div class="arsenal-dot" style="background:#dd44ff"></div><div class="intel-text"><strong>SUPPLY CHAIN</strong> — compromised npm packages with malicious code</div></div>
+  <div class="intel-item"><div class="arsenal-dot" style="background:#aa22ff"></div><div class="intel-text"><strong>SCHEMA BOMB</strong> — malformed payloads crashing unvalidated routes</div></div>
+  <div class="intel-item"><div class="arsenal-dot" style="background:#0066ff"></div><div class="intel-text"><strong>OAUTH IDOR</strong> — Drive token theft via caller-supplied userId</div></div>
+  <div class="intel-item"><div class="arsenal-dot" style="background:#00aaff"></div><div class="intel-text"><strong>OPEN GPU PROXY</strong> — anonymous Modal GPU compute invocation</div></div>
+</div>
+
+<!-- ARSENAL PANEL -->
+<div class="arsenal-panel">
+  <div class="arsenal-title">🛡 DEFENSE ARSENAL · DEPLOYED</div>
+  <div class="arsenal-item"><div class="arsenal-dot" style="background:#00ff88"></div><div class="arsenal-text"><strong>Supabase Auth SSR</strong> — session-bound getUser() on every write</div></div>
+  <div class="arsenal-item"><div class="arsenal-dot" style="background:#00ff88"></div><div class="arsenal-text"><strong>Cloudflare Turnstile</strong> — bot-proof challenge on auth flows</div></div>
+  <div class="arsenal-item"><div class="arsenal-dot" style="background:#00ddff"></div><div class="arsenal-text"><strong>Zod Schema Validation</strong> — typed parsing rejects malformed payloads</div></div>
+  <div class="arsenal-item"><div class="arsenal-dot" style="background:#00ddff"></div><div class="arsenal-text"><strong>@upstash/ratelimit</strong> — sliding window rate limit on every route</div></div>
+  <div class="arsenal-item"><div class="arsenal-dot" style="background:#88aaff"></div><div class="arsenal-text"><strong>CSP + Security Headers</strong> — X-Frame, HSTS, Referrer-Policy enforced</div></div>
+  <div class="arsenal-item"><div class="arsenal-dot" style="background:#88aaff"></div><div class="arsenal-text"><strong>isomorphic-dompurify</strong> — HTML sanitization before render</div></div>
+  <div class="arsenal-item"><div class="arsenal-dot" style="background:#aa44ff"></div><div class="arsenal-text"><strong>Next.js Middleware</strong> — edge auth guard + route protection</div></div>
+  <div class="arsenal-item"><div class="arsenal-dot" style="background:#aa44ff"></div><div class="arsenal-text"><strong>Dependabot + CodeQL</strong> — supply chain & CVE scanning</div></div>
+  <div class="arsenal-item"><div class="arsenal-dot" style="background:#ffaa00"></div><div class="arsenal-text"><strong>GitHub Secret Scanning</strong> — blocks committed API keys</div></div>
+  <div class="arsenal-item"><div class="arsenal-dot" style="background:#ffaa00"></div><div class="arsenal-text"><strong>AWS KMS</strong> — keys never in plaintext, encrypted at rest</div></div>
+</div>
+
+<!-- MAIN STAGE -->
+<div id="stage">
+  <div class="fortress" id="fortress">
+    <!-- Rings -->
+    <div class="fortress-ring ring-4"></div>
+    <div class="fortress-ring ring-3"></div>
+    <div class="fortress-ring ring-2"></div>
+    <div class="fortress-ring ring-1"></div>
+    <!-- Core -->
+    <div class="fortress-core" id="core">
+      <div class="fortress-label">
+        <span class="shield-icon">🛡</span>
+        <span class="logo">PROMETHEUS</span>
+        <span class="sub">FRONTEND · SECURE</span>
+      </div>
+    </div>
+
+    <!-- Defense nodes on ring-2 (260px radius = 130px) -->
+    <div class="defense-layer" style="top:50%;left:50%;transform:translate(-130px,-50%);">
+      <div class="defense-dot"></div>
+      <div class="defense-label">Auth<br>Guard</div>
+    </div>
+    <div class="defense-layer" style="top:50%;left:50%;transform:translate(120px,-50%);">
+      <div class="defense-dot"></div>
+      <div class="defense-label">Zod<br>Schema</div>
+    </div>
+    <div class="defense-layer" style="top:50%;left:50%;transform:translate(-50%,-130px);">
+      <div class="defense-dot"></div>
+      <div class="defense-label">Rate<br>Limit</div>
+    </div>
+    <div class="defense-layer" style="top:50%;left:50%;transform:translate(-50%,120px);">
+      <div class="defense-dot"></div>
+      <div class="defense-label">Turnstile<br>Bot Wall</div>
+    </div>
+    <div class="defense-layer" style="top:50%;left:50%;transform:translate(-95px,-95px);">
+      <div class="defense-dot"></div>
+      <div class="defense-label">CSP<br>Headers</div>
+    </div>
+    <div class="defense-layer" style="top:50%;left:50%;transform:translate(85px,85px);">
+      <div class="defense-dot"></div>
+      <div class="defense-label">KMS<br>Encrypt</div>
+    </div>
+    <div class="defense-layer" style="top:50%;left:50%;transform:translate(-95px,85px);">
+      <div class="defense-dot"></div>
+      <div class="defense-label">Middleware<br>Edge</div>
+    </div>
+    <div class="defense-layer" style="top:50%;left:50%;transform:translate(85px,-95px);">
+      <div class="defense-dot"></div>
+      <div class="defense-label">DOMPurify<br>Sanitize</div>
+    </div>
+
+    <!-- Attack nodes far out -->
+    <div class="attack-node" id="atk-xss" style="top:50%;left:50%;transform:translate(-420px,-180px)">
+      <div class="attack-dot"></div>
+      <div class="attack-label"><span class="name">⚡ XSS</span><span class="desc">script injection</span></div>
+    </div>
+    <div class="attack-node" id="atk-csrf" style="top:50%;left:50%;transform:translate(360px,-200px)">
+      <div class="attack-dot"></div>
+      <div class="attack-label"><span class="name">⚡ CSRF</span><span class="desc">forged request</span></div>
+    </div>
+    <div class="attack-node" id="atk-bot" style="top:50%;left:50%;transform:translate(-390px,20px)">
+      <div class="attack-dot"></div>
+      <div class="attack-label"><span class="name">⚡ BOT FLOOD</span><span class="desc">1.2M req/s</span></div>
+    </div>
+    <div class="attack-node" id="atk-idor" style="top:50%;left:50%;transform:translate(370px,80px)">
+      <div class="attack-dot"></div>
+      <div class="attack-label"><span class="name">⚡ IDOR</span><span class="desc">id enumeration</span></div>
+    </div>
+    <div class="attack-node" id="atk-session" style="top:50%;left:50%;transform:translate(-300px,-300px)">
+      <div class="attack-dot"></div>
+      <div class="attack-label"><span class="name">⚡ SESSION HIJACK</span><span class="desc">token replay</span></div>
+    </div>
+    <div class="attack-node" id="atk-key" style="top:50%;left:50%;transform:translate(280px,-280px)">
+      <div class="attack-dot"></div>
+      <div class="attack-label"><span class="name">⚡ KEY SCRAPE</span><span class="desc">anon API harvest</span></div>
+    </div>
+    <div class="attack-node" id="atk-supply" style="top:50%;left:50%;transform:translate(-200px,300px)">
+      <div class="attack-dot"></div>
+      <div class="attack-label"><span class="name">⚡ SUPPLY CHAIN</span><span class="desc">malicious npm pkg</span></div>
+    </div>
+    <div class="attack-node" id="atk-schema" style="top:50%;left:50%;transform:translate(250px,290px)">
+      <div class="attack-dot"></div>
+      <div class="attack-label"><span class="name">⚡ SCHEMA BOMB</span><span class="desc">malformed payload</span></div>
+    </div>
+    <div class="attack-node" id="atk-oauth" style="top:50%;left:50%;transform:translate(-100px,340px)">
+      <div class="attack-dot"></div>
+      <div class="attack-label"><span class="name">⚡ OAUTH IDOR</span><span class="desc">Drive token theft</span></div>
+    </div>
+    <div class="attack-node" id="atk-gpu" style="top:50%;left:50%;transform:translate(100px,340px)">
+      <div class="attack-dot"></div>
+      <div class="attack-label"><span class="name">⚡ GPU PROXY</span><span class="desc">anon modal invoke</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- SVG BEAM LAYER -->
+<svg id="beam-layer" xmlns="http://www.w3.org/2000/svg"></svg>
+
+<!-- LOG PANEL -->
+<div class="log-panel">
+  <div class="log-title">◈ SECURITY EVENT LOG</div>
+  <div class="log-entries" id="log-entries"></div>
+</div>
+
+<!-- STATS PANEL -->
+<div class="stats-panel">
+  <div class="log-title">◈ THREAT METRICS</div>
+  <div class="stat-row">
+    <div>
+      <div class="stat-label">ATTACKS BLOCKED</div>
+      <div class="stat-value green" id="stat-blocked">0</div>
+    </div>
+    <div>
+      <div class="stat-label">THREATS DETECTED</div>
+      <div class="stat-value red" id="stat-detected">0</div>
+    </div>
+    <div>
+      <div class="stat-label">UPTIME</div>
+      <div class="stat-value cyan" id="stat-uptime">100%</div>
+    </div>
+  </div>
+  <div style="margin-top:8px">
+    <div class="stat-label" style="margin-bottom:4px">DEFENSE INTEGRITY</div>
+    <div class="bar-track"><div class="bar-fill" id="integrity-bar" style="width:100%"></div></div>
+  </div>
+  <div style="margin-top:10px">
+    <div class="stat-label" style="margin-bottom:4px">AUTH COVERAGE <span style="color:var(--green)" id="auth-pct">100%</span></div>
+    <div class="bar-track"><div class="bar-fill" id="auth-bar" style="width:100%;background:var(--cyan)"></div></div>
+  </div>
+  <div style="margin-top:10px">
+    <div class="stat-label" style="margin-bottom:4px">RATE LIMIT COVERAGE <span style="color:var(--yellow)" id="rl-pct">98%</span></div>
+    <div class="bar-track"><div class="bar-fill" id="rl-bar" style="width:98%;background:var(--yellow)"></div></div>
+  </div>
+</div>
+
+<!-- LEGEND -->
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#ff2244"></div><span style="color:rgba(255,100,100,0.8)">ATTACK VECTOR</span></div>
+  <div class="legend-item"><div class="legend-dot" style="background:#00ff88"></div><span style="color:rgba(0,255,136,0.8)">DEFENSE NODE</span></div>
+  <div class="legend-item"><div class="legend-dot" style="background:#00ccff;border-radius:0"></div><span style="color:rgba(0,204,255,0.8)">PROMETHEUS CORE</span></div>
+  <div class="legend-item"><div class="legend-dot" style="background:#ffcc00"></div><span style="color:rgba(255,200,0,0.8)">INTERCEPT EVENT</span></div>
+</div>
+
+<script>
+// ─── CLOCK ───────────────────────────────────────────
+const clockEl = document.getElementById('clock');
+function updateClock() {
+  clockEl.textContent = new Date().toISOString().replace('T',' ').slice(0,19) + ' UTC';
+}
+updateClock();
+setInterval(updateClock, 1000);
+
+// ─── STATS ───────────────────────────────────────────
+let blocked = 0, detected = 0;
+const blockedEl = document.getElementById('stat-blocked');
+const detectedEl = document.getElementById('stat-detected');
+
+function updateStats() {
+  blockedEl.textContent = blocked.toLocaleString();
+  detectedEl.textContent = detected.toLocaleString();
+}
+
+// ─── LOG ─────────────────────────────────────────────
+const logEl = document.getElementById('log-entries');
+const logMessages = [
+  { type: 'block', text: '✓ [SUPABASE-AUTH] Unauthenticated POST /api/mini-run/api/pipeline/render → 401' },
+  { type: 'attack', text: '⚡ [XSS] Script injection attempt on /api/chat input field' },
+  { type: 'block', text: '✓ [ZOD] Malformed payload on /api/auth/signup rejected at schema layer' },
+  { type: 'attack', text: '⚡ [BOT] 12,450 automated requests in 60s from 93.184.216.0/24' },
+  { type: 'block', text: '✓ [TURNSTILE] Bot challenge failed — 12,450 requests dropped' },
+  { type: 'attack', text: '⚡ [IDOR] Request for /api/exports/7f3a-other-user-uuid without session' },
+  { type: 'block', text: '✓ [AUTH-GUARD] IDOR attempt blocked — no matching session user' },
+  { type: 'attack', text: '⚡ [SUPPLY CHAIN] lodash@4.17.20 CVE-2021-23337 detected in dep tree' },
+  { type: 'block', text: '✓ [DEPENDABOT] PR #441 opened — patch applied automatically' },
+  { type: 'attack', text: '⚡ [OAUTH-IDOR] body.userId="victim-uuid" sent to /api/hermes/agent' },
+  { type: 'block', text: '✓ [SESSION-BIND] sessionUserId overrides body.userId — Drive token protected' },
+  { type: 'warn', text: '⚠ [RATE-LIMIT] /api/auth/login 429 — 100 req/min threshold reached' },
+  { type: 'block', text: '✓ [UPSTASH] Sliding window engaged — caller IP throttled for 60s' },
+  { type: 'attack', text: '⚡ [KEY-SCRAPE] Anonymous GET /api/voice-companion/session attempted' },
+  { type: 'block', text: '✓ [SUPABASE-AUTH] No session — 401 Unauthorized · API keys unexposed' },
+  { type: 'attack', text: '⚡ [CSRF] Cross-origin POST forged from malicious-site.ru' },
+  { type: 'block', text: '✓ [CSP + SAMESITE] Origin mismatch — request rejected at edge middleware' },
+  { type: 'attack', text: '⚡ [SCHEMA-BOMB] Nested 50MB JSON payload sent to /api/prometheus-chat' },
+  { type: 'block', text: '✓ [ZOD] Max-depth exceeded — parse rejected before processing' },
+  { type: 'block', text: '✓ [CODEQL] Zero critical vulnerabilities in codebase — scan clean' },
+  { type: 'attack', text: '⚡ [GPU-PROXY] Anon actor POST /api/mini-run/api/pipeline/matte' },
+  { type: 'block', text: '✓ [AUTH-GUARD] Health-check exempt — pipeline routes require auth · 401' },
+  { type: 'warn', text: '⚠ [SECRET-SCAN] GitHub blocked push containing GEMINI_API_KEY string' },
+  { type: 'block', text: '✓ [KMS] All secrets encrypted at rest with AWS KMS — plaintext never stored' },
+];
+
+let logIdx = 0;
+function appendLog() {
+  const msg = logMessages[logIdx % logMessages.length];
+  logIdx++;
+
+  const el = document.createElement('div');
+  el.className = `log-entry ${msg.type}`;
+  el.textContent = `[${new Date().toISOString().slice(11,19)}] ${msg.text}`;
+  logEl.insertBefore(el, logEl.firstChild);
+
+  // Keep max 12 entries
+  while (logEl.children.length > 12) logEl.removeChild(logEl.lastChild);
+
+  if (msg.type === 'attack') { detected++; }
+  if (msg.type === 'block') { blocked++; }
+  updateStats();
+}
+
+// ─── MISSILE ANIMATION ───────────────────────────────
+const stage = document.getElementById('stage');
+const svgLayer = document.getElementById('beam-layer');
+const core = document.getElementById('core');
+
+const attackIds = [
+  'atk-xss', 'atk-csrf', 'atk-bot', 'atk-idor', 'atk-session',
+  'atk-key', 'atk-supply', 'atk-schema', 'atk-oauth', 'atk-gpu'
+];
+
+function getCenter(el) {
+  const r = el.getBoundingClientRect();
+  return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+}
+
+// Draw static beam lines from attacks to core (dim)
+function drawBeams() {
+  svgLayer.innerHTML = '';
+  const corePos = getCenter(core);
+
+  for (const id of attackIds) {
+    const node = document.getElementById(id);
+    if (!node) continue;
+    const atk = getCenter(node.querySelector('.attack-dot'));
+
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', atk.x);
+    line.setAttribute('y1', atk.y);
+    line.setAttribute('x2', corePos.x);
+    line.setAttribute('y2', corePos.y);
+    line.setAttribute('stroke', 'rgba(255,34,68,0.07)');
+    line.setAttribute('stroke-width', '1');
+    line.setAttribute('stroke-dasharray', '4 6');
+    svgLayer.appendChild(line);
+  }
+}
+
+// Fire a missile from an attack node toward the core
+function fireMissile() {
+  const id = attackIds[Math.floor(Math.random() * attackIds.length)];
+  const attackNode = document.getElementById(id);
+  if (!attackNode) return;
+
+  const startPos = getCenter(attackNode.querySelector('.attack-dot'));
+  const corePos = getCenter(core);
+
+  // Pick an intercept point 30-50% of the way to core
+  const pct = 0.3 + Math.random() * 0.25;
+  const interceptX = startPos.x + (corePos.x - startPos.x) * pct;
+  const interceptY = startPos.y + (corePos.y - startPos.y) * pct;
+
+  const missile = document.createElement('div');
+  missile.className = 'missile';
+  missile.style.left = startPos.x + 'px';
+  missile.style.top = startPos.y + 'px';
+  missile.style.position = 'fixed';
+  document.body.appendChild(missile);
+
+  const duration = 1200 + Math.random() * 800;
+  const start = performance.now();
+
+  function animate(now) {
+    const elapsed = now - start;
+    const t = Math.min(elapsed / duration, 1);
+    const ease = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+
+    const x = startPos.x + (interceptX - startPos.x) * ease;
+    const y = startPos.y + (interceptY - startPos.y) * ease;
+
+    missile.style.left = x + 'px';
+    missile.style.top = y + 'px';
+
+    if (t < 1) {
+      requestAnimationFrame(animate);
+    } else {
+      // INTERCEPT!
+      missile.remove();
+      showIntercept(interceptX, interceptY);
+    }
+  }
+
+  requestAnimationFrame(animate);
+}
+
+function showIntercept(x, y) {
+  const el = document.createElement('div');
+  el.className = 'intercept';
+  el.style.left = (x - 12) + 'px';
+  el.style.top = (y - 12) + 'px';
+  el.style.position = 'fixed';
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 700);
+
+  // Flash core green briefly
+  const coreEl = document.getElementById('core');
+  coreEl.style.borderColor = 'rgba(0,255,136,0.9)';
+  coreEl.style.boxShadow = '0 0 50px rgba(0,255,136,0.6), 0 0 100px rgba(0,255,136,0.2)';
+  setTimeout(() => {
+    coreEl.style.borderColor = '';
+    coreEl.style.boxShadow = '';
+  }, 400);
+}
+
+// ─── INIT + LOOP ─────────────────────────────────────
+window.addEventListener('resize', () => {
+  drawBeams();
+});
+
+setTimeout(() => {
+  drawBeams();
+
+  // Fire missiles
+  setInterval(fireMissile, 900);
+
+  // Stagger log entries
+  appendLog();
+  setInterval(appendLog, 1800);
+
+  // Occasional double-tap
+  setInterval(() => {
+    if (Math.random() < 0.3) fireMissile();
+  }, 600);
+}, 500);
+</script>
+</body>
+</html>

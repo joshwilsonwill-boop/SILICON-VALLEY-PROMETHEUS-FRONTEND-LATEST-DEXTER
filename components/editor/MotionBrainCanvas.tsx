@@ -18,6 +18,7 @@ import {
 import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { cn } from '@/lib/utils'
 import { useDeviceTier } from '@/hooks/useDeviceTier'
+import type { MusicRecommendation } from '@/lib/types'
 
 interface NodeProps {
   title: string
@@ -42,7 +43,12 @@ const Node: React.FC<NodeProps> = ({ title, icon: Icon, children, active, classN
   </div>
 )
 
-export const MotionBrainCanvas: React.FC = () => {
+export interface MotionBrainCanvasProps {
+  track?: MusicRecommendation | null
+  className?: string
+}
+
+export const MotionBrainCanvas: React.FC<MotionBrainCanvasProps> = ({ track, className }) => {
   const isProcessing = true // Mock state
   const tier = useDeviceTier()
   const isLowTier = tier === 'low'
@@ -111,8 +117,8 @@ export const MotionBrainCanvas: React.FC = () => {
           
           <Node title="Audio Print" icon={Cpu}>
             <div className="text-[10px] text-white/40 leading-relaxed">
-              Stereo 48kHz • Dialogue Heavy<br/>
-              Noise Floor: -42dB
+              Stereo 48kHz • {track ? `Soundtrack: ${track.title}` : 'Dialogue Heavy'}<br/>
+              {track ? `Tempo: ${track.bpm || 120} BPM • ${track.genre || 'Cinematic'}` : 'Noise Floor: -42dB'}
             </div>
           </Node>
         </div>
@@ -158,7 +164,7 @@ export const MotionBrainCanvas: React.FC = () => {
              </div>
              <div className="flex-1">
                 <div className="text-[11px] font-bold text-white/80">Rhythmic Cut</div>
-                <div className="text-[9px] text-white/40">Matching transitions to beat</div>
+                <div className="text-[9px] text-white/40">{track ? `Aligned to ${track.bpm || 120} BPM ("${track.title}")` : 'Matching transitions to beat'}</div>
              </div>
              <ChevronRight className="size-3 text-white/20 group-hover:text-accent-cyan transition-colors" />
           </div>

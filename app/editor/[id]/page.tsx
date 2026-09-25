@@ -6316,6 +6316,9 @@ function OriginalEditorPage() {
     if (e.key === 'Escape') setIsEditingTitle(false)
   }
   const [selectedEditorMusicTrackId, setSelectedEditorMusicTrackId] = React.useState<string | null>(null)
+  const [soundtrackVolume, setSoundtrackVolume] = React.useState(0.5)
+  const [isSoundtrackMuted, setIsSoundtrackMuted] = React.useState(false)
+  const soundtrackAudioRef = React.useRef<HTMLAudioElement | null>(null)
   const [viralClipTargetPlatform, setViralClipTargetPlatform] =
     React.useState<ViralClipTargetPlatform>(VIRAL_CLIP_PLATFORM_DEFAULT)
   const [viralClipClipPresetIndex, setViralClipClipPresetIndex] = React.useState(1)
@@ -7044,6 +7047,37 @@ function OriginalEditorPage() {
     () => editorMusicRecommendations.find((track) => track.id === selectedEditorMusicTrackId) ?? null,
     [editorMusicRecommendations, selectedEditorMusicTrackId],
   )
+
+  React.useEffect(() => {
+    if (!soundtrackAudioRef.current && typeof Audio !== 'undefined') {
+      soundtrackAudioRef.current = new Audio()
+    }
+    const audio = soundtrackAudioRef.current
+    if (!audio) return
+
+    if (selectedEditorMusicTrack?.previewUrl) {
+      if (audio.src !== selectedEditorMusicTrack.previewUrl) {
+        audio.src = selectedEditorMusicTrack.previewUrl
+        audio.load()
+      }
+    } else {
+      audio.pause()
+      audio.removeAttribute('src')
+    }
+  }, [selectedEditorMusicTrack?.previewUrl])
+
+  React.useEffect(() => {
+    const audio = soundtrackAudioRef.current
+    if (!audio) return
+    audio.volume = isSoundtrackMuted ? 0 : Math.max(0, Math.min(1, soundtrackVolume))
+  }, [soundtrackVolume, isSoundtrackMuted])
+
+  React.useEffect(() => {
+    return () => {
+      soundtrackAudioRef.current?.pause()
+      soundtrackAudioRef.current = null
+    }
+  }, [])
   const viralClipClipPreset = VIRAL_CLIP_COUNT_PRESETS[viralClipClipPresetIndex] ?? VIRAL_CLIP_COUNT_PRESETS[1]!
   const viralClipProvidedTranscript = buildProvidedTranscript(job)
   const motionTranscriptSegments = React.useMemo(
@@ -8006,6 +8040,16 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
     const playPromise = video.play()
     setPreviewPlaying(true)
 
+    const audio = soundtrackAudioRef.current
+    if (audio && selectedEditorMusicTrack?.previewUrl && !isSoundtrackMuted) {
+      if (Number.isFinite(audio.duration) && audio.duration > 0) {
+        audio.currentTime = video.currentTime % audio.duration
+      }
+      audio.play().catch(() => {
+        // Safe: browser autoplay policy restriction
+      })
+    }
+
     if (playPromise && typeof playPromise.catch === 'function') {
       playPromise.catch(() => {
         if (previewPlaybackCommandRef.current !== commandId) return
@@ -8016,9 +8060,10 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
         })
         previewPlaybackIntentRef.current = 'paused'
         setPreviewPlaying(false)
+        soundtrackAudioRef.current?.pause()
       })
     }
-  }, [previewKind, previewUrl, projectId])
+  }, [previewKind, previewUrl, projectId, selectedEditorMusicTrack?.previewUrl, isSoundtrackMuted])
 
   const clearPreviewToggleCooldown = React.useCallback(() => {
     if (previewToggleCooldownRef.current === null) return
@@ -8268,6 +8313,10 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
     if (video) {
       video.currentTime = nextTime
     }
+    const audio = soundtrackAudioRef.current
+    if (audio && Number.isFinite(audio.duration) && audio.duration > 0) {
+      audio.currentTime = nextTime % audio.duration
+    }
     setPreviewCurrentTimeSec(nextTime)
   }, [transportDurationSec])
 
@@ -8278,6 +8327,7 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
     if (video) {
       video.pause()
     }
+    soundtrackAudioRef.current?.pause()
     setPreviewPlaying(false)
   }, [])
 
@@ -9045,6 +9095,16 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
                     onVideoError={handlePreviewVideoError}
                     onImageLoaded={handlePreviewImageLoaded}
                     onApplyPrompt={handleMotionCanvasPrompt}
+                    selectedMusicTrack={selectedEditorMusicTrack}
+                    onSelectMusicTrack={handleEditorMusicTrackSelect}
+                    onOpenMusicCatalog={() => {
+                      setActiveWorkspaceTab('Music')
+                      setBottomMode('Music')
+                    }}
+                    soundtrackVolume={soundtrackVolume}
+                    onSoundtrackVolumeChange={setSoundtrackVolume}
+                    soundtrackMuted={isSoundtrackMuted}
+                    onSoundtrackMutedChange={setIsSoundtrackMuted}
                   />
                 ) : null}
 

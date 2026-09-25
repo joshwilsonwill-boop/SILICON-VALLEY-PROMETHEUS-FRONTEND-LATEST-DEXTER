@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Brain, Pause, Play, Sparkles } from "lucide-react";
+import { Brain, Music, Pause, Play, Sparkles } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 
 import { InlineLoadingAnimation } from "@/components/loading-animation";
 import { cn } from "@/lib/utils";
 import { useDeviceTier } from "@/hooks/useDeviceTier";
+import type { MusicRecommendation } from "@/lib/types";
+import { generateBeatsForTrack } from "@/lib/editor/music-beat-engine";
 
 import { BeatMapper } from "./BeatMapper";
 import { SemanticVectorGrid } from "./SemanticVectorGrid";
@@ -36,7 +38,12 @@ const semanticVectors = [
   { word: "signal", timestamp: 5.4, embedding: [0.38, 0.77, 0.7, 0.29] },
 ];
 
-export function MotionBrainPanel() {
+export interface MotionBrainPanelProps {
+  track?: MusicRecommendation | null;
+  className?: string;
+}
+
+export function MotionBrainPanel({ track, className }: MotionBrainPanelProps = {}) {
   const [processing, setProcessing] = useState(false);
   const [beats, setBeats] = useState<Beat[]>([]);
   const [playing, setPlaying] = useState(false);
@@ -62,18 +69,35 @@ export function MotionBrainPanel() {
     }
 
     timeoutRef.current = setTimeout(() => {
-      setBeats(generatedBeats);
+      const liveBeats: Beat[] = track
+        ? generateBeatsForTrack(track, 30).slice(0, 12).map((b) => ({
+            id: b.id,
+            time: b.time,
+            word: b.word ?? (track.title || "Beat"),
+            type: (b.type === "climax" ? "climax" : b.type === "downbeat" ? "emphasis" : "build") as Beat["type"],
+            intensity: b.intensity,
+          }))
+        : generatedBeats;
+
+      setBeats(liveBeats);
       setProcessing(false);
       setPlaying(!staticFallback);
-    }, staticFallback ? 600 : 2000);
+    }, staticFallback ? 600 : 1500);
   };
 
   return (
-    <div className="flex h-full w-80 flex-col border-l border-border-subtle glass-panel">
+    <div className={cn("flex h-full w-80 flex-col border-l border-border-subtle glass-panel", className)}>
       <div className="flex h-14 items-center gap-2 border-b border-border-subtle px-4">
         <Brain className="h-5 w-5 text-accent-cyan" />
         <span className="font-display text-sm font-medium chrome-text">Motion Brain</span>
       </div>
+      {track ? (
+        <div className="flex items-center gap-2 border-b border-border-subtle bg-accent-cyan/5 px-4 py-2 text-xs">
+          <Music className="size-3.5 text-accent-cyan shrink-0" />
+          <span className="truncate font-medium text-white/90">{track.title}</span>
+          <span className="ml-auto text-[10px] text-accent-cyan font-mono">{track.bpm || 120} BPM</span>
+        </div>
+      ) : null}
       <div className="flex-1 space-y-4 overflow-y-auto p-4">
         <button
           onClick={run}

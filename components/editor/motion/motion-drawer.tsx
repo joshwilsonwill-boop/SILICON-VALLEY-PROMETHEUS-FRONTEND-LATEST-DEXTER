@@ -4,15 +4,17 @@ import * as React from 'react'
 import { X } from 'lucide-react'
 import { SlideDrawer } from '@/components/ui/slide-drawer'
 import { MotionBrainPanel } from '@/components/editor/MotionBrainPanel'
+import type { MusicRecommendation } from '@/lib/types'
 
 export interface MotionDrawerProps {
   isOpen: boolean
   onClose: () => void
   width?: string
+  track?: MusicRecommendation | null
   children?: React.ReactNode
 }
 
-export function MotionDrawer({ isOpen, onClose, width = 'min(380px, calc(100vw - 24px))', children }: MotionDrawerProps) {
+export function MotionDrawer({ isOpen, onClose, width = 'min(380px, calc(100vw - 24px))', track, children }: MotionDrawerProps) {
   return (
     <SlideDrawer
       isOpen={isOpen}
@@ -38,7 +40,7 @@ export function MotionDrawer({ isOpen, onClose, width = 'min(380px, calc(100vw -
       </header>
 
       <div className="min-h-0 flex-1 overflow-y-auto p-3 [scrollbar-color:rgba(255,255,255,0.18)_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-track]:bg-transparent">
-        {children ?? <MotionBrainPanel />}
+        {children ?? <MotionBrainPanel track={track} />}
       </div>
     </SlideDrawer>
   )

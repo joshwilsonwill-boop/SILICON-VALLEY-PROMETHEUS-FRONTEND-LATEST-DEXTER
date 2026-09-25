@@ -2,8 +2,8 @@
 
 import React, { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Mic, MicOff, Eye, EyeOff, Sparkles, X, Radio, ArrowUp, Power } from 'lucide-react'
-import { Liquid } from 'liquid-gooey'
+import { Mic, MicOff, Sparkles, X, Radio, ArrowUp, Power } from 'lucide-react'
+import { Dock, DockItem, DockLabel, DockIcon } from '@/components/ui/dock'
 
 import { cn } from '@/lib/utils'
 import { useVoiceCompanion } from '@/hooks/use-voice-companion'
@@ -158,7 +158,7 @@ export function JarvisTopNavFilament({ className }: JarvisTopNavFilamentProps) {
         onClick={handleToggleCompanion}
         role="button"
         tabIndex={0}
-        aria-label="Jarvis Voice & Vision Neural Filament"
+        aria-label="Jarvis Voice Neural Filament"
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault()
@@ -383,137 +383,125 @@ export function JarvisTopNavFilament({ className }: JarvisTopNavFilamentProps) {
             </div>
 
             <div className="relative mt-4 border-t border-white/[0.09] pt-3">
-              <Liquid
-                blur={3}
-                contrast={13}
-                fill="rgba(255,255,255,0.05)"
-                shadow="0 8px 18px rgba(0,0,0,0.28)"
-                className="relative flex items-center justify-center gap-3 py-1"
+              <Dock
+                magnification={52}
+                distance={90}
+                panelHeight={46}
+                className="gap-2.5 rounded-full border-white/10 bg-white/[0.035] px-2.5 shadow-none"
               >
-                {/* 1. Mute / Unmute */}
-                <Liquid.Item x={0} y={0} transition="bouncy">
-                  <button
-                    type="button"
-                    onClick={companion.toggleMute}
-                    data-action="filament-mute-mic"
-                    data-autonomous-target="filament-mic"
-                    title={companion.isMuted ? "Unmute microphone" : "Mute microphone"}
-                    aria-label={companion.isMuted ? "Unmute microphone" : "Mute microphone"}
-                    className={cn(
-                      "round-btn flex size-9 items-center justify-center rounded-full border transition-all duration-300 active:scale-95 shadow-none",
-                      companion.isMuted
-                        ? "border-rose-300/50 bg-rose-400/10 text-rose-200"
-                        : "border-white/15 bg-white/[0.055] text-white/80 hover:border-white/30 hover:bg-white/10 hover:text-white"
-                    )}
-                  >
+                {/* 1. Voice (Mute / Unmute) */}
+                <DockItem
+                  onClick={companion.toggleMute}
+                  data-action="filament-mute-mic"
+                  data-autonomous-target="filament-mic"
+                  title={companion.isMuted ? "Unmute microphone" : "Mute microphone"}
+                  aria-label={companion.isMuted ? "Unmute microphone" : "Mute microphone"}
+                  className={cn(
+                    "cursor-pointer border transition-colors duration-200",
+                    companion.isMuted
+                      ? "border-rose-300/50 bg-rose-400/10 text-rose-200 shadow-[0_0_12px_rgba(244,63,94,0.25)]"
+                      : "border-white/15 bg-white/[0.055] text-white/80 hover:border-white/30 hover:bg-white/10 hover:text-white"
+                  )}
+                >
+                  <DockLabel>{companion.isMuted ? "Unmute Voice" : "Mute Voice"}</DockLabel>
+                  <DockIcon>
                     {companion.isMuted ? <MicOff className="size-4" /> : <Mic className="size-4" />}
-                  </button>
-                </Liquid.Item>
+                  </DockIcon>
+                </DockItem>
 
-                {/* 2. Vision Stream */}
-                <Liquid.Item x={0} y={0} transition="bouncy" delay={30}>
-                  <button
-                    type="button"
-                    onClick={companion.toggleVision}
-                    title={companion.isVisionActive ? "Vision stream active (Click to pause)" : "Vision stream off (Click to enable)"}
-                    aria-label={companion.isVisionActive ? "Vision stream active" : "Vision stream off"}
-                    className={cn(
-                      "round-btn flex size-9 items-center justify-center rounded-full border transition-all duration-300 active:scale-95 shadow-none",
-                      companion.isVisionActive
-                        ? "border-cyan-300/50 bg-cyan-300/10 text-cyan-200"
-                        : "border-white/15 bg-white/[0.055] text-white/55 hover:border-white/30 hover:bg-white/10 hover:text-white"
-                    )}
-                  >
-                    {companion.isVisionActive ? <Eye className="size-4" /> : <EyeOff className="size-4" />}
-                  </button>
-                </Liquid.Item>
+                {/* 2. Editor Neural Link ("the editor") */}
+                <DockItem
+                  tabIndex={-1}
+                  role="status"
+                  title={isEditorLinked ? "Editor linked to Jarvis" : "Editor idle (open a project to link)"}
+                  aria-label={isEditorLinked ? "Editor linked" : "Editor idle"}
+                  className={cn(
+                    "cursor-default border transition-colors duration-200",
+                    isEditorLinked
+                      ? "border-emerald-300/50 bg-emerald-300/10 text-emerald-200 shadow-[0_0_12px_rgba(110,231,183,0.2)]"
+                      : "border-white/15 bg-white/[0.055] text-white/35"
+                  )}
+                >
+                  <DockLabel>{isEditorLinked ? "Editor Linked" : "Editor Idle"}</DockLabel>
+                  <DockIcon>
+                    <Radio className={cn("size-4", isEditorLinked && "animate-pulse")} />
+                  </DockIcon>
+                </DockItem>
 
-                {/* 3. Autonomous Takeover ("take a wire") */}
-                <Liquid.Item x={0} y={-3} transition="bouncy" delay={60}>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={Boolean(bridge.isTakeoverEnabled)}
-                    onClick={() => {
-                      if (bridge.onToggleTakeover) {
-                        bridge.onToggleTakeover()
+                {/* 3. Hotspots / Autonomous Takeover ("the hotspots") */}
+                <DockItem
+                  role="switch"
+                  aria-checked={Boolean(bridge.isTakeoverEnabled)}
+                  onClick={() => {
+                    if (bridge.onToggleTakeover) {
+                      bridge.onToggleTakeover()
+                    } else {
+                      if (!bridge.isTakeoverEnabled) {
+                        autonomousCoordinator.executeAutonomousTakeover('Motion')
                       } else {
-                        if (!bridge.isTakeoverEnabled) {
-                          autonomousCoordinator.executeAutonomousTakeover('Motion')
-                        } else {
-                          autonomousCoordinator.endTakeover()
-                        }
+                        autonomousCoordinator.endTakeover()
                       }
-                    }}
-                    title={
-                      bridge.isTakeoverEnabled
-                        ? "Agent Takeover active (Click to release)"
-                        : "Autonomous Takeover (Click to let Jarvis take control)"
                     }
-                    aria-label={bridge.isTakeoverEnabled ? "Agent Takeover active" : "Autonomous Takeover"}
-                    className={cn(
-                      "round-btn relative flex size-10 items-center justify-center rounded-full border transition-all duration-300 active:scale-95 shadow-none",
-                      bridge.isTakeoverEnabled
-                        ? "border-amber-300/65 bg-amber-300/10 text-amber-200"
-                        : "border-cyan-300/35 bg-cyan-300/[0.055] text-cyan-200 hover:border-cyan-300/65 hover:bg-cyan-300/10"
-                    )}
-                  >
+                  }}
+                  title={
+                    bridge.isTakeoverEnabled
+                      ? "Hotspots active (Click to release)"
+                      : "Hotspots Takeover (Click to let Jarvis take control)"
+                  }
+                  aria-label={bridge.isTakeoverEnabled ? "Hotspots active" : "Hotspots Takeover"}
+                  className={cn(
+                    "cursor-pointer border transition-colors duration-200",
+                    bridge.isTakeoverEnabled
+                      ? "border-amber-300/65 bg-amber-300/10 text-amber-200 shadow-[0_0_12px_rgba(252,211,77,0.3)]"
+                      : "border-cyan-300/35 bg-cyan-300/[0.055] text-cyan-200 hover:border-cyan-300/65 hover:bg-cyan-300/10"
+                  )}
+                >
+                  <DockLabel>{bridge.isTakeoverEnabled ? "Release Hotspots" : "Hotspots Takeover"}</DockLabel>
+                  <DockIcon className="relative">
                     <Sparkles className={cn("size-4", bridge.isTakeoverEnabled && "animate-spin")} style={{ animationDuration: '4s' }} />
                     {bridge.isTakeoverEnabled && (
-                      <span className="absolute -top-0.5 -right-0.5 flex size-2.5">
+                      <span className="absolute -top-0.5 -right-0.5 flex size-2">
                         <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
-                        <span className="relative inline-flex size-2.5 rounded-full bg-amber-400" />
+                        <span className="relative inline-flex size-2 rounded-full bg-amber-400" />
                       </span>
                     )}
-                  </button>
-                </Liquid.Item>
+                  </DockIcon>
+                </DockItem>
 
-                {/* 4. Editor Neural Link ("digital link") */}
-                <Liquid.Item x={0} y={0} transition="bouncy" delay={90}>
-                  <div
-                    title={isEditorLinked ? "Editor linked to Jarvis" : "Editor idle (open a project to link)"}
-                    aria-label={isEditorLinked ? "Editor linked" : "Editor idle"}
-                    className={cn(
-                      "round-btn flex size-9 items-center justify-center rounded-full border transition-all duration-300 shadow-none",
-                      isEditorLinked
-                        ? "border-emerald-300/50 bg-emerald-300/10 text-emerald-200"
-                        : "border-white/15 bg-white/[0.055] text-white/35"
-                    )}
-                  >
-                    <Radio className={cn("size-4", isEditorLinked && "animate-pulse")} />
-                  </div>
-                </Liquid.Item>
-
-                {/* 5. Connect / Disconnect Power */}
-                <Liquid.Item x={0} y={0} transition="bouncy" delay={120}>
-                  <button
-                    type="button"
-                    onClick={
-                      companion.status === 'disconnected' || companion.status === 'error'
-                        ? companion.connect
-                        : companion.disconnect
-                    }
-                    title={
-                      companion.status === 'disconnected' || companion.status === 'error'
-                        ? "Connect to Gemini Live Neural Companion"
-                        : "Disconnect Session"
-                    }
-                    aria-label={
-                      companion.status === 'disconnected' || companion.status === 'error'
-                        ? "Connect Jarvis"
-                        : "Disconnect Jarvis"
-                    }
-                    className={cn(
-                      "round-btn flex size-9 items-center justify-center rounded-full border transition-all duration-300 active:scale-95 shadow-none",
-                      companion.status === 'disconnected' || companion.status === 'error'
-                        ? "border-cyan-300/70 bg-cyan-300/10 text-cyan-100 hover:bg-cyan-200 hover:text-[#061014]"
-                        : "border-white/15 bg-white/[0.055] text-white/70 hover:border-rose-300/50 hover:bg-rose-300/10 hover:text-rose-200"
-                    )}
-                  >
+                {/* 4. Power Off / Connect ("the power off") */}
+                <DockItem
+                  onClick={
+                    companion.status === 'disconnected' || companion.status === 'error'
+                      ? companion.connect
+                      : companion.disconnect
+                  }
+                  title={
+                    companion.status === 'disconnected' || companion.status === 'error'
+                      ? "Connect to Gemini Live Neural Companion"
+                      : "Power Off (Disconnect Session)"
+                  }
+                  aria-label={
+                    companion.status === 'disconnected' || companion.status === 'error'
+                      ? "Connect Jarvis"
+                      : "Power Off Jarvis"
+                  }
+                  className={cn(
+                    "cursor-pointer border transition-colors duration-200",
+                    companion.status === 'disconnected' || companion.status === 'error'
+                      ? "border-cyan-300/70 bg-cyan-300/10 text-cyan-100 hover:bg-cyan-200 hover:text-[#061014]"
+                      : "border-white/15 bg-white/[0.055] text-white/70 hover:border-rose-300/50 hover:bg-rose-300/10 hover:text-rose-200"
+                  )}
+                >
+                  <DockLabel>
+                    {companion.status === 'disconnected' || companion.status === 'error'
+                      ? "Connect Power"
+                      : "Power Off"}
+                  </DockLabel>
+                  <DockIcon>
                     <Power className="size-4" />
-                  </button>
-                </Liquid.Item>
-              </Liquid>
+                  </DockIcon>
+                </DockItem>
+              </Dock>
 
             </div>
           </motion.div>
