@@ -177,7 +177,6 @@ export function DockItem({
       onKeyDown={handleKeyDown}
       tabIndex={tabIndex}
       role={role}
-      aria-haspopup="true"
       className={cn(
         'relative inline-flex aspect-square shrink-0 items-center justify-center rounded-full outline-none transition-colors duration-150',
         className,

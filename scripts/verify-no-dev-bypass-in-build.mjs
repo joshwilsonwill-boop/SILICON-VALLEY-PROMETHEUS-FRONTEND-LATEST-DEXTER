@@ -6,7 +6,9 @@ import { join } from 'node:path'
 const forbiddenTokens = ['dev-audit-user-001', 'audit@prometheus.local', 'dev-access-token-audit-001']
 const buildDirectories = ['.next/server', '.next/static']
 
-if (process.env.NODE_ENV === 'production' && process.env.DEV_AUTH_BYPASS === 'true') {
+const isProductionBuild = process.argv.includes('--production') || process.env.NODE_ENV === 'production'
+
+if (isProductionBuild && process.env.DEV_AUTH_BYPASS === 'true') {
   console.error('FATAL: DEV_AUTH_BYPASS is enabled in a production build.')
   process.exit(1)
 }

@@ -43,22 +43,20 @@ export interface UseVoiceCompanionOptions {
 }
 
 export interface UseVoiceCompanionReturn {
+  // Visual-frame controls were removed; editor context still arrives through the bridge.
   status: VoiceCompanionStatus
   isMuted: boolean
-  isVisionActive: boolean
   userVolume: number
   assistantVolume: number
   getUserVolume: () => number
   getAssistantVolume: () => number
   transcripts: VoiceCompanionTranscriptItem[]
-  lastSeenFrameTime: number | null
   error: string | null
   selectedVoice: string
   setSelectedVoice: (voice: string) => void
   connect: () => Promise<void>
   disconnect: () => void
   toggleMute: () => void
-  toggleVision: () => void
   clearTranscripts: () => void
   sendTextMessage: (text: string) => void
 }
@@ -75,18 +73,15 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
 
   const [status, setStatus] = useState<VoiceCompanionStatus>('disconnected')
   const [isMuted, setIsMuted] = useState(false)
-  const [isVisionActive, setIsVisionActive] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [userVolume, setUserVolume] = useState(0)
   const [assistantVolume, setAssistantVolume] = useState(0)
   const [transcripts, setTranscripts] = useState<VoiceCompanionTranscriptItem[]>([])
-  const [lastSeenFrameTime, setLastSeenFrameTime] = useState<number | null>(null)
   const [selectedVoice, setSelectedVoice] = useState('Puck')
 
   const clientRef = useRef<GeminiLiveClient | null>(null)
   const recorderRef = useRef<AudioRecorder | null>(null)
   const playerRef = useRef<AudioPlayer | null>(null)
-  const visionTimerRef = useRef<NodeJS.Timeout | null>(null)
   const volumeTimerRef = useRef<NodeJS.Timeout | null>(null)
   const assistantTurnActiveRef = useRef(false)
   const statusRef = useRef<VoiceCompanionStatus>('disconnected')
@@ -98,8 +93,6 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
     },
     [],
   )
-  const offscreenCanvasRef = useRef<HTMLCanvasElement | null>(null)
-  const lastVideoFrameBase64Ref = useRef<string | null>(null)
   const isMutedRef = useRef(isMuted)
   isMutedRef.current = isMuted
 
@@ -124,68 +117,6 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
     if (!playerRef.current) return 0
     return playerRef.current.getVolume()
   }, [])
-
-  // Visual frame capture from Prometheus canvas or video element using reused canvas
-  const captureAndSendVisualFrame = useCallback(() => {
-    if (!clientRef.current?.isConnected() || !isVisionActive) return
-
-    try {
-      // Find the active video or Remotion canvas in the Prometheus editor
-      const videoEl = document.querySelector('video') as HTMLVideoElement | null
-      const canvasEl = document.querySelector('canvas') as HTMLCanvasElement | null
-
-      let targetSource: HTMLVideoElement | HTMLCanvasElement | null = null
-      if (videoEl && videoEl.videoWidth > 0 && !videoEl.paused) {
-        targetSource = videoEl
-      } else if (canvasEl && canvasEl.width > 0) {
-        targetSource = canvasEl
-      } else if (videoEl && videoEl.videoWidth > 0) {
-        targetSource = videoEl
-      }
-
-      if (!targetSource) {
-        // Fallback: When on Music/Studio tabs where DOM <video> is unmounted,
-        // send cached last visual frame so Jarvis preserves continuous visual context of the video.
-        if (lastVideoFrameBase64Ref.current) {
-          clientRef.current.sendVisualFrame(lastVideoFrameBase64Ref.current)
-          setLastSeenFrameTime(Date.now())
-        }
-        return
-      }
-
-      if (!offscreenCanvasRef.current) {
-        offscreenCanvasRef.current = document.createElement('canvas')
-      }
-      const offscreenCanvas = offscreenCanvasRef.current
-      const targetWidth = 640
-      const sourceWidth = targetSource instanceof HTMLVideoElement ? targetSource.videoWidth : targetSource.width
-      const sourceHeight = targetSource instanceof HTMLVideoElement ? targetSource.videoHeight : targetSource.height
-
-      if (sourceWidth === 0 || sourceHeight === 0) return
-
-      const scale = targetWidth / sourceWidth
-      const targetHeight = Math.round(sourceHeight * scale)
-      if (offscreenCanvas.width !== targetWidth || offscreenCanvas.height !== targetHeight) {
-        offscreenCanvas.width = targetWidth
-        offscreenCanvas.height = targetHeight
-      }
-
-      const ctx = offscreenCanvas.getContext('2d', { alpha: false })
-      if (!ctx) return
-
-      ctx.drawImage(targetSource, 0, 0, targetWidth, targetHeight)
-      const dataUrl = offscreenCanvas.toDataURL('image/jpeg', 0.5)
-      const base64 = dataUrl.split(',')[1]
-
-      if (base64) {
-        lastVideoFrameBase64Ref.current = base64
-        clientRef.current.sendVisualFrame(base64)
-        setLastSeenFrameTime(Date.now())
-      }
-    } catch {
-      // Ignore cross-origin frame capture errors
-    }
-  }, [isVisionActive])
 
   // Tool call executor. Reads handlers through a ref so late-registered editor
   // bridges (or re-mounted panels) are always honored without reconnecting.
@@ -419,10 +350,6 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
   )
 
   const disconnect = useCallback(() => {
-    if (visionTimerRef.current) {
-      clearInterval(visionTimerRef.current)
-      visionTimerRef.current = null
-    }
     if (volumeTimerRef.current) {
       clearInterval(volumeTimerRef.current)
       volumeTimerRef.current = null
@@ -630,29 +557,16 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
         }
       }, 90)
 
-      // 7. Start visual frame sync interval (every 2.2 seconds)
-      visionTimerRef.current = setInterval(() => {
-        captureAndSendVisualFrame()
-      }, 2200)
-
-      // Initial visual frame sync
-      setTimeout(() => {
-        captureAndSendVisualFrame()
-      }, 600)
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to connect to voice companion'
       setError(msg)
       setUserStatus('error')
       disconnect()
     }
-  }, [captureAndSendVisualFrame, disconnect, handleToolCall, selectedVoice, setUserStatus])
+  }, [disconnect, handleToolCall, selectedVoice, setUserStatus])
 
   const toggleMute = useCallback(() => {
     setIsMuted((prev) => !prev)
-  }, [])
-
-  const toggleVision = useCallback(() => {
-    setIsVisionActive((prev) => !prev)
   }, [])
 
   const clearTranscripts = useCallback(() => {
@@ -694,20 +608,17 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
   return {
     status,
     isMuted,
-    isVisionActive,
     userVolume,
     assistantVolume,
     getUserVolume,
     getAssistantVolume,
     transcripts,
-    lastSeenFrameTime,
     error,
     selectedVoice,
     setSelectedVoice,
     connect,
     disconnect,
     toggleMute,
-    toggleVision,
     clearTranscripts,
     sendTextMessage,
   }

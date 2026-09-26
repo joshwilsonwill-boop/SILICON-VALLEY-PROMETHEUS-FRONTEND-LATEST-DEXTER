@@ -4,6 +4,7 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { normalizeNextPath } from '@/lib/auth/redirect'
 import { getSupabaseConfig, isSupabaseConfigured } from '@/lib/supabase/config'
 import { DEV_AUTH_BYPASS_COOKIE, isDevBypassActive } from '@/lib/supabase/dev-bypass'
+import { applySecurityHeaders, createCspNonce, enforceRateLimit } from '@/lib/server/request-security'
 
 const AUTH_PAGE_PREFIXES = ['/login', '/signup', '/verify', '/forgot-password', '/reset-password', '/auth']
 const PUBLIC_ROUTES = ['/', '/pricing', '/terms', '/privacy', '/refund']
@@ -24,8 +25,8 @@ const PROTECTED_PREFIXES = [
   '/brand-kit',
 ]
 
-function devBypassResponse(request: NextRequest) {
-  const response = NextResponse.next({ request })
+function devBypassResponse(nextResponse: () => NextResponse) {
+  const response = nextResponse()
   response.cookies.set(DEV_AUTH_BYPASS_COOKIE, '1', {
     httpOnly: false,
     maxAge: 60 * 60,
@@ -66,27 +67,35 @@ function redirectToSignup(req: NextRequest) {
 }
 
 export async function proxy(request: NextRequest) {
+  const rateLimitResponse = await enforceRateLimit(request)
+  if (rateLimitResponse) return rateLimitResponse
+
+  const nonce = createCspNonce()
+  const nextResponse = () => {
+    const requestHeaders = new Headers(request.headers)
+    requestHeaders.set('x-nonce', nonce)
+    return NextResponse.next({ request: { headers: requestHeaders } })
+  }
+  const secure = (response: NextResponse) => applySecurityHeaders(response, nonce)
   const { pathname } = request.nextUrl
 
   if (isPublicPath(pathname)) {
-    return NextResponse.next()
+    return secure(nextResponse())
   }
 
   if (!isProtectedPath(pathname)) {
-    return NextResponse.next()
+    return secure(nextResponse())
   }
 
   if (isDevBypassActive()) {
-    return devBypassResponse(request)
+    return secure(devBypassResponse(nextResponse))
   }
 
   if (!isSupabaseConfigured()) {
-    return redirectToSignup(request)
+    return secure(redirectToSignup(request))
   }
 
-  let response = NextResponse.next({
-    request,
-  })
+  let response = nextResponse()
 
   const { url, publishableKey } = getSupabaseConfig()
   const supabase = createServerClient(url, publishableKey, {
@@ -99,9 +108,7 @@ export async function proxy(request: NextRequest) {
           request.cookies.set(name, value)
         })
 
-        response = NextResponse.next({
-          request,
-        })
+        response = nextResponse()
 
         cookiesToSet.forEach(({ name, value, options }) => {
           response.cookies.set(name, value, options)
@@ -117,12 +124,15 @@ export async function proxy(request: NextRequest) {
   response.headers.set('Cache-Control', 'private, no-store')
 
   if (!user) {
-    return redirectToSignup(request)
+    return secure(redirectToSignup(request))
   }
 
-  return response
+  return secure(response)
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
+  matcher: [
+    '/api/:path*',
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js|woff|woff2)$).*)',
+  ],
 }

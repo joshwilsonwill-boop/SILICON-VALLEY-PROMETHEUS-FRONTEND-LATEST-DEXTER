@@ -39,7 +39,9 @@ assert.match(engineSource, /accentY/, 'Script accent must position relative to t
 
 // 4. Verify Nano Banana API route
 const nanoRouteSource = readFileSync('app/api/projects/[id]/thumbnails/nano-banana/route.ts', 'utf8')
-assert.match(nanoRouteSource, /imagen-3\.0-generateImages/, 'Nano Banana route must connect to Imagen 3 / Gemini Image API')
+assert.match(nanoRouteSource, /gemini-2\.5-flash-image:generateContent/, 'Nano Banana route must call the image generation model')
+assert.match(nanoRouteSource, /buildNanoBananaImageRequest/, 'Nano Banana route must send the selected frame to image generation')
+assert.match(nanoRouteSource, /extractGeneratedImage/, 'Nano Banana route must return an image rather than prompt metadata')
 assert.match(nanoRouteSource, /resolveGeminiApiKey/, 'Nano Banana route must resolve Gemini API key')
 assert.match(nanoRouteSource, /SHORT_FORM_ARCHETYPES/, 'Nano Banana route must leverage short-form archetypes')
 

@@ -6,11 +6,8 @@ import { createClient } from '@/lib/supabase/server'
 import {
   buildNanoBananaPrompt,
   VIRAL_THUMBNAIL_RECIPES,
-  BACKGROUND_SNIPPETS,
-  TEXT_TREATMENT_SNIPPETS,
-  PROOF_ARTIFACT_SNIPPETS,
-  DIRECTIONAL_SNIPPETS,
 } from '@/lib/thumbnails/nano-banana-rulebook'
+import { buildNanoBananaImageRequest, extractGeneratedImage, parseImageDataUrl } from '@/lib/thumbnails/nano-banana-image'
 
 export const runtime = 'nodejs'
 
@@ -29,7 +26,7 @@ interface NanoBananaRequestBody {
   lightingId?: string
   brandColor?: string
   userPrompt?: string
-  aspectRatio?: '9:16' | '9:6' | '1:1' | '16:9'
+  aspectRatio?: '9:16' | '2:3' | '1:1' | '16:9'
   referenceImages?: string[]
   lockChannelStyle?: boolean
 }
@@ -82,19 +79,30 @@ export async function POST(
     const body = (await request.json().catch(() => null)) as NanoBananaRequestBody | null
 
     const frameDataUrl = body?.frameDataUrl
-    const headline = body?.headline || 'THE TURNING POINT'
+    if (!frameDataUrl || !parseImageDataUrl(frameDataUrl)) {
+      return NextResponse.json({ error: 'Select a video frame before generating a thumbnail.' }, { status: 400 })
+    }
+    const headline = typeof body?.headline === 'string' ? body.headline.trim() : ''
+    if (!headline) {
+      return NextResponse.json({ error: 'Add a headline before generating a thumbnail.' }, { status: 400 })
+    }
     const scriptAccent = body?.scriptAccent || ''
     const subtitle = body?.subtitle || ''
     const styleId = body?.styleId || 'behind_subject_blueprint'
     const brandColor = body?.brandColor || '#3E5C76'
     const userPrompt = body?.userPrompt || ''
     const aspectRatio = body?.aspectRatio || '9:16'
-    const referenceImages = body?.referenceImages || []
+    const referenceImages = Array.isArray(body?.referenceImages)
+      ? body.referenceImages.filter((reference): reference is string => typeof reference === 'string').slice(0, 4)
+      : []
     const lockChannelStyle = body?.lockChannelStyle ?? true
 
     const archetype = SHORT_FORM_ARCHETYPES.find((a) => a.id === styleId) || SHORT_FORM_ARCHETYPES[0]
 
     const apiKey = resolveGeminiApiKey()
+    if (!apiKey) {
+      return NextResponse.json({ error: 'Nano Banana is unavailable: image generation is not configured.' }, { status: 503 })
+    }
 
     let channelDna: ChannelStyleDna | null = null
     let synthesizedPrompt = ''
@@ -192,87 +200,53 @@ Extract the exact Channel Style DNA (lighting ratios, color contrast, proof card
     }
 
     const recipe = VIRAL_THUMBNAIL_RECIPES.find((r) => r.id === body?.recipeId)
-    const effectiveAspect = aspectRatio === '16:9' ? '16:9' : aspectRatio === '1:1' ? '1:1' : '9:16'
+    const effectiveAspect = aspectRatio === '16:9' ? '16:9' : aspectRatio === '1:1' ? '1:1' : aspectRatio === '2:3' ? '2:3' : '9:16'
 
-    // High-conversion prompt synthesized via empirical Nano Banana rulebook
-    if (!synthesizedPrompt) {
-      synthesizedPrompt = buildNanoBananaPrompt({
-        headline,
-        highlightWord: body?.highlightWord || recipe?.highlightWord,
-        aspectRatio: effectiveAspect,
-        backgroundId: body?.backgroundId || recipe?.backgroundStyle,
-        textTreatmentId: body?.textTreatmentId || recipe?.textTreatmentStyle,
-        proofArtifactId: body?.proofArtifactId || recipe?.proofArtifact,
-        directionalId: body?.directionalId || recipe?.directionalStyle,
-        lightingId: body?.lightingId || recipe?.lightingStyle,
-        userCreativeDirection: userPrompt,
-      })
+    const rulebookPrompt = buildNanoBananaPrompt({
+      headline,
+      highlightWord: body?.highlightWord?.trim() || undefined,
+      aspectRatio: effectiveAspect,
+      backgroundId: body?.backgroundId || recipe?.backgroundStyle,
+      textTreatmentId: body?.textTreatmentId || recipe?.textTreatmentStyle,
+      proofArtifactId: body?.proofArtifactId || recipe?.proofArtifact,
+      directionalId: body?.directionalId || recipe?.directionalStyle,
+      lightingId: body?.lightingId || recipe?.lightingStyle,
+      subjectPosition: recipe?.subjectPosition,
+      userCreativeDirection: userPrompt,
+    })
+    synthesizedPrompt = channelDna?.refinedPrompt
+      ? `${rulebookPrompt}\n\nREFERENCE ART DIRECTION: ${channelDna.refinedPrompt}`
+      : rulebookPrompt
+
+    const imageRequest = buildNanoBananaImageRequest({
+      prompt: synthesizedPrompt,
+      frameDataUrl,
+      referenceImages,
+      aspectRatio: effectiveAspect,
+    })
+    const imageResponse = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+      body: JSON.stringify(imageRequest),
+    })
+    const imageResult = await imageResponse.json().catch(() => null)
+    if (!imageResponse.ok) {
+      console.error('[Nano Banana Image Generation]', imageResponse.status, imageResult?.error?.message)
+      return NextResponse.json({ error: 'Nano Banana could not generate this thumbnail. Please try again.' }, { status: 502 })
     }
 
-    // 2. Try Google Imagen 3 (Nano Banana Image Model)
-    if (apiKey) {
-      try {
-        const imagenUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generateImages:predict?key=${apiKey}`
-
-        const imagenRes = await fetch(imagenUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            instances: [{ prompt: synthesizedPrompt }],
-            parameters: {
-              sampleCount: 1,
-              aspectRatio: aspectRatio === '16:9' ? '16:9' : aspectRatio === '1:1' ? '1:1' : '9:16',
-              outputMimeType: 'image/jpeg',
-            },
-          }),
-        })
-
-        if (imagenRes.ok) {
-          const imagenData = await imagenRes.json()
-          const prediction = imagenData?.predictions?.[0]
-          const imageBase64 = prediction?.bytesBase64Encoded || prediction?.image?.imageBytes
-
-          if (imageBase64) {
-            return NextResponse.json({
-              success: true,
-              mode: 'nano_banana_imagen',
-              dataUrl: `data:image/jpeg;base64,${imageBase64}`,
-              prompt: synthesizedPrompt,
-              style: archetype,
-              styleDna: channelDna,
-              projectId,
-            })
-          }
-        }
-      } catch (err) {
-        console.warn('[Nano Banana Imagen Fetch Attempt]', err)
-      }
+    const dataUrl = extractGeneratedImage(imageResult)
+    if (!dataUrl) {
+      return NextResponse.json({ error: 'Nano Banana returned no image. Try another frame or direction.' }, { status: 502 })
     }
 
-    // 3. Return synthesized Channel Style-Lock specifications & metadata
     return NextResponse.json({
       success: true,
-      mode: 'nano_banana_spec',
+      mode: 'nano_banana_image',
+      dataUrl,
       prompt: synthesizedPrompt,
-      style: archetype,
       styleDna: channelDna,
-      headline,
-      scriptAccent,
-      subtitle,
-      brandColor: channelDna?.colorPalette?.accent || brandColor,
-      textLayer: channelDna?.composition?.textPlacement || archetype.textLayer,
-      treatments: {
-        vignette: archetype.hasVignette,
-        vignetteIntensity: archetype.defaultVignetteIntensity,
-        filmGrain: archetype.hasFilmGrain,
-        fringeBlur: archetype.hasFringeBlur,
-        inkBleed: archetype.hasInkBleed,
-        rimLight: true,
-        backgroundGrid: archetype.backgroundGrid,
-        telemetryRuler: archetype.telemetryRuler,
-      },
-      floatingAssets: archetype.defaultFloatingAssets,
-      fallbackMessage: 'Channel Style-Lock DNA synthesized and mapped to studio canvas engine.',
+      projectId,
     })
   } catch (error) {
     console.error('[Nano Banana Route Error]', error)

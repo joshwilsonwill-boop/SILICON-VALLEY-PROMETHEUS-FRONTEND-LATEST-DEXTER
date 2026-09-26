@@ -5,14 +5,11 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   Mic,
   MicOff,
-  Eye,
-  EyeOff,
   Volume2,
   X,
   Minimize2,
   Maximize2,
   Sparkles,
-  Radio,
   RefreshCw,
 } from 'lucide-react'
 
@@ -206,18 +203,6 @@ export function VoiceCompanionHud({
               </div>
             </div>
 
-            {/* Live Context & Vision Status */}
-            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.06] border border-white/10 text-[11px] text-white/70">
-              <span className="flex items-center gap-1.5">
-                <Radio className={cn('size-3', companion.isVisionActive ? 'text-[#7ff2d4]' : 'text-white/30')} />
-                {companion.isVisionActive ? 'Vision Synchronized' : 'Vision Paused'}
-              </span>
-              <span className="text-white/20">•</span>
-              <span className="font-mono text-[10px] text-white/50">
-                Voice: {companion.selectedVoice}
-              </span>
-            </div>
-
             {/* Live Subtitle Strip */}
             <div className="w-full min-h-[44px] max-h-[60px] overflow-y-auto rounded-lg bg-white/[0.04] p-2 text-center text-xs text-white/80 leading-relaxed border border-white/[0.05]">
               {latestTranscript ? (
@@ -257,20 +242,6 @@ export function VoiceCompanionHud({
               <span>{companion.isMuted ? 'Unmute' : 'Mute'}</span>
             </button>
 
-            <button
-              type="button"
-              onClick={companion.toggleVision}
-              className={cn(
-                'flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors',
-                companion.isVisionActive
-                  ? 'bg-[#7ff2d4]/15 text-[#7ff2d4] border border-[#7ff2d4]/30'
-                  : 'bg-white/10 text-white/50 hover:bg-white/15'
-              )}
-              title="Toggle timeline screen/canvas sync"
-            >
-              {companion.isVisionActive ? <Eye className="size-3.5" /> : <EyeOff className="size-3.5" />}
-              <span>Eye</span>
-            </button>
           </div>
 
           <div className="flex items-center gap-1.5">

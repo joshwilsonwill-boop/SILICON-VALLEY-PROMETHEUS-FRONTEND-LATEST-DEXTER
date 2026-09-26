@@ -28,8 +28,9 @@ assert.match(aiCurateRoute, /candidateScores/)
 // Thumbnail Studio UI checks
 assert.match(thumbnailStudio, /ThumbnailStudioModal/)
 assert.match(thumbnailStudio, /ThumbnailEngine/)
-assert.match(thumbnailStudio, /AI Viral Hooks/)
-assert.match(thumbnailStudio, /Download PNG/)
+assert.match(thumbnailStudio, /Creative direction/)
+assert.match(thumbnailStudio, /Download image/)
+assert.match(thumbnailStudio, /generatedDataUrl/)
 assert.match(thumbnailStudio, /Save Project Cover/)
 
 // Master Video Review checks

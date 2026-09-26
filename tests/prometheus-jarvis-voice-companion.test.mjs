@@ -36,7 +36,7 @@ const hudSource = readFileSync('components/editor/voice-companion-hud.tsx', 'utf
 assert.match(hudSource, /Jarvis Companion/, 'HUD must identify as Jarvis Companion')
 assert.match(hudSource, /assistantVolume/, 'HUD must bind to assistant volume')
 assert.match(hudSource, /userVolume/, 'HUD must bind to user volume')
-assert.match(hudSource, /isVisionActive/, 'HUD must provide vision synchrony indicator')
+assert.doesNotMatch(hudSource, /isVisionActive|toggleVision/, 'HUD must not expose removed vision controls')
 
 // 6. Check Top Nav Kinetic Filament & Global App Mounting
 const layoutSource = readFileSync('app/layout.tsx', 'utf8')
@@ -56,6 +56,7 @@ assert.match(bridgeSource, /export function subscribeVoiceCompanionBridge/, 'Bri
 const hookSource = readFileSync('hooks/use-voice-companion.ts', 'utf8')
 assert.match(hookSource, /getVoiceCompanionBridge/, 'useVoiceCompanion must consume bridge handlers')
 assert.match(hookSource, /handlersRef\.current/, 'useVoiceCompanion must resolve handlers at tool-call time')
+assert.doesNotMatch(hookSource, /captureAndSendVisualFrame|visionTimerRef/, 'Companion must not silently capture video frames')
 
 const editorPageSource = readFileSync('app/editor/[id]/page.tsx', 'utf8')
 assert.match(editorPageSource, /registerVoiceCompanionBridge\(\{/, 'Editor page must register voice companion bridge handlers')

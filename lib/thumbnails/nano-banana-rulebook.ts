@@ -29,6 +29,7 @@ export interface ThumbnailRecipe {
   proofArtifact: string
   directionalStyle: string
   lightingStyle: string
+  subjectPosition: 'center' | 'left' | 'right'
   exampleHeadline: string
   highlightWord?: string
 }
@@ -124,7 +125,7 @@ export const PROOF_ARTIFACT_SNIPPETS: Record<string, PromptSnippet> = {
     label: 'Floating Metric Dashboard with Green Up-Arrows',
     category: 'proof_artifact',
     promptFragment:
-      'A sleek, floating glassmorphic analytics card floating in 3D space with rounded corners, displaying crisp metrics: "Views 12.3M" and "Revenue $9.2K" with bright glowing neon green circular up-arrows (↑) and an ascending cyan line graph chart behind the creator.',
+      'A single restrained analytics proof card with a clean ascending chart and one green up-arrow sits behind the creator. Use only values supplied in the creative notes; otherwise keep the chart free of numeric claims.',
   },
   tweet_social_card: {
     id: 'tweet_social_card',
@@ -230,6 +231,7 @@ export const VIRAL_THUMBNAIL_RECIPES: ThumbnailRecipe[] = [
     proofArtifact: 'metric_growth_card',
     directionalStyle: 'chalk_doodle_arrows',
     lightingStyle: 'high_contrast_rim',
+    subjectPosition: 'center',
     exampleHeadline: 'EASY MODE',
     highlightWord: 'EASY',
   },
@@ -243,6 +245,7 @@ export const VIRAL_THUMBNAIL_RECIPES: ThumbnailRecipe[] = [
     proofArtifact: 'conceptual_3d_prop',
     directionalStyle: 'none',
     lightingStyle: 'commercial_bright',
+    subjectPosition: 'right',
     exampleHeadline: 'Control your MIND',
     highlightWord: 'MIND',
   },
@@ -256,6 +259,7 @@ export const VIRAL_THUMBNAIL_RECIPES: ThumbnailRecipe[] = [
     proofArtifact: 'tweet_social_card',
     directionalStyle: 'chalk_doodle_arrows',
     lightingStyle: 'podcast_warm_studio',
+    subjectPosition: 'right',
     exampleHeadline: 'Inside a CMO’s Brain',
     highlightWord: 'Brain',
   },
@@ -269,6 +273,7 @@ export const VIRAL_THUMBNAIL_RECIPES: ThumbnailRecipe[] = [
     proofArtifact: 'money_pile_bed',
     directionalStyle: 'dotted_comparison_path',
     lightingStyle: 'high_contrast_rim',
+    subjectPosition: 'center',
     exampleHeadline: '$300 to $100K',
     highlightWord: '$100K',
   },
@@ -282,6 +287,7 @@ export const VIRAL_THUMBNAIL_RECIPES: ThumbnailRecipe[] = [
     proofArtifact: 'conceptual_3d_prop',
     directionalStyle: 'chalk_doodle_arrows',
     lightingStyle: 'high_contrast_rim',
+    subjectPosition: 'center',
     exampleHeadline: 'PERFECT LOGO',
     highlightWord: 'LOGO',
   },
@@ -295,8 +301,23 @@ export const VIRAL_THUMBNAIL_RECIPES: ThumbnailRecipe[] = [
     proofArtifact: 'calendar_schedule_card',
     directionalStyle: 'bold_indicator_arrow',
     lightingStyle: 'podcast_warm_studio',
+    subjectPosition: 'left',
     exampleHeadline: 'Time is ticking.',
     highlightWord: 'ticking.',
+  },
+  {
+    id: 'ideas_concept',
+    name: 'Ideas Concept',
+    description: 'One oversized idea word, a tactile concept prop, and a portrait anchored to the video',
+    aspectRatio: '16:9',
+    backgroundStyle: 'light_graph_grid',
+    textTreatmentStyle: 'highlighter_power_word',
+    proofArtifact: 'conceptual_3d_prop',
+    directionalStyle: 'none',
+    lightingStyle: 'commercial_bright',
+    subjectPosition: 'center',
+    exampleHeadline: 'IDEAS THAT WORK',
+    highlightWord: 'IDEAS',
   },
 ]
 
@@ -306,13 +327,14 @@ export const VIRAL_THUMBNAIL_RECIPES: ThumbnailRecipe[] = [
 export function buildNanoBananaPrompt(params: {
   headline: string
   highlightWord?: string
-  aspectRatio: '9:16' | '16:9' | '1:1'
+  aspectRatio: '9:16' | '2:3' | '16:9' | '1:1'
   backgroundId?: string
   textTreatmentId?: string
   proofArtifactId?: string
   directionalId?: string
   lightingId?: string
   userCreativeDirection?: string
+  subjectPosition?: 'center' | 'left' | 'right'
 }): string {
   const bg = BACKGROUND_SNIPPETS[params.backgroundId || 'dark_isometric_grid'] || BACKGROUND_SNIPPETS.dark_isometric_grid
   const text =
@@ -329,18 +351,18 @@ export function buildNanoBananaPrompt(params: {
     LIGHTING_SNIPPETS.high_contrast_rim
 
   const highlightClause = params.highlightWord
-    ? `Specifically, apply the vibrant highlighter brush stroke behind the word "${params.highlightWord.toUpperCase()}".`
+    ? `Emphasize the exact word "${params.highlightWord.toUpperCase()}" using the selected text treatment, without covering its letterforms.`
     : ''
 
   return [
     `Create a viral, ultra-high-resolution, conversion-optimized YouTube/Shorts cover image (${params.aspectRatio} aspect ratio).`,
-    `MAIN SUBJECT: The central creator from the anchor keyframe, captured with high emotional presence, direct eye contact with the lens, and scaled bust portrait framing.`,
+    `MAIN SUBJECT: Preserve the primary visible subject from the anchor keyframe. If a person is present, keep their recognizable facial features and authentic skin texture; do not invent a new person. Place the subject ${params.subjectPosition || 'center'} with clear negative space for the headline.`,
     `LIGHTING & DEPTH: ${light.promptFragment}`,
     `BACKGROUND: ${bg.promptFragment}`,
     `HEADLINE & TEXT: The headline reads "${params.headline.toUpperCase()}". ${text.promptFragment} ${highlightClause}`,
     `PROOF ARTIFACT & UI: ${proof.promptFragment}`,
     `DIRECTIONAL GUIDANCE: ${dir.promptFragment}`,
-    `QUALITY STANDARD: Commercial quality, authentic skin pores and micro-texture, tack-sharp typography rendering, high visual hierarchy where the subject and the headline compete effortlessly for attention. Avoid low-resolution artifacts, muddy gradients, or cartoonish rendering.`,
+    `QUALITY STANDARD: Cinematic commercial quality, authentic skin texture, controlled contrast, legible typography, and a clear focal hierarchy. Use one dominant prop or proof cue at most. Avoid invented numbers, unrelated logos, clutter, muddy gradients, and cartoonish rendering.`,
     params.userCreativeDirection ? `ADDITIONAL CREATIVE NOTES: ${params.userCreativeDirection}` : '',
   ]
     .filter(Boolean)

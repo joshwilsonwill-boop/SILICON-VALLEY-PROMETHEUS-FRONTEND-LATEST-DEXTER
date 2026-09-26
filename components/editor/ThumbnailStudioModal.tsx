@@ -10,16 +10,7 @@ import {
   Check,
   Camera,
   Loader2,
-  AlignVerticalJustifyStart,
-  AlignVerticalJustifyCenter,
-  AlignVerticalJustifyEnd,
-  Layers,
-  SlidersHorizontal,
-  Palette,
-  Eye,
-  TriangleAlert,
   Plus,
-  Upload,
   Trash2,
 } from 'lucide-react'
 
@@ -34,11 +25,6 @@ import {
 import { SHORT_FORM_ARCHETYPES, type ShortFormStyleConfig } from '@/lib/thumbnails/short-form-styles'
 import {
   VIRAL_THUMBNAIL_RECIPES,
-  BACKGROUND_SNIPPETS,
-  TEXT_TREATMENT_SNIPPETS,
-  PROOF_ARTIFACT_SNIPPETS,
-  DIRECTIONAL_SNIPPETS,
-  LIGHTING_SNIPPETS,
   type ThumbnailRecipe,
 } from '@/lib/thumbnails/nano-banana-rulebook'
 import { cn } from '@/lib/utils'
@@ -66,7 +52,7 @@ interface AiCurationResponse {
   rationale: string
 }
 
-export type StudioAspectRatio = '9:16' | '9:6' | '1:1' | '16:9'
+export type StudioAspectRatio = '9:16' | '2:3' | '1:1' | '16:9'
 
 interface AspectRatioOption {
   id: StudioAspectRatio
@@ -79,7 +65,7 @@ interface AspectRatioOption {
 
 const ASPECT_RATIO_OPTIONS: AspectRatioOption[] = [
   { id: '9:16', label: '9:16', category: 'Vertical Mobile', width: 720, height: 1280, cssAspect: 'aspect-[9/16]' },
-  { id: '9:6', label: '9:6', category: 'Editorial Portrait', width: 720, height: 1080, cssAspect: 'aspect-[9/6]' },
+  { id: '2:3', label: '2:3', category: 'Editorial Portrait', width: 720, height: 1080, cssAspect: 'aspect-[2/3]' },
   { id: '1:1', label: '1:1', category: 'Square Feed', width: 1080, height: 1080, cssAspect: 'aspect-square' },
   { id: '16:9', label: '16:9', category: 'Landscape Cinema', width: 1280, height: 720, cssAspect: 'aspect-video' },
 ]
@@ -151,15 +137,16 @@ export function ThumbnailStudioModal({
   const [isAiCurating, setIsAiCurating] = React.useState(false)
   const [aiData, setAiData] = React.useState<AiCurationResponse | null>(null)
 
-  const [aspectRatio, setAspectRatio] = React.useState<StudioAspectRatio>('9:16')
+  const [aspectRatio, setAspectRatio] = React.useState<StudioAspectRatio>(VIRAL_THUMBNAIL_RECIPES[0].aspectRatio)
 
   const [selectedArchetype, setSelectedArchetype] = React.useState<ShortFormStyleConfig>(
     SHORT_FORM_ARCHETYPES[0],
   )
 
-  const [headline, setHeadline] = React.useState(() =>
-    projectTitle?.trim() ? projectTitle.toUpperCase().slice(0, 28) : 'TIME MANAGEMENT',
-  )
+  const [headline, setHeadline] = React.useState(() => {
+    const title = projectTitle?.trim()
+    return title && title !== 'Untitled Project' ? title.slice(0, 64) : ''
+  })
   const [scriptAccent, setScriptAccent] = React.useState("READING'DA")
   const [subtitle, setSubtitle] = React.useState('')
   const [position, setPosition] = React.useState<ThumbnailTextPosition>('bottom')
@@ -168,8 +155,8 @@ export function ThumbnailStudioModal({
   const [showBadge, setShowBadge] = React.useState(true)
 
   const [selectedRecipe, setSelectedRecipe] = React.useState<ThumbnailRecipe>(VIRAL_THUMBNAIL_RECIPES[0])
-  const [highlightWord, setHighlightWord] = React.useState<string>(VIRAL_THUMBNAIL_RECIPES[0].highlightWord || 'EASY')
-  const [highlightColor, setHighlightColor] = React.useState<string>('#FFE600')
+  const [highlightWord, setHighlightWord] = React.useState('')
+  const [creativeDirection, setCreativeDirection] = React.useState('')
   const [selectedProofArtifactId, setSelectedProofArtifactId] = React.useState<string>(VIRAL_THUMBNAIL_RECIPES[0].proofArtifact)
   const [selectedDirectionalId, setSelectedDirectionalId] = React.useState<string>(VIRAL_THUMBNAIL_RECIPES[0].directionalStyle)
 
@@ -178,12 +165,6 @@ export function ThumbnailStudioModal({
     setAspectRatio(recipe.aspectRatio as StudioAspectRatio)
     setSelectedProofArtifactId(recipe.proofArtifact)
     setSelectedDirectionalId(recipe.directionalStyle)
-    if (recipe.highlightWord) {
-      setHighlightWord(recipe.highlightWord)
-    }
-    if (recipe.exampleHeadline && (!headline || headline === 'TIME MANAGEMENT')) {
-      setHeadline(recipe.exampleHeadline)
-    }
   }
 
   const [stageTilt, setStageTilt] = React.useState({
@@ -215,17 +196,34 @@ export function ThumbnailStudioModal({
   const [hasTelemetryRuler, setHasTelemetryRuler] = React.useState(false)
 
   const [previewDataUrl, setPreviewDataUrl] = React.useState<string | null>(null)
+  const [generatedDataUrl, setGeneratedDataUrl] = React.useState<string | null>(null)
   const [isExporting, setIsExporting] = React.useState(false)
   const [savedSuccess, setSavedSuccess] = React.useState(false)
   const [isGeneratingNano, setIsGeneratingNano] = React.useState(false)
   const [nanoSuccessMessage, setNanoSuccessMessage] = React.useState<string | null>(null)
   const [nanoErrorMessage, setNanoErrorMessage] = React.useState<string | null>(null)
   const [channelReferences, setChannelReferences] = React.useState<string[]>([])
-  const [lockedStyleDna, setLockedStyleDna] = React.useState<any>(null)
   const [previewMode, setPreviewMode] = React.useState<'render' | 'dither' | 'pixel'>('render')
   const [ditherStyle, setDitherStyle] = React.useState<'bayer8' | 'lines' | 'noise'>('bayer8')
   const [keyframeReelMode, setKeyframeReelMode] = React.useState<'spotlight' | 'stagger-matrix'>('spotlight')
   const [pixelDissolveKey, setPixelDissolveKey] = React.useState(0)
+  const generationAbortRef = React.useRef<AbortController | null>(null)
+
+  React.useEffect(() => {
+    generationAbortRef.current?.abort()
+    setIsGeneratingNano(false)
+    setGeneratedDataUrl(null)
+    setNanoSuccessMessage(null)
+  }, [selectedFrameIndex, headline, highlightWord, selectedRecipe, aspectRatio, channelReferences, creativeDirection])
+
+  React.useEffect(() => () => generationAbortRef.current?.abort(), [])
+
+  React.useEffect(() => {
+    if (!isOpen) {
+      generationAbortRef.current?.abort()
+      setIsGeneratingNano(false)
+    }
+  }, [isOpen])
 
   const handleSelectSpatialPoint = (point: SpatialPositionConfig) => {
     setSpatialPoint(point.id)
@@ -309,13 +307,20 @@ export function ThumbnailStudioModal({
     const files = e.target.files
     if (!files || !files.length) return
     const file = files[0]
+    e.target.value = ''
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) {
+      setNanoErrorMessage('Use a PNG, JPEG, or WebP image under 5 MB.')
+      return
+    }
     const reader = new FileReader()
     reader.onload = (event) => {
       const dataUrl = event.target?.result as string
       if (dataUrl) {
         setChannelReferences((prev) => [...prev.slice(-3), dataUrl])
+        setNanoErrorMessage(null)
       }
     }
+    reader.onerror = () => setNanoErrorMessage('Could not read that reference image.')
     reader.readAsDataURL(file)
   }
 
@@ -498,24 +503,35 @@ export function ThumbnailStudioModal({
   }
 
   const handleDownload = () => {
-    const activeUrl = previewDataUrl
+    const activeUrl = generatedDataUrl
     if (!activeUrl) return
     const link = document.createElement('a')
     link.href = activeUrl
-    link.download = `${projectTitle.toLowerCase().replace(/\s+/g, '_')}_${aspectRatio.replace(':', 'x')}_short_cover.png`
+    const extension = activeUrl.startsWith('data:image/png') ? 'png' : activeUrl.startsWith('data:image/webp') ? 'webp' : 'jpg'
+    link.download = `${projectTitle.toLowerCase().replace(/\s+/g, '_')}_${aspectRatio.replace(':', 'x')}_cover.${extension}`
     link.click()
   }
 
-  const handleSaveCover = () => {
-    const activeUrl = previewDataUrl
+  const handleSaveCover = async () => {
+    const activeUrl = generatedDataUrl
     if (!activeUrl) return
     setIsExporting(true)
-    onSaveProjectThumbnail?.(activeUrl)
-    setTimeout(() => {
-      setIsExporting(false)
+    setNanoErrorMessage(null)
+    try {
+      const response = await fetch(`/api/projects/${projectId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ thumbnailUrl: activeUrl }),
+      })
+      if (!response.ok) throw new Error('Could not save the thumbnail to this project.')
+      onSaveProjectThumbnail?.(activeUrl)
       setSavedSuccess(true)
       setTimeout(() => setSavedSuccess(false), 2400)
-    }, 450)
+    } catch (error) {
+      setNanoErrorMessage(error instanceof Error ? error.message : 'Could not save the thumbnail.')
+    } finally {
+      setIsExporting(false)
+    }
   }
 
   const handleGenerateNanoBanana = async () => {
@@ -524,11 +540,16 @@ export function ThumbnailStudioModal({
     setIsGeneratingNano(true)
     setNanoErrorMessage(null)
     setNanoSuccessMessage(null)
+    setGeneratedDataUrl(null)
+    handleStageMouseLeave()
+    const controller = new AbortController()
+    generationAbortRef.current = controller
 
     try {
       const res = await fetch(`/api/projects/${projectId}/thumbnails/nano-banana`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
         body: JSON.stringify({
           frameDataUrl: activeFrame.dataUrl,
           headline,
@@ -544,42 +565,31 @@ export function ThumbnailStudioModal({
           lightingId: selectedRecipe.lightingStyle,
           brandColor,
           aspectRatio,
+          userPrompt: creativeDirection.trim(),
           referenceImages: channelReferences,
           lockChannelStyle: channelReferences.length > 0,
         }),
       })
 
-      if (!res.ok) {
-        throw new Error(`Server returned status ${res.status}`)
-      }
-
       const data = await res.json()
-      if (data.styleDna) {
-        setLockedStyleDna(data.styleDna)
-        if (data.styleDna.colorPalette?.accent) {
-          setBrandColor(data.styleDna.colorPalette.accent)
-        }
-        if (data.styleDna.composition?.textPlacement) {
-          setTextLayer(data.styleDna.composition.textPlacement)
-        }
+      if (controller.signal.aborted) return
+      if (!res.ok || !data.dataUrl) {
+        throw new Error(data.error || 'Nano Banana did not return an image.')
       }
-      if (data.dataUrl) {
-        setPreviewDataUrl(data.dataUrl)
-        setNanoSuccessMessage('Synthesized viral cover with Multimodal Nano Banana!')
-      } else if (data.styleDna) {
-        setNanoSuccessMessage('Channel Style-Lock DNA extracted & applied to studio canvas!')
-      }
-    } catch (err: any) {
+      setGeneratedDataUrl(data.dataUrl)
+      setNanoSuccessMessage('Thumbnail ready to save or download.')
+    } catch (err: unknown) {
+      if (controller.signal.aborted) return
       console.warn('[Nano Banana Generation Failed]', err)
-      setNanoErrorMessage(err?.message || 'Nano Banana synthesis failed. Using Canvas engine.')
+      setNanoErrorMessage(err instanceof Error ? err.message : 'Nano Banana generation failed. Try another frame.')
     } finally {
-      setIsGeneratingNano(false)
+      if (!controller.signal.aborted) setIsGeneratingNano(false)
     }
   }
 
   if (!isOpen) return null
 
-  const currentDisplayUrl = previewDataUrl
+  const currentDisplayUrl = generatedDataUrl ?? previewDataUrl
 
   return (
     <AnimatePresence>
@@ -598,16 +608,16 @@ export function ThumbnailStudioModal({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.98, y: 10 }}
           transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
-          className="relative z-10 flex h-[94vh] max-h-[920px] w-full max-w-7xl flex-col overflow-hidden rounded-[24px] border border-white/[0.08] bg-[#09090b] shadow-[0_32px_100px_rgba(0,0,0,0.9)]"
+          className="relative z-10 flex h-[94dvh] max-h-[920px] w-full max-w-7xl flex-col overflow-hidden rounded-[12px] border border-white/[0.08] bg-[#09090b] shadow-[0_32px_100px_rgba(0,0,0,0.9)]"
         >
-          <header className="flex h-16 shrink-0 items-center justify-between border-b border-white/[0.06] px-6">
+          <header className="flex min-h-16 shrink-0 flex-wrap items-center justify-between gap-2 border-b border-white/[0.06] px-4 py-3 sm:px-6">
             <div className="flex items-center gap-3">
               <span className="font-mono text-[10px] uppercase tracking-[0.24em] text-white/40">
                 Short-Form Studio
               </span>
               <span className="h-3 w-px bg-white/10" />
               <span className="rounded border border-[#3E5C76]/30 bg-[#3E5C76]/10 px-2 py-0.5 font-mono text-[9px] uppercase tracking-widest text-[#AFC7DE]">
-                Canvas Compositor
+                Thumbnail Studio
               </span>
             </div>
 
@@ -649,11 +659,11 @@ export function ThumbnailStudioModal({
             </div>
           </header>
 
-          <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-12">
-            <div className="flex flex-col justify-between border-b border-white/[0.06] bg-[#060608] p-4 lg:col-span-7 lg:border-b-0 lg:border-r lg:p-6">
+          <div className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-12 lg:overflow-hidden">
+            <div className="flex min-h-[520px] flex-col justify-between border-b border-white/[0.06] bg-[#060608] p-4 lg:col-span-7 lg:min-h-0 lg:border-b-0 lg:border-r lg:p-6">
               <div className="relative flex flex-1 flex-col items-center justify-center overflow-hidden py-1">
-                {/* Cinematic Stage Mode Navigation Bar */}
-                <div className="z-20 mb-3 flex flex-wrap items-center justify-center gap-1.5 rounded-full border border-white/10 bg-black/60 p-1 backdrop-blur-xl shadow-lg">
+                {/* Draft treatments are hidden while inspecting the generated image. */}
+                {!generatedDataUrl && <div className="z-20 mb-3 flex flex-wrap items-center justify-center gap-1.5 rounded-full border border-white/10 bg-black/60 p-1 backdrop-blur-xl shadow-lg">
                   <button
                     type="button"
                     onClick={() => setPreviewMode('render')}
@@ -729,44 +739,33 @@ export function ThumbnailStudioModal({
                       Re-Dissolve
                     </button>
                   ) : null}
-                </div>
-
-                {currentDisplayUrl ? (
-                  <div
-                    aria-hidden
-                    className="pointer-events-none absolute inset-0 opacity-25 blur-3xl transition-opacity duration-700"
-                    style={{
-                      backgroundImage: `url(${currentDisplayUrl})`,
-                      backgroundPosition: 'center',
-                      backgroundSize: 'cover',
-                    }}
-                  />
-                ) : null}
+                </div>}
 
                 <div className="relative z-10 flex h-full max-h-[500px] w-full items-center justify-center [perspective:1000px]">
                   {currentDisplayUrl ? (
                     <motion.div
                       layout
-                      onMouseMove={handleStageMouseMove}
-                      onMouseLeave={handleStageMouseLeave}
-                      onClick={handleCanvasPlacement}
+                      onMouseMove={generatedDataUrl ? undefined : handleStageMouseMove}
+                      onMouseLeave={generatedDataUrl ? undefined : handleStageMouseLeave}
+                      onClick={generatedDataUrl ? undefined : handleCanvasPlacement}
                       transition={{ type: 'spring', stiffness: 320, damping: 30 }}
                       style={{
-                        transform: stageTilt.active
+                        transform: stageTilt.active && !generatedDataUrl
                           ? `perspective(1000px) rotateX(${stageTilt.rotateX}deg) rotateY(${stageTilt.rotateY}deg) scale3d(1.02, 1.02, 1.02)`
                           : 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)',
-                        transition: stageTilt.active
+                        transition: stageTilt.active && !generatedDataUrl
                           ? 'transform 75ms ease-out'
                           : 'transform 500ms cubic-bezier(0.16, 1, 0.3, 1)',
                       }}
                       className={cn(
-                        'relative cursor-crosshair overflow-hidden rounded-xl border border-white/12 bg-black shadow-[0_24px_64px_rgba(0,0,0,0.95)] ring-1 ring-white/[0.06] transition-shadow duration-300 hover:shadow-[0_32px_80px_rgba(0,0,0,0.98)]',
+                        'relative overflow-hidden rounded-xl border border-white/12 bg-black shadow-[0_24px_64px_rgba(0,0,0,0.95)] ring-1 ring-white/[0.06]',
+                        generatedDataUrl ? 'cursor-default' : 'cursor-crosshair',
                         activeAspectConfig.cssAspect,
-                        aspectRatio === '9:16' || aspectRatio === '9:6' ? 'h-full max-h-[500px] w-auto' : 'w-full max-w-[520px] h-auto',
+                        aspectRatio === '9:16' || aspectRatio === '2:3' ? 'h-full max-h-[500px] w-auto' : 'w-full max-w-[520px] h-auto',
                       )}
                     >
                       {/* Dynamic Cursor Spotlight Glare Beam */}
-                      {stageTilt.active && (
+                      {stageTilt.active && !generatedDataUrl && (
                         <div
                           aria-hidden
                           className="pointer-events-none absolute inset-0 z-30 opacity-75 transition-opacity duration-200"
@@ -777,7 +776,7 @@ export function ThumbnailStudioModal({
                       )}
 
                       {/* Interactive Thirds Spatial Guide Lines */}
-                      {stageTilt.active && (
+                      {stageTilt.active && !generatedDataUrl && (
                         <div aria-hidden className="pointer-events-none absolute inset-0 z-25 flex flex-col justify-between opacity-30 transition-opacity">
                           <div className="h-1/3 border-b border-dashed border-[#7ff2d4]/50" />
                           <div className="h-1/3 border-b border-dashed border-[#7ff2d4]/50" />
@@ -786,7 +785,7 @@ export function ThumbnailStudioModal({
                       )}
 
                       {/* Click Placement Feedback Ripple */}
-                      {canvasPlacementFeedback && (
+                      {canvasPlacementFeedback && !generatedDataUrl && (
                         <motion.div
                           initial={{ scale: 0.6, opacity: 0 }}
                           animate={{ scale: 1, opacity: 1 }}
@@ -799,7 +798,9 @@ export function ThumbnailStudioModal({
                         </motion.div>
                       )}
 
-                      {previewMode === 'dither' ? (
+                      {generatedDataUrl ? (
+                        <img src={generatedDataUrl} alt="Generated thumbnail" className="size-full object-contain" />
+                      ) : previewMode === 'dither' ? (
                         <DitherReveal
                           key={`dither-${selectedFrameIndex}-${currentDisplayUrl}-${ditherStyle}`}
                           image={currentDisplayUrl}
@@ -842,15 +843,15 @@ export function ThumbnailStudioModal({
                       <div className="pointer-events-none absolute bottom-2 left-2.5 z-20 flex items-center gap-1.5 rounded bg-black/75 px-2 py-0.5 font-mono text-[9px] uppercase tracking-widest text-white/70 backdrop-blur-md">
                         <span>{activeAspectConfig.width} × {activeAspectConfig.height}</span>
                         <span className="text-white/30">{'//'}</span>
-                        <span style={{ color: brandColor }}>{selectedArchetype.name}</span>
+                        <span style={{ color: brandColor }}>{generatedDataUrl ? 'Nano Banana' : selectedArchetype.name}</span>
                         <span className="text-white/30">{'//'}</span>
-                        <span className="text-[#7ff2d4]">{previewMode.toUpperCase()}</span>
+                        <span className="text-[#7ff2d4]">{generatedDataUrl ? 'GENERATED' : 'FRAME DRAFT'}</span>
                       </div>
                     </motion.div>
                   ) : (
-                    <div className="flex flex-col items-center gap-2.5 text-white/35">
-                      <Loader2 className="size-5 animate-spin text-white/50" />
-                      <span className="font-mono text-[11px] tracking-wider">Rendering Short-Form Cover…</span>
+                    <div className="flex flex-col items-center gap-2.5 text-center text-white/45">
+                      {isExtracting ? <Loader2 className="size-5 animate-spin" /> : <Camera className="size-5" />}
+                      <span className="text-xs">{isExtracting ? 'Preparing a video frame...' : 'No video frame available. Load a video or sample the playhead.'}</span>
                     </div>
                   )}
                 </div>
@@ -1013,39 +1014,22 @@ export function ThumbnailStudioModal({
               </div>
             </div>
 
-            <div className="flex flex-col justify-between overflow-y-auto p-5 lg:col-span-5 lg:p-6">
-              <div className="space-y-4">
-                {/* Header */}
-                <div className="flex items-center justify-between border-b border-white/[0.06] pb-3">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <Sparkles className="size-4 text-amber-400" />
-                      <h3 className="text-xs font-bold uppercase tracking-wider text-white">
-                        Nano Banana Studio
-                      </h3>
-                    </div>
-                    <p className="mt-0.5 text-[10px] text-white/40">
-                      High-conversion AI thumbnails conditioned on your video frame
-                    </p>
+            <div className="flex min-h-0 flex-col justify-between overflow-y-auto p-5 lg:col-span-5 lg:p-6">
+              <div className="space-y-5">
+                <div className="border-b border-white/[0.08] pb-4">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="size-4 text-[#7ff2d4]" />
+                    <h3 className="text-base font-semibold text-white">Create thumbnail</h3>
                   </div>
-                  <span className="rounded-full border border-amber-400/30 bg-amber-400/10 px-2 py-0.5 font-mono text-[9px] font-semibold text-amber-300">
-                    Multimodal v2.5
-                  </span>
+                  <p className="mt-1 text-xs leading-5 text-white/50">Use the selected video frame as the subject.</p>
                 </div>
 
-                {/* STEP 1: HOOK & POWER WORD */}
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/50">
-                      1. Hook Headline & Power Word
-                    </span>
-                    <span className="font-mono text-[9px] text-white/30">
-                      Click word to highlight
-                    </span>
-                  </div>
+                  <label htmlFor="thumbnail-headline" className="text-xs font-medium text-white/75">Headline</label>
 
                   <div className="relative">
                     <input
+                      id="thumbnail-headline"
                       type="text"
                       value={headline}
                       onChange={(e) => {
@@ -1056,15 +1040,15 @@ export function ThumbnailStudioModal({
                           setHighlightWord(words[words.length - 1])
                         }
                       }}
-                      placeholder="e.g. EASY MODE or Control your MIND"
-                      className="w-full rounded-xl border border-white/[0.12] bg-black/60 px-3.5 py-2 text-xs font-semibold text-white placeholder:text-white/25 focus:border-amber-400/50 focus:outline-none focus:ring-1 focus:ring-amber-400/30"
+                      placeholder="A short, specific hook"
+                      maxLength={64}
+                      className="w-full rounded-md border border-white/[0.16] bg-black/30 px-3 py-2.5 text-sm font-medium text-white placeholder:text-white/35 focus:border-[#7ff2d4]/60 focus:outline-none focus:ring-1 focus:ring-[#7ff2d4]/30"
                     />
                   </div>
 
-                  {/* Word-by-word Click-to-Highlight Chips */}
                   {headline.trim() ? (
                     <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                      <span className="text-[10px] font-mono text-white/40 mr-1">Highlight:</span>
+                      <span className="mr-1 text-[11px] text-white/45">Emphasize</span>
                       {headline
                         .trim()
                         .split(/\s+/)
@@ -1079,10 +1063,10 @@ export function ThumbnailStudioModal({
                               type="button"
                               onClick={() => setHighlightWord(isHighlighted ? '' : w)}
                               className={cn(
-                                'rounded px-2 py-0.5 font-mono text-[10px] font-bold transition-all',
+                                'rounded-sm px-1.5 py-0.5 text-[11px] font-medium transition-colors',
                                 isHighlighted
-                                  ? 'bg-[#FFE600] text-black shadow-[0_0_12px_rgba(255,230,0,0.5)] scale-105'
-                                  : 'bg-white/[0.04] text-white/50 hover:bg-white/[0.1] hover:text-white',
+                                  ? 'bg-[#7ff2d4] text-[#061014]'
+                                  : 'bg-white/[0.06] text-white/60 hover:bg-white/[0.12] hover:text-white',
                               )}
                             >
                               {w}
@@ -1092,141 +1076,91 @@ export function ThumbnailStudioModal({
                     </div>
                   ) : null}
 
-                  {/* Highlight Color Swatches */}
-                  <div className="flex items-center gap-2 pt-0.5">
-                    <span className="text-[10px] font-mono text-white/35">Style:</span>
-                    {[
-                      { id: '#FFE600', label: 'Safety Yellow' },
-                      { id: '#7FF2D4', label: 'Neon Mint' },
-                      { id: '#2563EB', label: 'Cobalt Pill' },
-                      { id: '#EF4444', label: 'Crimson' },
-                    ].map((col) => (
-                      <button
-                        key={col.id}
-                        type="button"
-                        onClick={() => {
-                          setHighlightColor(col.id)
-                          setBrandColor(col.id)
-                        }}
-                        className={cn(
-                          'flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[9px] font-mono border transition-all',
-                          highlightColor === col.id
-                            ? 'border-white bg-white/10 text-white font-semibold'
-                            : 'border-white/10 text-white/40 hover:text-white/70',
-                        )}
-                      >
-                        <span className="size-2 rounded-full" style={{ backgroundColor: col.id }} />
-                        <span>{col.label}</span>
-                      </button>
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="thumbnail-recipe" className="text-xs font-medium text-white/75">Visual direction</label>
+                  <select
+                    id="thumbnail-recipe"
+                    value={selectedRecipe.id}
+                    onChange={(event) => {
+                      const recipe = VIRAL_THUMBNAIL_RECIPES.find((item) => item.id === event.target.value)
+                      if (recipe) handleSelectRecipe(recipe)
+                    }}
+                    className="w-full rounded-md border border-white/[0.16] bg-[#121417] px-3 py-2.5 text-sm text-white focus:border-[#7ff2d4]/60 focus:outline-none"
+                  >
+                    {VIRAL_THUMBNAIL_RECIPES.map((recipe) => (
+                      <option key={recipe.id} value={recipe.id}>{recipe.name}</option>
                     ))}
-                  </div>
+                  </select>
+                  <p className="text-xs leading-5 text-white/45">{selectedRecipe.description}</p>
                 </div>
 
-                {/* STEP 2: VIRAL RECIPES */}
-                <div className="space-y-2 border-t border-white/[0.06] pt-3">
+                <div className="space-y-2">
+                  <label htmlFor="thumbnail-direction" className="text-xs font-medium text-white/75">Creative direction <span className="font-normal text-white/40">(optional)</span></label>
+                  <textarea
+                    id="thumbnail-direction"
+                    value={creativeDirection}
+                    onChange={(event) => setCreativeDirection(event.target.value)}
+                    rows={3}
+                    maxLength={500}
+                    placeholder="Mood, subject placement, or a specific object to feature"
+                    className="w-full resize-none rounded-md border border-white/[0.16] bg-black/30 px-3 py-2.5 text-sm leading-5 text-white placeholder:text-white/35 focus:border-[#7ff2d4]/60 focus:outline-none"
+                  />
+                </div>
+
+                <div className="border-t border-white/[0.06] pt-3">
                   <div className="flex items-center justify-between">
-                    <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/50">
-                      2. Viral Archetype Recipe
+                    <span className="text-xs text-white/55">
+                      Style references {channelReferences.length ? `(${channelReferences.length}/4)` : '(optional)'}
                     </span>
-                    <span className="font-mono text-[9px] text-amber-300/80">
-                      {selectedRecipe.name}
-                    </span>
+                    <label className="flex cursor-pointer items-center gap-1 text-xs font-medium text-[#7ff2d4] hover:text-[#a4f6df] focus-within:outline focus-within:outline-2 focus-within:outline-[#7ff2d4]">
+                      <Plus className="size-3" />
+                      <span>Add image</span>
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp"
+                        onChange={handleAddReferenceImage}
+                        className="sr-only"
+                      />
+                    </label>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2">
-                    {VIRAL_THUMBNAIL_RECIPES.map((recipe) => {
-                      const isSelected = selectedRecipe.id === recipe.id
-                      return (
-                        <button
-                          key={recipe.id}
-                          type="button"
-                          onClick={() => handleSelectRecipe(recipe)}
-                          className={cn(
-                            'group flex flex-col items-start gap-1 rounded-xl border p-2.5 text-left transition-all',
-                            isSelected
-                              ? 'border-amber-400/50 bg-amber-500/[0.08] shadow-[0_0_16px_rgba(251,191,36,0.12)]'
-                              : 'border-white/[0.08] bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.04]',
-                          )}
-                        >
-                          <div className="flex w-full items-center justify-between">
-                            <span className="font-mono text-[11px] font-bold text-white">
-                              {recipe.name}
-                            </span>
-                            <span className="rounded bg-white/[0.05] px-1 py-0.2 font-mono text-[8px] text-white/40">
-                              {recipe.aspectRatio}
-                            </span>
-                          </div>
-                          <span className="line-clamp-2 text-[9px] leading-relaxed text-white/50">
-                            {recipe.description}
-                          </span>
-                        </button>
-                      )
-                    })}
-                  </div>
+                  {channelReferences.length > 0 ? (
+                    <div className="flex gap-2 overflow-x-auto pt-3 [scrollbar-width:none]">
+                      {channelReferences.map((refImg, idx) => (
+                        <div key={idx} className="group relative size-12 shrink-0 overflow-hidden rounded border border-white/20 bg-black">
+                          <img src={refImg} alt={`Style reference ${idx + 1}`} className="size-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveReferenceImage(idx)}
+                            aria-label={`Remove style reference ${idx + 1}`}
+                            className="absolute inset-0 flex items-center justify-center bg-black/70 opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100"
+                          >
+                            <Trash2 className="size-3 text-rose-400" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
 
-                {/* STEP 3: PROOF ARTIFACT & DIRECTIONAL POINTER */}
-                <div className="space-y-2.5 border-t border-white/[0.06] pt-3">
-                  <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/50">
-                    3. Proof Artifact & Directional Cue
-                  </span>
-
-                  <div className="grid grid-cols-2 gap-2">
-                    {/* Proof Artifact Selector */}
-                    <div className="space-y-1">
-                      <label className="text-[9px] font-mono uppercase text-white/40">
-                        Proof Artifact / Prop
-                      </label>
-                      <select
-                        value={selectedProofArtifactId}
-                        onChange={(e) => setSelectedProofArtifactId(e.target.value)}
-                        className="w-full rounded-lg border border-white/[0.1] bg-black/80 px-2 py-1.5 text-xs text-white focus:border-amber-400/50 focus:outline-none"
-                      >
-                        {Object.values(PROOF_ARTIFACT_SNIPPETS).map((snip) => (
-                          <option key={snip.id} value={snip.id} className="bg-neutral-900 text-white">
-                            {snip.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {/* Directional Pointer Selector */}
-                    <div className="space-y-1">
-                      <label className="text-[9px] font-mono uppercase text-white/40">
-                        Directional Pointer
-                      </label>
-                      <select
-                        value={selectedDirectionalId}
-                        onChange={(e) => setSelectedDirectionalId(e.target.value)}
-                        className="w-full rounded-lg border border-white/[0.1] bg-black/80 px-2 py-1.5 text-xs text-white focus:border-amber-400/50 focus:outline-none"
-                      >
-                        {Object.values(DIRECTIONAL_SNIPPETS).map((snip) => (
-                          <option key={snip.id} value={snip.id} className="bg-neutral-900 text-white">
-                            {snip.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                </div>
-
-                {/* STEP 4: HERO NANO BANANA SYNTHESIZER */}
                 <div className="space-y-2 border-t border-white/[0.06] pt-3">
                   <button
                     type="button"
                     onClick={handleGenerateNanoBanana}
-                    disabled={isGeneratingNano || !candidates.length}
-                    className="relative group flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl border border-amber-400/40 bg-gradient-to-r from-amber-500/25 via-orange-500/25 to-amber-500/25 py-3 text-xs font-bold text-amber-200 shadow-[0_0_24px_rgba(251,191,36,0.18)] transition-all hover:border-amber-400/70 hover:from-amber-500/35 hover:to-orange-500/35 hover:shadow-[0_0_32px_rgba(251,191,36,0.28)] disabled:opacity-50"
+                    disabled={isGeneratingNano || !candidates.length || !headline.trim()}
+                    className="flex min-h-11 w-full items-center justify-center gap-2 rounded-md bg-[#7ff2d4] px-4 py-2.5 text-sm font-semibold text-[#061014] transition-colors hover:bg-[#a4f6df] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:cursor-not-allowed disabled:opacity-45"
                   >
                     {isGeneratingNano ? (
                       <>
-                        <Loader2 className="size-4 animate-spin text-amber-300" />
-                        <span>Synthesizing with Nano Banana…</span>
+                        <Loader2 className="size-4 animate-spin" />
+                        <span>Generating thumbnail...</span>
                       </>
                     ) : (
                       <>
-                        <Sparkles className="size-4 text-amber-300 animate-pulse" />
-                        <span>SYNTHESIZE WITH NANO BANANA</span>
+                        <Sparkles className="size-4" />
+                        <span>Generate with Nano Banana</span>
                       </>
                     )}
                   </button>
@@ -1248,44 +1182,6 @@ export function ThumbnailStudioModal({
                     </div>
                   ) : null}
 
-                  {/* Collapsible Channel References Drawer */}
-                  <div className="rounded-lg border border-white/[0.06] bg-black/40 p-2">
-                    <div className="flex items-center justify-between">
-                      <span className="font-mono text-[9px] uppercase tracking-wider text-white/40">
-                        Channel Style-Lock ({channelReferences.length} refs)
-                      </span>
-                      <label className="flex cursor-pointer items-center gap-1 font-mono text-[9px] text-amber-300 hover:text-amber-200 transition-colors">
-                        <Plus className="size-3" />
-                        <span>Add Ref</span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleAddReferenceImage}
-                          className="hidden"
-                        />
-                      </label>
-                    </div>
-
-                    {channelReferences.length > 0 ? (
-                      <div className="flex gap-1.5 overflow-x-auto pt-2 [scrollbar-width:none]">
-                        {channelReferences.map((refImg, idx) => (
-                          <div
-                            key={idx}
-                            className="group relative size-10 shrink-0 overflow-hidden rounded border border-white/20 bg-black"
-                          >
-                            <img src={refImg} alt={`Ref ${idx}`} className="size-full object-cover" />
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveReferenceImage(idx)}
-                              className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 transition-opacity group-hover:opacity-100"
-                            >
-                              <Trash2 className="size-3 text-rose-400" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    ) : null}
-                  </div>
                 </div>
               </div>
 
@@ -1294,16 +1190,17 @@ export function ThumbnailStudioModal({
                 <button
                   type="button"
                   onClick={handleDownload}
-                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/15 bg-white/[0.03] px-4 py-2.5 text-xs font-medium text-white/85 transition-colors hover:border-white/30 hover:bg-white/[0.06] hover:text-white"
+                  disabled={!generatedDataUrl}
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-white/15 bg-white/[0.03] px-3 py-2.5 text-xs font-medium text-white/85 transition-colors hover:border-white/30 hover:bg-white/[0.06] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   <Download className="size-3.5" />
-                  Download PNG
+                  Download image
                 </button>
 
                 <LiquidCarveButton
                   label={savedSuccess ? 'Cover Saved' : 'Save Project Cover'}
                   onClick={handleSaveCover}
-                  disabled={isExporting}
+                  disabled={isExporting || !generatedDataUrl}
                   colors={{
                     fill: '#ffffff',
                     textColor: '#000000',

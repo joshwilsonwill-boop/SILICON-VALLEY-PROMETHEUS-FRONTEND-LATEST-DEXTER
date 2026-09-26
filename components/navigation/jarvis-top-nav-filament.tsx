@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Mic, MicOff, Sparkles, X, Radio, ArrowUp, Power } from 'lucide-react'
+import { Mic, MicOff, Sparkles, X, ArrowUp, Power } from 'lucide-react'
 import { Dock, DockItem, DockLabel, DockIcon } from '@/components/ui/dock'
 
 import { cn } from '@/lib/utils'
@@ -303,15 +303,6 @@ export function JarvisTopNavFilament({ className }: JarvisTopNavFilamentProps) {
               </div>
 
               <div className="flex items-center gap-1">
-                <div
-                  className={cn(
-                    'grid size-8 place-items-center rounded-[6px] border border-transparent transition-colors duration-300',
-                    isActive ? 'text-cyan-200' : 'text-white/30'
-                  )}
-                  title={isActive ? 'Jarvis Connected' : 'Jarvis Standby'}
-                >
-                  <Radio className={cn('size-3.5', isActive && 'animate-pulse')} strokeWidth={1.5} />
-                </div>
                 <button
                   type="button"
                   onClick={() => setIsExpanded(false)}
@@ -409,30 +400,13 @@ export function JarvisTopNavFilament({ className }: JarvisTopNavFilamentProps) {
                   </DockIcon>
                 </DockItem>
 
-                {/* 2. Editor Neural Link ("the editor") */}
-                <DockItem
-                  tabIndex={-1}
-                  role="status"
-                  title={isEditorLinked ? "Editor linked to Jarvis" : "Editor idle (open a project to link)"}
-                  aria-label={isEditorLinked ? "Editor linked" : "Editor idle"}
-                  className={cn(
-                    "cursor-default border transition-colors duration-200",
-                    isEditorLinked
-                      ? "border-emerald-300/50 bg-emerald-300/10 text-emerald-200 shadow-[0_0_12px_rgba(110,231,183,0.2)]"
-                      : "border-white/15 bg-white/[0.055] text-white/35"
-                  )}
-                >
-                  <DockLabel>{isEditorLinked ? "Editor Linked" : "Editor Idle"}</DockLabel>
-                  <DockIcon>
-                    <Radio className={cn("size-4", isEditorLinked && "animate-pulse")} />
-                  </DockIcon>
-                </DockItem>
-
-                {/* 3. Hotspots / Autonomous Takeover ("the hotspots") */}
+                {/* Jarvis editing control remains available when an editor is linked. */}
                 <DockItem
                   role="switch"
                   aria-checked={Boolean(bridge.isTakeoverEnabled)}
+                  tabIndex={isEditorLinked ? 0 : -1}
                   onClick={() => {
+                    if (!isEditorLinked) return
                     if (bridge.onToggleTakeover) {
                       bridge.onToggleTakeover()
                     } else {
@@ -443,20 +417,18 @@ export function JarvisTopNavFilament({ className }: JarvisTopNavFilamentProps) {
                       }
                     }
                   }}
-                  title={
-                    bridge.isTakeoverEnabled
-                      ? "Hotspots active (Click to release)"
-                      : "Hotspots Takeover (Click to let Jarvis take control)"
-                  }
-                  aria-label={bridge.isTakeoverEnabled ? "Hotspots active" : "Hotspots Takeover"}
+                  title={isEditorLinked ? (bridge.isTakeoverEnabled ? 'Stop Jarvis editing' : 'Allow Jarvis to edit') : 'Open a project to enable Jarvis editing'}
+                  aria-label={isEditorLinked ? (bridge.isTakeoverEnabled ? 'Stop Jarvis editing' : 'Allow Jarvis to edit') : 'Jarvis editing unavailable'}
                   className={cn(
                     "cursor-pointer border transition-colors duration-200",
-                    bridge.isTakeoverEnabled
+                    !isEditorLinked
+                      ? "cursor-not-allowed border-white/10 bg-white/[0.025] text-white/35"
+                      : bridge.isTakeoverEnabled
                       ? "border-amber-300/65 bg-amber-300/10 text-amber-200 shadow-[0_0_12px_rgba(252,211,77,0.3)]"
                       : "border-cyan-300/35 bg-cyan-300/[0.055] text-cyan-200 hover:border-cyan-300/65 hover:bg-cyan-300/10"
                   )}
                 >
-                  <DockLabel>{bridge.isTakeoverEnabled ? "Release Hotspots" : "Hotspots Takeover"}</DockLabel>
+                  <DockLabel>{isEditorLinked ? (bridge.isTakeoverEnabled ? 'Stop editing' : 'Allow Jarvis to edit') : 'Open a project to edit'}</DockLabel>
                   <DockIcon className="relative">
                     <Sparkles className={cn("size-4", bridge.isTakeoverEnabled && "animate-spin")} style={{ animationDuration: '4s' }} />
                     {bridge.isTakeoverEnabled && (
@@ -468,7 +440,7 @@ export function JarvisTopNavFilament({ className }: JarvisTopNavFilamentProps) {
                   </DockIcon>
                 </DockItem>
 
-                {/* 4. Power Off / Connect ("the power off") */}
+                {/* Power Off / Connect */}
                 <DockItem
                   onClick={
                     companion.status === 'disconnected' || companion.status === 'error'
