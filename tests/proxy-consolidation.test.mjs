@@ -15,6 +15,7 @@ assert.match(proxy, /redirectToSignup\(request\)/)
 assert.match(security, /Ratelimit\.slidingWindow\(120, '60 s'\)/)
 assert.match(security, /Content-Security-Policy/)
 assert.match(security, /process\.env\.NODE_ENV === 'development' \? " 'unsafe-eval'" : ''/)
+assert.doesNotMatch(security, /strict-dynamic/)
 assert.match(security, /X-Frame-Options/)
 assert.match(security, /X-Content-Type-Options/)
 
