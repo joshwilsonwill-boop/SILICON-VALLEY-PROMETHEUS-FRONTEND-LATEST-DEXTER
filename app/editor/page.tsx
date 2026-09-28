@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 
 import { getMostRecentProject, upsertProject } from '@/lib/mock'
 import { InlineLoadingAnimation } from '@/components/loading-animation'
+import { fetchWithTimeout } from '@/lib/fetch-with-timeout'
 
 export default function EditorIndexPage() {
   const router = useRouter()
@@ -26,7 +27,7 @@ export default function EditorIndexPage() {
 
       // 2. Query API for existing projects on the account
       try {
-        const res = await fetch('/api/projects')
+        const res = await fetchWithTimeout('/api/projects')
         if (res.ok) {
           const data = await res.json()
           const apiProjects = Array.isArray(data?.projects) ? data.projects : []
@@ -45,7 +46,7 @@ export default function EditorIndexPage() {
 
       // 3. If account has no projects (e.g. brand new user like ItalianIngress@gmail.com), create a new project
       try {
-        const createRes = await fetch('/api/projects', {
+        const createRes = await fetchWithTimeout('/api/projects', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ title: 'Untitled Project' }),
