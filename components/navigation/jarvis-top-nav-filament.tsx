@@ -375,8 +375,7 @@ export function JarvisTopNavFilament({ className }: JarvisTopNavFilamentProps) {
 
             <div className="relative mt-4 border-t border-white/[0.09] pt-3">
               <Dock
-                magnification={52}
-                distance={90}
+                disableMagnification
                 panelHeight={46}
                 className="gap-2.5 rounded-full border-white/10 bg-white/[0.035] px-2.5 shadow-none"
               >

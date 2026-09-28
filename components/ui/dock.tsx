@@ -25,6 +25,7 @@ export type DockProps = {
   panelHeight?: number
   magnification?: number
   spring?: SpringOptions
+  disableMagnification?: boolean
 }
 
 export type DockItemProps = {
@@ -56,6 +57,7 @@ type DockContextType = {
   spring: SpringOptions
   magnification: number
   distance: number
+  disableMagnification?: boolean
 }
 
 type DockProviderProps = {
@@ -85,13 +87,16 @@ export function Dock({
   magnification = DEFAULT_MAGNIFICATION,
   distance = DEFAULT_DISTANCE,
   panelHeight = DEFAULT_PANEL_HEIGHT,
+  disableMagnification = false,
 }: DockProps) {
   const mouseX = useMotionValue(Infinity)
   const isHovered = useMotionValue(0)
 
   const maxHeight = React.useMemo(() => {
-    return Math.max(DOCK_HEIGHT, magnification + magnification / 2 + 4)
-  }, [magnification])
+    return disableMagnification
+      ? panelHeight
+      : Math.max(DOCK_HEIGHT, magnification + magnification / 2 + 4)
+  }, [disableMagnification, magnification, panelHeight])
 
   const heightRow = useTransform(isHovered, [0, 1], [panelHeight, maxHeight])
   const height = useSpring(heightRow, spring)
@@ -99,19 +104,23 @@ export function Dock({
   return (
     <motion.div
       style={{
-        height: height,
+        height: disableMagnification ? panelHeight : height,
         scrollbarWidth: 'none',
       }}
       className={cn('mx-auto flex max-w-full items-end overflow-visible', outerClassName)}
     >
       <motion.div
         onMouseMove={({ pageX }) => {
-          isHovered.set(1)
-          mouseX.set(pageX)
+          if (!disableMagnification) {
+            isHovered.set(1)
+            mouseX.set(pageX)
+          }
         }}
         onMouseLeave={() => {
-          isHovered.set(0)
-          mouseX.set(Infinity)
+          if (!disableMagnification) {
+            isHovered.set(0)
+            mouseX.set(Infinity)
+          }
         }}
         className={cn(
           'mx-auto flex w-fit items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-3 shadow-[0_8px_32px_rgba(0,0,0,0.36)] backdrop-blur-md',
@@ -121,7 +130,7 @@ export function Dock({
         role="toolbar"
         aria-label="Application dock"
       >
-        <DockProvider value={{ mouseX, spring, distance, magnification }}>
+        <DockProvider value={{ mouseX, spring, distance, magnification, disableMagnification }}>
           {children}
         </DockProvider>
       </motion.div>
@@ -140,11 +149,12 @@ export function DockItem({
 }: DockItemProps) {
   const ref = React.useRef<HTMLDivElement>(null)
 
-  const { distance, magnification, mouseX, spring } = useDock()
+  const { distance, magnification, mouseX, spring, disableMagnification } = useDock()
 
   const isHovered = useMotionValue(0)
 
   const mouseDistance = useTransform(mouseX, (val) => {
+    if (disableMagnification) return 0
     const domRect = ref.current?.getBoundingClientRect() ?? { x: 0, width: 0 }
     return val - domRect.x - domRect.width / 2
   })
@@ -155,7 +165,9 @@ export function DockItem({
     [38, magnification, 38],
   )
 
-  const width = useSpring(widthTransform, spring)
+  const dynamicWidth = useSpring(widthTransform, spring)
+  const staticWidth = useMotionValue(38)
+  const width = disableMagnification ? staticWidth : dynamicWidth
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     onKeyDown?.(event)
@@ -168,9 +180,11 @@ export function DockItem({
   return (
     <motion.div
       ref={ref}
-      style={{ width, height: width }}
+      style={disableMagnification ? { width: 38, height: 38 } : { width, height: width }}
       onHoverStart={() => isHovered.set(1)}
       onHoverEnd={() => isHovered.set(0)}
+      onMouseEnter={() => isHovered.set(1)}
+      onMouseLeave={() => isHovered.set(0)}
       onFocus={() => isHovered.set(1)}
       onBlur={() => isHovered.set(0)}
       onClick={onClick}
