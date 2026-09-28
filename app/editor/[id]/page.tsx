@@ -126,6 +126,7 @@ import { buildRevealVariants } from '@/lib/motion'
 import { useTextareaResize } from '@/hooks/use-textarea-resize'
 import { buildCinematicAnimationPlan } from '@/lib/cinematic/animation-planner'
 import { cn } from '@/lib/utils'
+import { fetchWithTimeout } from '@/lib/fetch-with-timeout'
 import { SELECTED_EDITOR_MUSIC_EVENT, type SelectedEditorMusicEventDetail } from '@/lib/editor-music-selection'
 import { upsertProject } from '@/lib/mock'
 import { projects } from '@/lib/projects'
@@ -6423,7 +6424,7 @@ function OriginalEditorPage() {
     const fetchProject = async () => {
       if (projectId === '__new__') {
         try {
-          const createRes = await fetch('/api/projects', {
+          const createRes = await fetchWithTimeout('/api/projects', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ title: 'Untitled Project' }),
@@ -6467,7 +6468,7 @@ function OriginalEditorPage() {
 
       // 2. Fetch latest project state from API
       try {
-        const res = await fetch(`/api/projects/${projectId}`)
+        const res = await fetchWithTimeout(`/api/projects/${projectId}`)
         if (res.ok) {
           const { project: apiProject } = await res.json()
           if (active && apiProject) {
