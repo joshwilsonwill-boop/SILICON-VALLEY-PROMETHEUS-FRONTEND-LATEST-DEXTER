@@ -45,9 +45,10 @@ export function createCspNonce() {
   return Buffer.from(crypto.randomUUID()).toString('base64')
 }
 
-export function applySecurityHeaders(response: NextResponse, nonce: string): NextResponse {
+export function createContentSecurityPolicy(nonce: string) {
   const developmentScriptSource = process.env.NODE_ENV === 'development' ? " 'unsafe-eval'" : ''
-  const cspDirectives = [
+
+  return [
     `default-src 'self'`,
     `script-src 'self' 'nonce-${nonce}'${developmentScriptSource} https://challenges.cloudflare.com`,
     `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,
@@ -63,8 +64,10 @@ export function applySecurityHeaders(response: NextResponse, nonce: string): Nex
     `form-action 'self'`,
     `upgrade-insecure-requests`,
   ].join('; ')
+}
 
-  response.headers.set('Content-Security-Policy', cspDirectives)
+export function applySecurityHeaders(response: NextResponse, nonce: string): NextResponse {
+  response.headers.set('Content-Security-Policy', createContentSecurityPolicy(nonce))
   response.headers.set('X-Frame-Options', 'DENY')
   response.headers.set('X-Content-Type-Options', 'nosniff')
   response.headers.set('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload')

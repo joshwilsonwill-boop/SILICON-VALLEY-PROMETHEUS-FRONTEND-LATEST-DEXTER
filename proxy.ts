@@ -4,7 +4,12 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { normalizeNextPath } from '@/lib/auth/redirect'
 import { getSupabaseConfig, isSupabaseConfigured } from '@/lib/supabase/config'
 import { DEV_AUTH_BYPASS_COOKIE, isDevBypassActive } from '@/lib/supabase/dev-bypass'
-import { applySecurityHeaders, createCspNonce, enforceRateLimit } from '@/lib/server/request-security'
+import {
+  applySecurityHeaders,
+  createContentSecurityPolicy,
+  createCspNonce,
+  enforceRateLimit,
+} from '@/lib/server/request-security'
 
 const AUTH_PAGE_PREFIXES = ['/login', '/signup', '/verify', '/forgot-password', '/reset-password', '/auth']
 const PUBLIC_ROUTES = ['/', '/pricing', '/terms', '/privacy', '/refund']
@@ -71,9 +76,12 @@ export async function proxy(request: NextRequest) {
   if (rateLimitResponse) return rateLimitResponse
 
   const nonce = createCspNonce()
+  const cspHeader = createContentSecurityPolicy(nonce)
   const nextResponse = () => {
     const requestHeaders = new Headers(request.headers)
     requestHeaders.set('x-nonce', nonce)
+    // Next reads the request CSP to attach this nonce to its inline RSC/bootstrap scripts.
+    requestHeaders.set('Content-Security-Policy', cspHeader)
     return NextResponse.next({ request: { headers: requestHeaders } })
   }
   const secure = (response: NextResponse) => applySecurityHeaders(response, nonce)
