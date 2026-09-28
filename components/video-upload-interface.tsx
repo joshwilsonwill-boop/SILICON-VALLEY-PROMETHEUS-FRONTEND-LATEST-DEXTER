@@ -44,7 +44,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { BillingRequiredDialog } from "@/components/billing/billing-required-dialog";
 import { GlassUploadModalView } from "@/components/ui/glass-upload-modal-view";
-import { TextEffect } from "@/components/ui/text-effect";
 import { GooeyText } from "@/components/ui/gooey-text-morphing";
 import { InlineLoadingAnimation } from "@/components/loading-animation";
 import { InteractiveOrb } from "@/components/ui/interactive-orb";
@@ -2264,44 +2263,39 @@ export function VideoUploadInterface() {
             <div className="relative mx-auto w-full max-w-5xl">
                 <motion.div
                     className="relative z-10 space-y-8"
-                    initial={{ opacity: 0, y: 20 }}
+                    initial={false}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6, ease: "easeOut" }}
                 >
                     <motion.div
                         className="flex flex-col items-center gap-4 pt-2 text-center"
-                        initial={{ opacity: 0, y: 14 }}
+                        initial={false}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.12, duration: 0.45 }}
                     >
                         <InteractiveOrb size={76} intensity="vivid" />
                         <motion.h1
                             aria-label="Ready to Create Something New?"
-                            className="flex flex-wrap items-center justify-center gap-x-2 text-[35px] font-extrabold leading-[0.94] tracking-normal text-white sm:text-[48px] md:flex-nowrap lg:text-[59px]"
+                            className="flex flex-wrap items-center justify-center gap-x-2 gap-y-2 text-[35px] font-extrabold leading-[1.06] tracking-normal text-white sm:gap-y-0 sm:text-[48px] sm:leading-[0.94] md:flex-nowrap lg:text-[59px]"
                             style={STUDIO_DISPLAY_FONT_STYLE}
-                            initial={{ opacity: 0, y: 14, filter: "blur(8px)" }}
+                            initial={false}
                             animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
                             transition={{ delay: 0.08, duration: 0.58, ease: [0.22, 1, 0.36, 1] }}
                         >
-                            <span>Ready to Create Something</span>
+                            <span className="w-full md:w-auto">Ready to Create Something</span>
                             <GooeyText
                                 texts={["Novel", "Fresh", "Grand", "Vivid", "Crisp"]}
                                 morphTime={0.95}
                                 cooldownTime={0.65}
-                                className="h-[0.95em] w-[5.5ch] shrink-0"
+                                className="hidden h-[0.95em] w-[5.5ch] shrink-0 md:inline-flex"
                                 textClassName="left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-[1em] font-extrabold leading-none text-white"
                             />
+                            <span className="md:hidden">New</span>
                             <span>?</span>
                         </motion.h1>
-                        <TextEffect
-                            as="p"
-                            per="word"
-                            preset="fade"
-                            delay={0.28}
-                            className="max-w-xl text-[15px] leading-7 text-white/58"
-                        >
+                        <p className="max-w-xl text-[15px] leading-7 text-white/58">
                             Upload a source, choose a visual lane, and send the next edit into motion.
-                        </TextEffect>
+                        </p>
                     </motion.div>
 
                     <PromptComposer

@@ -134,12 +134,17 @@ export function GooeyText({
           ref={text1Ref}
           aria-hidden="true"
           className={cn("absolute inline-block select-none whitespace-nowrap text-center", textClassName)}
-        />
+        >
+          {firstText}
+        </span>
         <span
           ref={text2Ref}
           aria-hidden="true"
           className={cn("absolute inline-block select-none whitespace-nowrap text-center", textClassName)}
-        />
+          style={{ opacity: 0 }}
+        >
+          {stableTexts[1] ?? firstText}
+        </span>
       </span>
     </span>
   );
