@@ -51,7 +51,7 @@ export function LibraryCollection({ onSelect }: { onSelect: (showcaseId: string)
               type="button"
               onClick={() => onSelect(`uploads_${index}`)}
               className="group relative aspect-[3/4] min-w-0 overflow-hidden rounded-[4px] border border-white/10 bg-[#030503] text-left shadow-[0_20px_45px_-30px_rgba(0,0,0,1)] outline-none transition-colors hover:border-[#55ff9b]/55 focus-visible:border-[#55ff9b] focus-visible:ring-2 focus-visible:ring-[#55ff9b]/55 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
-              initial={reduceMotion ? undefined : { opacity: 0, y: 18 }}
+              initial={false}
               animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
               transition={
                 reduceMotion
