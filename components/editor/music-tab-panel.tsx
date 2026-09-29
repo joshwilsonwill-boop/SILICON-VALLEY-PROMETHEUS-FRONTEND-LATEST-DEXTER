@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import { AnimatePresence, motion, useMotionValue, useSpring, useTransform } from 'framer-motion'
-import { Check, FileUp, Folder, Music, Pause, Play, Plus, Search, Sparkles, Volume2, VolumeX, X } from 'lucide-react'
+import { Check, FileUp, Folder, Music, Pause, Play, Plus, Search, SlidersHorizontal, Sparkles, Volume2, VolumeX, X } from 'lucide-react'
 import Image from 'next/image'
 import { toast } from 'sonner'
 
@@ -121,7 +121,7 @@ function MusicCollectionTabs({ activeTab, onChange }: { activeTab: MusicCollecti
             aria-selected={active}
             onClick={() => onChange(tab.id)}
             className={cn(
-              'shrink-0 rounded-[10px] px-3 py-2 text-[11px] font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6366f1]/50',
+              'shrink-0 rounded-[10px] px-3 py-2 text-[11px] font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4d9dff]/50',
               active ? 'bg-white/[0.12] text-white' : 'text-white/46 hover:bg-white/[0.05] hover:text-white/76',
             )}
           >
@@ -163,7 +163,7 @@ function MyMusicShelf({
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
-          className="inline-flex min-h-28 items-center justify-center gap-2 rounded-[12px] border border-dashed border-white/24 bg-white/[0.025] px-3 text-sm font-medium text-white/78 transition hover:border-[#6366f1]/70 hover:bg-[#6366f1]/[0.09] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6366f1]/50"
+          className="inline-flex min-h-28 items-center justify-center gap-2 rounded-[12px] border border-dashed border-white/24 bg-white/[0.025] px-3 text-sm font-medium text-white/78 transition hover:border-[#4d9dff]/70 hover:bg-[#4d9dff]/[0.09] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4d9dff]/50"
         >
           <FileUp className="size-5" /> Tap to upload
         </button>
@@ -1302,7 +1302,7 @@ export function MusicTabPanel({
               data-autonomous-target="music-search"
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
-              className="h-12 w-full rounded-[18px] border border-white/16 bg-white/[0.06] pl-10 pr-10 text-[16px] text-white/90 outline-none transition-colors placeholder:text-white/42 focus:border-[#6366f1]/70 focus:ring-2 focus:ring-[#6366f1]/20"
+              className="h-12 w-full rounded-[18px] border border-white/16 bg-white/[0.06] pl-10 pr-10 text-[16px] text-white/90 outline-none transition-colors placeholder:text-white/42 focus:border-[#4d9dff]/70 focus:ring-2 focus:ring-[#4d9dff]/20"
               placeholder="Search title or artist"
             />
             {searchQuery ? (
@@ -1336,7 +1336,7 @@ export function MusicTabPanel({
               type="button"
               disabled={!selectedTrackIds.size || isAutoMatching}
               onClick={() => void handleAutoMatch()}
-              className="h-11 w-full border-[#6366f1]/80 bg-[#6366f1] text-white shadow-[0_18px_54px_-24px_rgba(99,102,241,0.95)] transition-[box-shadow,transform,border-color,background-color] duration-200 ease-out hover:border-[#818cf8] hover:bg-[#5558e8] hover:shadow-[0_0_34px_rgba(99,102,241,0.42)] disabled:border-white/10 disabled:bg-white/[0.05] disabled:text-white/42 disabled:shadow-none"
+              className="h-11 w-full border-[#4d9dff]/80 bg-[#3288ee] text-white shadow-[0_18px_54px_-24px_rgba(77,157,255,0.72)] transition-[box-shadow,transform,border-color,background-color] duration-200 ease-out hover:border-[#8bc5ff] hover:bg-[#4d9dff] hover:shadow-[0_0_34px_rgba(77,157,255,0.28)] disabled:border-white/10 disabled:bg-white/[0.05] disabled:text-white/42 disabled:shadow-none"
             >
               {isAutoMatching ? (
                 <CinematicLogoLoader variant="inline" size={16} label="Matching selected tracks" />
@@ -1416,7 +1416,7 @@ export function MusicTabPanel({
       animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
       exit={reduceMotion ? undefined : { opacity: 0, y: 10 }}
       transition={{ duration: reduceMotion ? 0 : 0.3, ease: chamberEase }}
-      className="premium-ambient-panel premium-vignette-surface editorial-light-effect relative flex min-h-0 w-full max-w-[1140px] flex-1 self-center overflow-hidden rounded-[20px] border border-white/8 bg-black px-4 pb-28 pt-4 shadow-[0_32px_90px_-58px_rgba(0,0,0,0.98)] sm:px-5 sm:pt-5"
+      className="premium-ambient-panel premium-vignette-surface editorial-light-effect relative flex h-full min-h-0 w-full max-w-[1280px] flex-1 self-center overflow-hidden rounded-[18px] border border-[#29486c]/60 bg-[#080c14] px-3 pb-28 pt-3 shadow-[0_32px_90px_-58px_rgba(0,0,0,0.98)] sm:px-5 sm:pt-4"
     >
         <style>{`
           @keyframes music-eq {
@@ -1426,7 +1426,18 @@ export function MusicTabPanel({
           ${musicCatalogScrollbarStyles}
         `}</style>
       <LuxuryVignette tone="music" />
-      <div className="relative z-10 grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(17rem,0.66fr)_minmax(21rem,1fr)] xl:grid-cols-[minmax(19rem,0.7fr)_minmax(22rem,1fr)]">
+      <div className="relative z-10 flex min-h-0 flex-1 flex-col gap-3">
+        <div className="flex shrink-0 items-end justify-between gap-4 border-b border-white/8 px-1 pb-3">
+          <div>
+            <div className="text-[26px] font-semibold tracking-[-0.035em] text-white sm:text-[30px]">Music Library</div>
+            <p className="mt-1 text-xs text-white/45 sm:text-sm">Find the perfect soundtrack for your video with AI-curated music.</p>
+          </div>
+          <button type="button" className="grid size-10 shrink-0 place-items-center rounded-[10px] border border-white/12 bg-white/[0.04] text-white/62 transition-colors hover:border-[#4d9dff]/60 hover:bg-[#4d9dff]/10 hover:text-white" aria-label="Open music filters" title="Music filters">
+            <SlidersHorizontal className="size-4" />
+          </button>
+        </div>
+
+      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(18rem,0.7fr)_minmax(24rem,1fr)] xl:grid-cols-[minmax(20rem,0.72fr)_minmax(26rem,1fr)]">
         <div className="flex min-h-0 min-w-0">
           {selectedSong ? (
             <div className="music-hero-shell music-disc-safe-stage relative flex min-h-0 flex-1 flex-col rounded-[18px] border border-white/8 bg-black p-4 shadow-[0_24px_54px_-44px_rgba(0,0,0,0.98)] sm:p-5">
@@ -1453,14 +1464,14 @@ export function MusicTabPanel({
           ) : null}
         </div>
 
-        <div className="flex min-h-0 min-w-0 flex-col pl-2 pr-1 pt-1 sm:pl-3 sm:pr-2">
+        <div className="flex min-h-0 min-w-0 flex-col pl-1 pr-1 pt-0 sm:pl-2 sm:pr-2">
           <MusicCollectionTabs activeTab={activeCollection} onChange={setActiveCollection} />
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-white/35" />
             <input
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
-              className="h-11 w-full rounded-[18px] border border-white/16 bg-white/[0.06] pl-10 pr-10 text-sm text-white/90 outline-none transition-colors placeholder:text-white/42 focus:border-[#6366f1]/70 focus:ring-2 focus:ring-[#6366f1]/20"
+              className="h-11 w-full rounded-[18px] border border-white/16 bg-white/[0.06] pl-10 pr-10 text-sm text-white/90 outline-none transition-colors placeholder:text-white/42 focus:border-[#4d9dff]/70 focus:ring-2 focus:ring-[#4d9dff]/20"
               placeholder="Search title or artist"
             />
             {searchQuery ? (
@@ -1486,8 +1497,17 @@ export function MusicTabPanel({
               />
             </div>
           ) : (
-          <div className="music-catalog-scrollbar mt-4 min-h-0 flex-1 overflow-y-auto pr-1">
+          <div className="music-catalog-scrollbar mt-3 min-h-0 flex-1 overflow-y-auto pr-1">
             <div className="space-y-2 pb-4">
+              <div className="hidden items-center gap-3 px-3 pb-1 text-[10px] uppercase tracking-[0.16em] text-white/32 lg:flex">
+                <span className="w-7" />
+                <span className="w-10" />
+                <span className="min-w-0 flex-1">Title / Artist</span>
+                <span className="w-[5.2rem] text-center">Genre</span>
+                <span className="w-[5.4rem] text-center">Mood</span>
+                <span className="w-12 text-right">Duration</span>
+                <span className="w-8" />
+              </div>
               {catalogLoading && !visibleTracks.length ? (
                 <div className="flex min-h-[220px] flex-col items-center justify-center gap-3 px-4 text-center">
                   <CinematicLogoLoader variant="inline" size={72} label="Loading music catalog" />
@@ -1531,6 +1551,7 @@ export function MusicTabPanel({
           )}
         </div>
       </div>
+      </div>
 
       <AnimatePresence>
         {selectedTrackIds.size > 0 ? (
@@ -1557,7 +1578,7 @@ export function MusicTabPanel({
               type="button"
               disabled={isAutoMatching}
               onClick={() => void handleAutoMatch()}
-              className="border-[#6366f1]/80 bg-[#6366f1] text-white shadow-[0_18px_54px_-24px_rgba(99,102,241,0.95)] transition-[box-shadow,transform,border-color,background-color] duration-200 ease-out hover:-translate-y-0.5 hover:border-[#818cf8] hover:bg-[#5558e8] hover:shadow-[0_0_34px_rgba(99,102,241,0.42)]"
+              className="border-[#4d9dff]/80 bg-[#3288ee] text-white shadow-[0_18px_54px_-24px_rgba(77,157,255,0.72)] transition-[box-shadow,transform,border-color,background-color] duration-200 ease-out hover:-translate-y-0.5 hover:border-[#8bc5ff] hover:bg-[#4d9dff] hover:shadow-[0_0_34px_rgba(77,157,255,0.28)]"
             >
               {isAutoMatching ? (
                 <CinematicLogoLoader variant="inline" size={16} label="Matching selected tracks" />

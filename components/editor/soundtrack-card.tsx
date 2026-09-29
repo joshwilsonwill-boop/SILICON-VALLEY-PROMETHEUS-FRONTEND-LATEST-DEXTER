@@ -26,6 +26,10 @@ function formatDuration(durationSec: number | undefined) {
   return `${minutes}:${String(seconds).padStart(2, '0')}`
 }
 
+function formatMood(mood: string | undefined) {
+  return mood ? mood.charAt(0).toUpperCase() + mood.slice(1) : 'Cinematic'
+}
+
 function EqualizerBars() {
   return (
     <span className="flex h-4 items-end gap-0.5" aria-hidden>
@@ -110,12 +114,12 @@ export function SoundtrackCard({
         }
       }}
       className={cn(
-        'group relative flex w-full items-center gap-3 overflow-hidden rounded-[18px] border bg-white/[0.03] px-4 py-3 text-left transition-all duration-200 ease-out focus:outline-none',
+        'group relative flex w-full items-center gap-3 overflow-hidden rounded-[12px] border bg-[rgba(16,21,32,0.82)] px-3 py-2.5 text-left transition-all duration-200 ease-out focus:outline-none',
         isSelected
-          ? 'border-[#6366f1]/36 bg-[#6366f1]/14 shadow-[0_0_30px_rgba(99,102,241,0.18)]'
+          ? 'border-[#4d9dff]/70 bg-[rgba(31,72,132,0.34)] shadow-[0_0_30px_rgba(77,157,255,0.18)]'
           : isFocused
-            ? 'border-white/16 bg-white/[0.06]'
-            : 'border-white/10 hover:-translate-y-0.5 hover:border-white/[0.12] hover:bg-white/[0.05]',
+            ? 'border-[#4d9dff]/45 bg-[rgba(26,38,58,0.9)]'
+            : 'border-white/10 hover:-translate-y-0.5 hover:border-[#4d9dff]/35 hover:bg-[rgba(22,32,48,0.9)]',
       )}
     >
       <style>{`
@@ -125,7 +129,7 @@ export function SoundtrackCard({
         }
       `}</style>
 
-      {isSelected ? <span className="absolute inset-y-2 left-0 w-1 rounded-full bg-[#6366f1]" /> : null}
+      {isSelected ? <span className="absolute inset-y-2 left-0 w-1 rounded-full bg-[#4d9dff]" /> : null}
 
       <button
         type="button"
@@ -138,7 +142,7 @@ export function SoundtrackCard({
         }}
         className={cn(
           'grid size-7 shrink-0 place-items-center rounded-full border transition-all duration-150 ease-out md:opacity-0 md:group-hover:opacity-100',
-          isSelected ? 'border-[#6366f1]/36 bg-[#6366f1] text-white opacity-100' : 'border-white/12 bg-black/30 text-white/42 hover:text-white',
+          isSelected ? 'border-[#4d9dff]/50 bg-[#3288ee] text-white opacity-100' : 'border-white/12 bg-black/30 text-white/42 hover:text-white',
         )}
       >
         {isSelected ? <Check className="size-3.5" /> : null}
@@ -148,10 +152,10 @@ export function SoundtrackCard({
 
       <div className="min-w-0 flex-1">
         <div className="flex min-w-0 items-center gap-2">
-          <div className="truncate text-sm font-medium text-white">{track.title}</div>
+          <div className="truncate text-[13px] font-semibold text-white">{track.title}</div>
           {isPlaying ? <EqualizerBars /> : null}
           {isSelected ? (
-            <span className="hidden rounded-full border border-[#6366f1]/36 bg-[#6366f1]/14 px-2 py-0.5 text-[10px] text-[#c7d2fe] sm:inline-flex">
+            <span className="hidden rounded-full border border-[#4d9dff]/36 bg-[#4d9dff]/14 px-2 py-0.5 text-[10px] text-[#b9ddff] sm:inline-flex">
               Selected
             </span>
           ) : null}
@@ -160,7 +164,14 @@ export function SoundtrackCard({
         <ArtistLine artist={track.artist} />
       </div>
 
-      <div className="hidden w-12 shrink-0 text-right text-xs text-white/40 sm:block">{formatDuration(track.durationSec)}</div>
+      <span className="hidden w-[5.2rem] shrink-0 truncate rounded-full bg-white/[0.055] px-2 py-1 text-center text-[10px] text-white/58 lg:block">
+        {track.genre || 'Cinematic'}
+      </span>
+      <span className="hidden w-[5.4rem] shrink-0 truncate rounded-full bg-white/[0.055] px-2 py-1 text-center text-[10px] text-white/58 lg:block">
+        {formatMood(track.mood)}
+      </span>
+
+      <div className="hidden w-12 shrink-0 text-right text-xs tabular-nums text-white/50 sm:block">{formatDuration(track.durationSec)}</div>
 
       <button
         type="button"
@@ -173,7 +184,7 @@ export function SoundtrackCard({
         }}
         className={cn(
           'grid size-8 shrink-0 place-items-center rounded-full border transition-all duration-150 ease-out',
-          isPlaying ? 'border-[#6366f1]/36 bg-[#6366f1] text-white' : 'border-white/12 bg-black/30 text-white/72 hover:bg-white/[0.08] hover:text-white',
+          isPlaying ? 'border-[#4d9dff]/50 bg-[#3288ee] text-white' : 'border-white/12 bg-black/30 text-white/72 hover:bg-white/[0.08] hover:text-white',
         )}
       >
         {isPlaying ? <Pause className="size-3.5" /> : <Play className="ml-0.5 size-3.5 fill-current" />}
