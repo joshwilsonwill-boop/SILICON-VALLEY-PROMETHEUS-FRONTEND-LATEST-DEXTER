@@ -98,9 +98,9 @@ export function BillingDashboard() {
     : currentPlan
       ? `${currentPlan.priceWhole}${currentPlan.priceFraction}`
       : '$0.00'
-  const checkoutPriceDisplay = checkoutPlan ? `${checkoutPlan.priceWhole}${checkoutPlan.priceFraction}` : '$0.00'
+  const checkoutPriceDisplay = checkoutPlan?.priceWhole ?? '$0'
   const checkoutPrice = checkoutPlan
-    ? Math.round(Number.parseFloat(checkoutPriceDisplay.replace(/[$,]/g, '')) * 100)
+    ? Math.round(Number.parseFloat(`${checkoutPlan.priceWhole}${checkoutPlan.priceFraction}`.replace(/[$,]/g, '')) * 100)
     : 0
 
   const handleAddPaymentMethod = async () => {
