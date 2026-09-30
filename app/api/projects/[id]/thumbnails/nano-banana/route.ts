@@ -9,9 +9,13 @@ import {
 } from '@/lib/thumbnails/nano-banana-rulebook'
 import { buildNanoBananaImageRequest, extractGeneratedImage, parseImageDataUrl } from '@/lib/thumbnails/nano-banana-image'
 
+import { buildStudioArtDirection, parseStudioDesign, resolveStudioImageModel, type StudioDesign } from '@/lib/thumbnails/studio-art-direction'
+
 export const runtime = 'nodejs'
+export const maxDuration = 180
 
 interface NanoBananaRequestBody {
+  studioDesign?: unknown
   frameDataUrl?: string
   headline?: string
   highlightWord?: string
@@ -86,6 +90,12 @@ export async function POST(
     if (!headline) {
       return NextResponse.json({ error: 'Add a headline before generating a thumbnail.' }, { status: 400 })
     }
+    let studioDesign: StudioDesign | null = null
+    if (body?.studioDesign !== undefined) {
+      try { studioDesign = parseStudioDesign(body.studioDesign) }
+      catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : 'Invalid thumbnail design.' }, { status: 400 }) }
+    }
+    if (headline.length > 64) return NextResponse.json({ error: 'Use a headline of 64 characters or fewer.' }, { status: 400 })
     const scriptAccent = body?.scriptAccent || ''
     const subtitle = body?.subtitle || ''
     const styleId = body?.styleId || 'behind_subject_blueprint'
@@ -218,16 +228,20 @@ Extract the exact Channel Style DNA (lighting ratios, color contrast, proof card
       ? `${rulebookPrompt}\n\nREFERENCE ART DIRECTION: ${channelDna.refinedPrompt}`
       : rulebookPrompt
 
+    if (studioDesign) synthesizedPrompt += '\n\n' + buildStudioArtDirection(studioDesign, headline, body?.highlightWord || '')
+    const imageModel = studioDesign ? resolveStudioImageModel(studioDesign.quality) : 'gemini-2.5-flash-image'
     const imageRequest = buildNanoBananaImageRequest({
       prompt: synthesizedPrompt,
       frameDataUrl,
       referenceImages,
       aspectRatio: effectiveAspect,
+      ...(studioDesign ? { imageSize: '2K' as const } : {}),
     })
-    const imageResponse = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent', {
+    const imageResponse = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + imageModel + ':generateContent', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
       body: JSON.stringify(imageRequest),
+      signal: AbortSignal.any([request.signal, AbortSignal.timeout(150000)]),
     })
     const imageResult = await imageResponse.json().catch(() => null)
     if (!imageResponse.ok) {
@@ -243,12 +257,15 @@ Extract the exact Channel Style DNA (lighting ratios, color contrast, proof card
     return NextResponse.json({
       success: true,
       mode: 'nano_banana_image',
+      model: imageModel,
       dataUrl,
       prompt: synthesizedPrompt,
       styleDna: channelDna,
       projectId,
     })
   } catch (error) {
+    if (request.signal.aborted) return NextResponse.json({ error: 'Thumbnail generation cancelled.' }, { status: 499 })
+    if (error instanceof Error && error.name === 'TimeoutError') return NextResponse.json({ error: 'Image generation timed out. Try again with Nano Banana 2.' }, { status: 504 })
     console.error('[Nano Banana Route Error]', error)
     return NextResponse.json(
       {

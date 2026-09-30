@@ -1,0 +1,20 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "incremental": false
+  },
+  "include": [
+    "../../next-env.d.ts",
+    "../../components/editor/ThumbnailStudioModal.tsx",
+    "../../components/editor/thumbnail-studio/ThumbnailWorkspace.tsx",
+    "../../lib/thumbnails/studio-art-direction.ts",
+    "../../lib/thumbnails/studio-draft.ts",
+    "../../lib/thumbnails/nano-banana-image.ts",
+    "../../app/api/projects/[id]/thumbnails/nano-banana/route.ts"
+  ],
+  "exclude": [
+    "../../node_modules",
+    "../../.agents",
+    "../../.next"
+  ]
+}
