@@ -22,6 +22,9 @@ This map reflects the voice companion's current tool declarations and editor bri
 - Project/media prompts require a live state lookup, concise empty-state responses, and honest limits on visual inspection.
 - Tool handlers return failure when the editor, source media, transcript, or editing permission required by an action is missing. Export and music results no longer imply success beyond what was acknowledged.
 - The dock now shows persistent `ON`/`OFF` indicators for Jarvis voice and editing access, with distinct state colors, switch semantics, and explicit accessible labels.
+- Live-session setup no longer duplicates the entire transcript; spoken-content questions retrieve short excerpts on demand.
+- Typed probes no longer impose a fixed 2.5-second microphone transmission pause, and server messages are handled in order.
+- Live setup now has one bounded timeout, a short compatibility fallback, and an explicit error when the socket closes before setup.
 
 ## Still unsupported or incomplete
 
@@ -34,5 +37,6 @@ This map reflects the voice companion's current tool declarations and editor bri
 | Render lifecycle | Jarvis can open export/review flows but cannot report render queue progress, completion, failure, or the location of an exported file. |
 | Save/recovery confirmation | The assistant has no explicit tool to verify that the latest edit is persisted or to report whether a source was recovered after refresh. |
 | Consistent edit authorization | The primary edit tools now require the visible editing-access switch. Extend the same policy to any future mutating tool and make the action scope clear before multi-step edits. |
+| Established-session recovery and latency telemetry | Recoverable socket reconnect, safe turn retry, privacy-safe time-to-first-audio measurements, and network-condition SLOs remain to be implemented. See [the latency architecture plan](jarvis-latency-architecture.md). |
 
 These are follow-up capabilities, not behaviors Jarvis should imply are already available.

@@ -2,8 +2,6 @@
 
 import * as React from 'react'
 import {
-  Activity,
-  MoreHorizontal,
   Music,
   Plus,
   Volume2,
@@ -21,10 +19,7 @@ export interface EditorialVideoClip {
   start: number
   end: number
   title: string
-  thumbnailIndex?: number
-  type: 'video' | 'b-roll'
-  isCut?: boolean
-  badge?: string
+  type: 'video'
 }
 
 export interface EditorialTimelineTracksProps {
@@ -49,14 +44,10 @@ export interface EditorialTimelineTracksProps {
   // Interactive clip manipulation
   selectedClipId?: string | null
   onSelectClip?: (clipId: string | null) => void
-  onTrimClip?: (clipId: string, newStart: number, newEnd: number) => void
   onSplitClip?: () => void
   onDeleteClip?: () => void
   onDuplicateClip?: () => void
-  isVideoLocked?: boolean
   isVideoHidden?: boolean
-  isAudioMuted?: boolean
-  isAudioHidden?: boolean
   isMusicHidden?: boolean
 }
 
@@ -103,48 +94,26 @@ export function EditorialTimelineTracks({
   onSeek,
   selectedClipId: controlledSelectedClipId,
   onSelectClip,
-  onTrimClip,
-  isVideoLocked = false,
   isVideoHidden = false,
-  isAudioMuted = false,
-  isAudioHidden = false,
   isMusicHidden = false,
 }: EditorialTimelineTracksProps) {
   const thumbnails = useEditorialTimelineThumbnails(previewUrl, 12)
   const width = `${zoom * 100}%`
 
-  // Default clips based on reference 9103 if not provided
+  // Show the source as one continuous clip; generated placeholder edits must not imply cuts or B-roll.
   const [internalClips, setInternalClips] = React.useState<EditorialVideoClip[]>(() => {
-    const dur = Math.max(30, effectiveDuration)
-    return [
-      { id: 'clip-1', start: 0, end: dur * 0.12, title: '00:00 - 00:04', thumbnailIndex: 0, type: 'video' },
-      { id: 'clip-2', start: dur * 0.12, end: dur * 0.27, title: '00:04 - 00:09', thumbnailIndex: 1, type: 'video' },
-      { id: 'clip-3', start: dur * 0.27, end: dur * 0.42, title: '00:09 - 00:14', thumbnailIndex: 2, type: 'video' },
-      { id: 'clip-4', start: dur * 0.42, end: dur * 0.60, title: 'videoplayback (4)', thumbnailIndex: 3, type: 'video' },
-      { id: 'clip-5', start: dur * 0.60, end: dur * 0.72, title: '00:20 - 00:24', thumbnailIndex: 4, type: 'video' },
-      { id: 'clip-6', start: dur * 0.72, end: dur * 0.81, title: '00:24 - 00:27', thumbnailIndex: 5, type: 'video' },
-      { id: 'clip-7', start: dur * 0.81, end: dur * 0.87, title: '00:27 - 00:29', thumbnailIndex: 6, type: 'video' },
-      { id: 'clip-8', start: dur * 0.87, end: dur * 0.94, title: 'B-roll', thumbnailIndex: 7, type: 'b-roll', badge: 'B-roll' },
-      { id: 'clip-9', start: dur * 0.94, end: dur, title: 'Scenery', thumbnailIndex: 8, type: 'b-roll' },
-    ]
+    return [{ id: 'source-video', start: 0, end: Math.max(0.01, effectiveDuration), title: sourceLabel, type: 'video' }]
   })
 
   // Synchronize duration changes to clips if needed
   React.useEffect(() => {
     setInternalClips((current) => {
-      const dur = Math.max(30, effectiveDuration)
-      return current.map((c, i, arr) => {
-        const factor = dur / Math.max(30, arr[arr.length - 1]?.end || 30)
-        return {
-          ...c,
-          start: c.start * factor,
-          end: c.end * factor,
-        }
-      })
+      const dur = Math.max(0.01, effectiveDuration)
+      return [{ ...(current[0] ?? { id: 'source-video', type: 'video' as const }), start: 0, end: dur, title: sourceLabel }]
     })
-  }, [effectiveDuration])
+  }, [effectiveDuration, sourceLabel])
 
-  const [internalSelectedClipId, setInternalSelectedClipId] = React.useState<string | null>('clip-4')
+  const [internalSelectedClipId, setInternalSelectedClipId] = React.useState<string | null>('source-video')
   const activeClipId = controlledSelectedClipId !== undefined ? controlledSelectedClipId : internalSelectedClipId
 
   const handleClipClick = (clipId: string, event: React.MouseEvent) => {
@@ -162,25 +131,9 @@ export function EditorialTimelineTracks({
     }).filter((t) => t.time <= effectiveDuration)
   }, [effectiveDuration])
 
-  // Waveform generation for Voice track
-  const voiceWaveBars = React.useMemo(() => generateWaveBars(140, 3), [])
   const musicWaveBars = React.useMemo(() => generateWaveBars(160, 7), [])
 
-  // High-def Captions Pills from transcript segments (or reference fallback)
-  const resolvedCaptions = React.useMemo(() => {
-    if (transcriptSegments && transcriptSegments.length > 0) {
-      return transcriptSegments
-    }
-    const dur = Math.max(30, effectiveDuration)
-    return [
-      { id: 'cap-1', start: 0, end: dur * 0.12, text: "Hey, what's up?" },
-      { id: 'cap-2', start: dur * 0.13, end: dur * 0.27, text: "Today I'm going to share" },
-      { id: 'cap-3', start: dur * 0.28, end: dur * 0.42, text: "A simple framework" },
-      { id: 'cap-4', start: dur * 0.43, end: dur * 0.60, text: "that helped me scale" },
-      { id: 'cap-5', start: dur * 0.61, end: dur * 0.75, text: "Most people make the mistake" },
-      { id: 'cap-6', start: dur * 0.76, end: dur * 0.94, text: "If you focus on these three core areas" },
-    ]
-  }, [transcriptSegments, effectiveDuration])
+  const resolvedCaptions = transcriptSegments
 
   const timelineText = React.useMemo(() => {
     const saved = editorialCues.filter((cue) => cue.type === 'text')
@@ -225,11 +178,10 @@ export function EditorialTimelineTracks({
         aria-label="Separable Video Clips Track"
       >
         <div className="absolute inset-0 flex">
-          {internalClips.map((clip, index) => {
+          {internalClips.map((clip) => {
             const isSelected = clip.id === activeClipId
             const leftPct = percent(clip.start, effectiveDuration)
             const widthPct = percent(clip.end - clip.start, effectiveDuration)
-            const thumbUrl = thumbnails[clip.thumbnailIndex ?? (index % 10)]
 
             return (
               <div
@@ -245,51 +197,19 @@ export function EditorialTimelineTracks({
                     : 'border-r border-black/80 hover:brightness-110',
                 )}
               >
-                {/* Filmstrip thumbnail preview */}
-                <div className="absolute inset-0 bg-[#251e22]">
-                  {thumbUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={thumbUrl}
-                      alt={clip.title}
-                      className="h-full w-full object-cover pointer-events-none"
-                      draggable={false}
-                    />
-                  ) : (
-                    <div
-                      className={cn(
-                        'h-full w-full',
-                        clip.type === 'b-roll'
-                          ? 'bg-[linear-gradient(135deg,#1e293b_0%,#334155_50%,#0f172a_100%)]'
-                          : 'bg-[linear-gradient(125deg,#5f3e30_0%,#9e6c4e_45%,#2b3944_70%,#7a523b_100%)]',
-                      )}
-                    />
+                {/* Even filmstrip frames preserve their source aspect ratio. */}
+                <div className="absolute inset-0 flex overflow-hidden bg-[#10131a]">
+                  {thumbnails.length ? thumbnails.map((thumbnail, frameIndex) => (
+                    <div key={`${clip.id}-frame-${frameIndex}`} className="relative min-w-0 flex-1 overflow-hidden border-r border-black/25">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={thumbnail} alt="" aria-hidden="true" className="pointer-events-none h-full w-full object-contain" draggable={false} />
+                    </div>
+                  )) : (
+                    <div className="h-full w-full bg-[linear-gradient(90deg,#161a22,#202530,#161a22)]" />
                   )}
                   {/* Subtle darkening gradient */}
                   <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/35" />
                 </div>
-
-                {/* Left Trim Handle on selected clip */}
-                {isSelected && !isVideoLocked && (
-                  <div
-                    data-handle="trim-left"
-                    aria-label="Trim clip start"
-                    className="absolute inset-y-0 left-0 z-20 flex w-2.5 cursor-ew-resize items-center justify-center rounded-l-[3px] bg-[#9df65a] shadow-[0_0_6px_rgba(157,246,90,0.6)]"
-                  >
-                    <div className="h-3 w-0.5 rounded-full bg-black/60" />
-                  </div>
-                )}
-
-                {/* Right Trim Handle on selected clip */}
-                {isSelected && !isVideoLocked && (
-                  <div
-                    data-handle="trim-right"
-                    aria-label="Trim clip end"
-                    className="absolute inset-y-0 right-0 z-20 flex w-2.5 cursor-ew-resize items-center justify-center rounded-r-[3px] bg-[#9df65a] shadow-[0_0_6px_rgba(157,246,90,0.6)]"
-                  >
-                    <div className="h-3 w-0.5 rounded-full bg-black/60" />
-                  </div>
-                )}
 
                 {/* Selected clip title badge */}
                 {isSelected && (
@@ -298,78 +218,9 @@ export function EditorialTimelineTracks({
                   </div>
                 )}
 
-                {/* B-roll badge */}
-                {clip.badge && (
-                  <div className="pointer-events-none absolute right-2 top-1 z-10 rounded bg-black/75 px-1.5 py-0.5 text-[9px] font-semibold text-white/90 border border-white/20 shadow">
-                    {clip.badge}
-                  </div>
-                )}
               </div>
             )
           })}
-        </div>
-
-        {/* Action more menu on right */}
-        <button
-          type="button"
-          aria-label="Clip options"
-          className="absolute right-1 top-1/2 -translate-y-1/2 z-20 grid size-6 place-items-center rounded bg-black/60 text-white/70 hover:bg-black/90 hover:text-white transition-colors"
-        >
-          <MoreHorizontal className="size-3.5" />
-        </button>
-      </div>
-
-      {/* 2. AUDIO TRACK: Original voice waveform */}
-      <div
-        className={cn(
-          'relative mt-1.5 h-[42px] overflow-hidden rounded-[4px] border border-[#10b981]/30 bg-[#082922] transition-opacity',
-          isAudioHidden && 'opacity-20 pointer-events-none',
-        )}
-        aria-label="Audio Track"
-      >
-        {/* Emerald Voice (Enhanced) Section */}
-        <div
-          className="absolute inset-y-0 left-0 overflow-hidden bg-[linear-gradient(90deg,#0a2a22_0%,#0e3831_50%,#0a2620_100%)]"
-          style={{ width: '100%' }}
-        >
-          {/* Waveform visualization */}
-          <div className="absolute inset-0 flex items-center gap-[1px] px-2 opacity-85">
-            {voiceWaveBars.map((height, i) => (
-              <span
-                key={i}
-                className="flex-1 rounded-[1px] bg-[#10b981]"
-                style={{ height: `${Math.round(height * 78)}%` }}
-              />
-            ))}
-          </div>
-
-          {/* Interactive Audio Automation Curve (Ducking / Volume Envelope) */}
-          <svg
-            className="absolute inset-0 h-full w-full pointer-events-none"
-            viewBox="0 0 400 42"
-            preserveAspectRatio="none"
-          >
-            {/* Smooth curved bezier line dipping down for ducking */}
-            <path
-              d="M 0 10 L 160 10 Q 190 10 210 28 Q 230 36 260 36 Q 290 36 310 16 Q 325 10 400 10"
-              fill="none"
-              stroke="#5eead4"
-              strokeWidth="2"
-              strokeLinecap="round"
-              className="opacity-90"
-            />
-            {/* Keyframe Nodes with glowing circular handles */}
-            <circle cx="160" cy="10" r="3.5" fill="#ffffff" stroke="#10b981" strokeWidth="2" />
-            <circle cx="210" cy="28" r="3.5" fill="#ffffff" stroke="#10b981" strokeWidth="2" />
-            <circle cx="260" cy="36" r="3.5" fill="#ffffff" stroke="#10b981" strokeWidth="2" />
-            <circle cx="310" cy="16" r="3.5" fill="#ffffff" stroke="#10b981" strokeWidth="2" />
-          </svg>
-
-          {/* Voice (Enhanced) Badge */}
-          <div className="pointer-events-none absolute left-2 top-1.5 flex items-center gap-1 rounded-full bg-[#052b24]/90 px-2 py-0.5 text-[9px] font-semibold text-[#34d399] border border-[#10b981]/40 shadow-sm backdrop-blur-sm">
-            <Activity className="size-2.5 text-[#34d399]" />
-            <span>Voice (Enhanced)</span>
-          </div>
         </div>
 
       </div>
@@ -407,6 +258,16 @@ export function EditorialTimelineTracks({
             )
           })}
         </div>
+        {cutRanges?.map((range, index) => (
+          <div
+            key={`source-cut-${index}`}
+            data-source-cut-range
+            aria-hidden="true"
+            title={`Cut ${shortTime(range.start)}–${shortTime(range.end)}`}
+            className="pointer-events-none absolute inset-y-0 z-20 border-x border-red-300/70 bg-[repeating-linear-gradient(135deg,rgba(127,29,29,.58),rgba(127,29,29,.58)_3px,rgba(0,0,0,.22)_3px,rgba(0,0,0,.22)_6px)]"
+            style={{ left: percent(range.start, effectiveDuration), width: `${Math.max(0.35, ((range.end - range.start) / Math.max(effectiveDuration, 0.01)) * 100)}%` }}
+          />
+        ))}
       </div>
 
       {/* 4. Text clips are independently placed and stacked when their times overlap. */}

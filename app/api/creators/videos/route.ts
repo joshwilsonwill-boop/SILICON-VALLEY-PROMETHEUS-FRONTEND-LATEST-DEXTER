@@ -87,7 +87,11 @@ export async function GET(request: Request) {
         badge: 'YouTube Live',
         rating: 9.2,
         videoId: vid || fallbackItem.videoId,
-        image: snippet.thumbnails?.high?.url || snippet.thumbnails?.medium?.url || fallbackItem.image,
+        image:
+          snippet.thumbnails?.maxres?.url ||
+          snippet.thumbnails?.high?.url ||
+          snippet.thumbnails?.medium?.url ||
+          fallbackItem.image,
         imagePosition: 'center',
         accent: '#55ff9b',
         metaLine: `${snippet.channelTitle || creator} | Official channel`,

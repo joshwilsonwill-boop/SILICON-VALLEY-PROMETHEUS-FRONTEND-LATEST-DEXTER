@@ -22,6 +22,8 @@ type MusicPlayerProps = {
   audioSrc: string
   isPlaying?: boolean
   isMuted?: boolean
+  volume?: number
+  repeat?: boolean
   seekRequest?: { time: number; token: number } | null
   onBufferingChange?: (isBuffering: boolean) => void
   onPlayingChange?: (nextPlaying: boolean) => void
@@ -40,6 +42,8 @@ export function MusicPlayer({
   audioSrc,
   isPlaying: isPlayingProp,
   isMuted = false,
+  volume: volumeProp,
+  repeat: repeatProp,
   seekRequest = null,
   onBufferingChange,
   onPlayingChange,
@@ -56,6 +60,7 @@ export function MusicPlayer({
   const [currentTime, setCurrentTime] = React.useState(0)
   const [isShuffle, setIsShuffle] = React.useState(false)
   const [isRepeat, setIsRepeat] = React.useState(false)
+  const repeatEnabled = typeof repeatProp === 'boolean' ? repeatProp : isRepeat
   const [albumArtFailed, setAlbumArtFailed] = React.useState(false)
   const [resolvedAlbumArt, setResolvedAlbumArt] = React.useState(albumArt || FALLBACK_ALBUM_ART)
 
@@ -120,7 +125,7 @@ export function MusicPlayer({
     }
 
     const handleEnded = () => {
-      if (isRepeat) return
+      if (repeatEnabled) return
       setPlayingState(false)
     }
 
@@ -160,12 +165,17 @@ export function MusicPlayer({
       audio.removeEventListener('playing', handleBufferingEnd)
       audio.removeEventListener('error', handleAudioError)
     }
-  }, [audioSrc, isPlaying, isRepeat, onProgressChange, setBufferingState, setPlayingState, syncProgressVisual])
+  }, [audioSrc, isPlaying, repeatEnabled, onProgressChange, setBufferingState, setPlayingState, syncProgressVisual])
 
   React.useEffect(() => {
     if (!audioRef.current) return
     audioRef.current.muted = isMuted
   }, [isMuted])
+
+  React.useEffect(() => {
+    if (!audioRef.current || typeof volumeProp !== 'number') return
+    audioRef.current.volume = Math.max(0, Math.min(1, volumeProp))
+  }, [volumeProp])
 
   React.useEffect(() => {
     if (!audioRef.current || !seekRequest) return
@@ -265,7 +275,7 @@ export function MusicPlayer({
         }
       `}</style>
 
-      <audio ref={audioRef} src={audioSrc} loop={isRepeat} preload="metadata" />
+      <audio ref={audioRef} src={audioSrc} loop={repeatEnabled} preload="metadata" />
 
       <div className="music-player-visual relative mb-4 flex min-h-0 w-full flex-1 items-center justify-center [container-type:size]">
         <motion.div

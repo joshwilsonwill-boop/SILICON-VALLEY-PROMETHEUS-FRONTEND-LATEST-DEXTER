@@ -399,16 +399,12 @@ export function CinematicLibrary({
                       </motion.div>
 
                       <motion.div className="mt-6 flex flex-wrap items-center gap-3 text-sm text-white/58" {...reveal(0.14, 16)}>
-                        {active.title === 'Alex Hormozi' ? (
-                          <span className="inline-flex items-center gap-2 border border-[#55ff9b]/30 bg-[#0b1b12]/85 px-3 py-1.5 text-[#9cffc3]">
-                            <Check className="h-3.5 w-3.5" aria-hidden="true" /> Official source
-                          </span>
-                        ) : (
+                        {active.title !== 'Alex Hormozi' ? (
                           <span className="inline-flex items-center gap-2 border border-white/12 bg-black/18 px-3 py-1.5">
                             <Star className="h-3.5 w-3.5 fill-current text-[#55ff9b]" />
                             {active.rating.toFixed(1)} / 10
                           </span>
-                        )}
+                        ) : null}
                         <span>{active.runtime}</span>
                       </motion.div>
 
@@ -501,7 +497,7 @@ export function CinematicLibrary({
             <iframe
               key={selectedVideo.videoId}
               className="aspect-video w-full bg-black"
-              src={`https://www.youtube-nocookie.com/embed/${selectedVideo.videoId}?autoplay=1&rel=0`}
+              src={`https://www.youtube-nocookie.com/embed/${selectedVideo.videoId}?autoplay=1&rel=0&vq=hd1080&hd=1`}
               title={selectedVideo.title}
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               allowFullScreen
@@ -634,14 +630,14 @@ function HoverTiltMediaCard({
   }
 
   const resolvedImage = imageFailed
-    ? (item.videoId
-        ? `https://i.ytimg.com/vi/${item.videoId}/hqdefault.jpg`
-        : ART_POOL[hashValue(`${item.id}-${item.title}`) % ART_POOL.length])
-    : (item.image || (item.videoId ? `https://i.ytimg.com/vi/${item.videoId}/hqdefault.jpg` : ART_POOL[0]))
+    ? (item.image || ART_POOL[hashValue(`${item.id}-${item.title}`) % ART_POOL.length])
+    : (item.videoId
+        ? `https://i.ytimg.com/vi/${item.videoId}/maxresdefault.jpg`
+        : item.image || ART_POOL[0])
 
   React.useEffect(() => {
     setImageFailed(false)
-  }, [item.image])
+  }, [item.image, item.videoId])
 
   return (
     <motion.div
@@ -657,7 +653,8 @@ function HoverTiltMediaCard({
     >
       <div
         className={cn(
-          'group relative h-full w-full min-h-[280px] overflow-hidden rounded-[10px] border bg-[#090a0f] transition-colors',
+          'group relative w-full overflow-hidden rounded-[10px] border bg-[#090a0f] transition-colors',
+          item.videoId ? 'aspect-video' : 'h-full min-h-[280px]',
           active
             ? 'border-[#55ff9b]/60 shadow-[0_26px_50px_-30px_rgba(85,255,155,0.48)] ring-1 ring-[#55ff9b]/30'
             : hovered
@@ -724,9 +721,11 @@ function HoverTiltMediaCard({
         />
 
         <div className="absolute inset-x-0 top-0 flex items-start justify-between p-4 z-20">
-          <div className="rounded-full border border-white/12 bg-black/40 px-2.5 py-1 text-[9px] uppercase tracking-[0.22em] text-white/75 backdrop-blur-md">
-            {item.badge}
-          </div>
+          {!item.videoId ? (
+            <div className="rounded-full border border-white/12 bg-black/40 px-2.5 py-1 text-[9px] uppercase tracking-[0.22em] text-white/75 backdrop-blur-md">
+              {item.badge}
+            </div>
+          ) : null}
           {active ? (
             <div className="rounded-full border border-[#55ff9b]/40 bg-[#0b1b12]/90 px-2.5 py-1 text-[9px] uppercase tracking-[0.2em] text-[#9cffc3] shadow-[0_0_12px_rgba(85,255,155,0.35)]">
               Focused
@@ -739,12 +738,21 @@ function HoverTiltMediaCard({
           ) : null}
         </div>
 
-        <div className="absolute inset-x-0 bottom-0 p-4 z-20">
-          <div className="truncate text-[10px] uppercase tracking-[0.22em] text-[#63ffa4]/80">{subtitle}</div>
-          <div className="mt-2 line-clamp-2 text-[1.05rem] font-semibold leading-tight text-white group-hover:text-[#c4ffd9] transition-colors">{title}</div>
-          {meta ? <div className="mt-2 truncate text-xs text-white/60 font-mono">{meta}</div> : null}
-        </div>
+        {!item.videoId ? (
+          <div className="absolute inset-x-0 bottom-0 p-4 z-20">
+            <div className="truncate text-[10px] uppercase tracking-[0.22em] text-[#63ffa4]/80">{subtitle}</div>
+            <div className="mt-2 line-clamp-2 text-[1.05rem] font-semibold leading-tight text-white group-hover:text-[#c4ffd9] transition-colors">{title}</div>
+            {meta ? <div className="mt-2 truncate text-xs text-white/60 font-mono">{meta}</div> : null}
+          </div>
+        ) : null}
       </div>
+      {item.videoId ? (
+        <div className="px-1 pb-1 pt-3">
+          <div className="truncate text-[10px] uppercase tracking-[0.18em] text-[#63ffa4]/80">{subtitle}</div>
+          <div className="mt-1.5 line-clamp-2 min-h-10 text-sm font-semibold leading-5 text-white transition-colors group-hover:text-[#c4ffd9]">{title}</div>
+          {meta ? <div className="mt-1 truncate text-xs text-white/60 font-mono">{meta}</div> : null}
+        </div>
+      ) : null}
     </motion.div>
   )
 }

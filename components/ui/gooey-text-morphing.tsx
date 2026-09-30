@@ -19,6 +19,7 @@ export function GooeyText({
   className,
   textClassName,
 }: GooeyTextProps) {
+  const containerRef = React.useRef<HTMLSpanElement>(null);
   const text1Ref = React.useRef<HTMLSpanElement>(null);
   const text2Ref = React.useRef<HTMLSpanElement>(null);
   const animationRef = React.useRef<number | null>(null);
@@ -65,10 +66,10 @@ export function GooeyText({
     const doCooldown = () => {
       morph = 0;
       if (!text1Ref.current || !text2Ref.current) return;
-      text2Ref.current.style.filter = "";
-      text2Ref.current.style.opacity = "100%";
-      text1Ref.current.style.filter = "";
-      text1Ref.current.style.opacity = "0%";
+      if (text2Ref.current.style.filter !== "") text2Ref.current.style.filter = "";
+      if (text2Ref.current.style.opacity !== "100%") text2Ref.current.style.opacity = "100%";
+      if (text1Ref.current.style.filter !== "") text1Ref.current.style.filter = "";
+      if (text1Ref.current.style.opacity !== "0%") text1Ref.current.style.opacity = "0%";
     };
 
     const doMorph = () => {
@@ -84,7 +85,12 @@ export function GooeyText({
       setMorph(fraction);
     };
 
+    let isInViewport = typeof IntersectionObserver === "undefined";
+    let isPageVisible = document.visibilityState !== "hidden";
+    let isAnimating = false;
+
     const animate = () => {
+      if (!isAnimating) return;
       animationRef.current = window.requestAnimationFrame(animate);
       const currentTime = Date.now();
       const shouldIncrementIndex = cooldown > 0;
@@ -104,9 +110,41 @@ export function GooeyText({
       }
     };
 
-    animationRef.current = window.requestAnimationFrame(animate);
+    const syncAnimation = () => {
+      const shouldAnimate = isInViewport && isPageVisible;
+      if (shouldAnimate && !isAnimating) {
+        isAnimating = true;
+        lastTime = Date.now();
+        animationRef.current = window.requestAnimationFrame(animate);
+      } else if (!shouldAnimate && isAnimating) {
+        isAnimating = false;
+        if (animationRef.current !== null) {
+          window.cancelAnimationFrame(animationRef.current);
+          animationRef.current = null;
+        }
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      isPageVisible = document.visibilityState !== "hidden";
+      syncAnimation();
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    const observer = typeof IntersectionObserver === "undefined"
+      ? null
+      : new IntersectionObserver(([entry]) => {
+          isInViewport = entry?.isIntersecting ?? false;
+          syncAnimation();
+        });
+
+    if (containerRef.current) observer?.observe(containerRef.current);
+    syncAnimation();
 
     return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      observer?.disconnect();
+      isAnimating = false;
       if (animationRef.current !== null) {
         window.cancelAnimationFrame(animationRef.current);
       }
@@ -114,7 +152,7 @@ export function GooeyText({
   }, [cooldownTime, firstText, morphTime, stableTexts]);
 
   return (
-    <span className={cn("relative inline-flex items-center justify-center", className)} aria-label={firstText}>
+    <span ref={containerRef} className={cn("relative inline-flex items-center justify-center", className)} aria-label={firstText}>
       <svg className="absolute h-0 w-0" aria-hidden="true" focusable="false">
         <defs>
           <filter id={`threshold-${filterId}`}>

@@ -26,7 +26,7 @@ if (flag === '--check-header') {
   )
 
   // Filter chips / pills
-  assert.ok(panelSource.includes("label: 'Trendy'"), 'Must include "Trendy" tab')
+  assert.ok(panelSource.includes("label: 'Trending'"), 'Must include "Trending" tab')
   assert.ok(panelSource.includes('Premium'), 'Must include "Premium" tab')
   assert.ok(panelSource.includes('My Music'), 'Must include "My Music" tab')
   assert.ok(panelSource.includes('Favorites'), 'Must include "Favorites" tab')

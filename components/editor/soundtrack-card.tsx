@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils'
 
 type SoundtrackCardProps = {
   artBroken: boolean
+  desktopIndex?: number
   isFocused: boolean
   isPlaying: boolean
   isSelected: boolean
@@ -91,6 +92,7 @@ function ArtistLine({ artist }: { artist: string }) {
 
 export function SoundtrackCard({
   artBroken,
+  desktopIndex,
   isFocused,
   isPlaying,
   isSelected,
@@ -130,6 +132,7 @@ export function SoundtrackCard({
       `}</style>
 
       {/* Artwork */}
+      {desktopIndex ? <span aria-hidden className="hidden w-6 shrink-0 text-center text-[11px] tabular-nums text-white/50 lg:block">{desktopIndex}</span> : null}
       <TrackArtwork track={track} broken={artBroken} onError={onArtworkError} />
 
       {/* Title & Artist */}
@@ -186,7 +189,7 @@ export function SoundtrackCard({
           onToggleSelected()
         }}
         className={cn(
-          'absolute right-[2.85rem] top-1/2 grid size-7 -translate-y-1/2 place-items-center rounded-lg border bg-[#111722] opacity-0 transition-all duration-150 ease-out group-hover:opacity-100 group-focus-within:opacity-100',
+          'relative z-10 grid size-7 shrink-0 place-items-center rounded-lg border bg-[#111722] opacity-100 transition-all duration-150 ease-out',
           isSelected
             ? 'border-[#3b82f6] bg-[#2563eb] text-white shadow-[0_0_14px_rgba(37,99,235,0.45)]'
             : 'border-white/10 bg-white/5 text-white/50 hover:border-white/20 hover:bg-white/10 hover:text-white',

@@ -10,6 +10,7 @@ import {
 import { buildNanoBananaImageRequest, extractGeneratedImage, parseImageDataUrl } from '@/lib/thumbnails/nano-banana-image'
 
 import { buildStudioArtDirection, parseStudioDesign, resolveStudioImageModel, type StudioDesign } from '@/lib/thumbnails/studio-art-direction'
+import { getStudioReference, STUDIO_REFERENCES } from '@/lib/thumbnails/studio-references'
 
 export const runtime = 'nodejs'
 export const maxDuration = 180
@@ -33,6 +34,7 @@ interface NanoBananaRequestBody {
   aspectRatio?: '9:16' | '2:3' | '1:1' | '3:2' | '16:9'
   referenceImages?: string[]
   lockChannelStyle?: boolean
+  studioReferenceId?: string
 }
 
 interface ChannelStyleDna {
@@ -228,7 +230,11 @@ Extract the exact Channel Style DNA (lighting ratios, color contrast, proof card
       ? `${rulebookPrompt}\n\nREFERENCE ART DIRECTION: ${channelDna.refinedPrompt}`
       : rulebookPrompt
 
-    if (studioDesign) synthesizedPrompt += '\n\n' + buildStudioArtDirection(studioDesign, headline, body?.highlightWord || '')
+    if (studioDesign) {
+      const referenceId = typeof body?.studioReferenceId === 'string' && STUDIO_REFERENCES.some(reference => reference.id === body.studioReferenceId) ? body.studioReferenceId : ''
+      const referenceCue = referenceId ? getStudioReference(referenceId).cue : ''
+      synthesizedPrompt += '\n\n' + buildStudioArtDirection(studioDesign, headline, body?.highlightWord || '', referenceCue)
+    }
     const imageModel = studioDesign ? resolveStudioImageModel(studioDesign.quality) : 'gemini-2.5-flash-image'
     const imageRequest = buildNanoBananaImageRequest({
       prompt: synthesizedPrompt,
@@ -246,7 +252,16 @@ Extract the exact Channel Style DNA (lighting ratios, color contrast, proof card
     const imageResult = await imageResponse.json().catch(() => null)
     if (!imageResponse.ok) {
       console.error('[Nano Banana Image Generation]', imageResponse.status, imageResult?.error?.message)
-      return NextResponse.json({ error: 'Nano Banana could not generate this thumbnail. Please try again.' }, { status: 502 })
+      const providerMessage = typeof imageResult?.error?.message === 'string' ? imageResult.error.message : ''
+      const safeProviderMessage = providerMessage.replace(/AIza[0-9A-Za-z_-]{20,}/g, '[redacted credential]').slice(0, 240)
+      const error = imageResponse.status === 401 || imageResponse.status === 403
+        ? 'Google rejected the configured Gemini API credential (HTTP ' + imageResponse.status + '). Check that the server key is valid and has image generation access.'
+        : imageResponse.status === 429
+          ? 'Google image generation rate limit or quota reached (HTTP 429). Wait a little or check the project quota.'
+          : safeProviderMessage.toLowerCase().includes('api key') || safeProviderMessage.toLowerCase().includes('api_key')
+            ? 'Google rejected the configured Gemini API credential: ' + safeProviderMessage
+            : 'Google image generation failed (HTTP ' + imageResponse.status + '). ' + (safeProviderMessage || 'Try again in a moment.')
+      return NextResponse.json({ error }, { status: 502 })
     }
 
     const dataUrl = extractGeneratedImage(imageResult)

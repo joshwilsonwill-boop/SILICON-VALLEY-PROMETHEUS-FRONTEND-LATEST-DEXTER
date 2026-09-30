@@ -40,13 +40,13 @@ export function parseStudioDesign(value: unknown): StudioDesign {
   return { layout: input.layout as StudioLayout, background: input.background as StudioBackground, accent: input.accent, quality: input.quality, textScale: input.textScale }
 }
 
-export function buildStudioArtDirection(design: StudioDesign, headline: string, emphasis: string): string {
-  const layout = STUDIO_LAYOUTS.find((item) => item.id === design.layout)!
+export function buildStudioArtDirection(design: StudioDesign, headline: string, emphasis: string, referenceCue = ''): string {
   const background = STUDIO_BACKGROUNDS.find((item) => item.id === design.background)!
   return [
-    'FINAL STUDIO ART DIRECTION: These explicit user selections take priority over recipe defaults and any inferred reference style.',
-    'LAYOUT: ' + layout.treatment,
+    'FINAL STUDIO ART DIRECTION: Follow the selected visual reference as the primary composition and craft direction. Avoid generic thumbnail templates and preserve the distinct visual idea of the reference.',
+    'COMPOSITION: Build one cinematic, conversion-focused image around the selected subject and exact headline. Use intentional subject scale, strong negative space, depth, and a readable feed-size hierarchy. Recompose naturally for the selected aspect ratio.',
     'BACKGROUND: ' + background.prompt,
+    referenceCue ? 'SELECTED THUMBNAIL REFERENCE: ' + referenceCue + '. Borrow its composition, scale, visual hierarchy, lighting, color balance, texture, and graphic treatment. Rebuild those ideas around the selected video subject and exact user headline; do not reproduce the reference people, logos, or words.' : '',
     'ACCENT: Use exactly ' + design.accent + ' as the dominant color accent. Do not substitute a recipe color.',
     'HEADLINE: Render only the exact supplied headline ' + JSON.stringify(headline.trim()) + '. Never add a sample slogan, signature, subtitle, fake proof card, number, logo, or extra words.',
     emphasis.trim() ? 'EMPHASIS: Highlight only the supplied word or phrase ' + JSON.stringify(emphasis.trim()) + '.' : 'EMPHASIS: Use a clean, consistent headline treatment without choosing an arbitrary highlighted word.',

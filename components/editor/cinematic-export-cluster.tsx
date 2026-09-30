@@ -42,10 +42,10 @@ export function CinematicExportCluster({
         data-autonomous-target="export"
         aria-label={isDownloadAction ? 'Download completed export' : 'Export video'}
         className={cn(
-          'group inline-flex h-10 items-center gap-2 rounded-full border px-3.5 text-[13px] font-medium text-white transition-[background-color,border-color,color,transform,box-shadow] duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 disabled:cursor-wait disabled:opacity-60',
+          'group inline-flex h-10 items-center gap-2 rounded-full border px-3.5 text-[13px] font-medium text-white transition-[background-color,border-color,color,transform,box-shadow] duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/60 disabled:cursor-wait disabled:opacity-60',
           isDownloadAction
             ? 'border-emerald-300/20 bg-emerald-300/[0.08] text-emerald-100 hover:border-emerald-200/34 hover:bg-emerald-300/[0.14] hover:shadow-[0_12px_28px_-18px_rgba(52,211,153,0.5)]'
-            : 'border-white/14 bg-white/[0.06] hover:-translate-y-px hover:border-white/24 hover:bg-white/[0.11] hover:shadow-[0_14px_30px_-20px_rgba(0,0,0,0.9)]',
+            : 'border-white/14 bg-white/[0.06] hover:-translate-y-px hover:border-blue-300/55 hover:bg-gradient-to-r hover:from-blue-600 hover:to-blue-500 hover:shadow-[0_0_24px_rgba(37,99,235,0.42)]',
         )}
       >
         {isBusy ? (

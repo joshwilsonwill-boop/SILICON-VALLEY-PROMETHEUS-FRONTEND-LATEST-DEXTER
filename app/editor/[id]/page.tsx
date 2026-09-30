@@ -839,7 +839,6 @@ const WORKSPACE_TABS: Array<{ key: HeaderNavMode; label: string; icon: React.Com
   { key: 'Editor', label: 'Editor', icon: Film },
   { key: 'Music', label: 'Music', icon: Music4 },
   { key: 'Motion', label: 'Motion', icon: Sparkles },
-  { key: 'Export', label: 'Export', icon: Upload },
 ]
 
 function normalizeWorkspaceTabParam(value: string | null): HeaderNavMode | null {
@@ -8974,7 +8973,7 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
           tempTitle={tempTitle}
           setTempTitle={setTempTitle}
           titleInputRef={titleInputRef}
-          activeWorkspaceTab={showExport ? 'Export' : activeWorkspaceTab}
+          activeWorkspaceTab={activeWorkspaceTab}
           isDeferredChromeReady={isDeferredChromeReady}
           isExporting={isExporting}
           isDownloading={isDownloading}
@@ -8988,10 +8987,6 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
           onTitleKeyDown={handleTitleKeyDown}
           onTitleStartEdit={handleTitleStartEdit}
           onWorkspaceTabChange={(tab) => {
-            if (tab === 'Export') {
-              setShowExport(true)
-              return
-            }
             setActiveWorkspaceTab(tab as HeaderNavMode)
             setBottomMode(tab === 'Music' ? 'Music' : 'Original')
           }}

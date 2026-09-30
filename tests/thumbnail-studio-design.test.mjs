@@ -1,15 +1,15 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { DEFAULT_STUDIO_DESIGN, STUDIO_LAYOUTS, STUDIO_BACKGROUNDS, parseStudioDesign, buildStudioArtDirection, resolveStudioImageModel } from '../lib/thumbnails/studio-art-direction.ts'
+import { DEFAULT_STUDIO_DESIGN, STUDIO_BACKGROUNDS, parseStudioDesign, buildStudioArtDirection, resolveStudioImageModel } from '../lib/thumbnails/studio-art-direction.ts'
 import { buildNanoBananaImageRequest, extractGeneratedImage } from '../lib/thumbnails/nano-banana-image.ts'
 import { readThumbnailGenerationResponse } from '../lib/thumbnails/thumbnail-response.ts'
 
-test('every supported layout and background produces distinct explicit art direction', () => {
+test('every supported background produces explicit reference-led art direction', () => {
   const directions = new Set()
-  for (const layout of STUDIO_LAYOUTS) for (const background of STUDIO_BACKGROUNDS) {
-    const design = parseStudioDesign({ ...DEFAULT_STUDIO_DESIGN, layout: layout.id, background: background.id })
+  for (const background of STUDIO_BACKGROUNDS) {
+    const design = parseStudioDesign({ ...DEFAULT_STUDIO_DESIGN, background: background.id })
     const prompt = buildStudioArtDirection(design, 'Coaching mastery secrets', 'mastery')
-    assert.ok(prompt.includes(layout.treatment))
+    assert.ok(prompt.includes('selected visual reference as the primary composition'))
     assert.ok(prompt.includes(background.prompt))
     assert.ok(prompt.includes('#00B9F2'))
     assert.ok(prompt.includes('"Coaching mastery secrets"'))
@@ -18,7 +18,7 @@ test('every supported layout and background produces distinct explicit art direc
     assert.ok(prompt.includes('6% safe margin'))
     directions.add(prompt)
   }
-  assert.equal(directions.size, STUDIO_LAYOUTS.length * STUDIO_BACKGROUNDS.length)
+  assert.equal(directions.size, STUDIO_BACKGROUNDS.length)
 })
 
 test('invalid design controls fail before a generation request can be assembled', () => {
@@ -48,7 +48,8 @@ test('thinking images are skipped and only finished artwork is exported', () => 
 })
 
 test('HTML gateway pages produce a recoverable message and valid JSON artwork survives parsing', async () => {
-  await assert.rejects(readThumbnailGenerationResponse(new Response('<!DOCTYPE html><title>Gateway</title>', { status: 502, headers: { 'Content-Type': 'text/html' } })), /returned a web page instead of artwork/)
+  await assert.rejects(readThumbnailGenerationResponse(new Response('<!DOCTYPE html><title>Gateway</title>', { status: 502, headers: { 'Content-Type': 'text/html' } })), /HTTP 502, text\/html.*does not identify a Gemini key error/)
+  await assert.rejects(readThumbnailGenerationResponse(new Response('<!DOCTYPE html><title>Payload too large</title>', { status: 413, headers: { 'Content-Type': 'text/html' } })), /request as too large \(HTTP 413\)/)
   assert.deepEqual(await readThumbnailGenerationResponse(Response.json({ dataUrl: 'data:image/png;base64,YQ==' })), { dataUrl: 'data:image/png;base64,YQ==' })
 })
 
@@ -58,6 +59,7 @@ test('user headline, color, and no-emphasis choices stay authoritative', () => {
   assert.ok(prompt.includes('#ff6259'))
   assert.ok(prompt.includes('125%'))
   assert.ok(prompt.includes('without choosing an arbitrary highlighted word'))
-  assert.ok(prompt.includes('take priority over recipe defaults'))
+  assert.ok(prompt.includes('selected visual reference as the primary composition'))
   assert.ok(prompt.includes('Never add a sample slogan'))
+  assert.ok(buildStudioArtDirection(DEFAULT_STUDIO_DESIGN, 'My hook', '', 'warm film portrait with hand-drawn notes').includes('warm film portrait with hand-drawn notes'))
 })

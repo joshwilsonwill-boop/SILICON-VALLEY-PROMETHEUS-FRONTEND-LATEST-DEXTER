@@ -1514,6 +1514,8 @@ export function VideoUploadInterface() {
 
     const [uploadStatus, setUploadStatus] = useState<UploadStatus>('idle');
     const [uploadProgress, setUploadProgress] = useState(0);
+    const lastUploadUiUpdateRef = useRef({ status: 'idle' as UploadStatus, partLabel: null as string | null, progressBucket: -1 });
+    const lastUploadLogRef = useRef({ phase: '', progressBucket: -1 });
     const abortControllerRef = useRef<AbortController | null>(null);
     const [uploadPartLabel, setUploadPartLabel] = useState<string | null>(null);
     const [uploadErrorDetail, setUploadErrorDetail] = useState<string | null>(null);
@@ -1888,6 +1890,8 @@ export function VideoUploadInterface() {
                 currentStage = 'R2_MULTIPART_UPLOAD';
                 const abortController = new AbortController();
                 abortControllerRef.current = abortController;
+                lastUploadUiUpdateRef.current = { status: 'idle', partLabel: null, progressBucket: -1 };
+                lastUploadLogRef.current = { phase: '', progressBucket: -1 };
                 setUploadProgress(0);
                 setUploadErrorDetail(null);
                 setUploadPartLabel(null);
@@ -1913,12 +1917,31 @@ export function VideoUploadInterface() {
                             : `Uploading ${formatFileSize(selectedSourceFile.size)}`;
                         const detail = describeMultipartUploadProgress(progress, selectedSourceFile.name);
 
-                        logUploadEvent(progress.phase, {
-                            bytesUploaded: progress.bytesUploaded,
-                            currentPart: progress.currentPart,
-                            percentage: progress.percentage,
-                            totalParts: progress.totalParts,
-                        });
+                        const progressBucket = Math.floor(progress.percentage / 2);
+                        const previousUiUpdate = lastUploadUiUpdateRef.current;
+                        const shouldUpdateUi =
+                            nextStatus !== previousUiUpdate.status ||
+                            partLabel !== previousUiUpdate.partLabel ||
+                            progressBucket !== previousUiUpdate.progressBucket ||
+                            progress.phase === 'done';
+                        const previousLog = lastUploadLogRef.current;
+                        const logBucket = Math.floor(progress.percentage / 10);
+                        if (progress.phase !== previousLog.phase || logBucket !== previousLog.progressBucket) {
+                            logUploadEvent(progress.phase, {
+                                bytesUploaded: progress.bytesUploaded,
+                                currentPart: progress.currentPart,
+                                percentage: progress.percentage,
+                                totalParts: progress.totalParts,
+                            });
+                            lastUploadLogRef.current = { phase: progress.phase, progressBucket: logBucket };
+                        }
+
+                        if (!shouldUpdateUi) return;
+                        lastUploadUiUpdateRef.current = {
+                            status: nextStatus,
+                            partLabel,
+                            progressBucket,
+                        };
                         setUploadStatus(nextStatus);
                         setUploadProgress(progress.percentage);
                         setUploadPartLabel(partLabel);

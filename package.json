@@ -10,7 +10,7 @@
     "dev:turbopack": "next dev",
     "dev:webpack": "next dev --webpack",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "node scripts/verify-typecheck.mjs",
     "music:sync:drive": "node scripts/sync-google-drive-music-catalog.mjs",
     "render:proof": "tsx scripts/render-proof-smoke-test.ts",
     "upload:render-proof": "tsx scripts/upload-render-proof-to-r2.ts",

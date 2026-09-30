@@ -3,7 +3,8 @@
 import * as React from 'react'
 import { ThumbnailEngine, type ExtractedFrameCandidate, type ThumbnailTextPosition } from '@/lib/thumbnails/thumbnail-engine'
 import { VIRAL_THUMBNAIL_RECIPES } from '@/lib/thumbnails/nano-banana-rulebook'
-import { DEFAULT_STUDIO_DESIGN, STUDIO_LAYOUTS, type StudioDesign, type StudioLayout } from '@/lib/thumbnails/studio-art-direction'
+import { DEFAULT_STUDIO_DESIGN, type StudioDesign } from '@/lib/thumbnails/studio-art-direction'
+import { STUDIO_REFERENCES, getStudioReference, type StudioReferenceId } from '@/lib/thumbnails/studio-references'
 import { renderStudioDraft } from '@/lib/thumbnails/studio-draft'
 import { readThumbnailGenerationResponse } from '@/lib/thumbnails/thumbnail-response'
 import { ThumbnailWorkspace, type ThumbnailVariant } from '@/components/editor/thumbnail-studio/ThumbnailWorkspace'
@@ -71,6 +72,40 @@ function readImage(file: File, maxBytes: number): Promise<string> {
   })
 }
 
+async function readCompactReference(file: File): Promise<string> {
+  if (!['image/png','image/jpeg','image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) throw new Error('Use a PNG, JPEG, or WebP reference under 5 MB.')
+  const bitmap = await createImageBitmap(file)
+  try {
+    const scale = Math.min(1, 1200 / Math.max(bitmap.width, bitmap.height))
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.max(1, Math.round(bitmap.width * scale))
+    canvas.height = Math.max(1, Math.round(bitmap.height * scale))
+    const context = canvas.getContext('2d')
+    if (!context) throw new Error('Could not prepare that reference image.')
+    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
+    const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob(result => result ? resolve(result) : reject(new Error('Could not prepare that reference image.')), 'image/webp', 0.82))
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => typeof reader.result === 'string' ? resolve(reader.result) : reject(new Error('Could not prepare that reference image.'))
+      reader.onerror = () => reject(new Error('Could not prepare that reference image.'))
+      reader.readAsDataURL(blob)
+    })
+  } finally { bitmap.close() }
+}
+
+async function readStudioReference(id: StudioReferenceId): Promise<string> {
+  const reference = getStudioReference(id)
+  const response = await fetch(reference.src)
+  if (!response.ok) throw new Error('Could not load the selected visual reference.')
+  const blob = await response.blob()
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => typeof reader.result === 'string' ? resolve(reader.result) : reject(new Error('Could not load the selected visual reference.'))
+    reader.onerror = () => reject(new Error('Could not load the selected visual reference.'))
+    reader.readAsDataURL(blob)
+  })
+}
+
 export function ThumbnailStudioModal({ isOpen, onClose, projectId, projectTitle, videoElement, videoUrl, transcriptSnippet = '', onSaveProjectThumbnail }: ThumbnailStudioModalProps) {
   const [candidates, setCandidates] = React.useState<ExtractedFrameCandidate[]>([])
   const [selectedFrameIndex, setSelectedFrameIndex] = React.useState(0)
@@ -79,13 +114,13 @@ export function ThumbnailStudioModal({ isOpen, onClose, projectId, projectTitle,
   const [aiData, setAiData] = React.useState<AiCurationResponse | null>(null)
   const [aspectRatio, setAspectRatio] = React.useState<StudioAspectRatio>('16:9')
   const [design, setDesign] = React.useState<StudioDesign>({ ...DEFAULT_STUDIO_DESIGN })
+  const [referenceId, setReferenceId] = React.useState<StudioReferenceId>(STUDIO_REFERENCES[0].id)
   const [headline, setHeadline] = React.useState(() => projectTitle?.trim() && projectTitle !== 'Untitled Project' ? projectTitle.trim().slice(0,64) : '')
   const [highlightWord, setHighlightWord] = React.useState('')
   const [creativeDirection, setCreativeDirection] = React.useState('')
   const [recipeId, setRecipeId] = React.useState(VIRAL_THUMBNAIL_RECIPES[0].id)
   const [channelReferences, setChannelReferences] = React.useState<string[]>([])
   const [previewDataUrl, setPreviewDataUrl] = React.useState<string | null>(null)
-  const [layoutPreviews, setLayoutPreviews] = React.useState<Partial<Record<StudioLayout,string>>>({})
   const [generatedDataUrl, setGeneratedDataUrl] = React.useState<string | null>(null)
   const [variants, setVariants] = React.useState<ThumbnailVariant[]>([])
   const [selectedVariantId, setSelectedVariantId] = React.useState<string | null>(null)
@@ -105,7 +140,7 @@ export function ThumbnailStudioModal({ isOpen, onClose, projectId, projectTitle,
   const pendingReferenceCountRef = React.useRef(0)
   const savedTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
   const activeFrame = candidates[selectedFrameIndex]
-  const requestSignature = React.useMemo(() => JSON.stringify({ frameDataUrl: activeFrame?.dataUrl, headline, highlightWord, aspectRatio, studioDesign: design, recipeId, userPrompt: creativeDirection, referenceImages: channelReferences }), [activeFrame, headline, highlightWord, aspectRatio, design, recipeId, creativeDirection, channelReferences])
+  const requestSignature = React.useMemo(() => JSON.stringify({ frameDataUrl: activeFrame?.dataUrl, headline, highlightWord, aspectRatio, studioDesign: design, recipeId, userPrompt: creativeDirection, referenceImages: channelReferences, studioReferenceId: referenceId }), [activeFrame, headline, highlightWord, aspectRatio, design, recipeId, creativeDirection, channelReferences, referenceId])
   const currentSignatureRef = React.useRef(requestSignature)
   const currentGeneratedUrlRef = React.useRef(generatedDataUrl)
 
@@ -137,7 +172,6 @@ export function ThumbnailStudioModal({ isOpen, onClose, projectId, projectTitle,
     setIsExtracting(true)
     setNanoErrorMessage(null)
     setPreviewDataUrl(null)
-    setLayoutPreviews({})
     setCandidates([])
     setAiData(null)
     frameTouchedRef.current = false
@@ -187,16 +221,6 @@ export function ThumbnailStudioModal({ isOpen, onClose, projectId, projectTitle,
     }, 120)
     return () => { cancelled = true; clearTimeout(timer) }
   }, [isOpen, activeFrame, headline, highlightWord, design, aspectRatio])
-  React.useEffect(() => {
-    if (!isOpen || !activeFrame) return
-    let cancelled = false
-    const timer = setTimeout(() => {
-      void Promise.all(STUDIO_LAYOUTS.map(async layout => [layout.id, await renderStudioDraft(activeFrame.dataUrl, headline, highlightWord, { ...design, layout: layout.id }, 480,270)] as const))
-        .then(entries => { if (!cancelled) setLayoutPreviews(Object.fromEntries(entries)) }).catch(() => {})
-    }, 240)
-    return () => { cancelled = true; clearTimeout(timer) }
-  }, [isOpen, activeFrame, headline, highlightWord, design])
-
   const handleHeadline = (value: string) => { headlineTouchedRef.current = true; setHeadline(value.slice(0,64)); if (!value.split(/\s+/).includes(highlightWord)) setHighlightWord('') }
   const handleFrame = (index: number) => { frameTouchedRef.current = true; setSelectedFrameIndex(index) }
   const handleCaptureCurrentPlayhead = () => {
@@ -214,7 +238,7 @@ export function ThumbnailStudioModal({ isOpen, onClose, projectId, projectTitle,
     const epoch = fileReadEpochRef.current
     pendingReferenceCountRef.current += files.length
     try {
-      const images = await Promise.all(files.map(file => readImage(file,5 * 1024 * 1024)))
+      const images = await Promise.all(files.map(readCompactReference))
       if (epoch !== fileReadEpochRef.current) return
       setChannelReferences(previous => Array.from(new Set([...previous,...images])).slice(0,4))
       setNanoErrorMessage(null)
@@ -250,9 +274,12 @@ export function ThumbnailStudioModal({ isOpen, onClose, projectId, projectTitle,
     const signature = requestSignature
     try {
       const recipe = VIRAL_THUMBNAIL_RECIPES.find(item => item.id === recipeId)!
+      const visualReference = await readStudioReference(referenceId)
+      if (controller.signal.aborted) return
+      const referenceImages = [visualReference, ...channelReferences].slice(0, 4)
       const response = await fetch('/api/projects/' + projectId + '/thumbnails/nano-banana', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: controller.signal,
-        body: JSON.stringify({ frameDataUrl: activeFrame.dataUrl, headline: headline.trim(), highlightWord, recipeId, backgroundId: recipe.backgroundStyle, textTreatmentId: recipe.textTreatmentStyle, proofArtifactId: recipe.proofArtifact, directionalId: recipe.directionalStyle, lightingId: recipe.lightingStyle, brandColor: design.accent, aspectRatio, userPrompt: creativeDirection.trim(), referenceImages: channelReferences, lockChannelStyle: channelReferences.length > 0, studioDesign: design }),
+        body: JSON.stringify({ frameDataUrl: activeFrame.dataUrl, headline: headline.trim(), highlightWord, recipeId, backgroundId: recipe.backgroundStyle, textTreatmentId: recipe.textTreatmentStyle, proofArtifactId: recipe.proofArtifact, directionalId: recipe.directionalStyle, lightingId: recipe.lightingStyle, brandColor: design.accent, aspectRatio, userPrompt: creativeDirection.trim(), referenceImages, lockChannelStyle: true, studioReferenceId: referenceId, studioDesign: design }),
       })
       const data = await readThumbnailGenerationResponse(response)
       if (controller.signal.aborted) return
@@ -261,7 +288,7 @@ export function ThumbnailStudioModal({ isOpen, onClose, projectId, projectTitle,
       generatedImage.src = data.dataUrl
       await generatedImage.decode()
       if (controller.signal.aborted) return
-      const variant: ThumbnailVariant = { id: crypto.randomUUID(), dataUrl: data.dataUrl, headline, emphasis: highlightWord, aspectRatio, design: { ...design }, frame: activeFrame, creativeDirection, recipeId, references: [...channelReferences] }
+      const variant: ThumbnailVariant = { id: crypto.randomUUID(), dataUrl: data.dataUrl, headline, emphasis: highlightWord, aspectRatio, design: { ...design }, frame: activeFrame, creativeDirection, recipeId, references: [...channelReferences], referenceId }
       generatedSignatureRef.current = signature
       setGeneratedDataUrl(data.dataUrl)
       setVariants(previous => [...previous,variant].slice(-8))
@@ -278,7 +305,7 @@ export function ThumbnailStudioModal({ isOpen, onClose, projectId, projectTitle,
     frameTouchedRef.current = true
     const index = candidates.findIndex(frame => frame.dataUrl === variant.frame.dataUrl)
     if (index < 0) { setCandidates(previous => [variant.frame,...previous].slice(0,24)); setSelectedFrameIndex(0) } else setSelectedFrameIndex(index)
-    generatedSignatureRef.current = JSON.stringify({ frameDataUrl: variant.frame.dataUrl, headline: variant.headline, highlightWord: variant.emphasis, aspectRatio: variant.aspectRatio, studioDesign: variant.design, recipeId: variant.recipeId, userPrompt: variant.creativeDirection, referenceImages: variant.references })
+    generatedSignatureRef.current = JSON.stringify({ frameDataUrl: variant.frame.dataUrl, headline: variant.headline, highlightWord: variant.emphasis, aspectRatio: variant.aspectRatio, studioDesign: variant.design, recipeId: variant.recipeId, userPrompt: variant.creativeDirection, referenceImages: variant.references, studioReferenceId: variant.referenceId })
     setHeadline(variant.headline)
     setHighlightWord(variant.emphasis)
     setAspectRatio(variant.aspectRatio as StudioAspectRatio)
@@ -286,6 +313,7 @@ export function ThumbnailStudioModal({ isOpen, onClose, projectId, projectTitle,
     setRecipeId(variant.recipeId)
     setCreativeDirection(variant.creativeDirection)
     setChannelReferences([...variant.references])
+    setReferenceId(variant.referenceId)
     setGeneratedDataUrl(variant.dataUrl)
     setSelectedVariantId(variant.id)
     setIsGeneratingNano(false)
@@ -323,5 +351,5 @@ export function ThumbnailStudioModal({ isOpen, onClose, projectId, projectTitle,
   }
 
   if (!isOpen) return null
-  return <ThumbnailWorkspace projectTitle={projectTitle} aspectRatio={aspectRatio} onAspectRatio={setAspectRatio} design={design} onDesign={update => setDesign(previous => ({ ...previous,...update }))} headline={headline} onHeadline={handleHeadline} emphasis={highlightWord} onEmphasis={setHighlightWord} creativeDirection={creativeDirection} onCreativeDirection={setCreativeDirection} recipeId={recipeId} onRecipe={setRecipeId} candidates={candidates} selectedFrameIndex={selectedFrameIndex} onFrame={handleFrame} isExtracting={isExtracting} isCurating={isAiCurating} recommendedFrameIndex={aiData?.recommendedFrameIndex} hookTitles={aiData?.hookTitles ?? []} onCapture={videoElement ? handleCaptureCurrentPlayhead : undefined} onUploadFrame={files => { void handleUploadFrame(files) }} previewUrl={previewDataUrl} generatedUrl={generatedDataUrl} layoutPreviews={layoutPreviews} references={channelReferences} onReferences={files => { void handleAddReferenceImages(files) }} onRemoveReference={index => setChannelReferences(previous => previous.filter((_,i) => i !== index))} variants={variants} selectedVariantId={selectedVariantId} onVariant={handleRestoreVariant} isGenerating={isGeneratingNano} onGenerate={() => { void handleGenerateNanoBanana() }} onCancel={handleCancelGeneration} error={nanoErrorMessage} success={nanoSuccessMessage} onDownload={handleDownload} onSave={() => { void handleSaveCover() }} isSaving={isExporting} saved={savedSuccess} onClose={onClose} />
+  return <ThumbnailWorkspace projectTitle={projectTitle} aspectRatio={aspectRatio} onAspectRatio={setAspectRatio} design={design} onDesign={update => setDesign(previous => ({ ...previous,...update }))} headline={headline} onHeadline={handleHeadline} emphasis={highlightWord} onEmphasis={setHighlightWord} creativeDirection={creativeDirection} onCreativeDirection={setCreativeDirection} recipeId={recipeId} onRecipe={setRecipeId} candidates={candidates} selectedFrameIndex={selectedFrameIndex} onFrame={handleFrame} isExtracting={isExtracting} isCurating={isAiCurating} recommendedFrameIndex={aiData?.recommendedFrameIndex} hookTitles={aiData?.hookTitles ?? []} onCapture={videoElement ? handleCaptureCurrentPlayhead : undefined} onUploadFrame={files => { void handleUploadFrame(files) }} previewUrl={previewDataUrl} generatedUrl={generatedDataUrl} referenceId={referenceId} onReference={setReferenceId} references={channelReferences} onReferences={files => { void handleAddReferenceImages(files) }} onRemoveReference={index => setChannelReferences(previous => previous.filter((_,i) => i !== index))} variants={variants} selectedVariantId={selectedVariantId} onVariant={handleRestoreVariant} isGenerating={isGeneratingNano} onGenerate={() => { void handleGenerateNanoBanana() }} onCancel={handleCancelGeneration} error={nanoErrorMessage} success={nanoSuccessMessage} onDownload={handleDownload} onSave={() => { void handleSaveCover() }} isSaving={isExporting} saved={savedSuccess} onClose={onClose} />
 }

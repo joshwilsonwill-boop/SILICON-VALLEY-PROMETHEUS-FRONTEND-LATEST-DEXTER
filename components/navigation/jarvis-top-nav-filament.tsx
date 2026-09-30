@@ -433,8 +433,8 @@ export function JarvisTopNavFilament({ className }: JarvisTopNavFilamentProps) {
                   <DockIcon className="relative">
                     <Sparkles className="size-4" />
                     <span className={cn(
-                      'absolute -bottom-2 rounded-sm px-1 text-[7px] font-extrabold leading-[10px] tracking-wide',
-                      !isEditorLinked ? 'bg-white/10 text-white/45' : isTakeoverEnabled ? 'bg-emerald-200 text-emerald-950' : 'bg-white/20 text-white/90',
+                      'absolute -bottom-2 hidden rounded px-1.5 text-[9px] font-extrabold leading-[12px] tracking-wide shadow-sm',
+                      !isEditorLinked ? 'bg-zinc-500 text-black' : isTakeoverEnabled ? 'bg-emerald-200 text-emerald-950' : 'bg-zinc-200 text-zinc-950',
                     )}>{isTakeoverEnabled ? 'EDIT ON' : 'EDIT OFF'}</span>
                   </DockIcon>
                 </DockItem>
@@ -478,8 +478,8 @@ export function JarvisTopNavFilament({ className }: JarvisTopNavFilamentProps) {
                   <DockIcon className="relative">
                     <Power className="size-4" />
                     <span className={cn(
-                      'absolute -bottom-2 rounded-sm px-1 text-[7px] font-extrabold leading-[10px] tracking-wide',
-                      isActive ? 'bg-emerald-200 text-emerald-950' : companion.status === 'error' ? 'bg-rose-200 text-rose-950' : 'bg-white/20 text-white/90',
+                      'absolute -bottom-2 hidden rounded px-1.5 text-[9px] font-extrabold leading-[12px] tracking-wide shadow-sm',
+                      isActive ? 'bg-emerald-200 text-emerald-950' : companion.status === 'error' ? 'bg-rose-200 text-rose-950' : 'bg-zinc-200 text-zinc-950',
                     )}>{companion.status === 'connecting' ? 'WAIT' : isActive ? 'ON' : 'OFF'}</span>
                   </DockIcon>
                 </DockItem>

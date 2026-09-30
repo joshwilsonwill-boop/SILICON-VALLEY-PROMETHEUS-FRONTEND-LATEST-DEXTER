@@ -2,7 +2,8 @@
 
 import * as React from 'react'
 import { ArrowRight, Camera, Check, ChevronLeft, ChevronRight, Download, Frame, ImagePlus, Layers, Loader2, Palette, ScanLine, Sparkles, X } from 'lucide-react'
-import { STUDIO_ACCENTS, STUDIO_BACKGROUNDS, STUDIO_LAYOUTS, type StudioDesign, type StudioLayout } from '@/lib/thumbnails/studio-art-direction'
+import { STUDIO_ACCENTS, STUDIO_BACKGROUNDS, type StudioDesign } from '@/lib/thumbnails/studio-art-direction'
+import { STUDIO_REFERENCES, type StudioReferenceId } from '@/lib/thumbnails/studio-references'
 import { VIRAL_THUMBNAIL_RECIPES } from '@/lib/thumbnails/nano-banana-rulebook'
 import type { ExtractedFrameCandidate } from '@/lib/thumbnails/thumbnail-engine'
 import styles from './ThumbnailWorkspace.module.css'
@@ -18,6 +19,7 @@ export type ThumbnailVariant = {
   creativeDirection: string
   recipeId: string
   references: string[]
+  referenceId: StudioReferenceId
 }
 
 type Props = {
@@ -45,7 +47,8 @@ type Props = {
   onUploadFrame: (files: File[]) => void
   previewUrl: string | null
   generatedUrl: string | null
-  layoutPreviews: Partial<Record<StudioLayout, string>>
+  referenceId: StudioReferenceId
+  onReference: (id: StudioReferenceId) => void
   references: string[]
   onReferences: (files: File[]) => void
   onRemoveReference: (index: number) => void
@@ -64,14 +67,22 @@ type Props = {
   onClose: () => void
 }
 
-function LayoutTile({ id, selected, image, onSelect }: { id: StudioLayout; selected: boolean; image?: string; onSelect: (id: StudioLayout) => void }) {
-  const layout = STUDIO_LAYOUTS.find(item => item.id === id)!
-  return <button type="button" className={styles.layoutTile} aria-pressed={selected} aria-label={layout.name} title={layout.description} onClick={() => onSelect(id)}>
-    <span className={styles.layoutPicture}>
-      {image ? <img src={image} alt={layout.name + ' layout preview'} /> : <span className={styles.layoutExample}><span>YOUR<br /><b>STORY</b></span><i /></span>}
-      {selected && <span className={styles.frameSelected}><Check size={9} /></span>}
-    </span>
-    <span className={styles.layoutName}>{layout.name}</span>
+function ReferenceTile({ reference, selected, index, onSelect }: { reference: typeof STUDIO_REFERENCES[number]; selected: boolean; index: number; onSelect: (id: StudioReferenceId) => void }) {
+  const [revealed, setRevealed] = React.useState(false)
+  const tileRef = React.useRef<HTMLButtonElement>(null)
+  React.useEffect(() => {
+    const node = tileRef.current
+    if (!node) return
+    if (!('IntersectionObserver' in window)) { setRevealed(true); return }
+    const observer = new IntersectionObserver(entries => {
+      if (entries.some(entry => entry.isIntersecting)) { setRevealed(true); observer.disconnect() }
+    }, { rootMargin: '40px', threshold: 0.12 })
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [])
+  return <button ref={tileRef} type="button" className={styles.referenceTile} data-revealed={revealed} style={{ '--reveal-index': index } as React.CSSProperties} aria-pressed={selected} aria-label={'Use ' + reference.name + ' as thumbnail visual reference'} title={reference.cue} onClick={() => onSelect(reference.id)}>
+    <span className={styles.referenceVisual}><img className={styles.referenceImage} src={reference.src} alt={reference.name + ' thumbnail reference'} loading={index > 3 ? 'lazy' : 'eager'} /><span className={styles.referenceGrain} aria-hidden="true" />{selected && <span className={styles.frameSelected}><Check size={9} /></span>}</span>
+    <span className={styles.referenceInfo}><span className={styles.referenceName}>{reference.name}</span><span className={styles.referenceCue}>{reference.cue}</span></span>
   </button>
 }
 
@@ -117,7 +128,7 @@ export function ThumbnailWorkspace(props: Props) {
     const update = () => {
       const bounds = node.getBoundingClientRect()
       const maxWidth = Math.max(80, bounds.width - 36)
-      const maxHeight = Math.max(120, Math.min(bounds.height - 36, window.innerWidth <= 800 ? 360 : 510))
+      const maxHeight = Math.max(160, Math.min(bounds.height - 36, window.innerWidth <= 800 ? 440 : 620))
       const scale = Math.min(maxWidth / ratioWidth, maxHeight / ratioHeight)
       setArtboardSize({ width: Math.round(ratioWidth * scale), height: Math.round(ratioHeight * scale) })
     }
@@ -138,7 +149,7 @@ export function ThumbnailWorkspace(props: Props) {
   const headlineWords = Array.from(new Set(props.headline.trim().split(/\s+/).filter(Boolean)))
   const onFileInput = (event: React.ChangeEvent<HTMLInputElement>, action: (files: File[]) => void) => { action(Array.from(event.target.files ?? [])); event.target.value = '' }
   const title = tab === 'create' ? 'Make the first impression count.' : tab === 'styles' ? 'Find your visual direction.' : 'Make it unmistakably yours.'
-  const help = tab === 'create' ? 'Start with your frame. Shape the hook. Create the final artwork.' : tab === 'styles' ? 'Choose a composition, then refine the mood and detail.' : 'Choose your accent and use reference images to guide the look.'
+  const help = tab === 'create' ? 'Start with your frame. Shape the hook. Create the final artwork.' : tab === 'styles' ? 'Choose a cinematic reference, then refine mood and detail.' : 'Choose your accent and use reference images to guide the look.'
   const generatedLabel = props.generatedUrl ? 'Generated artwork' : 'Layout preview'
 
   const backgroundControl = <div className={styles.field}>
@@ -165,7 +176,7 @@ export function ThumbnailWorkspace(props: Props) {
       <input className={styles.hiddenInput} type="file" multiple accept="image/png,image/jpeg,image/webp" aria-label="Upload style references" onChange={event => onFileInput(event, props.onReferences)} disabled={props.references.length >= 4} />
     </label>
     {props.references.length > 0 && <div className={styles.referenceStrip}>{props.references.map((url, index) => <div className={styles.reference} key={url}><img src={url} alt={'Style reference ' + (index + 1)} /><button type="button" aria-label={'Remove style reference ' + (index + 1)} onClick={() => props.onRemoveReference(index)}><X size={10} /></button></div>)}</div>}
-    <p className={styles.hint}>References guide color, lighting, and type. Your video frame anchors the subject.</p>
+    <p className={styles.hint}>Your selected thumbnail reference guides composition, lighting, color, and graphic treatment. Your video frame anchors the subject.</p>
   </div>
 
   return <div className={styles.studio}>
@@ -178,7 +189,7 @@ export function ThumbnailWorkspace(props: Props) {
       <div className={styles.body}>
         <section className={styles.canvasColumn} aria-label="Thumbnail preview and source frames">
           <div className={styles.canvasToolbar}><div className={styles.previewIdentity}><span className={styles.previewSparkle}><Sparkles size={14} /></span><div><span className={styles.previewEyebrow}>YOUR NEXT FIRST IMPRESSION</span><p className={styles.subtitle}>A great video deserves a great first look.</p></div></div><div className={styles.aspectGroup} aria-label="Aspect ratio">{(['16:9','3:2','1:1','2:3','9:16'] as const).map(ratio => <button type="button" className={styles.aspectButton} key={ratio} aria-pressed={props.aspectRatio === ratio} onClick={() => props.onAspectRatio(ratio)}>{ratio}</button>)}</div></div>
-          <div className={styles.stage} ref={stageRef} aria-busy={props.isGenerating} onPointerMove={handleStagePointerMove} onPointerLeave={resetStageTilt}>
+          <div className={styles.stage} data-ratio={props.aspectRatio} ref={stageRef} aria-busy={props.isGenerating} onPointerMove={handleStagePointerMove} onPointerLeave={resetStageTilt}>
             {image ? <div className={styles.artboard} data-testid="thumbnail-artboard" style={{ width: artboardSize.width * feedScale, height: artboardSize.height * feedScale, transform: `perspective(1200px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`, '--pointer-x': `${tilt.pointerX}%`, '--pointer-y': `${tilt.pointerY}%` } as React.CSSProperties}>
               <img key={image} src={image} alt={view === 'source' ? 'Selected video frame at ' + source?.timecode : props.headline ? 'Thumbnail: ' + props.headline : 'Video frame layout preview'} className={[styles.stageImage, view === 'source' ? styles.stageSource : ''].join(' ')} onLoad={event => setDimensions(`${event.currentTarget.naturalWidth} × ${event.currentTarget.naturalHeight}`)} />
               <div className={styles.stageGlare} aria-hidden="true" />
@@ -191,7 +202,7 @@ export function ThumbnailWorkspace(props: Props) {
             <div className={styles.sectionHeading}><h2>Source keyframes<span className={styles.count}>{props.candidates.length} captures</span></h2><div className={styles.sectionActions}>{props.onCapture && <button type="button" className={styles.textButton} onClick={props.onCapture}><Camera size={12} />Capture playhead</button>}<button type="button" className={styles.iconButton} aria-label="Previous source frames" disabled={!props.candidates.length} onClick={() => frameStripRef.current?.scrollBy({ left: -220, behavior: 'smooth' })}><ChevronLeft size={13} /></button><button type="button" className={styles.iconButton} aria-label="Next source frames" disabled={!props.candidates.length} onClick={() => frameStripRef.current?.scrollBy({ left: 220, behavior: 'smooth' })}><ChevronRight size={13} /></button></div></div>
             <div className={styles.frameStrip} ref={frameStripRef}>{props.isExtracting && !props.candidates.length ? Array.from({ length: 6 }, (_, index) => <div key={index} className={styles.skeleton} />) : props.candidates.map((frame, index) => <button type="button" key={index + '-' + frame.timecode} className={styles.frame} aria-label={'Use frame at ' + frame.timecode + (props.recommendedFrameIndex === index ? ', AI recommended' : '')} aria-pressed={props.selectedFrameIndex === index} onClick={() => props.onFrame(index)}><img src={frame.dataUrl} alt={'Video frame at ' + frame.timecode} /><span className={styles.frameTime}>{frame.timecode}</span>{props.selectedFrameIndex === index && <span className={styles.frameSelected}><Check size={9} /></span>}</button>)}</div>
           </section>
-          <section className={styles.templates} aria-label="Thumbnail layouts"><div className={styles.sectionHeading}><h2>Thumbnail layouts</h2><button className={styles.textButton} type="button" onClick={() => setTab('styles')}>Explore styles<ArrowRight size={12} /></button></div><div className={styles.layoutRail}>{STUDIO_LAYOUTS.map(layout => <LayoutTile key={layout.id} id={layout.id} selected={props.design.layout === layout.id} image={props.layoutPreviews[layout.id]} onSelect={id => props.onDesign({ layout: id })} />)}</div></section>
+          <section className={styles.templates} aria-label="Thumbnail visual references"><div className={styles.sectionHeading}><h2>Reference thumbnails<span className={styles.count}>{STUDIO_REFERENCES.length} looks</span></h2><button className={styles.textButton} type="button" onClick={() => setTab('styles')}>Refine look<ArrowRight size={12} /></button></div><div className={styles.referenceRail}>{STUDIO_REFERENCES.map((reference, index) => <ReferenceTile key={reference.id} reference={reference} index={index} selected={props.referenceId === reference.id} onSelect={props.onReference} />)}</div></section>
           {props.variants.length > 0 && <section className={styles.variants} aria-label="Generated versions"><div className={styles.sectionHeading}><h2>Your versions<span className={styles.count}>{props.variants.length}</span></h2><span className={styles.hint}>Select a version to restore its design</span></div><div className={styles.frameStrip}>{props.variants.map((variant, index) => <button type="button" className={styles.frame + ' ' + styles.variant} key={variant.id} aria-label={'Restore version ' + (index + 1) + ': ' + variant.headline} aria-pressed={props.selectedVariantId === variant.id} onClick={() => { props.onVariant(variant); setView('artwork') }}><img src={variant.dataUrl} alt={'Generated version ' + (index + 1)} /><span className={styles.frameTime}>Version {index + 1}</span>{props.selectedVariantId === variant.id && <span className={styles.frameSelected}><Check size={9} /></span>}</button>)}</div></section>}
         </section>
         <aside className={styles.inspector} aria-label="Thumbnail controls">
@@ -206,8 +217,8 @@ export function ThumbnailWorkspace(props: Props) {
               {backgroundControl}{accentControl}{referenceControl}
             </>}
             {tab === 'styles' && <>
-              <div className={styles.field}><div className={styles.label}>Layout style</div><div className={styles.inspectorLayouts}>{STUDIO_LAYOUTS.map(layout => <LayoutTile key={layout.id} id={layout.id} selected={props.design.layout === layout.id} image={props.layoutPreviews[layout.id]} onSelect={id => props.onDesign({ layout: id })} />)}</div><p className={styles.hint}>{STUDIO_LAYOUTS.find(layout => layout.id === props.design.layout)?.description}</p></div>
-              <div className={styles.field}><label className={styles.label} htmlFor="thumbnail-recipe">Visual direction</label><select id="thumbnail-recipe" className={styles.select} value={props.recipeId} onChange={event => props.onRecipe(event.target.value)}>{VIRAL_THUMBNAIL_RECIPES.map(recipe => <option key={recipe.id} value={recipe.id}>{recipe.name}</option>)}</select><p className={styles.hint}>Use a direction as inspiration. Your layout and color choices take priority.</p></div>
+              <div className={styles.field}><div className={styles.label}>Selected visual reference</div><p className={styles.hint}>{STUDIO_REFERENCES.find(reference => reference.id === props.referenceId)?.cue}</p><div className={styles.referenceRail + ' ' + styles.inspectorReferences}>{STUDIO_REFERENCES.map((reference, index) => <ReferenceTile key={reference.id} reference={reference} index={index} selected={props.referenceId === reference.id} onSelect={props.onReference} />)}</div></div>
+              <div className={styles.field}><label className={styles.label} htmlFor="thumbnail-recipe">Visual direction</label><select id="thumbnail-recipe" className={styles.select} value={props.recipeId} onChange={event => props.onRecipe(event.target.value)}>{VIRAL_THUMBNAIL_RECIPES.map(recipe => <option key={recipe.id} value={recipe.id}>{recipe.name}</option>)}</select><p className={styles.hint}>Use a direction as inspiration. Your reference image and color choices guide the result.</p></div>
               {backgroundControl}<div className={styles.field}><label className={styles.label} htmlFor="thumbnail-text-scale">Headline size<small>{Math.round(props.design.textScale * 100)}%</small></label><input className={styles.range} id="thumbnail-text-scale" type="range" min="0.7" max="1.3" step="0.05" value={props.design.textScale} onChange={event => props.onDesign({ textScale: Number(event.target.value) })} /></div>{accentControl}
             </>}
             {tab === 'brand' && <>{accentControl}{referenceControl}<div className={styles.panelIntro}><h2>A consistent first impression</h2><p>Match the lighting, colors, and typography of your best thumbnails. The subject stays anchored to your selected video frame.</p></div></>}

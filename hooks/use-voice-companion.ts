@@ -14,6 +14,7 @@ import { autonomousCoordinator } from '@/lib/autonomous-ui/coordinator'
 import { getJarvisMemory, saveJarvisMemory } from '@/lib/voice-companion/memory'
 import { detectFillerWords } from '@/lib/voice-companion/filler-words'
 import { buildEditorialPlan } from '@/lib/editor/timeline-document'
+import { searchTranscriptText } from '@/lib/voice-companion/transcript-search'
 
 export type VoiceCompanionStatus =
   | 'disconnected'
@@ -199,6 +200,17 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
           }
         }
 
+        case 'search_video_transcript': {
+          const transcript = handlersRef.current.transcriptText || ''
+          if (!transcript.trim()) return { success: false, error: 'There is no video transcript available in this project.' }
+          const query = String(args.query ?? '').trim()
+          if (!query) return { success: false, error: 'Provide a word or phrase to search for.' }
+          const excerpts = searchTranscriptText(transcript, query)
+          return excerpts.length > 0
+            ? { success: true, query, excerpts }
+            : { success: true, query, excerpts: [], summary: 'No matching words were found in the transcript.' }
+        }
+
         case 'autonomous_transcript_cut': {
           const phrase = String(args.phrase ?? '')
           if (!handlersRef.current.hasVideo) return { success: false, error: 'There is no playable source video in this project yet.' }
@@ -266,7 +278,6 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
           const frames = typeof args.frames === 'number' ? args.frames : Number(args.frames)
           if (!Number.isFinite(frames) || frames === 0) return { success: false, error: 'Invalid frame count.' }
           if (!handlersRef.current.hasVideo) return { success: false, error: 'There is no playable source video to step through.' }
-          if (!isTakeoverEnabled) return { success: false, error: 'Editing access is off. Enable Jarvis editing to step frames.' }
           if (!onApplyActions) return { success: false, error: 'The editor is not linked, so I cannot step frames.' }
           await onApplyActions([{ kind: 'step_frames', frames: Math.round(Math.min(90, Math.max(-90, frames))), summary: `Frame step ${frames}` }])
           return { success: true, frames }
@@ -448,28 +459,28 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
 
       // 3. Initialize Gemini Live Client
       const bridgeHandlers = getVoiceCompanionBridge()
+      const projectContext = JSON.stringify({
+        hasVideo: bridgeHandlers.hasVideo ?? false,
+        sourceMediaState: bridgeHandlers.sourceMediaState ?? 'missing',
+        videoTitle: bridgeHandlers.hasVideo ? bridgeHandlers.videoTitle ?? null : null,
+        videoDurationSec: bridgeHandlers.hasVideo ? bridgeHandlers.videoDurationSec ?? 0 : 0,
+        videoMusicSummary: (bridgeHandlers.videoMusicContext as { summary?: string } | undefined)?.summary ?? null,
+        transcriptAvailable: Boolean(bridgeHandlers.transcriptText || bridgeHandlers.transcriptSegments),
+      })
       const client = new GeminiLiveClient(
-        {
-          wsUrl: sessionData.wsUrl,
-          wsUrls: sessionData.wsUrls,
-          model: sessionData.model,
-          voiceName: selectedVoice || sessionData.voiceName,
-          videoTranscript: bridgeHandlers.transcriptText,
-        },
+          {
+            wsUrl: sessionData.wsUrl,
+            wsUrls: sessionData.wsUrls,
+            model: sessionData.model,
+            voiceName: selectedVoice || sessionData.voiceName,
+            projectContext,
+          },
         {
           onOpen: () => {
             // Connected to socket
           },
           onSetupConfirmed: () => {
             setUserStatus('listening')
-            const bridge = bridgeHandlers
-            const videoTitle = bridge.videoTitle || 'Prometheus Video'
-            const durationInfo = bridge.videoDurationSec ? ` Duration: ${bridge.videoDurationSec.toFixed(1)}s.` : ''
-            const moodInfo = (bridge.videoMusicContext as any)?.summary ? ` Video Mood/Pace: ${(bridge.videoMusicContext as any).summary}.` : ''
-            const transcriptSnippet = bridge.transcriptText ? ` Full video transcript: "${bridge.transcriptText}".` : ''
-
-            const preBriefingContext = `[PRE-BRIEFING CONTEXT] Video "${videoTitle}" is active in the Editor workspace.${durationInfo}${moodInfo}${transcriptSnippet} Use this context to provide intelligent, contextual editing decisions, music recommendations, and filler-word detection. The video is loaded and persistent across all tabs.`
-            client.sendContextText(preBriefingContext)
           },
           onAudio: (base64Pcm24k) => {
             // Assistant turn is live: keep the echo gate engaged even between
@@ -599,9 +610,9 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
 
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to connect to voice companion'
+      disconnect()
       setError(msg)
       setUserStatus('error')
-      disconnect()
     }
   }, [disconnect, handleToolCall, selectedVoice, setUserStatus])
 
@@ -622,9 +633,7 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
     assistantTurnActiveRef.current = false
     setUserStatus('listening')
 
-    // Suppress continuous mic audio streaming temporarily (2500ms) to ensure
-    // ambient room audio doesn't clobber the clientContent text turn on Google's WebSocket
-    recorderRef.current?.suppressTransmission(2500)
+    // Clear any stale barge-in state before sending this complete text turn.
     recorderRef.current?.resetBargeFrames()
 
     clientRef.current.sendContextText(trimmed)

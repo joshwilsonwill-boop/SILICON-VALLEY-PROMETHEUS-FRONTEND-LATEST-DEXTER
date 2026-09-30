@@ -48,7 +48,9 @@ assert.match(nanoRouteSource, /SHORT_FORM_ARCHETYPES/, 'Nano Banana route must l
 // 5. Verify ThumbnailStudioModal UI capabilities
 const modalSource = readFileSync('components/editor/ThumbnailStudioModal.tsx', 'utf8')
 const workspaceSource = readFileSync('components/editor/thumbnail-studio/ThumbnailWorkspace.tsx', 'utf8')
-assert.match(workspaceSource, /STUDIO_LAYOUTS/, 'Workspace must offer distinct thumbnail compositions')
+assert.match(workspaceSource, /STUDIO_REFERENCES/, 'Workspace must show the supplied cinematic reference gallery')
+assert.doesNotMatch(workspaceSource, /Thumbnail layouts|LayoutTile/, 'Workspace must not render synthetic template tiles')
+assert.match(workspaceSource, /referenceId === reference\.id/, 'Selected visual reference must be visible in the gallery')
 assert.match(modalSource, /handleGenerateNanoBanana/, 'Modal must support Nano Banana generation')
 assert.match(modalSource, /studioDesign: design/, 'Modal must send the selected composition and quality settings')
 assert.match(modalSource, /brandColor/, 'Modal must support brand palette customization')
