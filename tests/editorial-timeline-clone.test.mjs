@@ -45,8 +45,7 @@ assert.match(tracks, /Voice \(Enhanced\)/i, 'Voice (Enhanced) emerald badge pres
 assert.match(tracks, /voiceWaveBars|waveform/i, 'Voice audio waveform present')
 assert.match(tracks, /<path[^>]+stroke="#5eead4"/i, 'Audio automation ducking curve path present')
 assert.match(tracks, /circle[^>]+cx="160"/i, 'Audio automation keyframe node handles present')
-assert.match(tracks, /Whoosh/i, 'Whoosh sound effect clip present')
-assert.match(tracks, /Flame/i, 'Flame icon on Whoosh SFX clip present')
+assert.match(tracks, /aria-label="Audio Track"/i, 'Original audio lane is present')
 
 // 5. Captions track: Separable pills & seek
 assert.match(tracks, /resolvedCaptions|transcriptSegments/i, 'Captions data mapped')

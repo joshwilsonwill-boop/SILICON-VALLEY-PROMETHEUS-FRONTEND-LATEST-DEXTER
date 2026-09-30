@@ -45,6 +45,7 @@ export function JarvisTopNavFilament({ className }: JarvisTopNavFilamentProps) {
   })
 
   const isActive = companion.status !== 'disconnected' && companion.status !== 'error'
+  const isTakeoverEnabled = Boolean(bridge.isTakeoverEnabled)
   const isSpeaking = companion.status === 'speaking'
   const isListening = companion.status === 'listening'
   const isInterrupted = companion.status === 'interrupted'
@@ -402,7 +403,7 @@ export function JarvisTopNavFilament({ className }: JarvisTopNavFilamentProps) {
                 {/* Jarvis editing control remains available when an editor is linked. */}
                 <DockItem
                   role="switch"
-                  aria-checked={Boolean(bridge.isTakeoverEnabled)}
+                  aria-checked={isTakeoverEnabled}
                   tabIndex={isEditorLinked ? 0 : -1}
                   onClick={() => {
                     if (!isEditorLinked) return
@@ -418,29 +419,31 @@ export function JarvisTopNavFilament({ className }: JarvisTopNavFilamentProps) {
                   }}
                   title={isEditorLinked ? (bridge.isTakeoverEnabled ? 'Stop Jarvis editing' : 'Allow Jarvis to edit') : 'Open a project to enable Jarvis editing'}
                   aria-label={isEditorLinked ? (bridge.isTakeoverEnabled ? 'Stop Jarvis editing' : 'Allow Jarvis to edit') : 'Jarvis editing unavailable'}
+                  data-state={isTakeoverEnabled ? 'on' : 'off'}
                   className={cn(
                     "cursor-pointer border transition-colors duration-200",
                     !isEditorLinked
                       ? "cursor-not-allowed border-white/10 bg-white/[0.025] text-white/35"
-                      : bridge.isTakeoverEnabled
-                      ? "border-amber-300/65 bg-amber-300/10 text-amber-200 shadow-[0_0_12px_rgba(252,211,77,0.3)]"
-                      : "border-cyan-300/35 bg-cyan-300/[0.055] text-cyan-200 hover:border-cyan-300/65 hover:bg-cyan-300/10"
+                      : isTakeoverEnabled
+                      ? "border-emerald-300/80 bg-emerald-300/20 text-emerald-100 shadow-[0_0_14px_rgba(52,211,153,0.35)]"
+                      : "border-white/25 bg-white/[0.08] text-white/85 hover:border-white/50 hover:bg-white/[0.14]"
                   )}
                 >
-                  <DockLabel>{isEditorLinked ? (bridge.isTakeoverEnabled ? 'Stop editing' : 'Allow Jarvis to edit') : 'Open a project to edit'}</DockLabel>
+                  <DockLabel>{isEditorLinked ? (isTakeoverEnabled ? 'Editing access ON — stop Jarvis' : 'Editing access OFF — allow Jarvis') : 'Open a project to enable editing'}</DockLabel>
                   <DockIcon className="relative">
-                    <Sparkles className={cn("size-4", bridge.isTakeoverEnabled && "animate-spin")} style={{ animationDuration: '4s' }} />
-                    {bridge.isTakeoverEnabled && (
-                      <span className="absolute -top-0.5 -right-0.5 flex size-2">
-                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
-                        <span className="relative inline-flex size-2 rounded-full bg-amber-400" />
-                      </span>
-                    )}
+                    <Sparkles className="size-4" />
+                    <span className={cn(
+                      'absolute -bottom-2 rounded-sm px-1 text-[7px] font-extrabold leading-[10px] tracking-wide',
+                      !isEditorLinked ? 'bg-white/10 text-white/45' : isTakeoverEnabled ? 'bg-emerald-200 text-emerald-950' : 'bg-white/20 text-white/90',
+                    )}>{isTakeoverEnabled ? 'EDIT ON' : 'EDIT OFF'}</span>
                   </DockIcon>
                 </DockItem>
 
                 {/* Power Off / Connect */}
                 <DockItem
+                  role="switch"
+                  aria-checked={isActive}
+                  data-state={isActive ? 'on' : 'off'}
                   onClick={
                     companion.status === 'disconnected' || companion.status === 'error'
                       ? companion.connect
@@ -453,23 +456,31 @@ export function JarvisTopNavFilament({ className }: JarvisTopNavFilamentProps) {
                   }
                   aria-label={
                     companion.status === 'disconnected' || companion.status === 'error'
-                      ? "Connect Jarvis"
-                      : "Power Off Jarvis"
+                      ? companion.status === 'error' ? "Jarvis is off after a connection error. Retry connection" : "Jarvis is off. Turn on"
+                      : companion.status === 'connecting' ? "Jarvis is connecting. Turn off" : "Jarvis is on. Turn off"
                   }
                   className={cn(
                     "cursor-pointer border transition-colors duration-200",
                     companion.status === 'disconnected' || companion.status === 'error'
-                      ? "border-cyan-300/70 bg-cyan-300/10 text-cyan-100 hover:bg-cyan-200 hover:text-[#061014]"
-                      : "border-white/15 bg-white/[0.055] text-white/70 hover:border-rose-300/50 hover:bg-rose-300/10 hover:text-rose-200"
+                      ? companion.status === 'error'
+                        ? "border-rose-300/60 bg-rose-300/10 text-rose-100 hover:bg-rose-300/20"
+                        : "border-white/25 bg-white/[0.08] text-white/90 hover:border-white/50 hover:bg-white/[0.14]"
+                      : companion.status === 'connecting'
+                        ? "border-amber-200/70 bg-amber-200/15 text-amber-100"
+                        : "border-emerald-300/80 bg-emerald-300/20 text-emerald-100 shadow-[0_0_14px_rgba(52,211,153,0.3)]"
                   )}
                 >
                   <DockLabel>
                     {companion.status === 'disconnected' || companion.status === 'error'
-                      ? "Connect Power"
-                      : "Power Off"}
+                      ? companion.status === 'error' ? "Jarvis OFF — retry" : "Jarvis OFF — turn on"
+                      : companion.status === 'connecting' ? "Jarvis CONNECTING — turn off" : "Jarvis ON — turn off"}
                   </DockLabel>
-                  <DockIcon>
+                  <DockIcon className="relative">
                     <Power className="size-4" />
+                    <span className={cn(
+                      'absolute -bottom-2 rounded-sm px-1 text-[7px] font-extrabold leading-[10px] tracking-wide',
+                      isActive ? 'bg-emerald-200 text-emerald-950' : companion.status === 'error' ? 'bg-rose-200 text-rose-950' : 'bg-white/20 text-white/90',
+                    )}>{companion.status === 'connecting' ? 'WAIT' : isActive ? 'ON' : 'OFF'}</span>
                   </DockIcon>
                 </DockItem>
               </Dock>

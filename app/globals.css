@@ -131,8 +131,8 @@ body {
 
 /* Keep the Motion workspace responsive to the editorial timeline. */
 [data-motion-chamber] > section[aria-label='Video timeline'] {
-  min-height: 14rem;
-  height: 17rem;
+  min-height: 14.5rem;
+  height: 16rem;
 }
 
 [data-motion-chamber] > section[aria-label='Video timeline'] > div:first-child {
@@ -142,8 +142,8 @@ body {
 
 @media (min-width: 640px) {
   [data-motion-chamber] > section[aria-label='Video timeline'] {
-    min-height: 16rem;
-    height: 18.5rem;
+    min-height: 15rem;
+    height: 16rem;
   }
 }
 
@@ -1990,4 +1990,3 @@ html[data-prometheus-reduce-motion='true'] *::after {
     stroke-dashoffset: -12;
   }
 }
-

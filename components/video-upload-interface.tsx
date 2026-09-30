@@ -2996,10 +2996,11 @@ export function VideoUploadInterface() {
                                     ? airtableStylePreviews[matchedKey]?.[0]
                                     : undefined;
                                 const localPreview = template.previewImages[0];
-                                const previewImage = remotePreview && !failedImages[remotePreview]
-                                    ? remotePreview
-                                    : localPreview;
-                                const hasPreview = Boolean(previewImage) && !failedImages[localPreview];
+                                const previewImage = localPreview && !failedImages[localPreview]
+                                    ? localPreview
+                                    : remotePreview && !failedImages[remotePreview]
+                                        ? remotePreview
+                                        : undefined;
                                 return (
                                     <button
                                         key={template.id}
@@ -3019,7 +3020,7 @@ export function VideoUploadInterface() {
                                         )}
                                     >
                                         <div className="relative aspect-video w-24 shrink-0 overflow-hidden rounded-md border border-white/10 bg-white/[0.03] sm:w-28">
-                                            {hasPreview ? (
+                                            {previewImage ? (
                                                 <Image
                                                     src={previewImage}
                                                     alt={`${template.name} style preview`}

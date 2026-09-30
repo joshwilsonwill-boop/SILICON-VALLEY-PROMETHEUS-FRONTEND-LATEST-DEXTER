@@ -139,20 +139,26 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
       switch (name) {
         case 'seek_timeline': {
           const time = typeof args.timeSec === 'number' ? args.timeSec : 0
+          if (!Number.isFinite(time) || time < 0) return { success: false, error: 'Choose a valid timeline time.' }
           if (onSeek) {
             await onSeek(time)
           } else if (onApplyActions) {
             await onApplyActions([{ kind: 'seek', timeSec: time, summary: `Seek to ${time}s` }])
+          } else {
+            return { success: false, error: 'The editor is not linked, so I cannot move the playhead.' }
           }
           return { success: true, newPlayheadSec: time }
         }
 
         case 'preview_control': {
           const cmd = args.command as 'play' | 'pause' | 'mute' | 'unmute'
-          if (cmd === 'play') onPlay ? await onPlay() : await onApplyActions?.([{ kind: 'preview_control', command: 'play', summary: 'Play preview' }])
-          if (cmd === 'pause') onPause ? await onPause() : await onApplyActions?.([{ kind: 'preview_control', command: 'pause', summary: 'Pause preview' }])
-          if (cmd === 'mute') onMute ? await onMute() : await onApplyActions?.([{ kind: 'preview_control', command: 'mute', summary: 'Mute preview' }])
-          if (cmd === 'unmute') onUnmute ? await onUnmute() : await onApplyActions?.([{ kind: 'preview_control', command: 'unmute', summary: 'Unmute preview' }])
+          if (!['play', 'pause', 'mute', 'unmute'].includes(cmd)) return { success: false, error: 'That playback command is not supported.' }
+          if (cmd === 'play' && onPlay) await onPlay()
+          else if (cmd === 'pause' && onPause) await onPause()
+          else if (cmd === 'mute' && onMute) await onMute()
+          else if (cmd === 'unmute' && onUnmute) await onUnmute()
+          else if (onApplyActions) await onApplyActions([{ kind: 'preview_control', command: cmd, summary: `${cmd} preview` }])
+          else return { success: false, error: 'The editor is not linked, so I cannot control playback.' }
           return { success: true, command: cmd }
         }
 
@@ -160,6 +166,7 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
           const tab = args.tab as 'Editor' | 'Music' | 'Motion'
           if (onTabChange) await onTabChange(tab)
           else if (onApplyActions) await onApplyActions([{ kind: 'switch_tab', tab, summary: `Switch to ${tab}` }])
+          else return { success: false, error: 'The editor is not linked, so I cannot switch workspaces.' }
           return { success: true, activeTab: tab }
         }
 
@@ -167,29 +174,36 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
           const mode = args.mode as 'fill' | 'fit'
           if (onFitModeChange) await onFitModeChange(mode)
           else if (onApplyActions) await onApplyActions([{ kind: 'set_fit_mode', mode, summary: `Fit mode: ${mode}` }])
+          else return { success: false, error: 'The editor is not linked, so I cannot change the frame view.' }
           return { success: true, fitMode: mode }
         }
 
         case 'get_editor_state': {
           const liveContext = contextProvider?.()
           const bridge = handlersRef.current
+          const hasVideo = bridge.hasVideo ?? false
           return {
             success: true,
             playheadSec: liveContext?.playheadSec ?? 0,
-            durationSec: liveContext?.durationSec ?? bridge.videoDurationSec ?? 0,
-            workspaceTab: liveContext?.workspaceTab ?? 'Editor',
+            durationSec: liveContext?.durationSec ?? bridge.timelineDurationSec ?? 0,
+            timelineDurationSec: liveContext?.durationSec ?? bridge.timelineDurationSec ?? 0,
+            workspaceTab: liveContext?.workspaceTab ?? null,
             fitMode: liveContext?.fitMode ?? 'fit',
             muted: liveContext?.muted ?? false,
-            hasVideo: bridge.hasVideo ?? Boolean((liveContext?.durationSec ?? 0) > 0),
-            videoTitle: bridge.videoTitle ?? 'Prometheus Project',
-            videoDurationSec: bridge.videoDurationSec ?? liveContext?.durationSec ?? 0,
+            hasVideo,
+            sourceMediaState: bridge.sourceMediaState ?? (hasVideo ? 'ready' : 'missing'),
+            videoTitle: hasVideo ? (bridge.videoTitle ?? null) : null,
+            videoDurationSec: hasVideo ? (bridge.videoDurationSec ?? 0) : 0,
             videoMusicContext: bridge.videoMusicContext,
-            transcriptAvailable: Boolean(bridge.transcriptText),
+            transcriptAvailable: Boolean(bridge.transcriptText || bridge.transcriptSegments),
           }
         }
 
         case 'autonomous_transcript_cut': {
           const phrase = String(args.phrase ?? '')
+          if (!handlersRef.current.hasVideo) return { success: false, error: 'There is no playable source video in this project yet.' }
+          if (!handlersRef.current.transcriptText && !handlersRef.current.transcriptSegments) return { success: false, error: 'There is no transcript to cut from yet.' }
+          if (!handlersRef.current.onToggleCutWord && !handlersRef.current.onToggleCutSegment) return { success: false, error: 'The editor is not linked, so I cannot apply transcript cuts.' }
           const success = await autonomousCoordinator.executeTranscriptCut(phrase, {
             onSwitchTab: onTabChange ? (tab) => onTabChange(tab as 'Editor' | 'Music' | 'Motion') : undefined,
             onToggleCutWord: handlersRef.current.onToggleCutWord,
@@ -237,26 +251,35 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
         case 'set_playback_rate': {
           const rate = typeof args.rate === 'number' ? args.rate : Number(args.rate)
           if (!Number.isFinite(rate) || rate <= 0) return { success: false, error: 'Invalid playback rate.' }
-          onApplyActions?.([{ kind: 'set_playback_rate', rate: Math.min(4, Math.max(0.25, rate)), summary: `Playback speed ${rate}x` }])
+          if (!handlersRef.current.hasVideo) return { success: false, error: 'There is no playable source video in this project yet.' }
+          if (!onApplyActions) return { success: false, error: 'The editor is not linked, so I cannot change playback speed.' }
+          await onApplyActions([{ kind: 'set_playback_rate', rate: Math.min(4, Math.max(0.25, rate)), summary: `Playback speed ${rate}x` }])
           return { success: true, rate }
         }
 
         case 'step_frames': {
           const frames = typeof args.frames === 'number' ? args.frames : Number(args.frames)
           if (!Number.isFinite(frames) || frames === 0) return { success: false, error: 'Invalid frame count.' }
-          onApplyActions?.([{ kind: 'step_frames', frames: Math.round(Math.min(90, Math.max(-90, frames))), summary: `Frame step ${frames}` }])
+          if (!handlersRef.current.hasVideo) return { success: false, error: 'There is no playable source video to step through.' }
+          if (!onApplyActions) return { success: false, error: 'The editor is not linked, so I cannot step frames.' }
+          await onApplyActions([{ kind: 'step_frames', frames: Math.round(Math.min(90, Math.max(-90, frames))), summary: `Frame step ${frames}` }])
           return { success: true, frames }
         }
 
         case 'set_caption_style': {
           const style = String(args.style ?? '')
           if (!isTakeoverEnabled) return { success: false, error: 'Takeover mode is off — ask the user to enable it first.' }
-          onApplyActions?.([{ kind: 'set_caption_style', style: style as 'clean_bold' | 'karaoke_pop' | 'typewriter' | 'lower_third', summary: `Caption style: ${style}` }])
+          if (!handlersRef.current.hasVideo) return { success: false, error: 'There is no playable source video in this project yet.' }
+          if (!onApplyActions) return { success: false, error: 'The editor is not linked, so I cannot change caption styling.' }
+          await onApplyActions([{ kind: 'set_caption_style', style: style as 'clean_bold' | 'karaoke_pop' | 'typewriter' | 'lower_third', summary: `Caption style: ${style}` }])
           return { success: true, style }
         }
 
         case 'start_render': {
           const mode = args.mode === 'final' ? 'final' : 'preview'
+          if (!isTakeoverEnabled) return { success: false, error: 'Editing access is off. Ask the user to enable Jarvis editing first.' }
+          if (!handlersRef.current.hasVideo) return { success: false, error: 'There is no playable source video to render.' }
+          if (!onApplyActions) return { success: false, error: 'The editor is not linked, so I cannot start a render.' }
           await onApplyActions?.([{ kind: 'start_render', mode, summary: mode === 'final' ? 'Opening Master Review for final export' : 'Dispatching viral batch render' }])
           return { success: true, mode }
         }
@@ -264,9 +287,13 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
         case 'detect_filler_words': {
           const rawSegments = handlersRef.current.transcriptSegments
           const segments = Array.isArray(rawSegments) ? rawSegments : []
+          if (!handlersRef.current.transcriptText && segments.length === 0) return { success: false, error: 'There is no transcript to analyze yet.' }
           const result = detectFillerWords(segments)
           const shouldApply = Boolean(args.applyCuts)
 
+          if (shouldApply && result.items.length > 0 && !handlersRef.current.onToggleCutWord) {
+            return { success: false, error: 'The editor is not linked, so I cannot apply filler-word cuts.' }
+          }
           if (shouldApply && result.items.length > 0 && handlersRef.current.onToggleCutWord) {
             for (const item of result.items) {
               handlersRef.current.onToggleCutWord(item.segmentId, item.wordIndex)
@@ -285,15 +312,16 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
         case 'cut_silence':
         case 'remove_silence': {
           const minDurationSec = typeof args.minDurationSec === 'number' ? args.minDurationSec : 0.4
-          if (onApplyActions) {
-            await onApplyActions([
-              {
-                kind: 'cut_silence',
-                minDurationSec,
-                summary: `Remove transcript-detected silences (> ${minDurationSec}s)`,
-              },
-            ])
-          }
+          if (!handlersRef.current.hasVideo) return { success: false, error: 'There is no playable source video in this project yet.' }
+          if (!handlersRef.current.transcriptText && !handlersRef.current.transcriptSegments) return { success: false, error: 'There is no transcript to find silences in yet.' }
+          if (!onApplyActions) return { success: false, error: 'The editor is not linked, so I cannot remove silences.' }
+          await onApplyActions([
+            {
+              kind: 'cut_silence',
+              minDurationSec,
+              summary: `Remove transcript-detected silences (> ${minDurationSec}s)`,
+            },
+          ])
           return {
             success: true,
             minDurationSec,
@@ -305,7 +333,10 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
         case 'execute_timeline_plan': {
           const prompt = String(args.prompt || 'Cinematic documentary pass')
           const liveContext = contextProvider?.()
-          const durationSec = liveContext?.durationSec || 45
+          const durationSec = liveContext?.durationSec ?? handlersRef.current.timelineDurationSec ?? 0
+          if (!handlersRef.current.hasVideo) return { success: false, error: 'There is no playable source video in this project yet.' }
+          if (durationSec <= 0) return { success: false, error: 'The source video duration is not available yet.' }
+          if (!onApplyActions) return { success: false, error: 'The editor is not linked, so I cannot apply an editorial plan.' }
           const transcriptText = handlersRef.current.transcriptText || ''
           const brandProfile = handlersRef.current.brandProfile
 
@@ -325,20 +356,18 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
           }
 
           // Apply caption style and modifications via editor actions
-          if (onApplyActions) {
-            await onApplyActions([
-              {
-                kind: 'set_caption_style',
-                style: plan.captionStyle,
-                summary: `Editorial Plan: Restyle captions to ${plan.captionStyle}`,
-              },
-            ])
-          }
+          await onApplyActions([
+            {
+              kind: 'set_caption_style',
+              style: plan.captionStyle,
+              summary: `Editorial Plan: Restyle captions to ${plan.captionStyle}`,
+            },
+          ])
 
           return {
             success: true,
             plan,
-            summary: plan.summary,
+            summary: `${plan.summary} Caption styling was applied; proposed zoom and music cues remain a plan until their timeline actions are connected.`,
           }
         }
 

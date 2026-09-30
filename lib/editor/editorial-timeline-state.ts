@@ -36,12 +36,29 @@ export const editorialTranscriptSchema = z.object({
 }).refine((segment) => segment.end > segment.start)
 export type EditorialTranscript = z.infer<typeof editorialTranscriptSchema>
 
+/** Shared timed placement contract for backend generated and editor-adjusted visual cues. */
+export const editorialCueSchema = z.object({
+  id: z.string().min(1).max(200),
+  type: z.enum(['text', 'transition', 'movement', 'b-roll', 'sound-effect', 'explainer', 'counter', 'background']),
+  start: time,
+  end: time,
+  title: z.string().max(512),
+  text: z.string().max(20000).optional(),
+  region: z.string().max(100).optional(),
+  sourceId: z.string().max(512).optional(),
+  sourceUrl: z.string().max(4096).optional(),
+  origin: z.enum(['backend', 'editor']).default('backend'),
+  context: z.record(z.string(), z.unknown()).optional(),
+}).refine((cue) => cue.end > cue.start, 'A cue must end after it starts.')
+export type EditorialCue = z.infer<typeof editorialCueSchema>
+
 export interface EditorialTimelineState {
   version: 1
   revision: number
   sourceAssetId: string | null
   music: { track: MusicRecommendation; volume: number; muted: boolean } | null
   effects: EditorialSoundEffect[]
+  cues: EditorialCue[]
   transcript?: EditorialTranscript[]
 }
 
@@ -50,12 +67,13 @@ export const editorialTimelinePatchSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('mix'), volume: gain.optional(), muted: z.boolean().optional() }),
   z.object({ type: z.literal('effects'), effects: z.array(editorialSoundEffectSchema).max(200) }),
   z.object({ type: z.literal('effect'), id: z.string().min(1), volume: gain.optional(), muted: z.boolean().optional() }),
+  z.object({ type: z.literal('cues'), cues: z.array(editorialCueSchema).max(2000) }),
   z.object({ type: z.literal('transcript'), segments: z.array(editorialTranscriptSchema).max(5000) }),
 ])
 export type EditorialTimelinePatch = z.infer<typeof editorialTimelinePatchSchema>
 
 export function emptyEditorialTimeline(sourceAssetId: string | null): EditorialTimelineState {
-  return { version: 1, revision: 0, sourceAssetId, music: null, effects: [] }
+  return { version: 1, revision: 0, sourceAssetId, music: null, effects: [], cues: [] }
 }
 
 /** Saved cues and transcript edits belong to one source, never its replacement. */
@@ -65,6 +83,7 @@ export function readEditorialTimeline(editorState: unknown, sourceAssetId: strin
   if (!raw || raw.sourceAssetId !== sourceAssetId) return empty
   const music = raw.music && editorialMusicSchema.safeParse(raw.music.track)
   const effects = z.array(editorialSoundEffectSchema).max(200).safeParse(raw.effects)
+  const cues = z.array(editorialCueSchema).max(2000).safeParse(raw.cues)
   const transcript = z.array(editorialTranscriptSchema).max(5000).safeParse(raw.transcript)
   return {
     ...empty,
@@ -75,6 +94,7 @@ export function readEditorialTimeline(editorState: unknown, sourceAssetId: strin
       muted: raw.music?.muted === true,
     } : null,
     effects: effects.success ? effects.data : [],
+    cues: cues.success ? cues.data : [],
     ...(transcript.success ? { transcript: transcript.data } : {}),
   }
 }
@@ -86,6 +106,7 @@ export function applyEditorialTimelinePatch(state: EditorialTimelineState, patch
     case 'mix': return { ...next, music: state.music ? { ...state.music, ...(patch.volume !== undefined ? { volume: patch.volume } : {}), ...(patch.muted !== undefined ? { muted: patch.muted } : {}) } : null }
     case 'effects': return { ...next, effects: patch.effects }
     case 'effect': return { ...next, effects: state.effects.map((cue) => cue.id === patch.id ? { ...cue, ...(patch.volume !== undefined ? { volume: patch.volume } : {}), ...(patch.muted !== undefined ? { muted: patch.muted } : {}) } : cue) }
+    case 'cues': return { ...next, cues: patch.cues }
     case 'transcript': return { ...next, transcript: patch.segments }
   }
 }
@@ -97,9 +118,9 @@ export function editorialAudioTime(cue: { start: number; end: number; offset: nu
 /** Surface orchestration cues even while their audio assets are still pending. */
 export function readBackendEditorialTimeline(editorState: unknown, sourceAssetId: string | null, animationPlan: unknown): EditorialTimelineState {
   const state = readEditorialTimeline(editorState, sourceAssetId)
-  const rawCues = (animationPlan as { sfxCues?: unknown[] } | null)?.sfxCues
-  const cues = Array.isArray(rawCues) ? rawCues : []
-  const backendEffects = cues.flatMap((value) => {
+  const plan = animationPlan && typeof animationPlan === 'object' ? animationPlan as Record<string, unknown> : {}
+  const rawCues = Array.isArray(plan.sfxCues) ? plan.sfxCues : []
+  const backendEffects = rawCues.flatMap((value) => {
     if (!value || typeof value !== 'object') return []
     const cue = value as Record<string, unknown>
     const existing = state.effects.find((item) => item.id === cue.id)
@@ -113,5 +134,46 @@ export function readBackendEditorialTimeline(editorState: unknown, sourceAssetId
     })
     return result.success ? [result.data] : []
   })
-  return { ...state, effects: [...state.effects.filter((cue) => cue.origin !== 'backend' && !backendEffects.some((item) => item.id === cue.id)), ...backendEffects] }
+  const backendCues: EditorialCue[] = []
+  const families: Array<[string, EditorialCue['type'], (cue: Record<string, unknown>) => string]> = [
+    ['speechCues', 'text', (cue) => String(cue.text ?? cue.title ?? 'Text')],
+    ['transitionCues', 'transition', (cue) => String(cue.label ?? cue.type ?? 'Transition')],
+    ['movementCues', 'movement', (cue) => String(cue.label ?? cue.type ?? 'Movement')],
+    ['brollCues', 'b-roll', (cue) => String(cue.title ?? cue.sourceId ?? 'B-roll')],
+    ['sfxCues', 'sound-effect', (cue) => String(cue.title ?? cue.cue ?? 'Sound effect').replaceAll('-', ' ')],
+    ['explainerCues', 'explainer', (cue) => String(cue.title ?? cue.concept ?? 'Explainer')],
+    ['counterCues', 'counter', (cue) => String(cue.label ?? 'Counter')],
+    ['backgroundCues', 'background', (cue) => String(cue.title ?? cue.kind ?? 'Background')],
+  ]
+  for (const [key, type, titleOf] of families) {
+    const values = Array.isArray(plan[key]) ? plan[key] as unknown[] : []
+    for (const value of values) {
+      if (!value || typeof value !== 'object') continue
+      const cue = value as Record<string, unknown>
+      const candidate = {
+        id: cue.id,
+        type,
+        title: titleOf(cue),
+        text: type === 'text' && typeof cue.text === 'string' ? cue.text : undefined,
+        start: typeof cue.startMs === 'number' ? cue.startMs / 1000 : cue.start,
+        end: typeof cue.endMs === 'number' ? cue.endMs / 1000 : cue.end,
+        region: cue.region,
+        sourceId: cue.sourceId,
+        sourceUrl: cue.sourceUrl,
+        origin: 'backend',
+        context: cue,
+      }
+      const parsed = editorialCueSchema.safeParse(candidate)
+      if (parsed.success) {
+        const edit = state.cues.find((saved) => saved.id === parsed.data.id)
+        backendCues.push(edit ? { ...parsed.data, start: edit.start, end: edit.end, origin: 'editor' } : parsed.data)
+      }
+    }
+  }
+  const activeBackendIds = new Set(backendCues.map((cue) => cue.id))
+  return {
+    ...state,
+    effects: [...state.effects.filter((cue) => cue.origin !== 'backend' && !backendEffects.some((item) => item.id === cue.id)), ...backendEffects],
+    cues: [...state.cues.filter((cue) => cue.origin !== 'backend' && !activeBackendIds.has(cue.id)), ...backendCues],
+  }
 }

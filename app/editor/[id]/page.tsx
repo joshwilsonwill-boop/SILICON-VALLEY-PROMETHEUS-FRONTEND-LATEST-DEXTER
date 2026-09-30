@@ -175,7 +175,7 @@ import { CommandBubble } from "@/components/editor/CommandBubble";
 import { ExportDrawer } from "@/components/editor/ExportDrawer";
 import { CircularToast } from "@/components/editor/CircularToast";
 
-type HeaderNavMode = 'Editor' | 'Music' | 'Motion'
+type HeaderNavMode = 'Editor' | 'Music' | 'Motion' | 'Export'
 type PreviewMediaKind = 'video' | 'image'
 type PreviewFitMode = 'fill' | 'fit'
 type BottomMode = 'Original' | 'Music' | 'Timeline'
@@ -839,6 +839,7 @@ const WORKSPACE_TABS: Array<{ key: HeaderNavMode; label: string; icon: React.Com
   { key: 'Editor', label: 'Editor', icon: Film },
   { key: 'Music', label: 'Music', icon: Music4 },
   { key: 'Motion', label: 'Motion', icon: Sparkles },
+  { key: 'Export', label: 'Export', icon: Upload },
 ]
 
 function normalizeWorkspaceTabParam(value: string | null): HeaderNavMode | null {
@@ -6188,7 +6189,7 @@ function OriginalEditorPage() {
   const requestedWorkspaceTab = normalizeWorkspaceTabParam(searchParams.get('tab'))
   const projectId = params.id
   const isMobile = useMediaQuery('(max-width: 1024px)')
-  const { setShowExport } = useEditor()
+  const { showExport, setShowExport } = useEditor()
 
   React.useEffect(() => {
     rememberEditorialChamberPath(`/editor/${projectId}`)
@@ -6900,7 +6901,7 @@ function OriginalEditorPage() {
 
   const totalDurationMs = React.useMemo(() => {
     const scenes = job?.artifacts.scenes ?? []
-    return scenes.length > 0 ? scenes[scenes.length - 1]!.endMs : 48_000
+    return scenes.length > 0 ? scenes[scenes.length - 1]!.endMs : 0
   }, [job])
 
   const progressPercent = React.useMemo(() => {
@@ -6931,6 +6932,7 @@ function OriginalEditorPage() {
   const transportTime = msToTime(transportDurationSec * 1000)
   const previewUrl = sourceStageVisiblePreviewUrl ?? stableProjectPreviewUrl ?? ''
   const previewKind = incomingPreviewKind
+  const hasPlayableVideo = Boolean(previewUrl && previewKind === 'video')
   const shouldUseLegacySessionPreviewSurface = handoffPreviewForCurrentSource?.url === previewUrl && previewKind === 'video'
   const hasPreviewMedia = Boolean(previewUrl)
   const isSourceStageActivelyLoading =
@@ -8542,9 +8544,19 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
       },
       onToggleCutWord: handleToggleCutWord,
       onToggleCutSegment: handleToggleCutSegment,
-      hasVideo: Boolean(project?.sourceAssetId || motionTranscriptSegments.length > 0),
+      hasVideo: hasPlayableVideo,
       videoTitle: project?.title ?? 'Untitled Project',
-      videoDurationSec: transportDurationSec,
+      videoDurationSec: hasPlayableVideo ? (previewDurationSec || transportDurationSec) : 0,
+      timelineDurationSec: transportDurationSec,
+      sourceMediaState: hasPlayableVideo
+        ? 'ready'
+        : isSourceStageActivelyLoading
+          ? 'loading'
+          : project?.sourceAssetId
+            ? 'unavailable'
+            : previewUrl
+              ? 'non_video'
+              : 'missing',
       videoMusicContext: videoContext,
       onSelectMusicTrack: (trackId: string) => setSelectedEditorMusicTrackId(trackId),
     })
@@ -8562,6 +8574,10 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
     handleToggleCutSegment,
     project?.title,
     project?.sourceAssetId,
+    previewUrl,
+    previewKind,
+    previewDurationSec,
+    isSourceStageActivelyLoading,
     transportDurationSec,
     videoContext,
   ])
@@ -8958,7 +8974,7 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
           tempTitle={tempTitle}
           setTempTitle={setTempTitle}
           titleInputRef={titleInputRef}
-          activeWorkspaceTab={activeWorkspaceTab}
+          activeWorkspaceTab={showExport ? 'Export' : activeWorkspaceTab}
           isDeferredChromeReady={isDeferredChromeReady}
           isExporting={isExporting}
           isDownloading={isDownloading}
@@ -8972,6 +8988,10 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
           onTitleKeyDown={handleTitleKeyDown}
           onTitleStartEdit={handleTitleStartEdit}
           onWorkspaceTabChange={(tab) => {
+            if (tab === 'Export') {
+              setShowExport(true)
+              return
+            }
             setActiveWorkspaceTab(tab as HeaderNavMode)
             setBottomMode(tab === 'Music' ? 'Music' : 'Original')
           }}

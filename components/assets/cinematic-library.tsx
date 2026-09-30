@@ -25,6 +25,7 @@ import { AnimatedTooltip } from '@/components/ui/animated-tooltip'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { getMusicShowcaseSeeds } from '@/lib/music-catalog'
+import { getCreatorVideos, type CreatorVideoItem } from '@/lib/creators/video-catalog'
 import { cn } from '@/lib/utils'
 import type { AssetItem, AssetKind } from '@/lib/types'
 
@@ -117,10 +118,57 @@ export function CinematicLibrary({
   }, [initialShowcaseId, showcaseItems, tab])
   const active = showcaseItems.find((item) => item.id === activeId) ?? showcaseItems[0]
   const config = TAB_CONFIG[tab]
-  const posterItems = React.useMemo(
-    () => buildLibraryStackItems(tab, active, showcaseItems),
-    [active, showcaseItems, tab],
+  const [dynamicVideos, setDynamicVideos] = React.useState<CreatorVideoItem[]>(() =>
+    active ? getCreatorVideos(active.title) : []
   )
+
+  React.useEffect(() => {
+    if (!active?.title || tab !== 'uploads') return
+    let activeEffect = true
+
+    // Immediate high-tier curated items ensure zero delay or empty flicker
+    setDynamicVideos(getCreatorVideos(active.title))
+
+    // Autonomously query the dynamic creator video route for fresh reads
+    fetch(`/api/creators/videos?creator=${encodeURIComponent(active.title)}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!activeEffect || !data?.videos || !Array.isArray(data.videos) || data.videos.length === 0) return
+        setDynamicVideos(data.videos)
+      })
+      .catch(() => {
+        // Fallback already active
+      })
+
+    return () => {
+      activeEffect = false
+    }
+  }, [active?.title, tab])
+
+  const posterItems = React.useMemo(() => {
+    if (tab === 'uploads') {
+      const videos = dynamicVideos.length > 0 ? dynamicVideos : getCreatorVideos(active.title)
+      return videos.slice(0, 6).map((vid, idx) => ({
+        id: `${active.id}_video_${idx}`,
+        parentId: active.id,
+        title: vid.title,
+        subtitle: vid.subtitle,
+        description: vid.description,
+        year: vid.year,
+        runtime: vid.runtime,
+        genre: vid.genre,
+        badge: vid.badge,
+        rating: vid.rating || 9.2,
+        videoId: vid.videoId,
+        image: vid.image || active.image,
+        imagePosition: vid.imagePosition || 'center',
+        accent: active.accent || '#55ff9b',
+        metaLine: vid.metaLine || `${vid.badge} | ${vid.runtime}`,
+        isLocal: false,
+      }))
+    }
+    return buildLibraryStackItems(tab, active, showcaseItems)
+  }, [active, dynamicVideos, showcaseItems, tab])
   const founderActiveId = React.useMemo(() => {
     const match = FOUNDER_STRIP.find((founder) => founder.name === active.title)
     return match?.id ?? null
@@ -408,7 +456,10 @@ export function CinematicLibrary({
                     <div className="text-[11px] uppercase tracking-[0.3em] text-white/38">Library stack</div>
                     <div className="mt-2 text-lg text-white">{stackTitle}</div>
                   </div>
-                  <div className="text-xs uppercase tracking-[0.22em] text-white/38">{heroVideo ? 'Original videos from Alex Hormozi' : 'Hover to inspect, click to focus'}</div>
+                  <div className="flex items-center gap-2">
+                    <span className="rounded-full border border-[#55ff9b]/30 bg-[#55ff9b]/10 px-2 py-0.5 text-[9px] uppercase tracking-wider text-[#63ffa4]">Autonomous Vault</span>
+                    <div className="text-xs uppercase tracking-[0.22em] text-white/38">{heroVideo ? `Original videos from ${active.title}` : 'Hover to inspect, click to focus'}</div>
+                  </div>
                 </motion.div>
 
                 <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-6">
@@ -444,7 +495,7 @@ export function CinematicLibrary({
         <DialogContent className="w-[calc(100vw-1rem)] max-w-5xl overflow-hidden rounded-md border-white/15 bg-[#06090a] p-0 text-white shadow-[0_40px_120px_rgba(0,0,0,0.9)] sm:w-[calc(100vw-2rem)]">
           <DialogHeader className="border-b border-[#55ff9b]/20 px-5 py-4 pr-12">
             <DialogTitle className="text-base font-semibold sm:text-lg">{selectedVideo?.title}</DialogTitle>
-            <DialogDescription className="text-xs text-white/55">Alex Hormozi / Official YouTube video</DialogDescription>
+            <DialogDescription className="text-xs text-white/55">{active.title} / Official YouTube video</DialogDescription>
           </DialogHeader>
           {selectedVideo?.videoId ? (
             <iframe
@@ -459,7 +510,7 @@ export function CinematicLibrary({
           ) : null}
           {selectedVideo?.videoId ? (
             <div className="flex flex-wrap items-center justify-between gap-3 px-5 pb-4 text-xs text-white/60">
-              <span>{selectedVideo.runtime} / Alex Hormozi</span>
+              <span>{selectedVideo.runtime} / {active.title}</span>
               <a href={`https://www.youtube.com/watch?v=${selectedVideo.videoId}`} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-2 text-[#72ffab] underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#72ffab]">
                 Open original <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
               </a>
@@ -570,9 +621,23 @@ function HoverTiltMediaCard({
 }) {
   const [hovered, setHovered] = React.useState(false)
   const [imageFailed, setImageFailed] = React.useState(false)
+  const [pointerPos, setPointerPos] = React.useState({ x: 50, y: 50 })
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect()
+    if (rect.width > 0 && rect.height > 0) {
+      setPointerPos({
+        x: Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100)),
+        y: Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100)),
+      })
+    }
+  }
+
   const resolvedImage = imageFailed
-    ? ART_POOL[hashValue(`${item.id}-${item.title}`) % ART_POOL.length]
-    : item.image
+    ? (item.videoId
+        ? `https://i.ytimg.com/vi/${item.videoId}/hqdefault.jpg`
+        : ART_POOL[hashValue(`${item.id}-${item.title}`) % ART_POOL.length])
+    : (item.image || (item.videoId ? `https://i.ytimg.com/vi/${item.videoId}/hqdefault.jpg` : ART_POOL[0]))
 
   React.useEffect(() => {
     setImageFailed(false)
@@ -584,6 +649,7 @@ function HoverTiltMediaCard({
       className={cn('relative h-full w-full', className)}
       onPointerEnter={() => setHovered(true)}
       onPointerLeave={() => setHovered(false)}
+      onPointerMove={handlePointerMove}
       onFocus={() => setHovered(true)}
       onBlur={() => setHovered(false)}
       transition={reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 180, damping: 24 }}
@@ -591,10 +657,12 @@ function HoverTiltMediaCard({
     >
       <div
         className={cn(
-          'group relative h-full w-full min-h-[280px] overflow-hidden rounded-[10px] border bg-[#090a0f]',
+          'group relative h-full w-full min-h-[280px] overflow-hidden rounded-[10px] border bg-[#090a0f] transition-colors',
           active
-            ? 'border-white/20 shadow-[0_26px_50px_-30px_rgba(85,255,155,0.38)]'
-            : 'border-white/10 shadow-[0_24px_44px_-32px_rgba(0,0,0,0.82)]',
+            ? 'border-[#55ff9b]/60 shadow-[0_26px_50px_-30px_rgba(85,255,155,0.48)] ring-1 ring-[#55ff9b]/30'
+            : hovered
+              ? 'border-[#55ff9b]/40 shadow-[0_24px_44px_-24px_rgba(85,255,155,0.25)]'
+              : 'border-white/10 shadow-[0_24px_44px_-32px_rgba(0,0,0,0.82)]',
           compact && 'min-h-[240px]',
         )}
       >
@@ -612,9 +680,40 @@ function HoverTiltMediaCard({
         />
         {item.videoId && hovered && !reduceMotion ? (
           <React.Suspense fallback={null}>
-            <PaperImage src={item.image} alt="" className="absolute inset-0 overflow-hidden" />
+            <PaperImage src={resolvedImage} alt="" className="absolute inset-0 overflow-hidden" />
           </React.Suspense>
         ) : null}
+
+        {/* Originkit Specular Spotlight */}
+        <div
+          className="pointer-events-none absolute inset-0 z-20 transition-opacity duration-300"
+          style={{
+            opacity: hovered && !reduceMotion ? 1 : 0,
+            background: `radial-gradient(circle 240px at ${pointerPos.x}% ${pointerPos.y}%, rgba(85,255,155,0.22), transparent 70%)`,
+          }}
+          aria-hidden="true"
+        />
+
+        {/* Originkit Optical Reticle & Corner Brackets (HUD) */}
+        <div
+          className="pointer-events-none absolute inset-2 z-20 transition-opacity duration-300"
+          style={{ opacity: hovered || active ? 1 : 0 }}
+          aria-hidden="true"
+        >
+          {/* Top-left corner bracket */}
+          <span className="absolute left-0 top-0 h-3.5 w-3.5 border-l-2 border-t-2 border-[#55ff9b] shadow-[0_0_8px_rgba(85,255,155,0.7)]" />
+          {/* Top-right corner bracket */}
+          <span className="absolute right-0 top-0 h-3.5 w-3.5 border-r-2 border-t-2 border-[#55ff9b] shadow-[0_0_8px_rgba(85,255,155,0.7)]" />
+          {/* Bottom-left corner bracket */}
+          <span className="absolute bottom-0 left-0 h-3.5 w-3.5 border-l-2 border-b-2 border-[#55ff9b] shadow-[0_0_8px_rgba(85,255,155,0.7)]" />
+          {/* Bottom-right corner bracket */}
+          <span className="absolute bottom-0 right-0 h-3.5 w-3.5 border-r-2 border-b-2 border-[#55ff9b] shadow-[0_0_8px_rgba(85,255,155,0.7)]" />
+
+          {/* Telemetry reticle coordinates */}
+          <span className="absolute right-1 bottom-1 font-mono text-[8px] tracking-widest text-[#55ff9b]/90 bg-black/75 px-1 py-0.5 rounded border border-[#55ff9b]/35 shadow-sm">
+            FRAME::{pointerPos.x.toFixed(0)}:{pointerPos.y.toFixed(0)}
+          </span>
+        </div>
 
         <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.02)_0%,rgba(0,0,0,0.12)_28%,rgba(0,0,0,0.9)_100%)]" />
         <div
@@ -624,22 +723,26 @@ function HoverTiltMediaCard({
           }}
         />
 
-        <div className="absolute inset-x-0 top-0 flex items-start justify-between p-4">
-          <div className="rounded-full border border-white/12 bg-black/28 px-2.5 py-1 text-[9px] uppercase tracking-[0.22em] text-white/62 backdrop-blur-md">
+        <div className="absolute inset-x-0 top-0 flex items-start justify-between p-4 z-20">
+          <div className="rounded-full border border-white/12 bg-black/40 px-2.5 py-1 text-[9px] uppercase tracking-[0.22em] text-white/75 backdrop-blur-md">
             {item.badge}
           </div>
           {active ? (
-            <div className="rounded-full border border-[#55ff9b]/25 bg-[#0b1b12]/85 px-2.5 py-1 text-[9px] uppercase tracking-[0.2em] text-[#9cffc3]">
+            <div className="rounded-full border border-[#55ff9b]/40 bg-[#0b1b12]/90 px-2.5 py-1 text-[9px] uppercase tracking-[0.2em] text-[#9cffc3] shadow-[0_0_12px_rgba(85,255,155,0.35)]">
               Focused
             </div>
           ) : null}
-          {item.videoId ? <span className="grid h-8 w-8 place-items-center border border-white/25 bg-black/55 text-white"><Play className="h-3.5 w-3.5 fill-current" aria-hidden="true" /></span> : null}
+          {item.videoId ? (
+            <span className="group-hover:scale-110 group-hover:border-[#55ff9b] group-hover:bg-[#55ff9b] group-hover:text-black grid h-8 w-8 place-items-center rounded-full border border-white/25 bg-black/60 text-white transition-all duration-200 shadow-md">
+              <Play className="h-3.5 w-3.5 fill-current ml-0.5" aria-hidden="true" />
+            </span>
+          ) : null}
         </div>
 
-        <div className="absolute inset-x-0 bottom-0 p-4">
-          <div className="truncate text-[10px] uppercase tracking-[0.22em] text-white/52">{subtitle}</div>
-          <div className="mt-2 line-clamp-2 text-[1.05rem] font-semibold leading-tight text-white">{title}</div>
-          {meta ? <div className="mt-2 truncate text-xs text-white/54">{meta}</div> : null}
+        <div className="absolute inset-x-0 bottom-0 p-4 z-20">
+          <div className="truncate text-[10px] uppercase tracking-[0.22em] text-[#63ffa4]/80">{subtitle}</div>
+          <div className="mt-2 line-clamp-2 text-[1.05rem] font-semibold leading-tight text-white group-hover:text-[#c4ffd9] transition-colors">{title}</div>
+          {meta ? <div className="mt-2 truncate text-xs text-white/60 font-mono">{meta}</div> : null}
         </div>
       </div>
     </motion.div>

@@ -8,6 +8,8 @@ import {
   Lock,
   Music,
   Plus,
+  Sparkles,
+  Type,
   Unlock,
   Volume2,
   VolumeX,
@@ -252,6 +254,15 @@ export function EditorialTimelineViewport({
                 </button>
               </div>
             </div>
+
+            {/* Text Placement Track Header */}
+            <div className="flex h-[30px] items-center justify-between border-b border-white/[0.04] px-2.5 transition-colors hover:bg-white/[0.02]" style={{ marginTop: 6 }}>
+              <div className="flex items-center gap-1.5 font-medium text-white/85"><Type className="size-3 text-[#9df65a]" /><span>Text</span></div>
+            </div>
+
+            {props.editorialCues?.some((cue) => cue.type !== 'text') ? <div className="flex h-[30px] items-center justify-between border-b border-white/[0.04] px-2.5 transition-colors hover:bg-white/[0.02]" style={{ marginTop: 6 }}>
+              <div className="flex items-center gap-1.5 font-medium text-white/85"><Sparkles className="size-3 text-sky-300" /><span>Effects &amp; cues</span></div>
+            </div> : null}
 
             {/* Music Track Header */}
             <div

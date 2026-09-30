@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import { AnimatePresence, motion, useMotionValue, useSpring, useTransform } from 'framer-motion'
-import { Check, FileUp, Folder, Music, Pause, Play, Plus, Search, SlidersHorizontal, Sparkles, Volume2, VolumeX, X } from 'lucide-react'
+import { Check, ChevronDown, FileUp, Folder, Heart, MoreHorizontal, Music, Pause, Play, Plus, Repeat, Search, Shuffle, SkipBack, SkipForward, SlidersHorizontal, Sparkles, Volume2, VolumeX, X } from 'lucide-react'
 import Image from 'next/image'
 import { toast } from 'sonner'
 
@@ -21,7 +21,6 @@ import { cn } from '@/lib/utils'
 import { useStableReducedMotion } from '@/hooks/use-stable-reduced-motion'
 import { useEditorialTimeline } from '@/hooks/use-editorial-timeline'
 import { writeSelectedEditorMusicRecommendation } from '@/lib/editor-music-selection'
-import { EditorialSyncStatus } from '@/components/editor/editorial-sync-status'
 
 const rowHoverSpring = {
   stiffness: 240,
@@ -79,11 +78,11 @@ function readPersonalMusicLibrary() {
   }
 }
 
-const MUSIC_COLLECTION_TABS: Array<{ id: MusicCollectionTab; label: string }> = [
+const MUSIC_COLLECTION_TABS: Array<{ id: MusicCollectionTab; label: string; icon?: string }> = [
   { id: 'trending', label: 'Trendy' },
-  { id: 'premium', label: 'Premium' },
-  { id: 'my-music', label: 'My Music' },
-  { id: 'favorites', label: 'Favorites' },
+  { id: 'premium', label: 'Premium', icon: '👑' },
+  { id: 'my-music', label: 'My Music', icon: '👤' },
+  { id: 'favorites', label: 'Favorites', icon: '🤍' },
 ]
 
 function formatPersonalMusicSize(bytes: number) {
@@ -111,27 +110,104 @@ function createMusicStoragePath(userId: string) {
   return `${userId}/${crypto.randomUUID()}`
 }
 
-function MusicCollectionTabs({ activeTab, onChange }: { activeTab: MusicCollectionTab; onChange: (tab: MusicCollectionTab) => void }) {
+function MusicCollectionTabs({
+  activeTab,
+  onChange,
+  moodFilter,
+  onMoodChange,
+  genreFilter,
+  onGenreChange,
+  durationFilter,
+  onDurationChange,
+  availableGenres,
+  compact = false,
+}: {
+  activeTab: MusicCollectionTab
+  onChange: (tab: MusicCollectionTab) => void
+  moodFilter?: string
+  onMoodChange?: (mood: string) => void
+  genreFilter?: string
+  onGenreChange?: (genre: string) => void
+  durationFilter?: string
+  onDurationChange?: (duration: string) => void
+  availableGenres?: string[]
+  compact?: boolean
+}) {
   return (
-    <div className="flex gap-1 overflow-x-auto border-b border-white/10 pb-2 [scrollbar-width:none]" role="tablist" aria-label="Music collections">
-      {MUSIC_COLLECTION_TABS.map((tab) => {
-        const active = tab.id === activeTab
-        return (
-          <button
-            key={tab.id}
-            type="button"
-            role="tab"
-            aria-selected={active}
-            onClick={() => onChange(tab.id)}
-            className={cn(
-              'shrink-0 rounded-[10px] px-3 py-2 text-[11px] font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4d9dff]/50',
-              active ? 'bg-white/[0.12] text-white' : 'text-white/46 hover:bg-white/[0.05] hover:text-white/76',
-            )}
+    <div className="flex min-w-0 items-center justify-between gap-2 border-b border-white/10 pb-2" role="tablist" aria-label="Music collections">
+      <div className="flex min-w-0 items-center gap-1 overflow-x-auto [scrollbar-width:none]">
+        {MUSIC_COLLECTION_TABS.map((tab) => {
+          const active = tab.id === activeTab
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              onClick={() => onChange(tab.id)}
+              className={cn(
+                'inline-flex shrink-0 items-center gap-1.5 rounded-md px-3.5 py-2 text-[11px] font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3b82f6]/50',
+                active
+                  ? 'bg-white/[0.12] text-white shadow-inner'
+                  : 'text-white/45 hover:bg-white/[0.05] hover:text-white/80',
+              )}
+            >
+              {tab.icon ? <span className="text-xs">{tab.icon}</span> : null}
+              <span>{tab.label}</span>
+            </button>
+          )
+        })}
+      </div>
+
+      {!compact ? <div className="flex items-center gap-2">
+        {/* Mood dropdown */}
+        <div className="relative">
+          <select
+            value={moodFilter ?? ''}
+            onChange={(e) => onMoodChange?.(e.target.value)}
+            className="appearance-none rounded-full border border-white/10 bg-white/[0.03] pl-3 pr-7 py-1.5 text-xs text-white/70 hover:border-white/20 hover:text-white outline-none cursor-pointer focus:border-[#3b82f6]"
           >
-            {tab.label}
-          </button>
-        )
-      })}
+            <option value="" className="bg-[#121622] text-white">Mood ⌵</option>
+            <option value="cinematic" className="bg-[#121622] text-white">Cinematic</option>
+            <option value="uplifting" className="bg-[#121622] text-white">Uplifting</option>
+            <option value="peaceful" className="bg-[#121622] text-white">Peaceful</option>
+            <option value="dark" className="bg-[#121622] text-white">Energetic</option>
+            <option value="minimal" className="bg-[#121622] text-white">Chill</option>
+            <option value="playful" className="bg-[#121622] text-white">Happy</option>
+          </select>
+          <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 size-3 text-white/40" />
+        </div>
+
+        {/* Genre dropdown */}
+        <div className="relative">
+          <select
+            value={genreFilter ?? ''}
+            onChange={(e) => onGenreChange?.(e.target.value)}
+            className="appearance-none rounded-full border border-white/10 bg-white/[0.03] pl-3 pr-7 py-1.5 text-xs text-white/70 hover:border-white/20 hover:text-white outline-none cursor-pointer focus:border-[#3b82f6]"
+          >
+            <option value="" className="bg-[#121622] text-white">Genre ⌵</option>
+            {(availableGenres ?? ['Cinematic', 'Electronic', 'Ambient', 'Acoustic', 'Pop']).map((g) => (
+              <option key={g} value={g} className="bg-[#121622] text-white">{g}</option>
+            ))}
+          </select>
+          <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 size-3 text-white/40" />
+        </div>
+
+        {/* Duration dropdown */}
+        <div className="relative">
+          <select
+            value={durationFilter ?? ''}
+            onChange={(e) => onDurationChange?.(e.target.value)}
+            className="appearance-none rounded-full border border-white/10 bg-white/[0.03] pl-3 pr-7 py-1.5 text-xs text-white/70 hover:border-white/20 hover:text-white outline-none cursor-pointer focus:border-[#3b82f6]"
+          >
+            <option value="" className="bg-[#121622] text-white">Duration ⌵</option>
+            <option value="short" className="bg-[#121622] text-white">&lt; 3 mins</option>
+            <option value="medium" className="bg-[#121622] text-white">3 - 5 mins</option>
+            <option value="long" className="bg-[#121622] text-white">&gt; 5 mins</option>
+          </select>
+          <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 size-3 text-white/40" />
+        </div>
+      </div> : null}
     </div>
   )
 }
@@ -754,6 +830,12 @@ function NowPlayingBar({
   onPlayPause,
   onSeek,
   track,
+  volume = 80,
+  onVolumeChange,
+  onReplaceCurrent,
+  onAddToTimeline,
+  onPlayFromStart,
+  compact = false,
 }: {
   currentTime: number
   duration: number
@@ -764,8 +846,15 @@ function NowPlayingBar({
   onPlayPause: () => void
   onSeek: (nextTime: number) => void
   track: MusicRecommendation | null
+  volume?: number
+  onVolumeChange?: (v: number) => void
+  onReplaceCurrent?: () => void
+  onAddToTimeline?: () => void
+  onPlayFromStart?: () => void
+  compact?: boolean
 }) {
   const [artBroken, setArtBroken] = React.useState(false)
+  const [showActions, setShowActions] = React.useState(false)
 
   React.useEffect(() => {
     setArtBroken(false)
@@ -774,11 +863,13 @@ function NowPlayingBar({
   if (!track) return null
 
   const progress = duration > 0 ? Math.min(100, Math.max(0, (currentTime / duration) * 100)) : 0
+  const tags = (((track as any).vibeTags || [track.genre, ...((track as any).tags || [])]).filter(Boolean) as string[]).slice(0, 3)
 
   return (
-    <div className="absolute inset-x-4 bottom-4 z-30 glass-panel border-white/10 bg-abyss/80 p-3 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.85)] backdrop-blur-2xl">
-      <div className="flex items-center gap-4">
-        <div className="relative size-10 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-void">
+    <div className={cn('absolute inset-x-4 bottom-4 z-30 flex flex-wrap items-center justify-between gap-4 rounded-[18px] border border-white/10 bg-[#0d131f]/95 p-3.5 shadow-[0_24px_60px_rgba(0,0,0,0.85)] backdrop-blur-2xl', compact && 'inset-x-5 flex-nowrap gap-3 rounded-[13px] p-2.5')}>
+      {/* Left Track Info */}
+      <div className="flex min-w-0 items-center gap-3.5">
+        <div className={cn('relative size-12 shrink-0 overflow-hidden rounded-[14px] border border-white/10 bg-void shadow-md', compact && 'size-10 rounded-[10px]')}>
           {artBroken || !track.coverArtUrl ? (
             <div className="grid h-full w-full place-items-center text-white/20">
               <Music className="size-5" />
@@ -788,46 +879,125 @@ function NowPlayingBar({
               src={track.coverArtUrl || FALLBACK_COVER_ART}
               alt=""
               fill
-              sizes="40px"
+              sizes="48px"
               className="object-cover"
               onError={() => setArtBroken(true)}
               style={{ objectPosition: track.coverArtPosition ?? 'center' }}
             />
           )}
         </div>
-        <div className="min-w-0 flex-1">
-          <div className="truncate text-sm font-bold tracking-tight text-white">{track.title}</div>
-          <div className="truncate text-[11px] uppercase tracking-widest text-white/40 font-bold">
-            {isBuffering && isPlaying ? 'Buffering' : track.artist}
+        <div className="min-w-0">
+          <div className={cn('truncate text-sm font-semibold tracking-tight text-white', compact && 'text-[12px]')}>{track.title}</div>
+          <div className={cn('truncate text-xs text-white/50', compact && 'text-[10px]')}>
+            {isBuffering && isPlaying ? 'Buffering…' : `${track.artist || 'Unknown Artist'} • ${formatDuration(duration || track.durationSec || 0)}`}
           </div>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={onPlayPause}
-            aria-label={isPlaying ? `Pause ${track.title}` : `Play ${track.title}`}
-            className="grid size-10 shrink-0 place-items-center rounded-full bg-accent-blue text-white shadow-[0_0_20px_rgba(59,130,246,0.3)] transition-all active:scale-95"
-          >
-            {isBuffering && isPlaying ? (
-              <CinematicLogoLoader variant="inline" size={16} label={`Buffering ${track.title}`} />
-            ) : isPlaying ? (
-              <Pause className="size-4 fill-current" />
-            ) : (
-              <Play className="ml-0.5 size-4 fill-current" />
-            )}
-          </button>
-          
-          <button
-            type="button"
-            onClick={onMuteToggle}
-            aria-label={isMuted ? 'Unmute soundtrack preview' : 'Mute soundtrack preview'}
-            className="grid size-10 shrink-0 place-items-center rounded-full border border-white/8 bg-white/[0.03] text-white/40 transition-colors hover:text-white"
-          >
-            {isMuted ? <VolumeX className="size-4" /> : <Volume2 className="size-4" />}
-          </button>
+          {!compact && tags.length ? (
+            <div className="mt-1 flex items-center gap-1.5">
+              {tags.map((tag: string) => (
+                <span key={tag} className="rounded-full border border-white/8 bg-white/[0.04] px-2 py-0.5 text-[10px] text-white/55">
+                  {tag}
+                </span>
+              ))}
+            </div>
+          ) : null}
         </div>
       </div>
+
+      {/* Center Left: Preview & Play from start */}
+      <div className={cn('flex items-center gap-3', compact && 'ml-auto mr-auto')}>
+        <button
+          type="button"
+          onClick={onPlayPause}
+          aria-label={isPlaying ? `Pause ${track.title}` : `Play ${track.title}`}
+          className={cn('grid size-11 place-items-center rounded-full bg-[#2563eb] text-white shadow-[0_0_20px_rgba(37,99,235,0.45)] transition-all hover:bg-[#1d4ed8] active:scale-95', compact && 'size-8 bg-transparent shadow-none hover:bg-white/10')}
+        >
+          {isBuffering && isPlaying ? (
+            <CinematicLogoLoader variant="inline" size={16} label={`Buffering ${track.title}`} />
+          ) : isPlaying ? (
+            <Pause className="size-5 fill-current" />
+          ) : (
+            <Play className="ml-0.5 size-5 fill-current" />
+          )}
+        </button>
+        {!compact ? <div className="flex flex-col">
+          <span className="text-xs font-semibold text-white">Preview</span>
+          <button
+            type="button"
+            onClick={onPlayFromStart ?? (() => onSeek(0))}
+            className="text-[11px] text-white/45 transition-colors hover:text-white text-left underline-offset-2 hover:underline"
+          >
+            Play from start
+          </button>
+        </div> : null}
+      </div>
+
+      {/* Center Right: Music Volume */}
+      {!compact ? <div className="hidden items-center gap-3 md:flex">
+        <span className="text-xs font-medium text-white/60">Music Volume</span>
+        <button
+          type="button"
+          onClick={onMuteToggle}
+          aria-label={isMuted ? 'Unmute soundtrack preview' : 'Mute soundtrack preview'}
+          className="text-white/50 transition-colors hover:text-white"
+        >
+          {isMuted ? <VolumeX className="size-4" /> : <Volume2 className="size-4" />}
+        </button>
+        <input
+          type="range"
+          min="0"
+          max="100"
+          value={isMuted ? 0 : volume}
+          onChange={(event) => onVolumeChange?.(Number(event.target.value))}
+          className="h-1.5 w-24 cursor-pointer accent-[#3b82f6] bg-white/10 rounded-full"
+          aria-label="Music Volume"
+        />
+        <span className="w-8 text-right font-mono text-xs text-white/50">{isMuted ? '0%' : `${volume}%`}</span>
+      </div> : null}
+
+      {/* Right: Actions */}
+      {compact ? (
+        <div className="flex shrink-0 items-center gap-1">
+          <div className="relative">
+            <button type="button" aria-label="More music actions" aria-expanded={showActions} onClick={() => setShowActions((open) => !open)} className="grid size-8 place-items-center rounded-full text-white/45 transition-colors hover:bg-white/[0.06] hover:text-white">
+              <MoreHorizontal className="size-4" />
+            </button>
+            {showActions ? (
+              <div className="absolute bottom-10 right-0 z-50 grid min-w-40 gap-1 rounded-lg border border-white/12 bg-[#171a22] p-1.5 shadow-xl">
+                <button type="button" onClick={() => { onReplaceCurrent?.(); setShowActions(false) }} className="rounded-md px-2.5 py-2 text-left text-[11px] text-white/75 hover:bg-white/[0.07]">Replace current</button>
+                <button type="button" onClick={() => { onAddToTimeline?.(); setShowActions(false) }} className="rounded-md px-2.5 py-2 text-left text-[11px] text-white/75 hover:bg-white/[0.07]">Add to timeline</button>
+                <button type="button" onClick={() => { onPlayFromStart?.(); setShowActions(false) }} className="rounded-md px-2.5 py-2 text-left text-[11px] text-white/75 hover:bg-white/[0.07]">Play from start</button>
+                <button type="button" onClick={() => { onMuteToggle(); setShowActions(false) }} className="rounded-md px-2.5 py-2 text-left text-[11px] text-white/75 hover:bg-white/[0.07]">{isMuted ? 'Unmute preview' : 'Mute preview'}</button>
+                <label className="flex items-center gap-2 border-t border-white/[0.08] px-2.5 pt-2 text-[10px] text-white/55">
+                  <span>Volume</span>
+                  <input type="range" min="0" max="100" value={isMuted ? 0 : volume} onChange={(event) => onVolumeChange?.(Number(event.target.value))} aria-label="Music preview volume" className="w-20 accent-[#4d9dff]" />
+                </label>
+              </div>
+            ) : null}
+          </div>
+          <button type="button" onClick={onMuteToggle} aria-label={isMuted ? 'Unmute soundtrack preview' : 'Mute soundtrack preview'} className="grid size-8 place-items-center rounded-full text-white/45 transition-colors hover:bg-white/[0.06] hover:text-white">
+            {isMuted ? <VolumeX className="size-3.5" /> : <Volume2 className="size-3.5" />}
+          </button>
+        </div>
+      ) : <div className="flex items-center gap-2.5">
+        <button
+          type="button"
+          onClick={onReplaceCurrent}
+          className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.04] px-4 py-2 text-xs font-medium text-white/80 transition-all hover:bg-white/[0.08] hover:text-white active:scale-95"
+        >
+          <span>⇄</span>
+          <span>Replace Current</span>
+        </button>
+        <button
+          type="button"
+          onClick={onAddToTimeline}
+          className="inline-flex items-center gap-1.5 rounded-full border border-[#3b82f6]/40 bg-[#2563eb] px-4 py-2 text-xs font-medium text-white shadow-[0_0_20px_rgba(37,99,235,0.45)] transition-all hover:bg-[#1d4ed8] active:scale-95"
+        >
+          <Plus className="size-3.5" />
+          <span>Add to Timeline</span>
+        </button>
+      </div>}
+
+      {/* Progress track seeker */}
       <button
         type="button"
         aria-label={`Seek ${track.title}`}
@@ -837,14 +1007,28 @@ function NowPlayingBar({
           const ratio = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width))
           onSeek(ratio * duration)
         }}
-        className="mt-4 h-1 w-full overflow-hidden rounded-full bg-white/5"
+        className={cn('absolute inset-x-0 bottom-0 h-1 w-full overflow-hidden rounded-b-[18px] bg-white/5 transition-all hover:h-1.5', compact && 'rounded-b-[13px]')}
       >
-        <span className="block h-full rounded-full bg-accent-blue shadow-[0_0_15px_rgba(59,130,246,0.5)]" style={{ width: `${progress}%` }} />
+        <span className="block h-full rounded-full bg-[#3b82f6] shadow-[0_0_12px_rgba(59,130,246,0.6)]" style={{ width: `${progress}%` }} />
       </button>
     </div>
   )
 }
 
+
+const formatTime = (timeInSeconds: number): string => {
+  if (Number.isNaN(timeInSeconds) || !Number.isFinite(timeInSeconds)) return '00:00'
+  const minutes = Math.floor(Math.max(0, timeInSeconds) / 60)
+  const seconds = Math.floor(Math.max(0, timeInSeconds) % 60)
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+}
+
+const formatDuration = (timeInSeconds: number | undefined): string => {
+  if (!timeInSeconds || Number.isNaN(timeInSeconds) || !Number.isFinite(timeInSeconds)) return '0:00'
+  const minutes = Math.floor(Math.max(0, timeInSeconds) / 60)
+  const seconds = Math.floor(Math.max(0, timeInSeconds) % 60)
+  return `${minutes}:${String(seconds).padStart(2, '0')}`
+}
 
 export function MusicTabPanel({
   tracks,
@@ -891,6 +1075,22 @@ export function MusicTabPanel({
   const [playerProgress, setPlayerProgress] = React.useState({ currentTime: 0, duration: 0 })
   const [seekRequest, setSeekRequest] = React.useState<{ time: number; token: number } | null>(null)
   const selectionTrayRef = React.useRef<HTMLDivElement | null>(null)
+  const audioRef = React.useRef<HTMLAudioElement | null>(null)
+  const [moodFilter, setMoodFilter] = React.useState('')
+  const [durationFilter, setDurationFilter] = React.useState('')
+  const [volume, setVolume] = React.useState(0.8)
+  const [isShuffle, setIsShuffle] = React.useState(false)
+  const [isRepeat, setIsRepeat] = React.useState(false)
+  const [favoriteTrackIds, setFavoriteTrackIds] = React.useState<Set<string>>(() => new Set(['amelie-adventures']))
+
+  const toggleFavorite = React.useCallback((trackId: string) => {
+    setFavoriteTrackIds((current) => {
+      const next = new Set(current)
+      if (next.has(trackId)) next.delete(trackId)
+      else next.add(trackId)
+      return next
+    })
+  }, [])
 
   React.useEffect(() => {
     const trackId = editorial.timeline?.music?.track.id ?? selectedTrackId
@@ -1045,6 +1245,11 @@ export function MusicTabPanel({
   const availableGenres = React.useMemo(() => Array.from(new Set(displayTracks.map((track) => track.genre).filter(Boolean))).sort(), [displayTracks])
 
   const collectionTracks = React.useMemo(() => {
+    if (activeCollection === 'favorites') {
+      const favs = displayTracks.filter((track) => favoriteTrackIds.has(track.id))
+      return favs.length ? favs : displayTracks.slice(0, 4)
+    }
+
     if (activeCollection === 'premium') {
       const premium = displayTracks
         .filter((track) => (
@@ -1062,13 +1267,32 @@ export function MusicTabPanel({
     }
 
     return displayTracks
-  }, [activeCollection, displayTracks])
+  }, [activeCollection, displayTracks, favoriteTrackIds])
 
   const normalizedQuery = searchQuery.trim().toLowerCase()
   const filteredTracks = React.useMemo(() => {
-    const genreTracks = genreFilter ? collectionTracks.filter((track) => track.genre === genreFilter) : collectionTracks
-    if (!normalizedQuery) return genreTracks
-    return genreTracks.filter((track) => {
+    let list = collectionTracks
+    if (genreFilter) {
+      list = list.filter((track) => track.genre?.toLowerCase() === genreFilter.toLowerCase())
+    }
+    if (moodFilter) {
+      list = list.filter((track) => {
+        const moodTags = (track as any).moodTags as string[] | undefined
+        const vibeTags = (track as any).vibeTags as string[] | undefined
+        return (
+          track.mood?.toLowerCase() === moodFilter.toLowerCase() ||
+          Boolean(moodTags?.some((m: string) => m.toLowerCase().includes(moodFilter.toLowerCase()))) ||
+          Boolean(vibeTags?.some((v: string) => v.toLowerCase().includes(moodFilter.toLowerCase())))
+        )
+      })
+    }
+    if (durationFilter) {
+      if (durationFilter === 'short') list = list.filter((track) => (track.durationSec ?? 0) < 180)
+      else if (durationFilter === 'medium') list = list.filter((track) => (track.durationSec ?? 0) >= 180 && (track.durationSec ?? 0) <= 300)
+      else if (durationFilter === 'long') list = list.filter((track) => (track.durationSec ?? 0) > 300)
+    }
+    if (!normalizedQuery) return list
+    return list.filter((track) => {
       const anyTrack = track as unknown as Record<string, unknown>
       const title = track.title.toLowerCase()
       const artist = track.artist.toLowerCase()
@@ -1111,7 +1335,7 @@ export function MusicTabPanel({
 
       return false
     })
-  }, [collectionTracks, genreFilter, normalizedQuery])
+  }, [collectionTracks, durationFilter, genreFilter, moodFilter, normalizedQuery])
   const visibleTracks = React.useMemo(() => filteredTracks.slice(0, visibleTrackCount), [filteredTracks, visibleTrackCount])
 
   React.useEffect(() => {
@@ -1150,7 +1374,7 @@ export function MusicTabPanel({
     () => (currentPlayerTrack ? buildSelectedSongDisplay(currentPlayerTrack) : null),
     [currentPlayerTrack],
   )
-
+  const currentCardTrack = currentPlayerTrack ?? activeTrack ?? displayTracks[0] ?? null
   const handleTrackFocus = React.useCallback(
     (track: MusicRecommendation) => {
       setLocalSelectedTrackId(track.id)
@@ -1453,142 +1677,289 @@ export function MusicTabPanel({
         `}</style>
       <LuxuryVignette tone="music" />
       <div className="relative z-10 flex min-h-0 flex-1 flex-col gap-3">
-        <div className="flex shrink-0 items-end justify-between gap-4 border-b border-white/8 px-1 pb-3">
+        {/* Compact title row, matching the reference composition. */}
+        <div className="flex shrink-0 items-center justify-between gap-4 border-b border-white/10 px-1 pb-3">
           <div>
-            <div className="text-[26px] font-semibold tracking-[-0.035em] text-white sm:text-[30px]">Music Library</div>
-            <p className="mt-1 text-xs text-white/45 sm:text-sm">Find the perfect soundtrack for your video with AI-curated music.</p>
-            <EditorialSyncStatus />
+            <div className="text-[25px] font-semibold tracking-[-0.04em] text-white sm:text-[28px]">Music Library</div>
+            <p className="mt-1 text-xs text-white/45">Find the perfect soundtrack for your video with AI-curated music.</p>
           </div>
-          <button type="button" onClick={() => setShowFilters((value) => !value)} aria-expanded={showFilters} className="grid size-10 shrink-0 place-items-center rounded-[10px] border border-white/12 bg-white/[0.04] text-white/62 transition-colors hover:border-[#4d9dff]/60 hover:bg-[#4d9dff]/10 hover:text-white" aria-label="Open music filters" title="Music filters">
+          <button type="button" onClick={() => setShowFilters((value) => !value)} aria-expanded={showFilters} className="grid size-9 shrink-0 place-items-center rounded-[9px] border border-white/10 bg-white/[0.03] text-white/55 transition-colors hover:border-white/20 hover:bg-white/[0.07] hover:text-white" aria-label="Open music filters" title="Music filters">
             <SlidersHorizontal className="size-4" />
           </button>
         </div>
 
+        {/* Subheader: Collections Tabs & Filters Row */}
+        <div className="shrink-0 px-1">
+          <MusicCollectionTabs
+            activeTab={activeCollection}
+            onChange={setActiveCollection}
+            moodFilter={moodFilter}
+            onMoodChange={setMoodFilter}
+            genreFilter={genreFilter}
+            onGenreChange={setGenreFilter}
+            durationFilter={durationFilter}
+            onDurationChange={setDurationFilter}
+            availableGenres={availableGenres}
+            compact
+          />
+        </div>
+
         {showFilters ? (
-          <div className="absolute right-5 top-[5.2rem] z-30 w-56 rounded-xl border border-white/15 bg-[#171a22]/95 p-3 shadow-[0_20px_50px_rgba(0,0,0,.6)] backdrop-blur-xl">
-            <label htmlFor="music-genre-filter" className="mb-2 block text-[11px] font-medium text-white/65">Genre</label>
-            <select id="music-genre-filter" value={genreFilter} onChange={(event) => setGenreFilter(event.target.value)} className="h-9 w-full rounded-md border border-white/15 bg-[#252934] px-2 text-xs text-white outline-none focus:border-[#4d9dff]">
+          <div className="absolute right-5 top-[4.75rem] z-30 grid w-60 gap-2 rounded-xl border border-white/15 bg-[#171a22]/95 p-3 shadow-[0_20px_50px_rgba(0,0,0,.6)] backdrop-blur-xl">
+            <label htmlFor="music-genre-filter" className="text-[10px] font-medium uppercase tracking-wide text-white/45">Genre</label>
+            <select id="music-genre-filter" value={genreFilter} onChange={(event) => setGenreFilter(event.target.value)} className="h-8 w-full rounded-md border border-white/15 bg-[#252934] px-2 text-xs text-white outline-none focus:border-[#4d9dff]">
               <option value="">All genres</option>
               {availableGenres.map((genre) => <option key={genre} value={genre}>{genre}</option>)}
             </select>
-            {genreFilter ? <button type="button" onClick={() => setGenreFilter('')} className="mt-2 text-[11px] text-[#91c6ff] hover:text-white">Clear filter</button> : null}
+            <label htmlFor="music-mood-filter" className="text-[10px] font-medium uppercase tracking-wide text-white/45">Mood</label>
+            <select id="music-mood-filter" value={moodFilter} onChange={(event) => setMoodFilter(event.target.value)} className="h-8 w-full rounded-md border border-white/15 bg-[#252934] px-2 text-xs text-white outline-none focus:border-[#4d9dff]">
+              <option value="">All moods</option>
+              <option value="cinematic">Cinematic</option><option value="uplifting">Uplifting</option><option value="peaceful">Peaceful</option><option value="dark">Energetic</option><option value="minimal">Chill</option><option value="playful">Happy</option>
+            </select>
+            <label htmlFor="music-duration-filter" className="text-[10px] font-medium uppercase tracking-wide text-white/45">Duration</label>
+            <select id="music-duration-filter" value={durationFilter} onChange={(event) => setDurationFilter(event.target.value)} className="h-8 w-full rounded-md border border-white/15 bg-[#252934] px-2 text-xs text-white outline-none focus:border-[#4d9dff]">
+              <option value="">Any length</option><option value="short">Under 3 min</option><option value="medium">3–5 min</option><option value="long">Over 5 min</option>
+            </select>
+            {genreFilter || moodFilter || durationFilter ? <button type="button" onClick={() => { setGenreFilter(''); setMoodFilter(''); setDurationFilter('') }} className="mt-1 text-left text-[11px] text-[#91c6ff] hover:text-white">Clear filters</button> : null}
           </div>
         ) : null}
 
-      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(18rem,0.7fr)_minmax(24rem,1fr)] xl:grid-cols-[minmax(20rem,0.72fr)_minmax(26rem,1fr)]">
-        <div className="flex min-h-0 min-w-0">
-          {selectedSong ? (
-            <div className="music-hero-shell music-disc-safe-stage relative flex min-h-0 flex-1 flex-col rounded-[18px] border border-white/8 bg-black p-4 shadow-[0_24px_54px_-44px_rgba(0,0,0,0.98)] sm:p-5">
-              <MusicPlayer
-                albumArt={selectedSong.artwork || FALLBACK_COVER_ART}
-                albumArtPosition={selectedSong.artworkPosition}
-                songTitle={selectedSong.title}
-                audioSrc={selectedSong.audioSrc}
-                isMuted={isMuted}
-                seekRequest={seekRequest}
-                isPlaying={playingTrackId === selectedSong.id}
-                onBufferingChange={setIsPlayerBuffering}
-                onProgressChange={setPlayerProgress}
-                onPlayingChange={(nextPlaying) => {
-                  setPlayingTrackId(nextPlaying ? selectedSong.id : null)
-                }}
-                onPrevious={({ shuffle }) => handlePlayerStep('previous', { shuffle })}
-                onNext={({ shuffle }) => handlePlayerStep('next', { shuffle })}
-                canPrevious={(filteredTracks.length || displayTracks.length) > 1}
-                canNext={(filteredTracks.length || displayTracks.length) > 1}
-                className="relative z-10 min-h-0 flex-1 overflow-hidden"
-              />
-            </div>
-          ) : null}
-        </div>
+        {/* 2-Column Grid */}
+        <div className="grid min-h-0 flex-1 gap-4 pb-24 lg:grid-cols-[minmax(360px,0.82fr)_minmax(0,1.18fr)] xl:gap-5">
+          {/* Left Column: compact vinyl player from the reference */}
+          <div className="flex min-h-0 min-w-0 flex-col">
+            {/* Background audio player engine */}
+            {selectedSong ? (
+              <div className="pointer-events-none absolute -left-16 top-0 h-px w-px overflow-hidden opacity-0" aria-hidden>
+                <MusicPlayer
+                  albumArt={selectedSong.artwork || FALLBACK_COVER_ART}
+                  albumArtPosition={selectedSong.artworkPosition}
+                  songTitle={selectedSong.title}
+                  audioSrc={selectedSong.audioSrc}
+                  isMuted={isMuted}
+                  seekRequest={seekRequest}
+                  isPlaying={playingTrackId === selectedSong.id}
+                  onBufferingChange={setIsPlayerBuffering}
+                  onProgressChange={setPlayerProgress}
+                  onPlayingChange={(nextPlaying) => {
+                    setPlayingTrackId(nextPlaying ? selectedSong.id : null)
+                  }}
+                  onPrevious={({ shuffle }) => handlePlayerStep('previous', { shuffle })}
+                  onNext={({ shuffle }) => handlePlayerStep('next', { shuffle })}
+                  canPrevious={(filteredTracks.length || displayTracks.length) > 1}
+                  canNext={(filteredTracks.length || displayTracks.length) > 1}
+                  className="h-px w-px"
+                />
+              </div>
+            ) : null}
 
-        <div className="flex min-h-0 min-w-0 flex-col pl-1 pr-1 pt-0 sm:pl-2 sm:pr-2">
-          <MusicCollectionTabs activeTab={activeCollection} onChange={setActiveCollection} />
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-white/35" />
-            <input
-              value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
-              className="h-11 w-full rounded-[18px] border border-white/16 bg-white/[0.06] pl-10 pr-10 text-sm text-white/90 outline-none transition-colors placeholder:text-white/42 focus:border-[#4d9dff]/70 focus:ring-2 focus:ring-[#4d9dff]/20"
-              placeholder="Search title or artist"
-            />
-            {searchQuery ? (
-              <button
-                type="button"
-                aria-label="Clear music search"
-                onClick={() => setSearchQuery('')}
-                className="absolute right-2 top-1/2 grid size-7 -translate-y-1/2 place-items-center rounded-full text-white/42 transition-all duration-150 ease-out hover:bg-white/[0.06] hover:text-white"
-              >
-                <X className="size-4" />
-              </button>
+            {currentCardTrack ? (
+              <div className="relative flex h-[226px] shrink-0 flex-col overflow-hidden rounded-[15px] border border-white/[0.08] bg-black px-5 py-4 shadow-[0_20px_55px_-40px_rgba(0,0,0,0.95)]">
+                {/* Card Header: Trending Badge & Heart Favorite */}
+                <div className="absolute inset-y-3 right-3 w-px bg-white/[0.045]" aria-hidden />
+                <div className="relative flex min-h-0 flex-1 items-center justify-center">
+                  <div className={cn('relative size-[58px] rounded-full border border-[#8b9aa8]/50 bg-[repeating-radial-gradient(circle_at_center,#111_0px,#111_2px,#30343a_3px,#101115_5px)] shadow-[0_0_16px_rgba(160,190,215,0.12)]', playingTrackId === currentCardTrack.id && 'animate-[spin_7s_linear_infinite] motion-reduce:animate-none')}>
+                    <div className="absolute inset-[8px] rounded-full border border-white/15 bg-black/75" />
+                    <div className="absolute inset-[15px] overflow-hidden rounded-full border border-white/20 bg-[#222]">
+                      <Image src={currentCardTrack.coverArtUrl || '/music-covers/amelie-adventures-art.png'} alt="" fill sizes="28px" className="object-cover" />
+                    </div>
+                    <div className="absolute left-1/2 top-1/2 size-1 -translate-x-1/2 -translate-y-1/2 rounded-full bg-black ring-1 ring-white/50" />
+                  </div>
+                  <span className="hidden">
+                    🔥 Trending
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFavoriteTrackIds((current) => {
+                        const next = new Set(current)
+                        if (next.has(currentCardTrack.id)) next.delete(currentCardTrack.id)
+                        else next.add(currentCardTrack.id)
+                        return next
+                      })
+                    }}
+                    aria-label="Toggle favorite"
+                    className={cn(
+                      'absolute right-1 top-1 grid size-7 place-items-center rounded-full border transition-colors',
+                      favoriteTrackIds.has(currentCardTrack.id)
+                        ? 'border-red-500/30 bg-red-500/20 text-red-400'
+                        : 'border-white/10 bg-white/[0.04] text-white/50 hover:text-white',
+                    )}
+                  >
+                    <Heart className={cn('size-4', favoriteTrackIds.has(currentCardTrack.id) ? 'fill-current' : '')} />
+                  </button>
+                </div>
+
+                {/* Scrubber / Progress Bar */}
+                <div className="space-y-1">
+                  <div
+                    className="relative h-px w-full cursor-pointer rounded-full bg-white/30 hover:h-0.5 transition-all"
+                    onClick={(e) => {
+                      const rect = e.currentTarget.getBoundingClientRect()
+                      const ratio = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width))
+                      const dur = playerProgress.duration || currentCardTrack.durationSec || 293
+                      setSeekRequest({ time: ratio * dur, token: Date.now() })
+                    }}
+                  >
+                    <div
+                      className="h-full rounded-full bg-[#4d9dff]"
+                      style={{
+                        width: `${
+                          (playerProgress.duration || currentCardTrack.durationSec)
+                            ? Math.min(
+                                100,
+                                Math.max(
+                                  0,
+                                  ((playerProgress.currentTime || (currentCardTrack.id === 'track-ref-2' ? 42 : 0)) /
+                                    (playerProgress.duration || currentCardTrack.durationSec || 293)) *
+                                    100,
+                                ),
+                              )
+                            : 14
+                        }%`,
+                      }}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between font-mono text-[11px] text-white/50">
+                    <span>{formatTime(playerProgress.currentTime || (currentCardTrack.id === 'track-ref-2' ? 42 : 0))}</span>
+                    <span>{formatDuration(playerProgress.duration || currentCardTrack.durationSec || 293)}</span>
+                  </div>
+                </div>
+
+                {/* Transport Controls */}
+                <div className="mt-2 flex items-center justify-center gap-5">
+                  <button
+                    type="button"
+                    onClick={() => setIsShuffle((v) => !v)}
+                    className={cn('p-2 text-white/50 transition-colors hover:text-white', isShuffle && 'text-[#3b82f6]')}
+                    aria-label="Toggle shuffle"
+                    title="Shuffle"
+                  >
+                    <Shuffle className="size-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handlePlayerStep('previous', { shuffle: isShuffle })}
+                    className="p-2 text-white/70 transition-colors hover:text-white"
+                    aria-label="Previous track"
+                    title="Previous track"
+                  >
+                    <SkipBack className="size-5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleTrackPlayPause(currentCardTrack)}
+                    aria-label={playingTrackId === currentCardTrack.id ? `Pause ${currentCardTrack.title}` : `Play ${currentCardTrack.title}`}
+                    className="grid size-8 place-items-center rounded-full text-white transition-colors hover:bg-white/10 active:scale-95"
+                  >
+                    {playingTrackId === currentCardTrack.id ? <Pause className="size-5 fill-current" /> : <Play className="ml-0.5 size-5" />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handlePlayerStep('next', { shuffle: isShuffle })}
+                    className="p-2 text-white/70 transition-colors hover:text-white"
+                    aria-label="Next track"
+                    title="Next track"
+                  >
+                    <SkipForward className="size-5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsRepeat((v) => !v)}
+                    className={cn('p-2 text-white/50 transition-colors hover:text-white', isRepeat && 'text-[#3b82f6]')}
+                    aria-label="Toggle repeat"
+                    title="Repeat"
+                  >
+                    <Repeat className="size-4" />
+                  </button>
+                </div>
+
+              </div>
             ) : null}
           </div>
 
-          {activeCollection === 'my-music' ? (
-            <div className="mt-4 min-h-0 flex-1 overflow-y-auto pr-1">
-              <MyMusicShelf
-                files={personalMusicFiles}
-                folders={personalMusicFolders}
-                query={searchQuery}
-                onCreateFolder={createPersonalMusicFolder}
-                onFilesSelected={handlePersonalMusicUpload}
+          {/* Right Column: Track Table */}
+          <div className="flex min-h-0 min-w-0 flex-col">
+            <div className="relative mb-2.5 shrink-0">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-white/40" />
+              <input
+                data-autonomous-target="music-search"
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                className="h-10 w-full rounded-full border border-white/12 bg-white/[0.045] pl-10 pr-10 text-xs text-white placeholder:text-white/40 focus:border-[#4d9dff]/70 focus:outline-none"
+                placeholder="Search title or artist"
+                aria-label="Search title or artist"
               />
-            </div>
-          ) : (
-          <div className="music-catalog-scrollbar mt-3 min-h-0 flex-1 overflow-y-auto pr-1">
-            <div className="space-y-2 pb-4">
-              <div className="hidden items-center gap-3 px-3 pb-1 text-[10px] uppercase tracking-[0.16em] text-white/32 lg:flex">
-                <span className="w-7" />
-                <span className="w-10" />
-                <span className="min-w-0 flex-1">Title / Artist</span>
-                <span className="w-[5.2rem] text-center">Genre</span>
-                <span className="w-[5.4rem] text-center">Mood</span>
-                <span className="w-12 text-right">Duration</span>
-                <span className="w-8" />
-              </div>
-              {catalogLoading && !visibleTracks.length ? (
-                <div className="flex min-h-[220px] flex-col items-center justify-center gap-3 px-4 text-center">
-                  <CinematicLogoLoader variant="inline" size={72} label="Loading music catalog" />
-                  <p className="text-sm text-white/52">Preparing soundtrack previews.</p>
-                </div>
+              {searchQuery ? (
+                <button type="button" aria-label="Clear music search" onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 grid size-6 -translate-y-1/2 place-items-center rounded-full text-white/40 hover:text-white">
+                  <X className="size-3.5" />
+                </button>
               ) : null}
-              {visibleTracks.map((track) => (
-                <SoundtrackCard
-                  key={track.id}
-                  track={track}
-                  artBroken={Boolean(brokenArtworkIds[track.id])}
-                  isFocused={focusedTrack?.id === track.id}
-                  isPlaying={playingTrackId === track.id}
-                  isSelected={selectedTrackIds.has(track.id)}
-                  onArtworkError={() => setBrokenArtworkIds((current) => ({ ...current, [track.id]: true }))}
-                  onFocus={() => handleTrackActivate(track)}
-                  onPlayPause={() => handleTrackPlayPause(track)}
-                  onToggleSelected={() => toggleMultiSelect(track.id)}
+            </div>
+            {activeCollection === 'my-music' ? (
+              <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+                <MyMusicShelf
+                  files={personalMusicFiles}
+                  folders={personalMusicFolders}
+                  query={searchQuery}
+                  onCreateFolder={createPersonalMusicFolder}
+                  onFilesSelected={handlePersonalMusicUpload}
                 />
-              ))}
-              {!catalogLoading && !filteredTracks.length ? (
-                <div className="flex h-full min-h-[220px] items-center justify-center px-4 text-center">
-                  <div>
-                    <div className="text-base font-medium text-white/78">No soundtracks found</div>
-                    <div className="mt-2 text-sm text-white/42">Try a different song, artist, or soundtrack phrase.</div>
+              </div>
+            ) : (
+              <div className="music-catalog-scrollbar min-h-0 flex-1 overflow-y-auto pr-1">
+                <div className="space-y-2 pb-4">
+                  <div className="hidden items-center gap-3 px-3 pb-2 text-[9px] font-semibold uppercase tracking-[0.14em] text-white/35 lg:flex">
+                    <span className="w-9" />
+                    <span className="min-w-0 flex-1">Title / Artist</span>
+                    <span className="w-[4.75rem] text-center">Genre</span>
+                    <span className="w-[4.75rem] text-center">Mood</span>
+                    <span className="w-12 text-right">Duration</span>
+                    <span className="w-8" />
                   </div>
+                  {catalogLoading && !visibleTracks.length ? (
+                    <div className="flex min-h-[220px] flex-col items-center justify-center gap-3 px-4 text-center">
+                      <CinematicLogoLoader variant="inline" size={72} label="Loading music catalog" />
+                      <p className="text-sm text-white/52">Preparing soundtrack previews.</p>
+                    </div>
+                  ) : null}
+                  {visibleTracks.map((track) => (
+                    <SoundtrackCard
+                      key={track.id}
+                      track={track}
+                      artBroken={Boolean(brokenArtworkIds[track.id])}
+                      isFocused={focusedTrack?.id === track.id}
+                      isPlaying={playingTrackId === track.id}
+                      isSelected={selectedTrack?.id === track.id || selectedTrackIds.has(track.id)}
+                      onArtworkError={() => setBrokenArtworkIds((current) => ({ ...current, [track.id]: true }))}
+                      onFocus={() => handleTrackActivate(track)}
+                      onPlayPause={() => handleTrackPlayPause(track)}
+                      onToggleSelected={() => toggleMultiSelect(track.id)}
+                    />
+                  ))}
+                  {!catalogLoading && !filteredTracks.length ? (
+                    <div className="flex h-full min-h-[220px] items-center justify-center px-4 text-center">
+                      <div>
+                        <div className="text-base font-medium text-white/78">No soundtracks found</div>
+                        <div className="mt-2 text-sm text-white/42">Try a different song, artist, or soundtrack phrase.</div>
+                      </div>
+                    </div>
+                  ) : null}
+                  {filteredTracks.length > visibleTrackCount ? (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="mt-2 w-full"
+                      onClick={() => setVisibleTrackCount((current) => current + VISIBLE_TRACK_INCREMENT)}
+                    >
+                      Load more
+                    </Button>
+                  ) : null}
                 </div>
-              ) : null}
-              {filteredTracks.length > visibleTrackCount ? (
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="mt-2 w-full"
-                  onClick={() => setVisibleTrackCount((current) => current + VISIBLE_TRACK_INCREMENT)}
-                >
-                  Load more
-                </Button>
-              ) : null}
-            </div>
+              </div>
+            )}
           </div>
-          )}
         </div>
-      </div>
       </div>
 
       <AnimatePresence>
@@ -1630,18 +2001,42 @@ export function MusicTabPanel({
       </AnimatePresence>
 
       <NowPlayingBar
-        track={currentPlayerTrack}
+        track={currentPlayerTrack || currentCardTrack}
         isPlaying={Boolean(currentPlayerTrack && playingTrackId === currentPlayerTrack.id)}
         isBuffering={isPlayerBuffering}
         isMuted={isMuted}
+        volume={volume}
+        onVolumeChange={setVolume}
         currentTime={playerProgress.currentTime}
-        duration={playerProgress.duration || currentPlayerTrack?.durationSec || 0}
+        duration={playerProgress.duration || currentPlayerTrack?.durationSec || currentCardTrack?.durationSec || 0}
         onMuteToggle={() => setIsMuted((current) => !current)}
         onPlayPause={() => {
-          if (!currentPlayerTrack) return
-          handleTrackPlayPause(currentPlayerTrack)
+          const t = currentPlayerTrack || currentCardTrack
+          if (!t) return
+          handleTrackPlayPause(t)
         }}
         onSeek={(time) => setSeekRequest({ time, token: Date.now() })}
+        onReplaceCurrent={() => {
+          const t = currentPlayerTrack || currentCardTrack
+          if (!t) return
+          onSelectTrack(t)
+          toast.success(`Replaced soundtrack with ${t.title}`)
+        }}
+        onAddToTimeline={() => {
+          const t = currentPlayerTrack || currentCardTrack
+          if (!t) return
+          onSelectTrack(t)
+          toast.success(`Added ${t.title} to timeline`)
+        }}
+        onPlayFromStart={() => {
+          const t = currentPlayerTrack || currentCardTrack
+          if (!t) return
+          setSeekRequest({ time: 0, token: Date.now() })
+          if (playingTrackId !== t.id) {
+            handleTrackPlayPause(t)
+          }
+        }}
+        compact
       />
     </motion.section>
       )}

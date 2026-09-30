@@ -3,18 +3,17 @@
 import * as React from 'react'
 import {
   Activity,
-  Flame,
   MoreHorizontal,
   Music,
   Plus,
   Volume2,
   VolumeX,
-  Waves,
 } from 'lucide-react'
 
 import { useEditorialTimelineThumbnails } from '@/components/editor/editorial-timeline-thumbnails'
 import type { MotionTextPlacement, MotionTranscriptSegment } from '@/components/editor/motion-edit-workspace'
 import type { MusicRecommendation } from '@/lib/types'
+import type { EditorialCue } from '@/lib/editor/editorial-timeline-state'
 import { cn } from '@/lib/utils'
 
 export interface EditorialVideoClip {
@@ -39,6 +38,8 @@ export interface EditorialTimelineTracksProps {
   textPlacements?: MotionTextPlacement[]
   cutRanges?: { start: number; end: number }[]
   selectedMusicTrack?: MusicRecommendation | null
+  editorialCues?: EditorialCue[]
+  onEditorialCuesChange?: (cues: EditorialCue[]) => void
   soundtrackVolume?: number
   soundtrackMuted?: boolean
   onSoundtrackVolumeChange?: (volume: number) => void
@@ -89,8 +90,11 @@ export function EditorialTimelineTracks({
   transcriptSegments,
   captionsVisible,
   currentTime,
+  textPlacements,
   cutRanges,
   selectedMusicTrack,
+  editorialCues = [],
+  onEditorialCuesChange,
   soundtrackVolume = 0.7,
   soundtrackMuted = false,
   onSoundtrackVolumeChange,
@@ -178,9 +182,17 @@ export function EditorialTimelineTracks({
     ]
   }, [transcriptSegments, effectiveDuration])
 
-  // Sound Effect "Whoosh" cue (positioned around 82% to 93% of duration)
-  const sfxStart = effectiveDuration * 0.82
-  const sfxEnd = Math.min(effectiveDuration, effectiveDuration * 0.94)
+  const timelineText = React.useMemo(() => {
+    const saved = editorialCues.filter((cue) => cue.type === 'text')
+    const ids = new Set(saved.map((cue) => cue.id))
+    return [...saved, ...(textPlacements ?? []).filter((cue) => !ids.has(cue.id)).map((cue) => ({
+      id: cue.id, type: 'text' as const, start: cue.start, end: cue.end, title: cue.text,
+      text: cue.text, region: cue.region, origin: 'editor' as const,
+    }))]
+  }, [editorialCues, textPlacements])
+  const textLanes = React.useMemo(() => packCueLanes(timelineText), [timelineText])
+  const visualCues = React.useMemo(() => editorialCues.filter((cue) => cue.type !== 'text'), [editorialCues])
+  const visualLanes = React.useMemo(() => packCueLanes(visualCues), [visualCues])
 
   return (
     <div
@@ -307,7 +319,7 @@ export function EditorialTimelineTracks({
         </button>
       </div>
 
-      {/* 2. AUDIO TRACK: Emerald Voice Waveform + Interactive Volume Automation Curve + Whoosh SFX Clip */}
+      {/* 2. AUDIO TRACK: Original voice waveform */}
       <div
         className={cn(
           'relative mt-1.5 h-[42px] overflow-hidden rounded-[4px] border border-[#10b981]/30 bg-[#082922] transition-opacity',
@@ -318,7 +330,7 @@ export function EditorialTimelineTracks({
         {/* Emerald Voice (Enhanced) Section */}
         <div
           className="absolute inset-y-0 left-0 overflow-hidden bg-[linear-gradient(90deg,#0a2a22_0%,#0e3831_50%,#0a2620_100%)]"
-          style={{ width: `${(sfxStart / effectiveDuration) * 100}%` }}
+          style={{ width: '100%' }}
         >
           {/* Waveform visualization */}
           <div className="absolute inset-0 flex items-center gap-[1px] px-2 opacity-85">
@@ -360,40 +372,6 @@ export function EditorialTimelineTracks({
           </div>
         </div>
 
-        {/* Separable "Whoosh" Sound Effect Clip (Golden Amber with volume fade curve) */}
-        <div
-          data-sfx-clip="whoosh"
-          onClick={() => onSeek?.(sfxStart)}
-          className="absolute inset-y-[3px] cursor-pointer overflow-hidden rounded-[4px] border border-[#f59e0b]/70 bg-[linear-gradient(135deg,#362109_0%,#54320e_100%)] px-2 transition-all hover:border-[#f59e0b] shadow-[0_0_10px_rgba(245,158,11,0.25)]"
-          style={{
-            left: percent(sfxStart, effectiveDuration),
-            width: percent(sfxEnd - sfxStart, effectiveDuration),
-          }}
-          title="Sound Effect: Whoosh"
-        >
-          {/* Whoosh Fade Out Curve */}
-          <svg
-            className="absolute inset-0 h-full w-full pointer-events-none"
-            viewBox="0 0 100 36"
-            preserveAspectRatio="none"
-          >
-            <path
-              d="M 2 8 Q 45 12 95 32"
-              fill="none"
-              stroke="#fbbf24"
-              strokeWidth="2"
-              strokeLinecap="round"
-              className="opacity-90"
-            />
-            <circle cx="2" cy="8" r="3" fill="#ffffff" stroke="#f59e0b" strokeWidth="2" />
-            <circle cx="95" cy="32" r="3" fill="#ffffff" stroke="#f59e0b" strokeWidth="2" />
-          </svg>
-
-          <div className="relative z-10 flex h-full items-center gap-1.5 text-amber-200">
-            <Flame className="size-3 fill-[#f59e0b] text-[#f59e0b]" />
-            <span className="text-[10px] font-semibold tracking-wide text-amber-100">Whoosh</span>
-          </div>
-        </div>
       </div>
 
       {/* 3. CAPTIONS TRACK: Separable Rounded Transcript Pills */}
@@ -431,7 +409,18 @@ export function EditorialTimelineTracks({
         </div>
       </div>
 
-      {/* 4. MUSIC TRACK: Reflects Music Section selection, Waveform, Fade-in/out Curves */}
+      {/* 4. Text clips are independently placed and stacked when their times overlap. */}
+      <div data-timeline-track="text" className="relative mt-1.5 overflow-hidden rounded-[4px] border border-white/10 bg-[#11131b]" style={{ height: Math.max(30, textLanes.length * 30) }} aria-label="Text placements track">
+        {!textLanes.length ? <span className="flex h-[30px] items-center px-2 text-[10px] text-white/35">Text placements from the edit will appear here</span> : null}
+        {textLanes.map((lane, laneIndex) => lane.map((cue) => <DraggableEditorialCue key={cue.id} cue={cue} laneIndex={laneIndex} duration={effectiveDuration} currentTime={currentTime} onSeek={onSeek} onCommit={(updated) => onEditorialCuesChange?.(replaceCue(editorialCues, cue, updated))} />))}
+      </div>
+
+      {/* 5. Backend visual cues keep their type, source timing and context on the timeline. */}
+      {visualCues.length ? <div data-timeline-track="visual-cues" className="relative mt-1.5 overflow-hidden rounded-[4px] border border-[#38bdf8]/15 bg-[#0d1720]" style={{ height: Math.max(30, visualLanes.length * 30) }} aria-label="Backend visual cues track">
+        {visualLanes.map((lane, laneIndex) => lane.map((cue) => <DraggableEditorialCue key={cue.id} cue={cue} laneIndex={laneIndex} duration={effectiveDuration} currentTime={currentTime} onSeek={onSeek} onCommit={(updated) => onEditorialCuesChange?.(replaceCue(editorialCues, cue, updated))} />))}
+      </div> : null}
+
+      {/* 6. MUSIC TRACK: Reflects Music Section selection, Waveform, Fade-in/out Curves */}
       <div
         className={cn(
           'relative mt-1.5 h-[42px] overflow-hidden rounded-[4px] transition-opacity',
@@ -529,5 +518,82 @@ export function EditorialTimelineTracks({
         )}
       </div>
     </div>
+  )
+}
+
+function packCueLanes<T extends { start: number; end: number }>(cues: T[]) {
+  const lanes: T[][] = []
+  for (const cue of [...cues].filter((item) => item.end > item.start).sort((a, b) => a.start - b.start || a.end - b.end)) {
+    const lane = lanes.find((items) => items[items.length - 1]!.end <= cue.start)
+    if (lane) lane.push(cue)
+    else lanes.push([cue])
+  }
+  return lanes
+}
+
+function replaceCue(cues: EditorialCue[], previous: EditorialCue, updated: EditorialCue) {
+  const index = cues.findIndex((cue) => cue.id === previous.id)
+  if (index < 0) return [...cues, updated]
+  return cues.map((cue, cueIndex) => cueIndex === index ? updated : cue)
+}
+
+function DraggableEditorialCue({ cue, laneIndex, duration, currentTime, onSeek, onCommit }: {
+  cue: EditorialCue
+  laneIndex: number
+  duration: number
+  currentTime: number
+  onSeek?: (time: number) => void
+  onCommit: (cue: EditorialCue) => void
+}) {
+  const [preview, setPreview] = React.useState<{ start: number; end: number } | null>(null)
+  const drag = React.useRef<{ pointerId: number; x: number; start: number; end: number; width: number; moved: boolean } | null>(null)
+  const suppressClick = React.useRef(false)
+  const contextSummary = Object.entries(cue.context ?? {})
+    .filter(([key, value]) => ['variant', 'treatment', 'tone', 'alignment', 'layout', 'templateType', 'templateId', 'direction', 'kind', 'sourceId', 'sourceUrl', 'cue'].includes(key) && (typeof value === 'string' || typeof value === 'number'))
+    .map(([key, value]) => `${key}: ${value}`)
+    .join(' · ')
+  const start = preview?.start ?? cue.start
+  const end = preview?.end ?? cue.end
+  return (
+    <button
+      type="button"
+      data-editorial-cue-id={cue.id}
+      onClick={() => {
+        if (suppressClick.current) { suppressClick.current = false; return }
+        onSeek?.(start)
+      }}
+      onPointerDown={(event) => {
+        if (event.button !== 0) return
+        const bounds = event.currentTarget.parentElement?.getBoundingClientRect()
+        if (!bounds?.width) return
+        event.currentTarget.setPointerCapture(event.pointerId)
+        drag.current = { pointerId: event.pointerId, x: event.clientX, start, end, width: bounds.width, moved: false }
+      }}
+      onPointerMove={(event) => {
+        const state = drag.current
+        if (!state || state.pointerId !== event.pointerId) return
+        const delta = ((event.clientX - state.x) / state.width) * duration
+        if (Math.abs(delta) >= 0.03) state.moved = true
+        if (!state.moved) return
+        const nextStart = Math.max(0, Math.min(duration - (state.end - state.start), state.start + delta))
+        setPreview({ start: nextStart, end: nextStart + (state.end - state.start) })
+      }}
+      onPointerUp={(event) => {
+        const state = drag.current
+        if (!state || state.pointerId !== event.pointerId) return
+        if (state.moved && preview) {
+          suppressClick.current = true
+          onCommit({ ...cue, start: preview.start, end: preview.end, origin: 'editor' })
+        }
+        drag.current = null
+        setPreview(null)
+      }}
+      onPointerCancel={() => { drag.current = null; setPreview(null) }}
+      style={{ top: laneIndex * 30 + 3, left: percent(start, duration), width: percent(end - start, duration) }}
+      className={cn('absolute flex h-6 min-w-[8px] touch-none cursor-grab items-center overflow-hidden rounded border px-1.5 text-left text-[9px] text-white/85 active:cursor-grabbing', cue.type === 'text' ? 'border-dashed border-[#9df65a]/45 bg-[#9df65a]/10 hover:border-[#9df65a]' : 'border-sky-300/30 bg-sky-300/10 hover:border-sky-200/70', currentTime >= start && currentTime < end && 'ring-1 ring-white/40')}
+      title={`${cue.title} · ${start.toFixed(2)}–${end.toFixed(2)}s · drag to move${cue.region ? ` · ${cue.region}` : ''}${contextSummary ? ` · ${contextSummary}` : ''}`}
+    >
+      <span className="truncate">{cue.text || cue.title}</span>
+    </button>
   )
 }

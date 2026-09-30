@@ -39,6 +39,8 @@ export interface VoiceCompanionBridgeHandlers {
   hasVideo?: boolean
   videoTitle?: string
   videoDurationSec?: number
+  timelineDurationSec?: number
+  sourceMediaState?: 'ready' | 'loading' | 'missing' | 'unavailable' | 'non_video'
   videoThumbnailUrl?: string
 }
 
