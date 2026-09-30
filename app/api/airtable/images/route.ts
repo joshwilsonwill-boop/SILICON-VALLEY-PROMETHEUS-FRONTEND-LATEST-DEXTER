@@ -60,6 +60,9 @@ export async function GET(req: Request) {
   const items: Array<{
     id: string
     name: string | null
+    styleKey?: string | null
+    thumbUrl?: string | null
+    imageUrl?: string | null
     images: Array<{ url: string; filename: string; type: string; size: number }>
   }> = []
 
@@ -115,7 +118,15 @@ export async function GET(req: Request) {
         })
         .filter((x): x is NonNullable<typeof x> => !!x)
 
-      items.push({ id: record.id, name, images })
+      const firstImageUrl = images[0]?.url ?? null
+      items.push({
+        id: record.id,
+        name,
+        styleKey: name,
+        thumbUrl: firstImageUrl,
+        imageUrl: firstImageUrl,
+        images,
+      })
       if (items.length >= limit) break
     }
 

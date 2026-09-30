@@ -39,7 +39,7 @@ assert.match(engineSource, /accentY/, 'Script accent must position relative to t
 
 // 4. Verify Nano Banana API route
 const nanoRouteSource = readFileSync('app/api/projects/[id]/thumbnails/nano-banana/route.ts', 'utf8')
-assert.match(nanoRouteSource, /gemini-2\.5-flash-image:generateContent/, 'Nano Banana route must call the image generation model')
+assert.match(nanoRouteSource, /models\/' \+ imageModel \+ ':generateContent/, 'Nano Banana route must call the selected image generation model')
 assert.match(nanoRouteSource, /buildNanoBananaImageRequest/, 'Nano Banana route must send the selected frame to image generation')
 assert.match(nanoRouteSource, /extractGeneratedImage/, 'Nano Banana route must return an image rather than prompt metadata')
 assert.match(nanoRouteSource, /resolveGeminiApiKey/, 'Nano Banana route must resolve Gemini API key')
@@ -47,9 +47,12 @@ assert.match(nanoRouteSource, /SHORT_FORM_ARCHETYPES/, 'Nano Banana route must l
 
 // 5. Verify ThumbnailStudioModal UI capabilities
 const modalSource = readFileSync('components/editor/ThumbnailStudioModal.tsx', 'utf8')
-assert.match(modalSource, /SHORT_FORM_ARCHETYPES/, 'Modal must render short-form archetypes')
+const workspaceSource = readFileSync('components/editor/thumbnail-studio/ThumbnailWorkspace.tsx', 'utf8')
+assert.match(workspaceSource, /STUDIO_REFERENCES/, 'Workspace must show the supplied cinematic reference gallery')
+assert.doesNotMatch(workspaceSource, /Thumbnail layouts|LayoutTile/, 'Workspace must not render synthetic template tiles')
+assert.match(workspaceSource, /referenceId === reference\.id/, 'Selected visual reference must be visible in the gallery')
 assert.match(modalSource, /handleGenerateNanoBanana/, 'Modal must support Nano Banana generation')
-assert.match(modalSource, /textLayer/, 'Modal must support depth layering control')
+assert.match(modalSource, /studioDesign: design/, 'Modal must send the selected composition and quality settings')
 assert.match(modalSource, /brandColor/, 'Modal must support brand palette customization')
 
 console.log('short-form-thumbnail-engine: all checks passed successfully!')

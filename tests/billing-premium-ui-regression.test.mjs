@@ -29,5 +29,7 @@ assert.match(checkoutButton, /featured\?: boolean/, 'Checkout CTA must support f
 assert.match(checkoutButton, /bg-white text-black/, 'Standard checkout CTA must be high contrast.')
 assert.match(checkoutButton, /bg-\[linear-gradient/, 'Featured checkout CTA must have a premium gradient treatment.')
 assert.match(pricingPlans, /shadow-\[0_0_30px_rgba\(99,102,241,0.24\)\]/, 'Recommended plan badge must retain a subtle glow.')
+assert.doesNotMatch(pricingPlans, /plan\.priceFraction/, 'Pricing cards must display whole-dollar prices without cents.')
+assert.match(dashboard, /checkoutPlan\?\.priceWhole \?\? '\$0'/, 'Checkout summaries must display whole-dollar plan prices without cents.')
 
 console.log('billing premium UI regression checks passed')

@@ -14,7 +14,7 @@ assert.doesNotMatch(workspace, /prometheus:motion-chamber/)
 assert.doesNotMatch(routeShell, /prometheus:motion-chamber|motionChamberActive/)
 assert.match(routeShell, /<EditorTopBar/)
 
-assert.match(workspace, /bg-\[length:7px_7px\] opacity-\[0\.24\]/)
+assert.match(workspace, /bg-\[length:7px_7px\] opacity-\[0\.28\]/)
 assert.doesNotMatch(workspace, /background-size:40px_40px/)
 assert.match(workspace, /\[container-type:size\]/)
 assert.match(workspace, /100cqw,calc\(100cqh\*var\(--motion-preview-aspect\)\)/)

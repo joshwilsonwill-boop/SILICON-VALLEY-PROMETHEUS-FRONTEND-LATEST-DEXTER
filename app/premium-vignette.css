@@ -129,8 +129,8 @@
 
   .premium-vignette-falloff[data-tone='music'] {
     background:
-      radial-gradient(circle at 18% 20%, rgba(255, 86, 86, 0.18) 0%, rgba(255, 86, 86, 0) 34%),
-      radial-gradient(circle at 78% 24%, rgba(255, 210, 92, 0.14) 0%, rgba(255, 210, 92, 0) 32%),
+      radial-gradient(circle at 18% 20%, rgba(77, 157, 255, 0.16) 0%, rgba(77, 157, 255, 0) 34%),
+      radial-gradient(circle at 78% 24%, rgba(139, 197, 255, 0.1) 0%, rgba(139, 197, 255, 0) 32%),
       radial-gradient(circle at 50% 84%, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0) 32%);
   }
 

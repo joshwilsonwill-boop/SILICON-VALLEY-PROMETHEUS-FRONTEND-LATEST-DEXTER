@@ -17,64 +17,36 @@
  *   - Suppressed during yielding/idle phase to prevent flicker
  */
 
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { autonomousCoordinator } from '@/lib/autonomous-ui/coordinator'
 import type { GhostCursorState } from '@/lib/autonomous-ui/types'
 
-// Velocity threshold in px/ms (approx 9px/frame at 60fps = 0.56 px/ms, uniform across 60Hz-240Hz monitors)
-const VELOCITY_THRESHOLD_PX_PER_MS = 0.55
-
 export function AgentEscapeHatch() {
   const prefersReducedMotion = useReducedMotion() ?? false
   const [isTakeover, setIsTakeover] = useState(false)
-  const lastSampleRef = useRef<{ x: number; y: number; time: number } | null>(null)
 
   useEffect(() => {
     const unsub = autonomousCoordinator.subscribe((s: GhostCursorState) => {
-      // Only show during active takeover, not during the yielding fade-out
-      setIsTakeover(s.isTakeover && s.phase !== 'yielding' && s.phase !== 'idle')
+      setIsTakeover(s.isTakeover)
     })
     return unsub
   }, [])
 
-  // Mouse velocity barge-in — normalized against time delta
+  // Keep keyboard recovery available without treating ordinary movement as a stop command.
   useEffect(() => {
     if (!isTakeover) return
 
-    const handleMouseMove = (e: MouseEvent) => {
-      const now = e.timeStamp || performance.now()
-      if (!lastSampleRef.current) {
-        lastSampleRef.current = { x: e.clientX, y: e.clientY, time: now }
-        return
-      }
-
-      const dt = Math.max(now - lastSampleRef.current.time, 6) // avoid div by 0
-      const dx = e.clientX - lastSampleRef.current.x
-      const dy = e.clientY - lastSampleRef.current.y
-      const dist = Math.hypot(dx, dy)
-      const velocity = dist / dt
-
-      lastSampleRef.current = { x: e.clientX, y: e.clientY, time: now }
-
-      if (velocity > VELOCITY_THRESHOLD_PX_PER_MS) {
-        autonomousCoordinator.abortAction('user_barge_in')
-      }
-    }
-
     const handleEsc = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        autonomousCoordinator.abortAction('user_barge_in')
+        autonomousCoordinator.endTakeover()
       }
     }
 
-    window.addEventListener('mousemove', handleMouseMove, { passive: true })
     window.addEventListener('keydown', handleEsc, { passive: true })
 
     return () => {
-      window.removeEventListener('mousemove', handleMouseMove)
       window.removeEventListener('keydown', handleEsc)
-      lastSampleRef.current = null
     }
   }, [isTakeover])
 
@@ -93,7 +65,7 @@ export function AgentEscapeHatch() {
               : { type: 'spring', stiffness: 340, damping: 32, mass: 0.6 }
           }
           aria-live="polite"
-          aria-label="Jarvis is in control. Move mouse or press Escape to resume."
+          aria-label="Autonomous editing session active. Press Escape to return control."
           role="status"
         >
           {/* Outer animated border ring */}
@@ -123,11 +95,11 @@ export function AgentEscapeHatch() {
 
               {/* Label */}
               <span className="select-none whitespace-nowrap text-[11px] font-medium tracking-wide text-white/80">
-                Move mouse or press{' '}
+                Press{' '}
                 <kbd className="rounded border border-white/20 bg-white/[0.08] px-1.5 py-0.5 text-[10px] font-semibold text-white/90">
                   ESC
                 </kbd>{' '}
-                to resume control
+                to return control
               </span>
             </div>
           </div>

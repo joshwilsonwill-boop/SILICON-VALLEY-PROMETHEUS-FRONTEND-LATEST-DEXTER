@@ -57,7 +57,7 @@ export function createContentSecurityPolicy(nonce: string) {
     `media-src 'self' blob: https:`,
     `connect-src 'self' https: wss:`,
     `worker-src 'self' blob:`,
-    `frame-src 'self' https://challenges.cloudflare.com`,
+    `frame-src 'self' https://challenges.cloudflare.com https://www.youtube-nocookie.com`,
     `frame-ancestors 'none'`,
     `object-src 'none'`,
     `base-uri 'self'`,

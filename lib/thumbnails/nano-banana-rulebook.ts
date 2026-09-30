@@ -327,7 +327,7 @@ export const VIRAL_THUMBNAIL_RECIPES: ThumbnailRecipe[] = [
 export function buildNanoBananaPrompt(params: {
   headline: string
   highlightWord?: string
-  aspectRatio: '9:16' | '2:3' | '16:9' | '1:1'
+  aspectRatio: '9:16' | '2:3' | '3:2' | '16:9' | '1:1'
   backgroundId?: string
   textTreatmentId?: string
   proofArtifactId?: string

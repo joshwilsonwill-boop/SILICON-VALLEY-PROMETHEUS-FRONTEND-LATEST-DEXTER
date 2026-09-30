@@ -33,12 +33,16 @@ export interface VoiceCompanionBridgeHandlers {
   /** Direct music track staging and audition handlers */
   onSelectMusicTrack?: (trackId: string) => void
   onPlayMusicPreview?: (trackId: string) => void
+  /** Capture the current decoded source frame as a JPEG data URL for live visual analysis. */
+  captureVideoFrame?: (timeSec: number) => Promise<string | null>
   /** Inferred video mood, tempo, and audio energy context */
   videoMusicContext?: unknown
   /** Video existence and project metadata across all tabs */
   hasVideo?: boolean
   videoTitle?: string
   videoDurationSec?: number
+  timelineDurationSec?: number
+  sourceMediaState?: 'ready' | 'loading' | 'missing' | 'unavailable' | 'non_video'
   videoThumbnailUrl?: string
 }
 

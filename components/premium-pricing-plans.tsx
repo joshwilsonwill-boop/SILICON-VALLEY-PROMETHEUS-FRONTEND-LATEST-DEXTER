@@ -146,7 +146,6 @@ function PricingCard({
           <span className="text-5xl font-bold leading-none text-white sm:text-6xl lg:text-5xl xl:text-6xl">
             {priceMajor}
           </span>
-          <span className="pb-2 text-xl font-semibold text-white/42">{plan.priceFraction}</span>
           <span className="pb-2 pl-1 text-sm font-medium text-white/42">{plan.monthlyLabel}</span>
         </div>
 

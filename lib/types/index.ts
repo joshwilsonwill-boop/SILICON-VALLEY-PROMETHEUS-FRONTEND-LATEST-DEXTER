@@ -52,7 +52,7 @@ export interface SourceProfile {
 }
 
 export type LeftTabKey = 'chat' | 'edit' | 'design' | 'assets'
-export type HeaderNavMode = 'Editor' | 'Music' | 'Motion'
+export type HeaderNavMode = 'Editor' | 'Music' | 'Motion' | 'Export'
 export type PreviewFitMode = 'fill' | 'fit'
 export type BottomMode = 'Original' | 'Music' | 'Timeline'
 export type PreviewFramePreset = OutputProfile
@@ -522,6 +522,7 @@ export interface BRollSuggestion {
 export type AnimationScreenRegion =
   | 'full-frame'
   | 'safe-lower-third'
+  | 'safe-upper-third'
   | 'center-stage'
   | 'left-panel'
   | 'right-panel'

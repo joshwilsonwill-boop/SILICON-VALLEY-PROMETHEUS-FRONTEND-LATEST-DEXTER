@@ -4,17 +4,22 @@ import * as React from 'react'
 import {
   Captions,
   Check,
+  CircleDot,
+  Contrast,
   Crop,
   Download,
   Edit3,
   Film,
   Filter,
+  Flame,
   Frame,
   GripHorizontal,
   Grid2X2,
   Info,
+  Layers,
   Loader2,
   Maximize2,
+  Monitor,
   Music,
   Pause,
   PanelBottomClose,
@@ -25,9 +30,13 @@ import {
   RotateCcw,
   Scissors,
   Search,
+  SlidersHorizontal,
+  Smartphone,
   Sparkles,
+  Square,
   Upload,
   Volume2,
+  VolumeX,
   Wand2,
   X,
   ZoomIn,
@@ -39,6 +48,11 @@ import { StyleCloneCard } from '@/components/editor/style-clone-card'
 import type {EditorialReadiness} from '@/lib/editor/editorial-readiness'
 import type {EditorialCleanupRun} from '@/lib/editor/editorial-run'
 import { MotionSoundtrackTrack } from '@/components/editor/motion/motion-soundtrack-track'
+import { EditorialTimelineTracks } from '@/components/editor/editorial-timeline-tracks'
+import { EditorialTimelineViewport } from '@/components/editor/editorial-timeline-viewport'
+import { EditorialAudioPreview } from '@/components/editor/editorial-audio-preview'
+import { EditorialSyncStatus } from '@/components/editor/editorial-sync-status'
+import { useEditorialTimeline } from '@/hooks/use-editorial-timeline'
 import type { MusicRecommendation } from '@/lib/types'
 
 type PreviewMediaKind = 'video' | 'image'
@@ -154,15 +168,15 @@ const TOOLS = [
   { id: 'layout', label: 'Layout', icon: Grid2X2 },
 ] as const
 
-const TREATMENTS: { id: PreviewTreatment; label: string; filter: string }[] = [
-  { id: 'clean', label: 'Clean', filter: 'none' },
-  { id: 'contrast', label: 'Contrast', filter: 'contrast(1.12) saturate(1.08)' },
-  { id: 'warm', label: 'Warm', filter: 'sepia(.15) saturate(1.12) contrast(1.04)' },
-  { id: 'mono', label: 'Mono', filter: 'grayscale(1) contrast(1.12)' },
+const TREATMENTS: { id: PreviewTreatment; label: string; filter: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  { id: 'clean', label: 'Clean', filter: 'none', icon: Sparkles },
+  { id: 'contrast', label: 'Contrast', filter: 'contrast(1.12) saturate(1.08)', icon: Contrast },
+  { id: 'warm', label: 'Warm', filter: 'sepia(.15) saturate(1.12) contrast(1.04)', icon: Flame },
+  { id: 'mono', label: 'Mono', filter: 'grayscale(1) contrast(1.12)', icon: CircleDot },
 ]
 
 const DEFAULT_CROP_RECT: CropRect = { left: 0, top: 0, width: 100, height: 100 }
-const DEFAULT_TIMELINE_HEIGHT = 160
+const DEFAULT_TIMELINE_HEIGHT = 252
 const MIN_TIMELINE_HEIGHT = 112
 const MAX_TIMELINE_HEIGHT_ARIA = 1000
 const TIMELINE_REVEAL_THRESHOLD = 8
@@ -261,8 +275,32 @@ export function MotionEditWorkspace({
   onTogglePlayback, onPickSource, onSourceDrop, onSourceDragOver, onSourceDragLeave, isSourceDragOver = false,
   textPlacements, onSeek, onVideoLoadedMetadata, onVideoLoadedData, onVideoCanPlay,
   onVideoTimeUpdate, onVideoEnded, onVideoPlay, onVideoPause, onVideoError, onImageLoaded, onApplyPrompt,
-  selectedMusicTrack = null, onSelectMusicTrack, onOpenMusicCatalog, soundtrackVolume = 0.5, onSoundtrackVolumeChange, soundtrackMuted = false, onSoundtrackMutedChange,
+  selectedMusicTrack: parentSelectedMusicTrack = null, onSelectMusicTrack, onOpenMusicCatalog, soundtrackVolume: parentSoundtrackVolume = 0.5, onSoundtrackVolumeChange: parentVolumeChange, soundtrackMuted: parentSoundtrackMuted = false, onSoundtrackMutedChange: parentMutedChange,
 }: MotionEditWorkspaceProps) {
+  const editorial = useEditorialTimeline()
+  const selectedMusicTrack = editorial.timeline?.music?.track ?? parentSelectedMusicTrack
+  const soundtrackVolume = editorial.timeline?.music?.volume ?? parentSoundtrackVolume
+  const soundtrackMuted = editorial.timeline?.music?.muted ?? parentSoundtrackMuted
+  const [audioError, setAudioError] = React.useState<string | null>(null)
+  const onSoundtrackVolumeChange = React.useCallback((volume: number) => {
+    parentVolumeChange?.(volume)
+    editorial.patch({ type: 'mix', volume })
+  }, [editorial.patch, parentVolumeChange])
+  const onSoundtrackMutedChange = React.useCallback((muted: boolean) => {
+    parentMutedChange?.(muted)
+    editorial.patch({ type: 'mix', muted })
+  }, [editorial.patch, parentMutedChange])
+  React.useEffect(() => {
+    if (editorial.timeline?.music) {
+      if (parentSoundtrackVolume !== soundtrackVolume) parentVolumeChange?.(soundtrackVolume)
+      if (parentSoundtrackMuted !== soundtrackMuted) parentMutedChange?.(soundtrackMuted)
+    }
+  }, [editorial.timeline?.music, parentSoundtrackVolume, parentSoundtrackMuted, soundtrackVolume, soundtrackMuted, parentVolumeChange, parentMutedChange])
+  const audioEffects = React.useMemo(() => editorial.timeline?.effects ?? [], [editorial.timeline?.effects])
+  const editorialCues = editorial.timeline?.cues ?? []
+  const updateEditorialCues = React.useCallback((cues: typeof editorialCues) => {
+    editorial.patch({ type: 'cues', cues })
+  }, [editorial.patch])
   const resolvedSegments = React.useMemo(() => {
     return Array.isArray(transcriptSegments) ? transcriptSegments : []
   }, [transcriptSegments])
@@ -365,6 +403,7 @@ export function MotionEditWorkspace({
   const startTimelineDrag = (event: React.PointerEvent<HTMLDivElement>) => {
     const timeline = timelineRef.current
     if (!timeline) return
+    if (event.target instanceof Element && event.target.closest('button, input')) return
     timeline.setPointerCapture(event.pointerId)
     timelineDragRef.current = { pointerId: event.pointerId, startX: event.clientX, startScrollLeft: timeline.scrollLeft, moved: false }
     setTimelineDragging(true)
@@ -521,7 +560,7 @@ export function MotionEditWorkspace({
 
   return (
     <section ref={workspaceRef} data-motion-chamber className="relative flex h-full min-h-0 flex-col overflow-hidden bg-[radial-gradient(ellipse_at_50%_42%,#080808_0%,#000_68%)] text-white" aria-label="Motion editing workspace" onDragOver={onSourceDragOver} onDragLeave={onSourceDragLeave} onDrop={onSourceDrop}>
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.035)_0_1px,transparent_1.2px)] bg-[length:7px_7px] opacity-[0.24]" aria-hidden="true" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.035)_0_1px,transparent_1.2px)] bg-[length:7px_7px] opacity-[0.28]" aria-hidden="true" />
       {isSourceDragOver ? (
         <div className="absolute inset-0 z-40 grid place-items-center bg-black/70 backdrop-blur-sm" aria-hidden="true">
           <span className="inline-flex items-center gap-2 rounded-md border border-[#98f237]/45 bg-[#0a0d08] px-5 py-3 text-sm text-[#b4fb60] shadow-[0_0_40px_rgba(152,242,55,0.22)]"><Upload className="size-4" /> Drop source video to replace media</span>
@@ -722,17 +761,17 @@ export function MotionEditWorkspace({
               </section>
             ) : null}
 
-            <div className="mb-4 flex flex-wrap items-center gap-2">
+            <div role="group" aria-label="Transcript actions" className="mb-4 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
               <button
                 type="button"
                 onClick={() => {
                   const targetSegment = visibleSegments.find((s) => !s.isCut) ?? visibleSegments[0]
                   if (targetSegment) onToggleCutSegment?.(targetSegment.id)
                 }}
-                className="inline-flex min-h-8 items-center gap-1.5 rounded-md border border-[#00f0ff]/40 bg-[#00f0ff]/10 px-2.5 py-1.5 text-xs font-semibold text-[#00f0ff] shadow-[0_0_12px_rgba(0,240,255,0.2)] transition-all hover:bg-[#00f0ff]/20 hover:shadow-[0_0_20px_rgba(0,240,255,0.4)]"
+                className="flex min-h-[4.25rem] flex-col items-center justify-center gap-1.5 rounded-md border border-white/[0.07] bg-white/[0.035] px-2 py-2 text-[10px] font-medium text-white/58 transition-colors hover:border-white/[0.13] hover:bg-white/[0.075] hover:text-white/82 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/35"
                 title="Remove the next visible transcript segment"
               >
-                <Scissors className="size-3.5 text-[#00f0ff]" />
+                <Volume2 aria-hidden="true" className="size-4 text-white/72" />
                 <span>Cut speech</span>
               </button>
               <button
@@ -756,27 +795,28 @@ export function MotionEditWorkspace({
                     onCutRangesChange([...(cutRanges ?? []), ...resolvedSpans])
                   }
                 }}
-                className="inline-flex min-h-8 items-center gap-1.5 rounded-md border border-amber-400/40 bg-amber-400/10 px-2.5 py-1.5 text-xs font-semibold text-amber-300 shadow-[0_0_12px_rgba(251,191,36,0.18)] transition-all hover:bg-amber-400/20 hover:shadow-[0_0_20px_rgba(251,191,36,0.35)]"
+                className="flex min-h-[4.25rem] flex-col items-center justify-center gap-1.5 rounded-md border border-white/[0.07] bg-white/[0.035] px-2 py-2 text-[10px] font-medium text-white/58 transition-colors hover:border-white/[0.13] hover:bg-white/[0.075] hover:text-white/82 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/35"
                 title="Apply transcript-aligned silence cuts directly to the editable timeline"
               >
-                <Scissors className="size-3.5 text-amber-400" />
+                <Scissors aria-hidden="true" className="size-4 text-white/72" />
                 <span>Cut Silences</span>
               </button>
               <button
                 type="button"
                 onClick={() => onApplyPrompt?.('Clean up the selected speech in the current edit.')}
-                className="inline-flex min-h-8 items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.08] px-2.5 py-1.5 text-xs font-medium text-white/86 transition-colors hover:bg-white/[0.13]"
+                className="flex min-h-[4.25rem] flex-col items-center justify-center gap-1.5 rounded-md border border-white/[0.07] bg-white/[0.035] px-2 py-2 text-[10px] font-medium text-white/58 transition-colors hover:border-white/[0.13] hover:bg-white/[0.075] hover:text-white/82 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/35"
               >
-                <Wand2 className="size-3.5 text-[#98f237]" /> Speech cleanup
+                <Wand2 aria-hidden="true" className="size-4 text-white/72" /> <span>Speech cleanup</span>
               </button>
               {onRequestTranscribe && !isTranscribing ? (
                 <button
                   type="button"
                   onClick={onRequestTranscribe}
                   disabled={isSourceUploading}
-                  className="inline-flex min-h-8 items-center gap-1.5 rounded-md border border-[#98f237]/30 bg-[#98f237]/10 px-2.5 py-1.5 text-xs font-medium text-[#b4fb60] transition-colors hover:bg-[#98f237]/20"
+                  className="flex min-h-[4.25rem] flex-col items-center justify-center gap-1.5 rounded-md border border-white/[0.07] bg-white/[0.035] px-2 py-2 text-[10px] font-medium text-white/58 transition-colors hover:border-white/[0.13] hover:bg-white/[0.075] hover:text-white/82 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/35 disabled:cursor-not-allowed disabled:opacity-40"
+                  title="Transcribe source video with Prometheus AI"
                 >
-                  <Sparkles className="size-3.5" /> Transcribe
+                  <Captions aria-hidden="true" className="size-4 text-white/72" /> <span>Transcribe</span>
                 </button>
               ) : null}
             </div>
@@ -929,11 +969,14 @@ export function MotionEditWorkspace({
         </aside>
 
         <main className="flex min-h-0 min-w-0 flex-1 flex-col">
-          <header className="relative shrink-0 border-b border-white/8 px-3 py-1.5 sm:px-5">
+          <header className="relative shrink-0 border-b border-white/8 bg-black/40 px-3 py-2 sm:px-5">
             <div className="flex min-h-10 flex-wrap items-center justify-between gap-2">
               <div className="flex min-w-0 items-center gap-2 text-xs text-white/62">
-                <span className="hidden sm:inline">Motion edit</span>
-                <span className="rounded border border-white/10 px-2 py-1 text-[11px] tabular-nums">{safeAspectRatio.toFixed(2)}:1</span>
+                <div className="mr-2 hidden min-w-0 sm:block">
+                  <div className="text-[15px] font-semibold tracking-[-0.02em] text-white">Motion Studio</div>
+                  <div className="max-w-[220px] truncate text-[10px] uppercase tracking-[0.16em] text-white/38">{projectTitle}</div>
+                </div>
+                <span className="rounded border border-white/10 px-2 py-1 text-[11px] tabular-nums text-white/70">{safeAspectRatio.toFixed(2)}:1</span>
                 <button type="button" onClick={() => onFitModeChange(fitMode === 'fill' ? 'fit' : 'fill')} className="inline-flex min-h-9 items-center gap-1.5 rounded px-1.5 transition-colors hover:bg-white/[0.06] hover:text-white"><Maximize2 className="size-3.5" /> {fitMode === 'fill' ? 'Fill frame' : 'Fit frame'}</button>
                 {selectedMusicTrack ? (
                   <button
@@ -974,6 +1017,19 @@ export function MotionEditWorkspace({
                   {renderMedia()}
                   <div className="pointer-events-none absolute left-3 top-3 inline-flex max-w-[calc(100%-1.5rem)] items-center gap-2 rounded bg-black/60 px-2.5 py-1.5 text-[10px] text-white/72 backdrop-blur-sm"><Frame className="size-3 shrink-0 text-[#98f237]" /><span className="truncate">{sourceLabel ?? 'Source video'}</span></div>
                   <button type="button" onClick={onTogglePlayback} disabled={previewKind !== 'video' || !previewUrl} className="absolute bottom-3 left-3 grid size-10 place-items-center rounded-full border border-white/12 bg-black/60 text-white backdrop-blur-sm transition-colors hover:bg-black/82 disabled:cursor-not-allowed disabled:opacity-35" aria-label={previewPlaying ? 'Pause preview' : 'Play preview'}>{previewPlaying ? <Pause className="size-4 fill-current" /> : <Play className="ml-0.5 size-4 fill-current" />}</button>
+                  {previewKind === 'video' ? (
+                    <button
+                      type="button"
+                      onClick={() => onPreviewMutedChange(!previewMuted)}
+                      className="absolute bottom-3 right-3 inline-flex h-10 items-center gap-2 rounded-full border border-white/15 bg-black/65 px-3 text-white shadow-lg backdrop-blur-sm transition-colors hover:bg-black/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#b4fb60]"
+                      aria-label={previewMuted ? 'Turn video sound on' : 'Mute video sound'}
+                      aria-pressed={!previewMuted}
+                      title={previewMuted ? 'Turn video sound on' : 'Mute video sound'}
+                    >
+                      {previewMuted ? <VolumeX className="size-4" /> : <Volume2 className="size-4" />}
+                      <span className="text-[11px] font-medium">{previewMuted ? 'Sound off' : 'Sound on'}</span>
+                    </button>
+                  ) : null}
                 </div>
                 {cropEnabled ? <CropFrame rect={cropRect} onChange={setCropRect} /> : null}
               </div>
@@ -984,7 +1040,101 @@ export function MotionEditWorkspace({
         <aside className="hidden w-[72px] shrink-0 border-l border-white/8 bg-black/28 lg:flex lg:flex-col lg:items-center lg:gap-2 lg:pt-3">{TOOLS.map(({ id, label, icon: Icon }) => <button key={id} type="button" onClick={() => selectTool(id)} className={cn('group flex min-h-12 w-full flex-col items-center gap-1 border-l-2 px-1 py-1.5 text-[9px] font-medium transition-colors', activeTool === id ? 'border-[#98f237] text-white' : 'border-transparent text-white/46 hover:text-white/82')}><span className={cn('grid size-7 place-items-center rounded-md transition-colors', activeTool === id ? 'bg-[#98f237]/12 text-[#b4fb60]' : 'text-white/65 group-hover:bg-white/[0.06]')}><Icon className="size-3.5" /></span>{label}</button>)}<div className="mt-auto mb-3 text-[8px] uppercase tracking-[0.12em] text-white/28">{activeTool}</div></aside>
       </div>
 
-      {showTimeline ? <section className="relative shrink-0 border-t border-white/12 bg-[#070809]/95" style={{ height: timelineHeight }} aria-label="Video timeline">{timelineResizeHandle}<div className="flex h-11 items-center justify-between border-b border-white/8 px-3 sm:px-5"><div className="flex items-center gap-1.5 sm:gap-3"><span className="text-xs font-medium text-white/86">Timeline</span><button type="button" onClick={() => setShowTimeline(false)} className="grid size-8 place-items-center rounded-md border border-white/10 bg-white/[0.035] text-white/62 transition-all hover:border-white/20 hover:bg-white/[0.08] hover:text-white" aria-label="Collapse timeline" title="Collapse timeline"><PanelBottomClose className="size-3.5" /></button><button type="button" onClick={() => setCropEnabled((value) => !value)} className={cn('grid size-8 place-items-center rounded border transition-colors', cropEnabled ? 'border-[#98f237]/35 bg-[#98f237]/10 text-[#b4fb60]' : 'border-white/10 text-white/56 hover:text-white')} aria-label="Toggle crop frame"><Crop className="size-3.5" /></button><button type="button" onClick={onTogglePlayback} disabled={previewKind !== 'video' || !previewUrl} className="grid size-8 place-items-center text-white/82 disabled:opacity-35" aria-label={previewPlaying ? 'Pause timeline' : 'Play timeline'}>{previewPlaying ? <Pause className="size-4 fill-current" /> : <Play className="size-4 fill-current" />}</button><button type="button" onClick={() => onPreviewMutedChange(!previewMuted)} disabled={previewKind !== 'video' || !previewUrl} className={cn('grid size-8 place-items-center transition-colors disabled:opacity-35', previewMuted ? 'text-white/42' : 'text-[#b4fb60]')} aria-label={previewMuted ? 'Unmute preview' : 'Mute preview'}><Volume2 className="size-3.5" /></button><span className="hidden font-mono text-xs tabular-nums text-white/78 sm:inline">{currentTimeLabel} <span className="mx-1 text-white/28">/</span> {durationLabel}</span></div><label className="flex items-center gap-2 text-white/52"><ZoomOut className="size-3.5" /><span className="sr-only">Timeline zoom</span><input aria-label="Timeline zoom" type="range" min="0.7" max="2.4" step="0.1" value={zoom} onChange={(event) => setZoom(Number(event.target.value))} className="h-1 w-16 accent-[#98f237] sm:w-20" /><ZoomIn className="size-3.5" /></label></div><div className="flex min-h-0"><div className="hidden w-24 shrink-0 border-r border-white/8 pt-8 text-right text-[10px] text-white/40 sm:block"><div className="pr-3">Video</div><div className="mt-7 pr-3">Audio</div><div className="mt-6 pr-3">Captions</div><div className="mt-6 pr-3">Text</div><div className="mt-6 flex items-center justify-end gap-1 pr-3 text-[#98f237]/80"><Music className="size-2.5" /><span>Music</span></div></div><div ref={timelineRef} onPointerDown={startTimelineDrag} onPointerMove={moveTimelineDrag} onPointerUp={endTimelineDrag} onPointerCancel={endTimelineDrag} className={cn('premium-scroll-hide relative min-w-0 flex-1 touch-none select-none overflow-x-auto overflow-y-hidden px-3 pt-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#98f237]/60', timelineDragging ? 'cursor-grabbing' : 'cursor-grab')} role="slider" aria-label="Timeline. Drag to scroll, click to seek." aria-valuemin={0} aria-valuemax={effectiveDuration} aria-valuenow={currentTimeSec} tabIndex={0} onKeyDown={(event) => { if (event.key === 'ArrowLeft') { event.preventDefault(); onSeek(Math.max(0, currentTimeSec - 1)) } if (event.key === 'ArrowRight') { event.preventDefault(); onSeek(Math.min(effectiveDuration, currentTimeSec + 1)) } if (event.key === 'Home') { event.preventDefault(); onSeek(0) } if (event.key === 'End') { event.preventDefault(); onSeek(effectiveDuration) } }}><TimelineTracks zoom={zoom} effectiveDuration={effectiveDuration} sourceLabel={sourceLabel ?? projectTitle} transcriptSegments={resolvedSegments} captionsVisible={captionsVisible} currentTime={currentTimeSec} textPlacements={textPlacements} cutRanges={effectiveCutRanges} selectedMusicTrack={selectedMusicTrack} soundtrackVolume={soundtrackVolume} soundtrackMuted={soundtrackMuted} onSoundtrackVolumeChange={onSoundtrackVolumeChange} onSoundtrackMutedChange={onSoundtrackMutedChange} onOpenMusicCatalog={onOpenMusicCatalog} onSeek={onSeek} /><div className="pointer-events-none absolute bottom-0 top-0 z-10 border-l border-white shadow-[0_0_12px_rgba(255,255,255,.75)]" style={{ left: `calc(${playheadPercent * zoom}% + 0.75rem)` }}><span className="absolute -left-1.5 -top-1 size-3 rotate-45 bg-white" /></div></div></div></section> : <div className="relative h-10 shrink-0 border-t border-white/10 bg-[#070809]">{timelineResizeHandle}<button type="button" onClick={() => setShowTimeline(true)} className="group flex h-full w-full items-center justify-center gap-2 text-xs text-white/58 transition-colors hover:bg-white/[0.025] hover:text-white"><PanelBottomOpen className="size-3.5 transition-transform group-hover:-translate-y-0.5" /> Show timeline</button></div>}
+      <EditorialAudioPreview track={parentSelectedMusicTrack?.id === selectedMusicTrack?.id ? null : selectedMusicTrack} volume={soundtrackVolume} muted={soundtrackMuted} effects={audioEffects} videoRef={videoRef} playing={previewPlaying} currentTime={currentTimeSec} onError={setAudioError} />
+      {audioError ? <p role="status" className="shrink-0 border-t border-amber-200/15 bg-[#15130d] px-4 py-1 text-[10px] text-amber-100">{audioError}</p> : null}
+      {showTimeline ? (
+        <section
+          className="relative flex shrink-0 flex-col border-t border-white/10 bg-[#070809]/95"
+          style={{ height: timelineHeight }}
+          aria-label="Video timeline"
+        >
+          {timelineResizeHandle}
+          <div className="flex items-center justify-between border-b border-white/8 bg-black/60 px-3 py-1">
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-semibold tracking-wide text-white/88">Editorial timeline</span>
+              <EditorialSyncStatus />
+            </div>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setCropEnabled((value) => !value)}
+                className={cn(
+                  'flex items-center gap-1 rounded border px-2 py-0.5 text-[10px] transition-colors',
+                  cropEnabled
+                    ? 'border-[#9df65a]/50 bg-[#9df65a]/10 text-[#c5ff96]'
+                    : 'border-white/10 text-white/56 hover:text-white',
+                )}
+                aria-label="Toggle crop frame"
+              >
+                <Crop className="size-3" />
+                <span>Crop</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowTimeline(false)}
+                className="grid size-7 place-items-center rounded-md border border-white/10 bg-white/[0.035] text-white/62 transition-all hover:border-white/20 hover:bg-white/[0.08] hover:text-white"
+                aria-label="Collapse timeline"
+                title="Collapse timeline"
+              >
+                <PanelBottomClose className="size-3.5" />
+              </button>
+            </div>
+          </div>
+          <div className="min-h-0 flex-1 overflow-hidden">
+            <EditorialTimelineViewport
+              previewUrl={previewKind === 'video' ? previewUrl : ''}
+              playing={previewPlaying}
+              onTogglePlayback={onTogglePlayback}
+              zoom={zoom}
+              onZoomChange={setZoom}
+              effectiveDuration={effectiveDuration}
+              sourceLabel={sourceLabel ?? projectTitle}
+              transcriptSegments={resolvedSegments}
+              captionsVisible={captionsVisible}
+              currentTime={currentTimeSec}
+              textPlacements={textPlacements}
+              cutRanges={effectiveCutRanges}
+              selectedMusicTrack={selectedMusicTrack}
+              editorialCues={editorialCues}
+              onEditorialCuesChange={updateEditorialCues}
+              soundtrackVolume={soundtrackVolume}
+              soundtrackMuted={soundtrackMuted}
+              onSoundtrackVolumeChange={onSoundtrackVolumeChange}
+              onSoundtrackMutedChange={onSoundtrackMutedChange}
+              onOpenMusicCatalog={onOpenMusicCatalog}
+              onSeek={onSeek}
+              onSplitClip={() => {
+                if (onCutRangesChange) {
+                  onCutRangesChange([
+                    ...(cutRanges ?? []),
+                    { start: currentTimeSec, end: Math.min(effectiveDuration, currentTimeSec + 0.5) },
+                  ])
+                }
+              }}
+              onDeleteClip={() => {
+                if (activeSegment && onToggleCutSegment) {
+                  onToggleCutSegment(activeSegment.id)
+                }
+              }}
+              isFullscreen={timelineHeight > 320}
+              onToggleFullscreen={() =>
+                setTimelineHeight((h) => (h > 320 ? DEFAULT_TIMELINE_HEIGHT : 420))
+              }
+            />
+          </div>
+        </section>
+      ) : (
+        <div className="relative h-10 shrink-0 border-t border-white/10 bg-[#070809]">
+          {timelineResizeHandle}
+          <button
+            type="button"
+            onClick={() => setShowTimeline(true)}
+            className="group flex h-full w-full items-center justify-center gap-2 text-xs text-white/58 transition-colors hover:bg-white/[0.025] hover:text-white"
+          >
+            <PanelBottomOpen className="size-3.5 transition-transform group-hover:-translate-y-0.5" /> Show timeline
+          </button>
+        </div>
+      )}
     </section>
   )
 }
@@ -1050,11 +1200,116 @@ function CropFrame({ rect, onChange }: { rect: CropRect; onChange: (rect: CropRe
 }
 
 function ToolPanel({ activeTool, treatment, captionsVisible, cropEnabled, fitMode, onTreatment, onToggleCaptions, onToggleCrop, onToggleFit, onPickSource }: { activeTool: MotionToolId; treatment: PreviewTreatment; captionsVisible: boolean; cropEnabled: boolean; fitMode: 'fill' | 'fit'; onTreatment: (value: PreviewTreatment) => void; onToggleCaptions: () => void; onToggleCrop: () => void; onToggleFit: () => void; onPickSource: () => void }) {
-  const content = activeTool === 'enhance' ? <div className="flex flex-wrap gap-1.5">{TREATMENTS.map((item) => <button key={item.id} type="button" onClick={() => onTreatment(item.id)} className={cn('inline-flex min-h-8 items-center gap-1.5 rounded border px-2 text-[11px] transition-colors', treatment === item.id ? 'border-[#98f237]/35 bg-[#98f237]/10 text-[#c9ff7d]' : 'border-white/10 text-white/56 hover:text-white')}>{treatment === item.id ? <Check className="size-3" /> : null}{item.label}</button>)}</div> : activeTool === 'captions' ? <button type="button" onClick={onToggleCaptions} className={cn('inline-flex min-h-8 items-center gap-2 rounded border px-2.5 text-[11px] transition-colors', captionsVisible ? 'border-[#98f237]/35 bg-[#98f237]/10 text-[#c9ff7d]' : 'border-white/10 text-white/56 hover:text-white')}><Captions className="size-3.5" /> {captionsVisible ? 'Captions on' : 'Show captions'}</button> : activeTool === 'media' ? <button type="button" onClick={onPickSource} className="inline-flex min-h-8 items-center gap-2 rounded border border-white/10 px-2.5 text-[11px] text-white/64 transition-colors hover:text-white"><Upload className="size-3.5" /> Replace source media</button> : <div className="flex flex-wrap gap-1.5"><button type="button" onClick={onToggleFit} className="inline-flex min-h-8 items-center gap-2 rounded border border-white/10 px-2.5 text-[11px] text-white/64 transition-colors hover:text-white"><Maximize2 className="size-3.5" /> {fitMode === 'fill' ? 'Fill frame' : 'Fit frame'}</button><button type="button" onClick={onToggleCrop} className={cn('inline-flex min-h-8 items-center gap-2 rounded border px-2.5 text-[11px] transition-colors', cropEnabled ? 'border-[#98f237]/35 bg-[#98f237]/10 text-[#c9ff7d]' : 'border-white/10 text-white/56 hover:text-white')}><Crop className="size-3.5" /> {cropEnabled ? 'Crop guides on' : 'Crop guides off'}</button></div>
-  return <div className="mt-2 border-t border-white/8 pt-2">{content}</div>
+  const content = activeTool === 'enhance' ? (
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="text-[10px] uppercase tracking-wider text-white/40 mr-1">Look & Grade:</span>
+      {TREATMENTS.map((item) => {
+        const Icon = item.icon
+        const isSelected = treatment === item.id
+        return (
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => onTreatment(item.id)}
+            className={cn(
+              'inline-flex min-h-8 items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition-all shadow-sm',
+              isSelected
+                ? 'border-[#98f237]/50 bg-[#98f237]/15 text-[#c9ff7d] shadow-[0_0_12px_rgba(152,242,55,0.18)]'
+                : 'border-white/10 bg-white/[0.03] text-white/65 hover:border-white/20 hover:bg-white/[0.07] hover:text-white',
+            )}
+          >
+            <Icon className="size-3.5" />
+            <span>{item.label}</span>
+            {isSelected ? <Check className="size-3 ml-0.5 text-[#98f237]" /> : null}
+          </button>
+        )
+      })}
+    </div>
+  ) : activeTool === 'captions' ? (
+    <div className="flex flex-wrap items-center gap-2">
+      <button
+        type="button"
+        onClick={onToggleCaptions}
+        className={cn(
+          'inline-flex min-h-8 items-center gap-2 rounded-lg border px-3 py-1 text-xs font-medium transition-all shadow-sm',
+          captionsVisible
+            ? 'border-[#98f237]/50 bg-[#98f237]/15 text-[#c9ff7d] shadow-[0_0_12px_rgba(152,242,55,0.18)]'
+            : 'border-white/10 bg-white/[0.03] text-white/65 hover:border-white/20 hover:bg-white/[0.07] hover:text-white',
+        )}
+      >
+        <Captions className="size-3.5" />
+        <span>{captionsVisible ? 'Captions On' : 'Show Captions'}</span>
+      </button>
+    </div>
+  ) : activeTool === 'media' ? (
+    <div className="flex flex-wrap items-center gap-2">
+      <button
+        type="button"
+        onClick={onPickSource}
+        className="inline-flex min-h-8 items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-1 text-xs font-medium text-white/80 hover:border-white/20 hover:bg-white/[0.07] hover:text-white transition-all shadow-sm"
+      >
+        <Upload className="size-3.5 text-[#98f237]" />
+        <span>Replace source media</span>
+      </button>
+    </div>
+  ) : (
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="text-[10px] uppercase tracking-wider text-white/40 mr-1">Framing:</span>
+      <button
+        type="button"
+        onClick={onToggleFit}
+        className="inline-flex min-h-8 items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-1 text-xs font-medium text-white/80 hover:border-white/20 hover:bg-white/[0.07] hover:text-white transition-all shadow-sm"
+      >
+        <Maximize2 className="size-3.5 text-[#98f237]" />
+        <span>{fitMode === 'fill' ? 'Fill frame' : 'Fit frame'}</span>
+      </button>
+      <button
+        type="button"
+        onClick={onToggleCrop}
+        className={cn(
+          'inline-flex min-h-8 items-center gap-2 rounded-lg border px-3 py-1 text-xs font-medium transition-all shadow-sm',
+          cropEnabled
+            ? 'border-[#98f237]/50 bg-[#98f237]/15 text-[#c9ff7d] shadow-[0_0_12px_rgba(152,242,55,0.18)]'
+            : 'border-white/10 bg-white/[0.03] text-white/65 hover:border-white/20 hover:bg-white/[0.07] hover:text-white',
+        )}
+      >
+        <Crop className="size-3.5" />
+        <span>{cropEnabled ? 'Crop guides on' : 'Crop guides off'}</span>
+      </button>
+      <div className="h-4 w-px bg-white/10 mx-1" />
+      <span className="text-[10px] uppercase tracking-wider text-white/40">Presets:</span>
+      <button
+        type="button"
+        className="inline-flex min-h-8 items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1 text-xs text-white/70 hover:border-white/20 hover:text-white transition-all"
+        title="16:9 Landscape"
+      >
+        <Monitor className="size-3.5 text-blue-400" />
+        <span>16:9</span>
+      </button>
+      <button
+        type="button"
+        className="inline-flex min-h-8 items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1 text-xs text-white/70 hover:border-white/20 hover:text-white transition-all"
+        title="9:16 Portrait"
+      >
+        <Smartphone className="size-3.5 text-emerald-400" />
+        <span>9:16</span>
+      </button>
+      <button
+        type="button"
+        className="inline-flex min-h-8 items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1 text-xs text-white/70 hover:border-white/20 hover:text-white transition-all"
+        title="1:1 Square"
+      >
+        <Square className="size-3.5 text-purple-400" />
+        <span>1:1</span>
+      </button>
+    </div>
+  )
+  return <div className="mt-2.5 border-t border-white/[0.08] pt-2.5">{content}</div>
 }
 
 function TimelineTracks({
+  previewUrl,
+  previewKind,
   zoom,
   effectiveDuration,
   sourceLabel,
@@ -1071,6 +1326,8 @@ function TimelineTracks({
   onOpenMusicCatalog,
   onSeek,
 }: {
+  previewUrl?: string
+  previewKind?: PreviewMediaKind
   zoom: number
   effectiveDuration: number
   sourceLabel: string
@@ -1087,6 +1344,9 @@ function TimelineTracks({
   onOpenMusicCatalog?: () => void
   onSeek?: (timeSec: number) => void
 }) {
+  if (previewKind === 'video' && previewUrl) {
+    return <EditorialTimelineTracks previewUrl={previewUrl} zoom={zoom} effectiveDuration={effectiveDuration} sourceLabel={sourceLabel} transcriptSegments={transcriptSegments} captionsVisible={captionsVisible} currentTime={currentTime} textPlacements={textPlacements} cutRanges={cutRanges} selectedMusicTrack={selectedMusicTrack} soundtrackVolume={soundtrackVolume} soundtrackMuted={soundtrackMuted} onSoundtrackVolumeChange={onSoundtrackVolumeChange} onSoundtrackMutedChange={onSoundtrackMutedChange} onOpenMusicCatalog={onOpenMusicCatalog} onSeek={onSeek} />
+  }
   const width = `${zoom * 100}%`
   const activeSegment = transcriptSegments.find((segment) => isActiveSegment(segment, currentTime))
   const resolvedTextPlacements = textPlacements ?? transcriptSegments.slice(0, 3).map((segment, index) => ({

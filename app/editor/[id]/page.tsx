@@ -127,7 +127,7 @@ import { useTextareaResize } from '@/hooks/use-textarea-resize'
 import { buildCinematicAnimationPlan } from '@/lib/cinematic/animation-planner'
 import { cn } from '@/lib/utils'
 import { fetchWithTimeout } from '@/lib/fetch-with-timeout'
-import { SELECTED_EDITOR_MUSIC_EVENT, type SelectedEditorMusicEventDetail } from '@/lib/editor-music-selection'
+import { SELECTED_EDITOR_MUSIC_EVENT, readSelectedEditorMusicRecommendation, type SelectedEditorMusicEventDetail } from '@/lib/editor-music-selection'
 import { upsertProject } from '@/lib/mock'
 import { projects } from '@/lib/projects'
 import {
@@ -175,7 +175,7 @@ import { CommandBubble } from "@/components/editor/CommandBubble";
 import { ExportDrawer } from "@/components/editor/ExportDrawer";
 import { CircularToast } from "@/components/editor/CircularToast";
 
-type HeaderNavMode = 'Editor' | 'Music' | 'Motion'
+type HeaderNavMode = 'Editor' | 'Music' | 'Motion' | 'Export'
 type PreviewMediaKind = 'video' | 'image'
 type PreviewFitMode = 'fill' | 'fit'
 type BottomMode = 'Original' | 'Music' | 'Timeline'
@@ -1504,7 +1504,7 @@ function buildFallbackEditAnimationPlan({
   styleTemplate: StyleTemplate
 }): AnimationPlan {
   const promptCopy = prompt.trim().length > 0 ? prompt.trim() : 'Edit this video.'
-  const trimmedPrompt = promptCopy.length > 76 ? `${promptCopy.slice(0, 73)}...` : promptCopy
+  const fullPrompt = promptCopy
   const previewImage = styleTemplate.previewImages[0] ?? null
   const styleSignal = styleTemplate.tags[0] ?? 'Captions: High'
 
@@ -1529,9 +1529,9 @@ function buildFallbackEditAnimationPlan({
       variant: 'caption',
       startMs: 1200,
       endMs: 3600,
-      text: trimmedPrompt,
+      text: fullPrompt,
       leadText: 'Prompt lane',
-      accentText: trimmedPrompt,
+      accentText: fullPrompt,
       trailingText: sourceLabel ? `Rendering on ${sourceLabel}.` : 'Rendering on the imported media.',
       treatment: 'highlight',
       tone: 'amber',
@@ -5879,6 +5879,8 @@ function MobileEditorView({
             <MusicTabPanel
               tracks={musicTracks}
               projectTitle={projectTitle}
+              initialPrompt={initialPrompt}
+              videoContext={videoContext}
               selectedTrackId={selectedMusicTrackId}
               onSelectTrack={onSelectMusicTrack}
               variant="mobile"
@@ -6188,7 +6190,7 @@ function OriginalEditorPage() {
   const requestedWorkspaceTab = normalizeWorkspaceTabParam(searchParams.get('tab'))
   const projectId = params.id
   const isMobile = useMediaQuery('(max-width: 1024px)')
-  const { setShowExport } = useEditor()
+  const { showExport, setShowExport } = useEditor()
 
   React.useEffect(() => {
     rememberEditorialChamberPath(`/editor/${projectId}`)
@@ -6215,7 +6217,7 @@ function OriginalEditorPage() {
   const [sourceAssetLabel, setSourceAssetLabel] = React.useState<string | null>(null)
   const [isPreviewMediaReady, setIsPreviewMediaReady] = React.useState(false)
   const [isPreviewLoadingVisible, setIsPreviewLoadingVisible] = React.useState(false)
-  const [isPreviewMuted, setIsPreviewMuted] = React.useState(true)
+  const [isPreviewMuted, setIsPreviewMuted] = React.useState(false)
   // Agent takeover: when true, Jarvis/chat may execute mutating editor actions.
   const [isAgentTakeoverEnabled, setIsAgentTakeoverEnabled] = React.useState(false)
   const [previewPlaybackRate, setPreviewPlaybackRate] = React.useState(1)
@@ -6900,7 +6902,7 @@ function OriginalEditorPage() {
 
   const totalDurationMs = React.useMemo(() => {
     const scenes = job?.artifacts.scenes ?? []
-    return scenes.length > 0 ? scenes[scenes.length - 1]!.endMs : 48_000
+    return scenes.length > 0 ? scenes[scenes.length - 1]!.endMs : 0
   }, [job])
 
   const progressPercent = React.useMemo(() => {
@@ -6931,6 +6933,7 @@ function OriginalEditorPage() {
   const transportTime = msToTime(transportDurationSec * 1000)
   const previewUrl = sourceStageVisiblePreviewUrl ?? stableProjectPreviewUrl ?? ''
   const previewKind = incomingPreviewKind
+  const hasPlayableVideo = Boolean(previewUrl && previewKind === 'video')
   const shouldUseLegacySessionPreviewSurface = handoffPreviewForCurrentSource?.url === previewUrl && previewKind === 'video'
   const hasPreviewMedia = Boolean(previewUrl)
   const isSourceStageActivelyLoading =
@@ -7044,10 +7047,13 @@ function OriginalEditorPage() {
     () => editorMusicShelf.recommendations.slice(0, 5),
     [editorMusicShelf],
   )
-  const selectedEditorMusicTrack = React.useMemo(
-    () => editorMusicRecommendations.find((track) => track.id === selectedEditorMusicTrackId) ?? null,
-    [editorMusicRecommendations, selectedEditorMusicTrackId],
-  )
+  const selectedEditorMusicTrack = React.useMemo(() => {
+    const found = editorMusicRecommendations.find((track) => track.id === selectedEditorMusicTrackId)
+    if (found) return found
+    const persisted = readSelectedEditorMusicRecommendation(projectId)
+    if (persisted && (!selectedEditorMusicTrackId || persisted.id === selectedEditorMusicTrackId)) return persisted
+    return null
+  }, [editorMusicRecommendations, projectId, selectedEditorMusicTrackId])
 
   React.useEffect(() => {
     if (!soundtrackAudioRef.current && typeof Audio !== 'undefined') {
@@ -8387,6 +8393,33 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
     }
   }, [])
 
+  const captureVoiceVideoFrame = React.useCallback(async (timeSec: number): Promise<string | null> => {
+    const video = previewVideoRef.current
+    if (!video || video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA || !video.videoWidth || !video.videoHeight) {
+      return null
+    }
+
+    // Let the seeked frame reach the compositor before drawing it to canvas.
+    await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())))
+    if (Math.abs(video.currentTime - timeSec) > 0.75) return null
+
+    const width = Math.min(480, video.videoWidth)
+    const height = Math.max(1, Math.round((width / video.videoWidth) * video.videoHeight))
+    const canvas = document.createElement('canvas')
+    canvas.width = width
+    canvas.height = height
+    const context = canvas.getContext('2d')
+    if (!context) return null
+
+    try {
+      context.drawImage(video, 0, 0, width, height)
+      return canvas.toDataURL('image/jpeg', 0.68)
+    } catch {
+      // Cross-origin sources may taint the canvas; keep the text-only edit path available.
+      return null
+    }
+  }, [])
+
   const chatContextProvider = React.useCallback<AIChatContextProvider>(
     () => ({ ...chatLiveStateRef.current, frameThumbs: captureChatFrameThumbs() }),
     [captureChatFrameThumbs],
@@ -8501,19 +8534,22 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
     setIsAgentTakeoverEnabled((prev) => {
       const next = !prev
       if (next) {
-        toast.info('Autonomous Takeover active — Jarvis taking control', {
-          description: 'Navigating to Motion Schema and executing autonomous actions.',
+        toast.info('Autonomous editing session active', {
+          description: 'Jarvis can now move through the edit and keep control for the full task.',
         })
-        autonomousCoordinator.executeAutonomousTakeover('Motion', (tab) => {
-          setActiveWorkspaceTab(tab as HeaderNavMode)
-          setBottomMode(tab === 'Music' ? 'Music' : 'Original')
-        })
+        autonomousCoordinator.beginTakeover('Jarvis is preparing the edit')
       } else {
         autonomousCoordinator.endTakeover()
         toast.info('Autonomous Takeover disabled — control returned to user.')
       }
       return next
     })
+  }, [])
+
+  React.useEffect(() => {
+    const handleTakeoverEnded = () => setIsAgentTakeoverEnabled(false)
+    window.addEventListener('prometheus:autonomous-takeover-ended', handleTakeoverEnded)
+    return () => window.removeEventListener('prometheus:autonomous-takeover-ended', handleTakeoverEnded)
   }, [])
 
   // Wire the Jarvis voice companion (global filament) to this editor instance
@@ -8539,10 +8575,21 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
       },
       onToggleCutWord: handleToggleCutWord,
       onToggleCutSegment: handleToggleCutSegment,
-      hasVideo: Boolean(project?.sourceAssetId || motionTranscriptSegments.length > 0),
+      hasVideo: hasPlayableVideo,
       videoTitle: project?.title ?? 'Untitled Project',
-      videoDurationSec: transportDurationSec,
+      videoDurationSec: hasPlayableVideo ? (previewDurationSec || transportDurationSec) : 0,
+      timelineDurationSec: transportDurationSec,
+      sourceMediaState: hasPlayableVideo
+        ? 'ready'
+        : isSourceStageActivelyLoading
+          ? 'loading'
+          : previewUrl
+            ? 'non_video'
+            : project?.sourceAssetId
+              ? 'unavailable'
+              : 'missing',
       videoMusicContext: videoContext,
+      captureVideoFrame: captureVoiceVideoFrame,
       onSelectMusicTrack: (trackId: string) => setSelectedEditorMusicTrackId(trackId),
     })
     return () => {
@@ -8559,8 +8606,13 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
     handleToggleCutSegment,
     project?.title,
     project?.sourceAssetId,
+    previewUrl,
+    previewKind,
+    previewDurationSec,
+    isSourceStageActivelyLoading,
     transportDurationSec,
     videoContext,
+    captureVoiceVideoFrame,
   ])
 
   React.useEffect(() => {
@@ -9040,6 +9092,8 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
                   <MusicTabPanel
                     tracks={editorMusicRecommendations}
                     projectTitle={project?.title ?? 'Untitled Project'}
+                    initialPrompt={promptText}
+                    videoContext={videoContext}
                     selectedTrackId={selectedEditorMusicTrackId}
                     onSelectTrack={handleEditorMusicTrackSelect}
                   />

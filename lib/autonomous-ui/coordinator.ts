@@ -94,14 +94,12 @@ class AutonomousUICoordinator {
     }
   }
 
-  /**
-   * Human Priority Rule (Barge-In)
-   * If human moves mouse or taps screen during autonomous action, immediately yield.
-   */
+  /** Human input only ends takeover when the user explicitly acts on the canvas or presses Escape. */
   private initBargeInListeners() {
-    const handleHumanInput = () => {
+    const handleHumanInput = (event?: KeyboardEvent) => {
+      if (event && event.key !== 'Escape') return
       this.isHumanInteracting = true
-      if (this.state.visible) {
+      if (this.state.isTakeover) {
         this.abortAction('user_barge_in')
       }
 
@@ -111,9 +109,8 @@ class AutonomousUICoordinator {
       }, 1200)
     }
 
-    window.addEventListener('pointerdown', handleHumanInput, { passive: true })
-    window.addEventListener('wheel', handleHumanInput, { passive: true })
-    window.addEventListener('keydown', handleHumanInput, { passive: true })
+    window.addEventListener('pointerdown', () => handleHumanInput(), { passive: true })
+    window.addEventListener('keydown', handleHumanInput as EventListener, { passive: true })
   }
 
   /**
@@ -129,16 +126,20 @@ class AutonomousUICoordinator {
       ...this.state,
       visible: false,
       isClicking: false,
-      statusText: reason === 'user_barge_in' ? 'Control returned to user' : null,
+      statusText: reason === 'user_barge_in' ? 'Control returned to you' : this.state.statusText,
       activeTargetRect: null,
-      phase: 'yielding',
-      // Cinematic Takeover — clear all overlay layers
-      isTakeover: false,
-      pillMode: 'idle',
+      phase: this.state.isTakeover && reason === 'cancelled' ? 'hovering' : 'yielding',
+      // Completing one action hides the cursor while the task session stays visible.
+      isTakeover: reason === 'user_barge_in' ? false : this.state.isTakeover,
+      pillMode: reason === 'user_barge_in' ? 'idle' : 'action',
       anticipatedTargetRect: null,
       spotlightRect: null,
     }
     this.notify()
+
+    if (reason === 'user_barge_in' && typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('prometheus:autonomous-takeover-ended'))
+    }
 
     setTimeout(() => {
       if (this.state.phase === 'yielding') {
@@ -174,6 +175,19 @@ class AutonomousUICoordinator {
    */
   public endTakeover() {
     this.abortAction('cancelled')
+    this.state = {
+      ...this.state,
+      isTakeover: false,
+      phase: 'yielding',
+      statusText: 'Control returned to you',
+      pillMode: 'idle',
+      spotlightRect: null,
+      anticipatedTargetRect: null,
+    }
+    this.notify()
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('prometheus:autonomous-takeover-ended'))
+    }
   }
 
   /**

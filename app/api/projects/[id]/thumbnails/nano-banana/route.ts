@@ -9,9 +9,15 @@ import {
 } from '@/lib/thumbnails/nano-banana-rulebook'
 import { buildNanoBananaImageRequest, extractGeneratedImage, parseImageDataUrl } from '@/lib/thumbnails/nano-banana-image'
 
+import { buildStudioArtDirection, parseStudioDesign, resolveStudioImageModel, resolveStudioImageSize, type StudioDesign } from '@/lib/thumbnails/studio-art-direction'
+import { getStudioReference, STUDIO_REFERENCES } from '@/lib/thumbnails/studio-references'
+import { compactGeneratedThumbnail } from '@/lib/thumbnails/thumbnail-output'
+
 export const runtime = 'nodejs'
+export const maxDuration = 180
 
 interface NanoBananaRequestBody {
+  studioDesign?: unknown
   frameDataUrl?: string
   headline?: string
   highlightWord?: string
@@ -26,9 +32,10 @@ interface NanoBananaRequestBody {
   lightingId?: string
   brandColor?: string
   userPrompt?: string
-  aspectRatio?: '9:16' | '2:3' | '1:1' | '16:9'
+  aspectRatio?: '9:16' | '2:3' | '1:1' | '3:2' | '16:9'
   referenceImages?: string[]
   lockChannelStyle?: boolean
+  studioReferenceId?: string
 }
 
 interface ChannelStyleDna {
@@ -86,6 +93,12 @@ export async function POST(
     if (!headline) {
       return NextResponse.json({ error: 'Add a headline before generating a thumbnail.' }, { status: 400 })
     }
+    let studioDesign: StudioDesign | null = null
+    if (body?.studioDesign !== undefined) {
+      try { studioDesign = parseStudioDesign(body.studioDesign) }
+      catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : 'Invalid thumbnail design.' }, { status: 400 }) }
+    }
+    if (headline.length > 64) return NextResponse.json({ error: 'Use a headline of 64 characters or fewer.' }, { status: 400 })
     const scriptAccent = body?.scriptAccent || ''
     const subtitle = body?.subtitle || ''
     const styleId = body?.styleId || 'behind_subject_blueprint'
@@ -108,7 +121,7 @@ export async function POST(
     let synthesizedPrompt = ''
 
     // 1. Channel Style-Lock Analysis via Gemini Multimodal Vision
-    if (apiKey && lockChannelStyle && (referenceImages.length > 0 || frameDataUrl)) {
+    if (apiKey && lockChannelStyle && !studioDesign && (referenceImages.length > 0 || frameDataUrl)) {
       try {
         const genAI = new GoogleGenerativeAI(apiKey)
         const visionModel = genAI.getGenerativeModel({
@@ -200,7 +213,7 @@ Extract the exact Channel Style DNA (lighting ratios, color contrast, proof card
     }
 
     const recipe = VIRAL_THUMBNAIL_RECIPES.find((r) => r.id === body?.recipeId)
-    const effectiveAspect = aspectRatio === '16:9' ? '16:9' : aspectRatio === '1:1' ? '1:1' : aspectRatio === '2:3' ? '2:3' : '9:16'
+    const effectiveAspect = aspectRatio === '16:9' || aspectRatio === '3:2' || aspectRatio === '1:1' || aspectRatio === '2:3' || aspectRatio === '9:16' ? aspectRatio : '9:16'
 
     const rulebookPrompt = buildNanoBananaPrompt({
       headline,
@@ -218,37 +231,58 @@ Extract the exact Channel Style DNA (lighting ratios, color contrast, proof card
       ? `${rulebookPrompt}\n\nREFERENCE ART DIRECTION: ${channelDna.refinedPrompt}`
       : rulebookPrompt
 
+    if (studioDesign) {
+      const referenceId = typeof body?.studioReferenceId === 'string' && STUDIO_REFERENCES.some(reference => reference.id === body.studioReferenceId) ? body.studioReferenceId : ''
+      const referenceCue = referenceId ? getStudioReference(referenceId).cue : ''
+      synthesizedPrompt += '\n\n' + buildStudioArtDirection(studioDesign, headline, body?.highlightWord || '', referenceCue)
+    }
+    const imageModel = studioDesign ? resolveStudioImageModel(studioDesign.quality) : 'gemini-2.5-flash-image'
     const imageRequest = buildNanoBananaImageRequest({
       prompt: synthesizedPrompt,
       frameDataUrl,
       referenceImages,
       aspectRatio: effectiveAspect,
+      ...(studioDesign ? { imageSize: resolveStudioImageSize(studioDesign.quality) } : {}),
     })
-    const imageResponse = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent', {
+    const imageResponse = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + imageModel + ':generateContent', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
       body: JSON.stringify(imageRequest),
+      signal: AbortSignal.any([request.signal, AbortSignal.timeout(150000)]),
     })
     const imageResult = await imageResponse.json().catch(() => null)
     if (!imageResponse.ok) {
       console.error('[Nano Banana Image Generation]', imageResponse.status, imageResult?.error?.message)
-      return NextResponse.json({ error: 'Nano Banana could not generate this thumbnail. Please try again.' }, { status: 502 })
+      const providerMessage = typeof imageResult?.error?.message === 'string' ? imageResult.error.message : ''
+      const safeProviderMessage = providerMessage.replace(/AIza[0-9A-Za-z_-]{20,}/g, '[redacted credential]').slice(0, 240)
+      const error = imageResponse.status === 401 || imageResponse.status === 403
+        ? 'Google rejected the configured Gemini API credential (HTTP ' + imageResponse.status + '). Check that the server key is valid and has image generation access.'
+        : imageResponse.status === 429
+          ? 'Google image generation rate limit or quota reached (HTTP 429). Wait a little or check the project quota.'
+          : safeProviderMessage.toLowerCase().includes('api key') || safeProviderMessage.toLowerCase().includes('api_key')
+            ? 'Google rejected the configured Gemini API credential: ' + safeProviderMessage
+            : 'Google image generation failed (HTTP ' + imageResponse.status + '). ' + (safeProviderMessage || 'Try again in a moment.')
+      return NextResponse.json({ error }, { status: 502 })
     }
 
-    const dataUrl = extractGeneratedImage(imageResult)
-    if (!dataUrl) {
+    const generatedDataUrl = extractGeneratedImage(imageResult)
+    if (!generatedDataUrl) {
       return NextResponse.json({ error: 'Nano Banana returned no image. Try another frame or direction.' }, { status: 502 })
     }
+    const dataUrl = await compactGeneratedThumbnail(generatedDataUrl)
 
     return NextResponse.json({
       success: true,
       mode: 'nano_banana_image',
+      model: imageModel,
       dataUrl,
       prompt: synthesizedPrompt,
       styleDna: channelDna,
       projectId,
     })
   } catch (error) {
+    if (request.signal.aborted) return NextResponse.json({ error: 'Thumbnail generation cancelled.' }, { status: 499 })
+    if (error instanceof Error && error.name === 'TimeoutError') return NextResponse.json({ error: 'Image generation timed out. Try again with Nano Banana 2.' }, { status: 504 })
     console.error('[Nano Banana Route Error]', error)
     return NextResponse.json(
       {

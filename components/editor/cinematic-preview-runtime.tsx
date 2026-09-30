@@ -116,7 +116,8 @@ export function CinematicPreviewRuntime({
             initial="hidden"
             animate="visible"
             exit="exit"
-            className="pointer-events-none absolute left-[6%] top-[11%] z-30 max-w-[54%]"
+            className="pointer-events-none absolute z-30"
+            style={resolveSpeechPlacement(activeHeading)}
           >
             <SpeechPanel cue={activeHeading} heading />
           </motion.div>
@@ -131,7 +132,8 @@ export function CinematicPreviewRuntime({
             initial="hidden"
             animate="visible"
             exit="exit"
-            className="pointer-events-none absolute inset-x-[6%] bottom-[13%] z-30 flex justify-center"
+            className="pointer-events-none absolute z-30 flex"
+            style={resolveSpeechPlacement(activeCaption)}
           >
             <SpeechPanel cue={activeCaption} />
           </motion.div>
@@ -257,6 +259,7 @@ function SpeechPanel({
   cue: SpeechCue
   heading?: boolean
 }) {
+  const mainText = (typeof cue.text === 'string' ? cue.text.trim() : '') || cue.accentText?.trim() || ''
   const accentToneClass =
     cue.tone === 'lime'
       ? 'from-[#e9ff7a] to-[#5fef63] text-[#10240b]'
@@ -270,27 +273,28 @@ function SpeechPanel({
     <div
       className={cn(
         'rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(11,11,16,0.72)_0%,rgba(7,7,10,0.2)_100%)] px-4 py-3 shadow-[0_24px_60px_-30px_rgba(0,0,0,0.95)] backdrop-blur-md',
-        heading ? 'max-w-[560px] bg-transparent px-0 py-0 border-0 shadow-none backdrop-blur-0' : 'max-w-[880px]',
+        heading ? 'bg-transparent px-0 py-0 border-0 shadow-none backdrop-blur-0' : '',
       )}
+      style={{ maxWidth: `${Math.max(20, Math.min(100, cue.maxWidthPct ?? 80))}%` }}
     >
       {cue.leadText ? (
         <div className={cn('text-white', heading ? 'text-[clamp(2rem,5vw,3.8rem)] font-black leading-[0.92] tracking-[-0.06em]' : 'text-[clamp(1rem,2vw,1.7rem)] font-bold leading-[1.02] tracking-[-0.04em]')}>
           {cue.leadText}
         </div>
       ) : null}
-      {cue.accentText ? (
+      {mainText ? (
         <div
           className={cn(
-            'inline-flex items-center rounded-[16px] bg-gradient-to-r bg-clip-padding px-3 py-1.5 font-black tracking-[-0.06em]',
+            'max-w-full whitespace-pre-wrap break-words rounded-[16px] bg-gradient-to-r bg-clip-padding px-3 py-1.5 font-black tracking-[-0.06em]',
             accentToneClass,
-            heading ? 'mt-2 text-[clamp(2.4rem,6vw,4.6rem)] leading-[0.9] italic' : 'mt-1 text-[clamp(1.25rem,2.2vw,2rem)] leading-none italic',
+            heading ? 'mt-2 text-[clamp(2.4rem,6vw,4.6rem)] leading-[0.9] italic' : 'mt-1 text-[clamp(1.25rem,2.2vw,2rem)] leading-tight italic',
           )}
           style={{
             textDecoration: cue.treatment === 'underline' ? 'underline' : undefined,
             textDecorationThickness: cue.treatment === 'underline' ? '0.16em' : undefined,
           }}
         >
-          {cue.accentText}
+          {mainText}
         </div>
       ) : null}
       {cue.trailingText ? (
@@ -300,6 +304,34 @@ function SpeechPanel({
       ) : null}
     </div>
   )
+}
+
+function resolveSpeechPlacement(cue: SpeechCue): React.CSSProperties {
+  const alignment = cue.alignment === 'left' ? 'flex-start' : cue.alignment === 'right' ? 'flex-end' : 'center'
+  const maxWidth = `${Math.max(20, Math.min(100, cue.maxWidthPct ?? 80))}%`
+
+  switch (cue.region) {
+    case 'safe-upper-third':
+      return { left: '6%', right: '6%', top: '6%', justifyContent: alignment, maxWidth: '88%' }
+    case 'center-stage':
+      return { left: '50%', top: '50%', transform: 'translate(-50%, -50%)', justifyContent: alignment, maxWidth }
+    case 'left-panel':
+      return { left: '4%', top: '50%', transform: 'translateY(-50%)', width: '42%', justifyContent: alignment }
+    case 'right-panel':
+      return { right: '4%', top: '50%', transform: 'translateY(-50%)', width: '42%', justifyContent: alignment }
+    case 'full-frame':
+      return { inset: '8%', alignItems: 'center', justifyContent: alignment }
+    case 'background-wash':
+    case 'safe-lower-third':
+    default:
+      return {
+        left: '6%',
+        right: '6%',
+        bottom: `${Math.max(5, Math.min(35, cue.bottomPaddingPct ?? 13))}%`,
+        justifyContent: alignment,
+        maxWidth: '88%',
+      }
+  }
 }
 
 function SafeZoneOverlay() {

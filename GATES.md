@@ -1,18 +1,15 @@
-# Gates: Thumbnail Studio Front-End Analysis & Nano Banana Rulebook
+# Gates: thumbnail generation response
 
-OWNS: lib/thumbnails/nano-banana-rulebook.ts, app/api/projects/[id]/thumbnails/nano-banana/route.ts, tests/nano-banana-rulebook.test.mjs, GATES.md
+OWNS: app/api/projects/[id]/thumbnails/nano-banana/route.ts, lib/thumbnails/**, tests/thumbnail-studio-design.test.mjs, GATES.md
 
-Scope: Comprehensive front-end analysis of Thumbnail Studio, simplification blueprint for the right panel, and implementation of the Nano Banana prompt rulebook based on empirical high-conversion thumbnail references.
+Scope: Make the selected fast/pro quality match the requested render resolution and keep generated-image JSON responses below Vercel's response limit.
 
-- [x] G1: Nano Banana prompt rulebook exists with modular snippet dictionaries and passes unit tests
-  CHECK: node tests/nano-banana-rulebook.test.mjs
-  EXPECT: pass 2
-  EVIDENCE: All 2 automated tests passing with zero failures.
+- [x] G1: Thumbnail response sizing and quality regression checks pass
+  CHECK: node --test tests/thumbnail-studio-design.test.mjs tests/nano-banana-image.test.mjs
+  EXPECT: ℹ pass 11
+  EVIDENCE: automatic-evidence=v1; definition-sha256=61c2a0b73f8b44d92e667498453c9091781237b87f03aa35811b9d82b64ebc2a; exit=0; EXPECT=matched; output-sha256=fbb266ebbafe74e1630cb937e5870fefd5cc63756e7ba1efc13df6a737139f8f; output-bytes=2063; shell=C:\Windows\system32\cmd.exe; cwd=C:\Users\HomePC\Documents\THE FRONT END, PROMETHEUS; path=daf53fd1173d/38 entries
 
-- [x] G2: Nano Banana API route integrates rulebook prompt builder with fallback and custom parameters
-  CHECK: node -e "const fs = require('fs'); const s = fs.readFileSync('app/api/projects/[id]/thumbnails/nano-banana/route.ts', 'utf8'); if (!s.includes('buildNanoBananaPrompt')) throw new Error('Missing buildNanoBananaPrompt'); console.log('G2 PASS');"
-  EXPECT: G2 PASS
-  EVIDENCE: Verified that route.ts imports and calls buildNanoBananaPrompt with highlightWord and modular snippet IDs.
-
-- [x] G3: Qualitative front-end analysis of Thumbnail Studio (left-side cinematic stage vs right-side cognitive overload) and rulebook documentation delivered to user
-  EVIDENCE: Full deconstruction of 9 references, diagnosis of canvas vs Nano Banana disparity, and 4-step right-panel simplification blueprint delivered in response.
+- [x] G2: Repository typecheck passes with the route changes
+  CHECK: npm.cmd run typecheck
+  EXPECT: typecheck passed
+  EVIDENCE: automatic-evidence=v1; definition-sha256=56b8397f882f4f2eadc0c80ea6715604685447378d3170601b74e5c567ac8ef1; exit=0; EXPECT=matched; output-sha256=2c4af01fb1a5f9597841244575659986624ce8ada13bbc89dce9491fd48c4a46; output-bytes=93; shell=C:\Windows\system32\cmd.exe; cwd=C:\Users\HomePC\Documents\THE FRONT END, PROMETHEUS; path=daf53fd1173d/38 entries

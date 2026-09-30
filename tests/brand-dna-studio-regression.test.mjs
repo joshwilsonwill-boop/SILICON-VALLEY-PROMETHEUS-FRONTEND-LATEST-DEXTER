@@ -45,27 +45,26 @@ assert.match(studio, /Apply To Video Suite/, 'Must provide Apply To Video Suite 
 assert.match(studio, /saveJarvisMemory/, 'Must sync brand taste to Jarvis persistent memory')
 assert.match(studio, /Export DNA Tokens \(\.JSON\)/, 'Must provide JSON export functionality')
 
-// 2. Check 3-Layer Scrolling in AssetsPage
+// 2. Check 2-Layer Scrolling in AssetsPage (Layer 3 BrandDnaStudio excised)
 const assetsPage = read('app/assets/page.tsx')
-assert.match(assetsPage, /import \{ BrandDnaStudio \} from '@\/components\/assets\/brand-dna-studio'/, 'Must import BrandDnaStudio')
-assert.match(assetsPage, /snap-y snap-mandatory/, 'Must maintain snap-y snap-mandatory scroll container')
+assert.doesNotMatch(assetsPage, /import \{ BrandDnaStudio \} from '@\/components\/assets\/brand-dna-studio'/, 'BrandDnaStudio must be excised')
+assert.match(assetsPage, /snap-y snap-proximity/, 'Must maintain non-trapping snap proximity scroll container')
 
-// Ensure order: LibraryCollection -> BrandCanvas -> BrandDnaStudio
+// Ensure order: LibraryCollection -> BrandCanvas (BrandDnaStudio completely removed)
 const libraryIdx = assetsPage.indexOf('<LibraryCollection')
 const brandCanvasIdx = assetsPage.indexOf('<BrandCanvas')
 const brandDnaStudioIdx = assetsPage.indexOf('<BrandDnaStudio')
 
 assert.ok(libraryIdx !== -1, 'LibraryCollection must be present')
 assert.ok(brandCanvasIdx !== -1, 'BrandCanvas must be present')
-assert.ok(brandDnaStudioIdx !== -1, 'BrandDnaStudio must be present')
+assert.equal(brandDnaStudioIdx, -1, 'BrandDnaStudio must be excised from AssetsPage')
 assert.ok(libraryIdx < brandCanvasIdx, 'LibraryCollection must precede BrandCanvas')
-assert.ok(brandCanvasIdx < brandDnaStudioIdx, 'BrandCanvas must precede BrandDnaStudio (Layer 2 -> Layer 3)')
 
 // Verify snap classes on sections
 const library = read('components/assets/library-collection.tsx')
-assert.match(library, /snap-start snap-always/, 'Layer 1 must have snap-start snap-always')
+assert.match(library, /snap-start snap-normal/, 'Layer 1 must allow normal scroll release')
 const canvas = read('components/assets/brand-canvas.tsx')
-assert.match(canvas, /snap-start snap-always/, 'Layer 2 must have snap-start snap-always')
+assert.match(canvas, /snap-start snap-normal/, 'Layer 2 must allow normal scroll release')
 assert.match(studio, /snap-start snap-always/, 'Layer 3 must have snap-start snap-always')
 
 console.log('brand dna studio regression checks passed successfully!')

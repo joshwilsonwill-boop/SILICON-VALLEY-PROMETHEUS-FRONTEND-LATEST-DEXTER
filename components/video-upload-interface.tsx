@@ -1514,6 +1514,8 @@ export function VideoUploadInterface() {
 
     const [uploadStatus, setUploadStatus] = useState<UploadStatus>('idle');
     const [uploadProgress, setUploadProgress] = useState(0);
+    const lastUploadUiUpdateRef = useRef({ status: 'idle' as UploadStatus, partLabel: null as string | null, progressBucket: -1 });
+    const lastUploadLogRef = useRef({ phase: '', progressBucket: -1 });
     const abortControllerRef = useRef<AbortController | null>(null);
     const [uploadPartLabel, setUploadPartLabel] = useState<string | null>(null);
     const [uploadErrorDetail, setUploadErrorDetail] = useState<string | null>(null);
@@ -1888,6 +1890,8 @@ export function VideoUploadInterface() {
                 currentStage = 'R2_MULTIPART_UPLOAD';
                 const abortController = new AbortController();
                 abortControllerRef.current = abortController;
+                lastUploadUiUpdateRef.current = { status: 'idle', partLabel: null, progressBucket: -1 };
+                lastUploadLogRef.current = { phase: '', progressBucket: -1 };
                 setUploadProgress(0);
                 setUploadErrorDetail(null);
                 setUploadPartLabel(null);
@@ -1913,12 +1917,31 @@ export function VideoUploadInterface() {
                             : `Uploading ${formatFileSize(selectedSourceFile.size)}`;
                         const detail = describeMultipartUploadProgress(progress, selectedSourceFile.name);
 
-                        logUploadEvent(progress.phase, {
-                            bytesUploaded: progress.bytesUploaded,
-                            currentPart: progress.currentPart,
-                            percentage: progress.percentage,
-                            totalParts: progress.totalParts,
-                        });
+                        const progressBucket = Math.floor(progress.percentage / 2);
+                        const previousUiUpdate = lastUploadUiUpdateRef.current;
+                        const shouldUpdateUi =
+                            nextStatus !== previousUiUpdate.status ||
+                            partLabel !== previousUiUpdate.partLabel ||
+                            progressBucket !== previousUiUpdate.progressBucket ||
+                            progress.phase === 'done';
+                        const previousLog = lastUploadLogRef.current;
+                        const logBucket = Math.floor(progress.percentage / 10);
+                        if (progress.phase !== previousLog.phase || logBucket !== previousLog.progressBucket) {
+                            logUploadEvent(progress.phase, {
+                                bytesUploaded: progress.bytesUploaded,
+                                currentPart: progress.currentPart,
+                                percentage: progress.percentage,
+                                totalParts: progress.totalParts,
+                            });
+                            lastUploadLogRef.current = { phase: progress.phase, progressBucket: logBucket };
+                        }
+
+                        if (!shouldUpdateUi) return;
+                        lastUploadUiUpdateRef.current = {
+                            status: nextStatus,
+                            partLabel,
+                            progressBucket,
+                        };
                         setUploadStatus(nextStatus);
                         setUploadProgress(progress.percentage);
                         setUploadPartLabel(partLabel);
@@ -2992,13 +3015,19 @@ export function VideoUploadInterface() {
 
                                 const matchedKey = candidates.find((k) => !!airtableStylePreviews[k]);
 
-                                const previewImages = matchedKey
-                                    ? airtableStylePreviews[matchedKey]
-                                    : template.previewImages;
-                                const hasPreviews = previewImages.length > 0;
+                                const remotePreview = matchedKey
+                                    ? airtableStylePreviews[matchedKey]?.[0]
+                                    : undefined;
+                                const localPreview = template.previewImages[0];
+                                const previewImage = localPreview && !failedImages[localPreview]
+                                    ? localPreview
+                                    : remotePreview && !failedImages[remotePreview]
+                                        ? remotePreview
+                                        : undefined;
                                 return (
                                     <button
                                         key={template.id}
+                                        data-style-template={template.id}
                                         type="button"
                                         aria-pressed={selected}
                                         onClick={() => {
@@ -3007,24 +3036,24 @@ export function VideoUploadInterface() {
                                             setTemplatesOpen(false);
                                         }}
                                         className={cn(
-                                            "flex min-h-[76px] w-full items-center gap-3 rounded-md border px-3 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40",
+                                            "flex min-h-[88px] w-full items-center gap-3 rounded-md border px-3 py-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40",
                                             selected
                                                 ? "border-white/30 bg-white/[0.08]"
                                                 : "border-white/10 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.05]"
                                         )}
                                     >
-                                        <div className="relative h-12 w-16 shrink-0 overflow-hidden rounded-md border border-white/10 bg-white/[0.03] sm:h-14 sm:w-20">
-                                            {hasPreviews && !failedImages[previewImages[0]] ? (
+                                        <div className="relative aspect-video w-24 shrink-0 overflow-hidden rounded-md border border-white/10 bg-white/[0.03] sm:w-28">
+                                            {previewImage ? (
                                                 <Image
-                                                    src={previewImages[0]}
-                                                    alt=""
+                                                    src={previewImage}
+                                                    alt={`${template.name} style preview`}
                                                     fill
                                                     className="object-cover"
-                                                    sizes="80px"
+                                                    sizes="112px"
                                                     onError={() =>
                                                         setFailedImages((images) => ({
                                                             ...images,
-                                                            [previewImages[0]]: true,
+                                                            [previewImage]: true,
                                                         }))
                                                     }
                                                 />

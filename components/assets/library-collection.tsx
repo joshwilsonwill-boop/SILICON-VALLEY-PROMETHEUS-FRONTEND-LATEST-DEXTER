@@ -13,7 +13,7 @@ export function LibraryCollection({ onSelect }: { onSelect: (showcaseId: string)
   const reduceMotion = useReducedMotion() ?? false
 
   return (
-    <section className="relative min-h-full snap-start snap-always overflow-hidden bg-black text-white" aria-labelledby="creator-library-title">
+    <section className="relative min-h-full snap-start snap-normal overflow-hidden bg-black text-white" aria-labelledby="creator-library-title">
       <div
         className="pointer-events-none absolute inset-0 opacity-80"
         style={{
@@ -62,7 +62,7 @@ export function LibraryCollection({ onSelect }: { onSelect: (showcaseId: string)
               aria-label={`Open ${creator.name} archive`}
             >
               <Image
-                src={index === 0 ? '/library/hormozi-hero.png' : creator.image}
+                src={index === 0 ? '/library/alex-hormozi/hero.jpg' : creator.image}
                 alt=""
                 fill
                 loading="eager"

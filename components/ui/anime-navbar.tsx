@@ -88,7 +88,12 @@ export function WorkspaceNavBar({
       <div className="relative inline-flex max-w-full items-center rounded-full border border-white/10 bg-black/26 p-0.5 shadow-[0_14px_28px_-24px_rgba(0,0,0,0.9)] backdrop-blur-xl">
         <div
           aria-hidden
-          className="pointer-events-none absolute bottom-0.5 top-0.5 rounded-full border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.16)_0%,rgba(255,255,255,0.065)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.16),0_14px_34px_-22px_rgba(0,0,0,0.95),0_0_22px_rgba(94,106,210,0.12)] transition-[transform,width,opacity] duration-[280ms] ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none"
+          className={cn(
+            'pointer-events-none absolute bottom-0.5 top-0.5 rounded-full border transition-[transform,width,opacity,background-color,border-color] duration-[280ms] ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none',
+            (hoveredTab ?? resolvedActiveTab) === 'Export'
+              ? 'border-blue-400/50 bg-gradient-to-r from-blue-600 to-blue-500 shadow-[0_0_24px_rgba(37,99,235,0.45)]'
+              : 'border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.16)_0%,rgba(255,255,255,0.065)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.16),0_14px_34px_-22px_rgba(0,0,0,0.95),0_0_22px_rgba(94,106,210,0.12)]'
+          )}
           style={{
             width: indicatorStyle.width,
             opacity: indicatorStyle.opacity,

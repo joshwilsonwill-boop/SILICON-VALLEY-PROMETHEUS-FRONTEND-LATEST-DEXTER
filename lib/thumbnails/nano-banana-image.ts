@@ -5,7 +5,7 @@ export type NanoBananaImageRequest = {
   contents: Array<{ role: 'user'; parts: Array<TextPart | ImagePart> }>
   generationConfig: {
     responseModalities: ['TEXT', 'IMAGE']
-    imageConfig: { aspectRatio: '9:16' | '2:3' | '1:1' | '16:9' }
+    imageConfig: { aspectRatio: '9:16' | '2:3' | '1:1' | '3:2' | '16:9'; imageSize?: '1K' | '2K' }
   }
 }
 
@@ -18,7 +18,8 @@ export function buildNanoBananaImageRequest(input: {
   prompt: string
   frameDataUrl: string
   referenceImages?: string[]
-  aspectRatio: '9:16' | '2:3' | '1:1' | '16:9'
+  aspectRatio: '9:16' | '2:3' | '1:1' | '3:2' | '16:9'
+  imageSize?: '1K' | '2K'
 }): NanoBananaImageRequest {
   const frame = parseImageDataUrl(input.frameDataUrl)
   if (!frame) throw new Error('A valid video frame is required to generate a thumbnail.')
@@ -40,16 +41,17 @@ export function buildNanoBananaImageRequest(input: {
     contents: [{ role: 'user', parts }],
     generationConfig: {
       responseModalities: ['TEXT', 'IMAGE'],
-      imageConfig: { aspectRatio: input.aspectRatio },
+      imageConfig: { aspectRatio: input.aspectRatio, ...(input.imageSize ? { imageSize: input.imageSize } : {}) },
     },
   }
 }
 
 export function extractGeneratedImage(response: unknown): string | null {
   if (!response || typeof response !== 'object') return null
-  const candidates = (response as { candidates?: Array<{ content?: { parts?: Array<{ inlineData?: { mimeType?: string; data?: string } }> } }> }).candidates
+  const candidates = (response as { candidates?: Array<{ content?: { parts?: Array<{ thought?: boolean; inlineData?: { mimeType?: string; data?: string } }> } }> }).candidates
   for (const candidate of candidates ?? []) {
     for (const part of candidate.content?.parts ?? []) {
+      if (part.thought) continue
       const image = part.inlineData
       if (image?.mimeType?.startsWith('image/') && image.data) {
         return `data:${image.mimeType};base64,${image.data}`
