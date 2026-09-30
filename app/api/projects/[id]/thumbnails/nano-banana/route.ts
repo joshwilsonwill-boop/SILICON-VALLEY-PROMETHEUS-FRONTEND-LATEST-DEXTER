@@ -15,6 +15,7 @@ import { compactGeneratedThumbnail } from '@/lib/thumbnails/thumbnail-output'
 
 export const runtime = 'nodejs'
 export const maxDuration = 180
+const MAX_REQUEST_BODY_BYTES = 4_000_000
 
 interface NanoBananaRequestBody {
   studioDesign?: unknown
@@ -76,6 +77,11 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const contentLength = Number(request.headers.get('content-length'))
+    if (Number.isFinite(contentLength) && contentLength > MAX_REQUEST_BODY_BYTES) {
+      return NextResponse.json({ error: 'Thumbnail request is too large. Remove a style reference or use a smaller source image.' }, { status: 413 })
+    }
+
     const supabase = await createClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {

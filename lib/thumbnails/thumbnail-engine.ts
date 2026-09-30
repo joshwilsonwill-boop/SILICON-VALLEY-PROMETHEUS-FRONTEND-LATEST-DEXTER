@@ -250,9 +250,13 @@ export class ThumbnailEngine {
   static captureFrameFromVideo(video: HTMLVideoElement): ExtractedFrameCandidate | null {
     if (!video || video.readyState < 2) return null
 
-    const width = video.videoWidth || 1920
-    const height = video.videoHeight || 1080
-    if (width === 0 || height === 0) return null
+    const sourceWidth = video.videoWidth || 1920
+    const sourceHeight = video.videoHeight || 1080
+    if (sourceWidth === 0 || sourceHeight === 0) return null
+
+    const scale = Math.min(1, 1600 / Math.max(sourceWidth, sourceHeight))
+    const width = Math.max(1, Math.round(sourceWidth * scale))
+    const height = Math.max(1, Math.round(sourceHeight * scale))
 
     const canvas = document.createElement('canvas')
     canvas.width = width
@@ -262,7 +266,7 @@ export class ThumbnailEngine {
     if (!ctx) return null
 
     ctx.drawImage(video, 0, 0, width, height)
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.92)
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.82)
 
     return {
       timeSec: video.currentTime,

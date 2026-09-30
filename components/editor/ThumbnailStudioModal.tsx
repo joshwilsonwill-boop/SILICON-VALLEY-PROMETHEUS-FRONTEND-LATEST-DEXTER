@@ -7,6 +7,7 @@ import { DEFAULT_STUDIO_DESIGN, type StudioDesign } from '@/lib/thumbnails/studi
 import { STUDIO_REFERENCES, getStudioReference, type StudioReferenceId } from '@/lib/thumbnails/studio-references'
 import { renderStudioDraft } from '@/lib/thumbnails/studio-draft'
 import { readThumbnailGenerationResponse } from '@/lib/thumbnails/thumbnail-response'
+import { isThumbnailRequestWithinBudget } from '@/lib/thumbnails/thumbnail-request'
 import { ThumbnailWorkspace, type ThumbnailVariant } from '@/components/editor/thumbnail-studio/ThumbnailWorkspace'
 
 interface ThumbnailStudioModalProps {
@@ -59,19 +60,6 @@ export const SPATIAL_POSITIONS: SpatialPositionConfig[] = [
 ]
 
 
-function readImage(file: File, maxBytes: number): Promise<string> {
-  return new Promise((resolve, reject) => {
-    if (!['image/png','image/jpeg','image/webp'].includes(file.type) || file.size > maxBytes) {
-      reject(new Error('Use a PNG, JPEG, or WebP image under ' + Math.round(maxBytes / 1024 / 1024) + ' MB.'))
-      return
-    }
-    const reader = new FileReader()
-    reader.onload = () => typeof reader.result === 'string' ? resolve(reader.result) : reject(new Error('Could not read that image.'))
-    reader.onerror = () => reject(new Error('Could not read that image.'))
-    reader.readAsDataURL(file)
-  })
-}
-
 async function readCompactReference(file: File): Promise<string> {
   if (!['image/png','image/jpeg','image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) throw new Error('Use a PNG, JPEG, or WebP reference under 5 MB.')
   const bitmap = await createImageBitmap(file)
@@ -88,6 +76,27 @@ async function readCompactReference(file: File): Promise<string> {
       const reader = new FileReader()
       reader.onload = () => typeof reader.result === 'string' ? resolve(reader.result) : reject(new Error('Could not prepare that reference image.'))
       reader.onerror = () => reject(new Error('Could not prepare that reference image.'))
+      reader.readAsDataURL(blob)
+    })
+  } finally { bitmap.close() }
+}
+
+async function readCompactFrame(file: File): Promise<string> {
+  if (!['image/png','image/jpeg','image/webp'].includes(file.type) || file.size > 10 * 1024 * 1024) throw new Error('Use a PNG, JPEG, or WebP source under 10 MB.')
+  const bitmap = await createImageBitmap(file)
+  try {
+    const scale = Math.min(1, 1600 / Math.max(bitmap.width, bitmap.height))
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.max(1, Math.round(bitmap.width * scale))
+    canvas.height = Math.max(1, Math.round(bitmap.height * scale))
+    const context = canvas.getContext('2d')
+    if (!context) throw new Error('Could not prepare that source image.')
+    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
+    const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob(result => result ? resolve(result) : reject(new Error('Could not prepare that source image.')), 'image/jpeg', 0.82))
+    return await new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => typeof reader.result === 'string' ? resolve(reader.result) : reject(new Error('Could not prepare that source image.'))
+      reader.onerror = () => reject(new Error('Could not prepare that source image.'))
       reader.readAsDataURL(blob)
     })
   } finally { bitmap.close() }
@@ -249,7 +258,7 @@ export function ThumbnailStudioModal({ isOpen, onClose, projectId, projectTitle,
     if (!files[0]) return
     const epoch = fileReadEpochRef.current
     try {
-      const dataUrl = await readImage(files[0],10 * 1024 * 1024)
+      const dataUrl = await readCompactFrame(files[0])
       const image = new Image()
       image.src = dataUrl
       await image.decode()
@@ -277,9 +286,14 @@ export function ThumbnailStudioModal({ isOpen, onClose, projectId, projectTitle,
       const visualReference = await readStudioReference(referenceId)
       if (controller.signal.aborted) return
       const referenceImages = [visualReference, ...channelReferences].slice(0, 4)
+      const requestBody = { frameDataUrl: activeFrame.dataUrl, headline: headline.trim(), highlightWord, recipeId, backgroundId: recipe.backgroundStyle, textTreatmentId: recipe.textTreatmentStyle, proofArtifactId: recipe.proofArtifact, directionalId: recipe.directionalStyle, lightingId: recipe.lightingStyle, brandColor: design.accent, aspectRatio, userPrompt: creativeDirection.trim(), referenceImages, lockChannelStyle: true, studioReferenceId: referenceId, studioDesign: design }
+      if (!isThumbnailRequestWithinBudget(requestBody)) {
+        setNanoErrorMessage('The selected image references make this request too large. Remove a reference image or choose a smaller source, then try again.')
+        return
+      }
       const response = await fetch('/api/projects/' + projectId + '/thumbnails/nano-banana', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: controller.signal,
-        body: JSON.stringify({ frameDataUrl: activeFrame.dataUrl, headline: headline.trim(), highlightWord, recipeId, backgroundId: recipe.backgroundStyle, textTreatmentId: recipe.textTreatmentStyle, proofArtifactId: recipe.proofArtifact, directionalId: recipe.directionalStyle, lightingId: recipe.lightingStyle, brandColor: design.accent, aspectRatio, userPrompt: creativeDirection.trim(), referenceImages, lockChannelStyle: true, studioReferenceId: referenceId, studioDesign: design }),
+        body: JSON.stringify(requestBody),
       })
       const data = await readThumbnailGenerationResponse(response)
       if (controller.signal.aborted) return

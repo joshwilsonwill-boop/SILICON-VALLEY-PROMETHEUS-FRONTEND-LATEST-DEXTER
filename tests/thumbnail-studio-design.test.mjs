@@ -4,6 +4,7 @@ import { DEFAULT_STUDIO_DESIGN, STUDIO_BACKGROUNDS, parseStudioDesign, buildStud
 import { buildNanoBananaImageRequest, extractGeneratedImage } from '../lib/thumbnails/nano-banana-image.ts'
 import { readThumbnailGenerationResponse } from '../lib/thumbnails/thumbnail-response.ts'
 import { compactGeneratedThumbnail, MAX_THUMBNAIL_DATA_URL_BYTES } from '../lib/thumbnails/thumbnail-output.ts'
+import { getThumbnailRequestByteLength, isThumbnailRequestWithinBudget, MAX_THUMBNAIL_REQUEST_BYTES } from '../lib/thumbnails/thumbnail-request.ts'
 import sharp from 'sharp'
 
 test('every supported background produces explicit reference-led art direction', () => {
@@ -49,6 +50,15 @@ test('generated thumbnails are returned as compact WebP under the server respons
   assert.ok(image.width <= 1920)
   assert.ok(image.height <= 1920)
   await assert.rejects(compactGeneratedThumbnail('data:text/html;base64,PGgxPmVycm9yPC9oMT4='), /unsupported image format/)
+})
+
+test('studio request size guard keeps image data below the serverless upload limit', () => {
+  const safeRequest = { frameDataUrl: 'data:image/jpeg;base64,' + 'A'.repeat(MAX_THUMBNAIL_REQUEST_BYTES - 200) }
+  const oversizedRequest = { frameDataUrl: 'data:image/jpeg;base64,' + 'A'.repeat(MAX_THUMBNAIL_REQUEST_BYTES) }
+  assert.ok(getThumbnailRequestByteLength(safeRequest) <= MAX_THUMBNAIL_REQUEST_BYTES)
+  assert.equal(isThumbnailRequestWithinBudget(safeRequest), true)
+  assert.ok(getThumbnailRequestByteLength(oversizedRequest) > MAX_THUMBNAIL_REQUEST_BYTES)
+  assert.equal(isThumbnailRequestWithinBudget(oversizedRequest), false)
 })
 
 test('legacy requests preserve their original image configuration', () => {
