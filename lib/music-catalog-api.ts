@@ -31,6 +31,33 @@ export type MusicCatalogApiTrack = {
   urlMode?: MusicCatalogUrlMode
   playableInBrowser?: boolean
   licenseSummary: MusicCatalogLicenseSummary
+  recommendationMetadata: Pick<OwnedMusicCatalogTrack,
+    | 'subtitle'
+    | 'description'
+    | 'producer'
+    | 'bpm'
+    | 'mood'
+    | 'energy'
+    | 'vibeTags'
+    | 'rankingKeywords'
+    | 'energyScore'
+    | 'tempoRange'
+    | 'instrumentation'
+    | 'cinematicTags'
+    | 'tensionLevel'
+    | 'emotionalTone'
+    | 'idealUseCases'
+    | 'avoidContexts'
+    | 'releaseYear'
+    | 'qualityScore'
+    | 'usageCount'
+    | 'freshnessScore'
+    | 'sourcePlatform'
+    | 'sourceUrl'
+    | 'storageKey'
+    | 'license'
+    | 'previewTone'
+  >
 }
 
 export type MusicCatalogListResponse = {
@@ -160,6 +187,33 @@ function mapTrackToApiTrack(track: OwnedMusicCatalogTrack): MusicCatalogApiTrack
     urlMode: 'public_url',
     playableInBrowser: true,
     licenseSummary: buildLicenseSummary(track, renderAllowed),
+    recommendationMetadata: {
+      subtitle: track.subtitle,
+      description: track.description,
+      producer: track.producer,
+      bpm: track.bpm,
+      mood: track.mood,
+      energy: track.energy,
+      vibeTags: track.vibeTags,
+      rankingKeywords: track.rankingKeywords,
+      energyScore: track.energyScore,
+      tempoRange: track.tempoRange,
+      instrumentation: track.instrumentation,
+      cinematicTags: track.cinematicTags,
+      tensionLevel: track.tensionLevel,
+      emotionalTone: track.emotionalTone,
+      idealUseCases: track.idealUseCases,
+      avoidContexts: track.avoidContexts,
+      releaseYear: track.releaseYear,
+      qualityScore: track.qualityScore,
+      usageCount: track.usageCount,
+      freshnessScore: track.freshnessScore,
+      sourcePlatform: track.sourcePlatform,
+      sourceUrl: track.sourceUrl,
+      storageKey: track.storageKey,
+      license: track.license,
+      previewTone: track.previewTone,
+    },
   }
 }
 

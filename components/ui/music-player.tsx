@@ -20,6 +20,7 @@ type MusicPlayerProps = {
   albumArtPosition?: string
   songTitle: string
   audioSrc: string
+  preload?: 'none' | 'metadata' | 'auto'
   isPlaying?: boolean
   isMuted?: boolean
   volume?: number
@@ -40,6 +41,7 @@ export function MusicPlayer({
   albumArtPosition = 'center',
   songTitle,
   audioSrc,
+  preload = 'metadata',
   isPlaying: isPlayingProp,
   isMuted = false,
   volume: volumeProp,
@@ -275,7 +277,7 @@ export function MusicPlayer({
         }
       `}</style>
 
-      <audio ref={audioRef} src={audioSrc} loop={repeatEnabled} preload="metadata" />
+      <audio ref={audioRef} src={audioSrc} loop={repeatEnabled} preload={preload} />
 
       <div className="music-player-visual relative mb-4 flex min-h-0 w-full flex-1 items-center justify-center [container-type:size]">
         <motion.div

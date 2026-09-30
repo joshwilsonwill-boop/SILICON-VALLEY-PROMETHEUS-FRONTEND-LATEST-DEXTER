@@ -14,6 +14,8 @@ import { MusicPlayer } from '@/components/ui/music-player'
 import { Button } from '@/components/ui/button'
 import { chamberEase, chamberSpring } from '@/lib/chamber-motion'
 import { FALLBACK_ALBUM_ART } from '@/lib/music-art'
+import type { MusicCatalogTrack } from '@/lib/music-catalog'
+import { buildMusicRecommendationSet } from '@/lib/music-recommendation-core'
 import { createClient } from '@/lib/supabase/client'
 import { isSupabaseConfigured } from '@/lib/supabase/config'
 import type { MusicRecommendation, MusicVideoContext } from '@/lib/types'
@@ -691,6 +693,7 @@ type CatalogApiTrack = {
   durationSec?: number
   audioPreviewUrl?: string
   thumbnailUrl?: string
+  recommendationMetadata?: Partial<MusicCatalogTrack>
 }
 
 type CatalogApiResponse = {
@@ -755,7 +758,7 @@ function mapCatalogApiTrack(track: CatalogApiTrack): MusicRecommendation {
   const genre = track.genreTags[0] ?? track.category ?? 'Soundtrack'
   const artist = track.artist?.trim() || 'Unknown Artist'
 
-  return {
+  const mappedTrack: MusicRecommendation = {
     id: track.id,
     title: track.title,
     subtitle: track.album || track.category,
@@ -775,10 +778,18 @@ function mapCatalogApiTrack(track: CatalogApiTrack): MusicRecommendation {
     sourcePlatform: 'local',
     durationSec: track.durationSec ?? 0,
   }
+
+  return Object.assign(mappedTrack, track.recommendationMetadata)
 }
 
 let cachedCatalogTracks: MusicRecommendation[] | null = null
 let catalogRequest: Promise<MusicRecommendation[]> | null = null
+const catalogProgressListeners = new Set<(tracks: MusicRecommendation[]) => void>()
+
+function subscribeToCatalogProgress(listener: (tracks: MusicRecommendation[]) => void) {
+  catalogProgressListeners.add(listener)
+  return () => catalogProgressListeners.delete(listener)
+}
 
 async function fetchCatalogTracks(): Promise<MusicRecommendation[]> {
   const nextTracks: MusicRecommendation[] = []
@@ -791,6 +802,8 @@ async function fetchCatalogTracks(): Promise<MusicRecommendation[]> {
     const data = (await response.json()) as CatalogApiResponse
     const pageTracks = Array.isArray(data.tracks) ? data.tracks.map(mapCatalogApiTrack) : []
     nextTracks.push(...pageTracks)
+    const loadedTracks = [...nextTracks]
+    for (const listener of catalogProgressListeners) listener(loadedTracks)
 
     total = typeof data.total === 'number' && Number.isFinite(data.total) ? data.total : nextTracks.length
     const nextOffset = offset + (typeof data.limit === 'number' && data.limit > 0 ? data.limit : pageTracks.length)
@@ -799,6 +812,47 @@ async function fetchCatalogTracks(): Promise<MusicRecommendation[]> {
   }
 
   return nextTracks
+}
+
+function toRecommendationCatalogTrack(track: MusicRecommendation): MusicCatalogTrack {
+  const metadata = track as MusicRecommendation & Partial<MusicCatalogTrack>
+  return {
+    id: track.id,
+    title: track.title,
+    subtitle: metadata.subtitle ?? track.subtitle ?? track.genre,
+    description: metadata.description ?? track.description ?? `${track.title} by ${track.artist}`,
+    album: metadata.album ?? track.album,
+    artist: track.artist,
+    producer: metadata.producer ?? track.producer,
+    genre: track.genre,
+    subgenre: metadata.subgenre,
+    bpm: track.bpm,
+    mood: track.mood,
+    energy: track.energy,
+    vibeTags: track.vibeTags,
+    moodTags: metadata.moodTags,
+    rankingKeywords: metadata.rankingKeywords ?? [track.title, track.artist, track.genre, ...track.vibeTags],
+    energyScore: metadata.energyScore,
+    tempoRange: metadata.tempoRange,
+    instrumentation: metadata.instrumentation,
+    cinematicTags: metadata.cinematicTags,
+    tensionLevel: metadata.tensionLevel,
+    emotionalTone: metadata.emotionalTone,
+    idealUseCases: metadata.idealUseCases,
+    avoidContexts: metadata.avoidContexts,
+    coverArtUrl: track.coverArtUrl,
+    coverArtPosition: track.coverArtPosition,
+    releaseYear: metadata.releaseYear ?? new Date().getFullYear(),
+    durationSec: track.durationSec,
+    sourcePlatform: track.sourcePlatform,
+    storageKey: metadata.storageKey ?? track.storageKey,
+    sourceUrl: metadata.sourceUrl ?? track.sourceUrl,
+    license: track.license,
+    qualityScore: track.qualityScore,
+    usageCount: metadata.usageCount,
+    freshnessScore: metadata.freshnessScore ?? track.freshnessScore,
+    previewTone: metadata.previewTone ?? { rootHz: 110, harmonyHz: 220, bassHz: 55, pulseHz: 3 },
+  }
 }
 
 /**
@@ -1317,6 +1371,11 @@ export function MusicTabPanel({
 
   React.useEffect(() => {
     let disposed = false
+    const unsubscribeFromCatalogProgress = subscribeToCatalogProgress((nextTracks) => {
+      if (disposed || !nextTracks.length) return
+      setCatalogTracks(nextTracks)
+      setCatalogReady(true)
+    })
 
     getCatalogTracks()
       .then((nextTracks) => {
@@ -1336,6 +1395,7 @@ export function MusicTabPanel({
 
     return () => {
       disposed = true
+      unsubscribeFromCatalogProgress()
     }
   }, [])
 
@@ -1351,13 +1411,40 @@ export function MusicTabPanel({
 
   const availableGenres = React.useMemo(() => Array.from(new Set(displayTracks.map((track) => track.genre).filter(Boolean))).sort(), [displayTracks])
 
+  const forVideoTracks = React.useMemo(() => {
+    const fullLengthTracks = catalogTracks.filter((track) => track.durationSec >= 30)
+    if (!catalogReady || !fullLengthTracks.length) return tracks
+
+    const sourceById = new Map(fullLengthTracks.map((track) => [track.id, track]))
+    const recommendations = buildMusicRecommendationSet({
+      query: initialPrompt,
+      projectTitle,
+      initialPrompt,
+      videoContext,
+      limit: Math.max(5, tracks.length),
+      catalog: fullLengthTracks.map(toRecommendationCatalogTrack),
+    }).recommendations
+
+    return recommendations.flatMap((recommendation) => {
+      const sourceTrack = sourceById.get(recommendation.id)
+      return sourceTrack
+        ? [{
+            ...sourceTrack,
+            reason: recommendation.reason,
+            matchScore: recommendation.matchScore,
+            matchedTerms: recommendation.matchedTerms,
+          }]
+        : []
+    })
+  }, [catalogReady, catalogTracks, initialPrompt, projectTitle, tracks, videoContext])
+
   const collectionTracks = React.useMemo(() => {
     if (activeCollection === 'favorites') {
       const favs = displayTracks.filter((track) => favoriteTrackIds.has(track.id))
       return favs.length ? favs : displayTracks.slice(0, 4)
     }
 
-    if (activeCollection === 'for-video') return tracks
+    if (activeCollection === 'for-video') return forVideoTracks
 
     if (activeCollection === 'premium') {
       const premium = displayTracks
@@ -1376,7 +1463,7 @@ export function MusicTabPanel({
     }
 
     return displayTracks
-  }, [activeCollection, displayTracks, favoriteTrackIds, tracks])
+  }, [activeCollection, displayTracks, favoriteTrackIds, forVideoTracks, tracks])
 
   const normalizedQuery = searchQuery.trim().toLowerCase()
   const filteredTracks = React.useMemo(() => {
@@ -1636,6 +1723,7 @@ export function MusicTabPanel({
               albumArtPosition={selectedSong.artworkPosition}
               songTitle={selectedSong.title}
               audioSrc={selectedSong.audioSrc}
+              preload="auto"
               isMuted={isMuted}
               volume={volume / 100}
               repeat={isRepeat}
@@ -1777,7 +1865,7 @@ export function MusicTabPanel({
       animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
       exit={reduceMotion ? undefined : { opacity: 0, y: 10 }}
       transition={{ duration: reduceMotion ? 0 : 0.3, ease: chamberEase }}
-      className="premium-ambient-panel premium-vignette-surface editorial-light-effect relative flex h-full min-h-0 w-full max-w-[1280px] flex-1 self-center overflow-hidden rounded-[18px] border border-[#29486c]/60 bg-[#080c14] px-3 pb-28 pt-3 shadow-[0_32px_90px_-58px_rgba(0,0,0,0.98)] sm:px-5 sm:pt-4 md:-mx-4 md:-my-4"
+      className="premium-ambient-panel premium-vignette-surface editorial-light-effect relative flex h-full min-h-0 w-full max-w-[1280px] flex-1 self-center overflow-hidden rounded-[18px] border border-[#29486c]/60 bg-[#080c14] px-3 pb-28 pt-3 shadow-[0_32px_90px_-58px_rgba(0,0,0,0.98)] sm:px-5 sm:pt-4 md:-mx-4 md:-my-4 md:relative md:left-1/2 md:w-[calc(100vw-2rem)] md:max-w-none md:-translate-x-1/2"
     >
         <style>{`
           @keyframes music-eq {
@@ -1856,6 +1944,7 @@ export function MusicTabPanel({
                   albumArtPosition={selectedSong.artworkPosition}
                   songTitle={selectedSong.title}
                   audioSrc={selectedSong.audioSrc}
+                  preload="auto"
                   isMuted={isMuted}
                   volume={volume / 100}
                   repeat={isRepeat}

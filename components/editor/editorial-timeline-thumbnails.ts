@@ -43,11 +43,11 @@ export function useEditorialTimelineThumbnails(sourceUrl: string, count = 10) {
         const metadata = waitFor('loadedmetadata')
         video.src = sourceUrl
         await metadata
-        if (cancelled || !Number.isFinite(video.duration) || video.duration <= 0) return
+        if (cancelled || !Number.isFinite(video.duration) || video.duration <= 0 || !video.videoWidth || !video.videoHeight) return
 
         const canvas = document.createElement('canvas')
         canvas.width = 144
-        canvas.height = 81
+        canvas.height = Math.max(1, Math.round(canvas.width * video.videoHeight / video.videoWidth))
         const context = canvas.getContext('2d')
         if (!context) return
         const frames: string[] = []

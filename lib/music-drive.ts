@@ -15,6 +15,8 @@ import { getSupabaseConfig } from '@/lib/supabase/config'
 const DEFAULT_GOOGLE_DRIVE_MUSIC_FOLDER_ID = '1oczdEdER5h0_6Bv4WqaDZTDZ8rP4DNDa'
 const DRIVE_FOLDER_CACHE_TTL_MS = 5 * 60 * 1000
 const R2_MUSIC_CATALOG_CACHE_TTL_MS = 5 * 60 * 1000
+const MUSIC_CATALOG_FAILURE_CACHE_TTL_MS = 30 * 1000
+const MUSIC_CATALOG_SOURCE_TIMEOUT_MS = 4 * 1000
 const R2_MUSIC_AUDIO_PREFIX = normalizeR2Prefix(process.env.R2_MUSIC_AUDIO_PREFIX ?? 'music-originals')
 const R2_MUSIC_THUMBNAIL_PREFIX = normalizeR2Prefix(process.env.R2_MUSIC_THUMBNAIL_PREFIX ?? 'music-thumbnails')
 const R2_AUDIO_EXTENSIONS = new Set(['.mp3', '.wav', '.ogg', '.m4a'])
@@ -125,6 +127,13 @@ export async function fetchDriveMusicCatalog() {
       }
       return tracks
     })
+    .catch((error: unknown) => {
+      driveMusicFolderCache = {
+        expiresAt: Date.now() + MUSIC_CATALOG_FAILURE_CACHE_TTL_MS,
+        tracks: [],
+      }
+      throw error
+    })
     .finally(() => {
       driveMusicFolderRequest = null
     })
@@ -140,6 +149,10 @@ export async function listAvailableMusicCatalog() {
     }
   } catch (error) {
     console.warn('[music-drive] Unable to read the Cloudflare R2 music catalog.', error)
+    r2MusicCatalogCache = {
+      expiresAt: Date.now() + MUSIC_CATALOG_FAILURE_CACHE_TTL_MS,
+      tracks: [],
+    }
   }
 
   try {
@@ -147,6 +160,10 @@ export async function listAvailableMusicCatalog() {
     return driveTracks.length > 0 ? driveTracks : MUSIC_CATALOG
   } catch (error) {
     console.warn('[music-drive] Falling back to bundled music catalog.', error)
+    driveMusicFolderCache = {
+      expiresAt: Date.now() + MUSIC_CATALOG_FAILURE_CACHE_TTL_MS,
+      tracks: [],
+    }
     return MUSIC_CATALOG
   }
 }
@@ -181,12 +198,16 @@ async function loadCloudflareMusicCatalog() {
     return []
   }
 
+  const listingSignal = AbortSignal.timeout(MUSIC_CATALOG_SOURCE_TIMEOUT_MS)
   const [audioObjects, thumbnailObjects] = await Promise.all([
-    listR2Objects(bucket, R2_MUSIC_AUDIO_PREFIX),
-    listR2Objects(bucket, R2_MUSIC_THUMBNAIL_PREFIX),
+    listR2Objects(bucket, R2_MUSIC_AUDIO_PREFIX, listingSignal),
+    listR2Objects(bucket, R2_MUSIC_THUMBNAIL_PREFIX, listingSignal),
   ])
   const thumbnailIndex = buildR2ThumbnailIndex(thumbnailObjects)
-  const enrichedMetadataByTrackId = await loadTrackMetadataCache(audioObjects.map((object) => object.key))
+  const enrichedMetadataByTrackId = await loadTrackMetadataCache(
+    audioObjects.map((object) => object.key),
+    AbortSignal.timeout(MUSIC_CATALOG_SOURCE_TIMEOUT_MS),
+  )
 
   return audioObjects
     .filter((object) => {
@@ -196,7 +217,7 @@ async function loadCloudflareMusicCatalog() {
     .map((object, index) => mapR2ObjectToMusicTrack(object, thumbnailIndex, index, enrichedMetadataByTrackId.get(object.key)))
 }
 
-async function listR2Objects(bucket: string, prefix: string): Promise<R2ListedObject[]> {
+async function listR2Objects(bucket: string, prefix: string, signal: AbortSignal): Promise<R2ListedObject[]> {
   const objects: R2ListedObject[] = []
   let continuationToken: string | undefined
 
@@ -208,6 +229,7 @@ async function listR2Objects(bucket: string, prefix: string): Promise<R2ListedOb
         ContinuationToken: continuationToken,
         MaxKeys: 1000,
       }),
+      { abortSignal: signal },
     )
 
     for (const object of response.Contents ?? []) {
@@ -224,7 +246,7 @@ async function listR2Objects(bucket: string, prefix: string): Promise<R2ListedOb
   return objects
 }
 
-async function loadTrackMetadataCache(trackIds: string[]) {
+async function loadTrackMetadataCache(trackIds: string[], signal: AbortSignal) {
   const uniqueTrackIds = [...new Set(trackIds.filter(Boolean))]
   const enrichedMetadata = new Map<string, EnrichedR2TrackMetadata>()
   if (!uniqueTrackIds.length) return enrichedMetadata
@@ -235,6 +257,9 @@ async function loadTrackMetadataCache(trackIds: string[]) {
       auth: {
         autoRefreshToken: false,
         persistSession: false,
+      },
+      global: {
+        fetch: (input, init) => fetch(input, { ...init, signal }),
       },
     })
 
@@ -586,6 +611,7 @@ async function loadDriveMusicCatalog(folderId: string) {
   const response = await fetch(`https://drive.google.com/embeddedfolderview?id=${encodeURIComponent(folderId)}#list`, {
     cache: 'no-store',
     headers: DRIVE_SCRAPE_HEADERS,
+    signal: AbortSignal.timeout(MUSIC_CATALOG_SOURCE_TIMEOUT_MS),
   })
 
   if (!response.ok) {
