@@ -1,6 +1,6 @@
 # Gates: Jarvis truthful media awareness and clear control states
 
-OWNS: lib/voice-companion/gemini-live-client.ts, lib/voice-companion/bridge.ts, hooks/use-voice-companion.ts, components/navigation/jarvis-top-nav-filament.tsx, app/editor/[id]/page.tsx, docs/jarvis-capability-gaps.md, GATES-jarvis.md
+OWNS: lib/voice-companion/gemini-live-client.ts, lib/voice-companion/bridge.ts, hooks/use-voice-companion.ts, components/navigation/jarvis-top-nav-filament.tsx, app/editor/[id]/page.tsx, docs/jarvis-capability-gaps.md, tests/jarvis-cross-workspace-video-context-regression.test.mjs, GATES-jarvis.md
 
 Scope: Make Jarvis accurately describe available media and completed actions, expose clear voice/editing power states, and document capability gaps.
 

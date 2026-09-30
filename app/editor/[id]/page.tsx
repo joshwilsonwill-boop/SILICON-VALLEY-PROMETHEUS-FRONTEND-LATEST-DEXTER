@@ -8552,10 +8552,10 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
         ? 'ready'
         : isSourceStageActivelyLoading
           ? 'loading'
-          : project?.sourceAssetId
-            ? 'unavailable'
-            : previewUrl
-              ? 'non_video'
+          : previewUrl
+            ? 'non_video'
+            : project?.sourceAssetId
+              ? 'unavailable'
               : 'missing',
       videoMusicContext: videoContext,
       onSelectMusicTrack: (trackId: string) => setSelectedEditorMusicTrackId(trackId),

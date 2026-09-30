@@ -202,7 +202,8 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
         case 'autonomous_transcript_cut': {
           const phrase = String(args.phrase ?? '')
           if (!handlersRef.current.hasVideo) return { success: false, error: 'There is no playable source video in this project yet.' }
-          if (!handlersRef.current.transcriptText && !handlersRef.current.transcriptSegments) return { success: false, error: 'There is no transcript to cut from yet.' }
+          if (!Array.isArray(handlersRef.current.transcriptSegments) || handlersRef.current.transcriptSegments.length === 0) return { success: false, error: 'There is no timed transcript to cut from yet.' }
+          if (!isTakeoverEnabled) return { success: false, error: 'Editing access is off. Enable Jarvis editing to apply transcript cuts.' }
           if (!handlersRef.current.onToggleCutWord && !handlersRef.current.onToggleCutSegment) return { success: false, error: 'The editor is not linked, so I cannot apply transcript cuts.' }
           const success = await autonomousCoordinator.executeTranscriptCut(phrase, {
             onSwitchTab: onTabChange ? (tab) => onTabChange(tab as 'Editor' | 'Music' | 'Motion') : undefined,
@@ -216,6 +217,7 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
           const trackId = args.trackId ? String(args.trackId) : undefined
           const genreOrMood = args.genreOrMood ? String(args.genreOrMood) : undefined
           const action = (args.action as 'preview' | 'select') || 'preview'
+          if (action === 'select' && !isTakeoverEnabled) return { success: false, error: 'Editing access is off. Enable Jarvis editing to stage a soundtrack.' }
           const musicContext = handlersRef.current.videoMusicContext as { summary?: string; pace?: string; intent?: unknown } | undefined
           const success = await autonomousCoordinator.executeMusicSelection({
             trackId,
@@ -236,9 +238,11 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
             action,
             genreOrMood,
             isAuditioning: action === 'preview',
-            status: action === 'preview'
-              ? 'Now previewing candidate track in Music Studio.'
-              : 'Soundtrack staged to timeline.',
+            status: success
+              ? action === 'preview'
+                ? 'Candidate track is previewing in Music Studio.'
+                : 'Soundtrack staged to timeline.'
+              : 'The requested music action could not be completed.',
           }
         }
 
@@ -252,6 +256,7 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
           const rate = typeof args.rate === 'number' ? args.rate : Number(args.rate)
           if (!Number.isFinite(rate) || rate <= 0) return { success: false, error: 'Invalid playback rate.' }
           if (!handlersRef.current.hasVideo) return { success: false, error: 'There is no playable source video in this project yet.' }
+          if (!isTakeoverEnabled) return { success: false, error: 'Editing access is off. Enable Jarvis editing to change playback speed.' }
           if (!onApplyActions) return { success: false, error: 'The editor is not linked, so I cannot change playback speed.' }
           await onApplyActions([{ kind: 'set_playback_rate', rate: Math.min(4, Math.max(0.25, rate)), summary: `Playback speed ${rate}x` }])
           return { success: true, rate }
@@ -261,6 +266,7 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
           const frames = typeof args.frames === 'number' ? args.frames : Number(args.frames)
           if (!Number.isFinite(frames) || frames === 0) return { success: false, error: 'Invalid frame count.' }
           if (!handlersRef.current.hasVideo) return { success: false, error: 'There is no playable source video to step through.' }
+          if (!isTakeoverEnabled) return { success: false, error: 'Editing access is off. Enable Jarvis editing to step frames.' }
           if (!onApplyActions) return { success: false, error: 'The editor is not linked, so I cannot step frames.' }
           await onApplyActions([{ kind: 'step_frames', frames: Math.round(Math.min(90, Math.max(-90, frames))), summary: `Frame step ${frames}` }])
           return { success: true, frames }
@@ -280,19 +286,22 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
           if (!isTakeoverEnabled) return { success: false, error: 'Editing access is off. Ask the user to enable Jarvis editing first.' }
           if (!handlersRef.current.hasVideo) return { success: false, error: 'There is no playable source video to render.' }
           if (!onApplyActions) return { success: false, error: 'The editor is not linked, so I cannot start a render.' }
-          await onApplyActions?.([{ kind: 'start_render', mode, summary: mode === 'final' ? 'Opening Master Review for final export' : 'Dispatching viral batch render' }])
-          return { success: true, mode }
+          await onApplyActions([{ kind: 'start_render', mode, summary: mode === 'final' ? 'Opening Master Review for final export' : 'Opening export workflow' }])
+          return { success: true, mode, status: mode === 'final' ? 'Master Video Review opened.' : 'Export workflow opened. No render has been confirmed yet.' }
         }
 
         case 'detect_filler_words': {
           const rawSegments = handlersRef.current.transcriptSegments
           const segments = Array.isArray(rawSegments) ? rawSegments : []
-          if (!handlersRef.current.transcriptText && segments.length === 0) return { success: false, error: 'There is no transcript to analyze yet.' }
+          if (segments.length === 0) return { success: false, error: 'There is no timed transcript to analyze yet.' }
           const result = detectFillerWords(segments)
           const shouldApply = Boolean(args.applyCuts)
 
           if (shouldApply && result.items.length > 0 && !handlersRef.current.onToggleCutWord) {
             return { success: false, error: 'The editor is not linked, so I cannot apply filler-word cuts.' }
+          }
+          if (shouldApply && result.items.length > 0 && !isTakeoverEnabled) {
+            return { success: false, error: 'Editing access is off. Enable Jarvis editing to apply filler-word cuts.' }
           }
           if (shouldApply && result.items.length > 0 && handlersRef.current.onToggleCutWord) {
             for (const item of result.items) {
@@ -305,7 +314,7 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
             count: result.count,
             items: result.items,
             summary: result.summary,
-            appliedCuts: shouldApply,
+            appliedCuts: shouldApply && result.items.length > 0,
           }
         }
 
@@ -313,7 +322,8 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
         case 'remove_silence': {
           const minDurationSec = typeof args.minDurationSec === 'number' ? args.minDurationSec : 0.4
           if (!handlersRef.current.hasVideo) return { success: false, error: 'There is no playable source video in this project yet.' }
-          if (!handlersRef.current.transcriptText && !handlersRef.current.transcriptSegments) return { success: false, error: 'There is no transcript to find silences in yet.' }
+          if (!Array.isArray(handlersRef.current.transcriptSegments) || handlersRef.current.transcriptSegments.length === 0) return { success: false, error: 'There is no timed transcript to find silences in yet.' }
+          if (!isTakeoverEnabled) return { success: false, error: 'Editing access is off. Enable Jarvis editing to remove silences.' }
           if (!onApplyActions) return { success: false, error: 'The editor is not linked, so I cannot remove silences.' }
           await onApplyActions([
             {
@@ -325,7 +335,7 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
           return {
             success: true,
             minDurationSec,
-            summary: `Applied ripple-cut to dead air pauses over ${minDurationSec}s`,
+            summary: `Sent a request to remove transcript-timed pauses over ${minDurationSec}s.`,
           }
         }
 
@@ -336,6 +346,7 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
           const durationSec = liveContext?.durationSec ?? handlersRef.current.timelineDurationSec ?? 0
           if (!handlersRef.current.hasVideo) return { success: false, error: 'There is no playable source video in this project yet.' }
           if (durationSec <= 0) return { success: false, error: 'The source video duration is not available yet.' }
+          if (!isTakeoverEnabled) return { success: false, error: 'Editing access is off. Enable Jarvis editing to apply a caption preset.' }
           if (!onApplyActions) return { success: false, error: 'The editor is not linked, so I cannot apply an editorial plan.' }
           const transcriptText = handlersRef.current.transcriptText || ''
           const brandProfile = handlersRef.current.brandProfile

@@ -187,7 +187,7 @@ export class GeminiLiveClient {
 Be concise, direct, and natural. Default to one short sentence; add detail only when asked.
 
 ### MEDIA AND PROJECT TRUTH:
-Call get_editor_state before answering questions about the current project or attempting a media edit. Treat hasVideo and sourceMediaState as the authority for whether playable video is available. A nonzero timelineDurationSec, transcript, project title, or remembered context does not prove a source video is loaded. If source media is missing or unavailable, say so plainly and give the single most relevant next step. Do not redirect an empty-project request into unrelated research or invent footage.
+Call get_editor_state before answering questions about the current project or attempting a media edit. Treat hasVideo and sourceMediaState as the authority for whether playable video is available. A nonzero timelineDurationSec, transcript, project title, or remembered context does not prove a source video is loaded. If media is missing, say: "No video is attached yet. Add source media to continue." If it is still loading, say so. If unavailable, say: "The linked video is not playable here. Reattach the source video." If the source is not a video, say that directly. Do not redirect an empty-project request into unrelated research or invent footage.
 You can inspect visual content only when video frames were explicitly provided in this session. A transcript is not visual evidence. If no frames were provided, be clear that you cannot see the footage.
 Never claim an edit, playback change, or render happened unless its tool result reports success. When a tool returns success:false, explain the blocker briefly.
 
@@ -383,14 +383,14 @@ Keep your spoken responses fluid, punchy, conversational, and helpful. Never rea
               },
               {
                 name: 'start_render',
-                description: 'Start a batch render of viral clips from the source video (preview mode), or open Master Video Review for the final export (final mode). Only executes while takeover mode is enabled.',
+                description: 'Open the export workflow (preview mode) or Master Video Review (final mode). This opens the workflow; it does not claim a render has finished. Only works while editing access is enabled.',
                 parameters: {
                   type: 'object',
                   properties: {
                     mode: {
                       type: 'string',
                       enum: ['preview', 'final'],
-                      description: 'preview dispatches the viral batch render; final opens Master Video Review.',
+                      description: 'preview opens the export workflow; final opens Master Video Review.',
                     },
                   },
                   required: ['mode'],
@@ -428,7 +428,7 @@ Keep your spoken responses fluid, punchy, conversational, and helpful. Never rea
               },
               {
                 name: 'apply_editorial_plan',
-                description: 'Execute an editorial plan on the timeline JSON document, applying camera zooms (joseph_edit, smooth_zoom_in, punch_zoom), caption presets, color LUTs, and music pacing.',
+                description: 'Draft an editorial plan from the source duration and transcript, and apply the supported caption preset. Zoom, LUT, and music cues are returned as recommendations and are not written to the timeline yet.',
                 parameters: {
                   type: 'object',
                   properties: {
