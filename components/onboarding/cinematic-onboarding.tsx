@@ -3,7 +3,7 @@
 import * as React from 'react'
 import * as DialogPrimitive from '@radix-ui/react-dialog'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
-import { ArrowRight, Check, CircleHelp, Play, X } from 'lucide-react'
+import { ArrowRight, Check, Play, X } from 'lucide-react'
 
 import { useAuth } from '@/components/auth/auth-provider'
 import { requestEditorialChatOpen } from '@/lib/editorial-chat-navigation'
@@ -397,15 +397,5 @@ function OnboardingFinishCard({
         </motion.button>
       </motion.div>
     </div>
-  )
-}
-
-export function EditorialOnboardingReplay({ pathname }: { pathname: string }) {
-  if (!pathname.startsWith('/editor/')) return null
-
-  return (
-    <button type="button" onClick={() => openCinematicOnboarding('editorial')} className="fixed right-4 top-[calc(env(safe-area-inset-top)+4.25rem)] z-[110] grid size-9 place-items-center border border-white/[0.16] bg-black/80 text-white/62 shadow-[0_12px_34px_-18px_rgba(0,0,0,0.95)] backdrop-blur transition-colors hover:bg-white hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white" aria-label="Replay Editorial Chamber onboarding" title="Replay onboarding">
-      <CircleHelp className="size-4" strokeWidth={1.7} />
-    </button>
   )
 }

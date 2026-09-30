@@ -1424,7 +1424,7 @@ export function MusicTabPanel({
       projectTitle,
       initialPrompt,
       videoContext,
-      limit: Math.max(5, tracks.length),
+      limit: fullLengthTracks.length,
       catalog: fullLengthTracks.map(toRecommendationCatalogTrack),
     }).recommendations
 

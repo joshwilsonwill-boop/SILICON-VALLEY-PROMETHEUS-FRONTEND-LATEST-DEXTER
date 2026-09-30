@@ -43,11 +43,6 @@ const CinematicOnboarding = dynamic(
   { ssr: false },
 )
 
-const EditorialOnboardingReplay = dynamic(
-  () => import('@/components/onboarding/cinematic-onboarding').then((mod) => mod.EditorialOnboardingReplay),
-  { ssr: false },
-)
-
 const AUTH_ROUTE_REGEX = /^\/(?:login|signup|verify|forgot-password|reset-password|terms|privacy|refund|cookie-policy)(?:\/|$)/
 
 function UserPreferencesHydrator() {
@@ -84,7 +79,6 @@ export function RootClientEffects() {
           {isAuthRoute ? null : <CinematicClickRipple />}
           {isAuthRoute ? null : <GlobalHelpLauncher />}
           {supportsOnboarding ? <CinematicOnboarding pathname={pathname} /> : null}
-          {pathname.startsWith('/editor/') ? <EditorialOnboardingReplay pathname={pathname} /> : null}
         </>
       )}
       <AppToaster />

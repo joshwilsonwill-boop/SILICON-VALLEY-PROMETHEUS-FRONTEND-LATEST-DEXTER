@@ -9057,11 +9057,11 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
                 initial="hidden"
                 whileInView="visible"
                 viewport={{ once: false, amount: 0.45 }}
-                className={cn('shrink-0 bg-black px-4 py-3', activeWorkspaceTab === 'Motion' && 'hidden')}
+                className={cn('shrink-0 bg-black px-4 py-3', (activeWorkspaceTab === 'Motion' || activeWorkspaceTab === 'Music') && 'hidden')}
               >
-                <div className="flex justify-end">
-                  <div className="inline-flex items-center gap-2 text-white/48">
-                    {activeWorkspaceTab === 'Editor' ? (
+                {activeWorkspaceTab === 'Editor' ? (
+                  <div className="flex justify-end">
+                    <div className="inline-flex items-center gap-2 text-white/48">
                       <ViralClipTrigger
                         active={clipModeActive || viralClipTriggerBusy}
                         processing={viralClipTriggerBusy}
@@ -9071,10 +9071,9 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
                           void handleGenerateViralClips()
                         }}
                       />
-                    ) : null}
-                    <MagneticSparkleButton />
+                    </div>
                   </div>
-                </div>
+                ) : null}
               </motion.div>
 
               <div
@@ -9383,39 +9382,6 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
   )
 }
 
-function MagneticSparkleButton() {
-  const reduceMotion = useStableReducedMotion()
-  const [offset, setOffset] = React.useState({ x: 0, y: 0 })
-
-  const handlePointerMove = React.useCallback((event: React.PointerEvent<HTMLButtonElement>) => {
-    if (reduceMotion) return
-    const rect = event.currentTarget.getBoundingClientRect()
-    const x = ((event.clientX - rect.left) / rect.width - 0.5) * 9
-    const y = ((event.clientY - rect.top) / rect.height - 0.5) * 9
-    setOffset({ x, y })
-  }, [reduceMotion])
-
-  const resetOffset = React.useCallback(() => {
-    setOffset({ x: 0, y: 0 })
-  }, [])
-
-  return (
-    <motion.button
-      type="button"
-      aria-label="AI direction control inactive"
-      onPointerMove={handlePointerMove}
-      onPointerLeave={resetOffset}
-      onBlur={resetOffset}
-      className="group relative grid size-9 place-items-center rounded-full border border-white/10 bg-black text-white/58 shadow-[0_18px_34px_-26px_rgba(0,0,0,0.98),0_0_0_1px_rgba(156,134,255,0.04),inset_0_1px_0_rgba(255,255,255,0.08)] transition-[border-color,color,box-shadow] duration-300 hover:border-[#9c86ff]/32 hover:text-white hover:shadow-[0_18px_38px_-24px_rgba(0,0,0,1),0_0_24px_-16px_rgba(156,134,255,0.65),inset_0_1px_0_rgba(255,255,255,0.14)]"
-      animate={reduceMotion ? undefined : { x: offset.x, y: offset.y }}
-      transition={{ type: 'spring', stiffness: 320, damping: 24, mass: 0.55 }}
-      whileTap={reduceMotion ? undefined : { scale: 0.96 }}
-    >
-      <span aria-hidden className="absolute inset-0 rounded-full bg-[radial-gradient(circle_at_28%_18%,rgba(255,255,255,0.16)_0%,rgba(255,255,255,0)_42%),radial-gradient(circle_at_75%_88%,rgba(156,134,255,0.18)_0%,rgba(156,134,255,0)_46%)] opacity-70 transition-opacity duration-300 group-hover:opacity-100" />
-      <Sparkles className="relative size-4" />
-    </motion.button>
-  )
-}
 function InspectorField({
   label,
   value,
