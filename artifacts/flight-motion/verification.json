@@ -1,0 +1,13 @@
+{
+  "duration_seconds": 12.0,
+  "width": 1920,
+  "height": 1080,
+  "fps": 60,
+  "frames": 720,
+  "video_codec": "h264",
+  "audio_codec": "aac",
+  "audio_channels": 2,
+  "audio_sample_rate": "48000",
+  "decode_errors": 0,
+  "bytes": 2479215
+}

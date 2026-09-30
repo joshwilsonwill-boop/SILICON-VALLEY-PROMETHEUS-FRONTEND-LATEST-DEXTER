@@ -1504,7 +1504,7 @@ function buildFallbackEditAnimationPlan({
   styleTemplate: StyleTemplate
 }): AnimationPlan {
   const promptCopy = prompt.trim().length > 0 ? prompt.trim() : 'Edit this video.'
-  const trimmedPrompt = promptCopy.length > 76 ? `${promptCopy.slice(0, 73)}...` : promptCopy
+  const fullPrompt = promptCopy
   const previewImage = styleTemplate.previewImages[0] ?? null
   const styleSignal = styleTemplate.tags[0] ?? 'Captions: High'
 
@@ -1529,9 +1529,9 @@ function buildFallbackEditAnimationPlan({
       variant: 'caption',
       startMs: 1200,
       endMs: 3600,
-      text: trimmedPrompt,
+      text: fullPrompt,
       leadText: 'Prompt lane',
-      accentText: trimmedPrompt,
+      accentText: fullPrompt,
       trailingText: sourceLabel ? `Rendering on ${sourceLabel}.` : 'Rendering on the imported media.',
       treatment: 'highlight',
       tone: 'amber',
@@ -5879,6 +5879,8 @@ function MobileEditorView({
             <MusicTabPanel
               tracks={musicTracks}
               projectTitle={projectTitle}
+              initialPrompt={initialPrompt}
+              videoContext={videoContext}
               selectedTrackId={selectedMusicTrackId}
               onSelectTrack={onSelectMusicTrack}
               variant="mobile"
@@ -6215,7 +6217,7 @@ function OriginalEditorPage() {
   const [sourceAssetLabel, setSourceAssetLabel] = React.useState<string | null>(null)
   const [isPreviewMediaReady, setIsPreviewMediaReady] = React.useState(false)
   const [isPreviewLoadingVisible, setIsPreviewLoadingVisible] = React.useState(false)
-  const [isPreviewMuted, setIsPreviewMuted] = React.useState(true)
+  const [isPreviewMuted, setIsPreviewMuted] = React.useState(false)
   // Agent takeover: when true, Jarvis/chat may execute mutating editor actions.
   const [isAgentTakeoverEnabled, setIsAgentTakeoverEnabled] = React.useState(false)
   const [previewPlaybackRate, setPreviewPlaybackRate] = React.useState(1)
@@ -9058,6 +9060,8 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
                   <MusicTabPanel
                     tracks={editorMusicRecommendations}
                     projectTitle={project?.title ?? 'Untitled Project'}
+                    initialPrompt={promptText}
+                    videoContext={videoContext}
                     selectedTrackId={selectedEditorMusicTrackId}
                     onSelectTrack={handleEditorMusicTrackSelect}
                   />

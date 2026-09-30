@@ -16,7 +16,7 @@ import { chamberEase, chamberSpring } from '@/lib/chamber-motion'
 import { FALLBACK_ALBUM_ART } from '@/lib/music-art'
 import { createClient } from '@/lib/supabase/client'
 import { isSupabaseConfigured } from '@/lib/supabase/config'
-import type { MusicRecommendation } from '@/lib/types'
+import type { MusicRecommendation, MusicVideoContext } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { useStableReducedMotion } from '@/hooks/use-stable-reduced-motion'
 import { useEditorialTimeline } from '@/hooks/use-editorial-timeline'
@@ -37,7 +37,7 @@ type SelectedSongDisplay = {
   audioSrc: string
 }
 
-type MusicCollectionTab = 'trending' | 'premium' | 'my-music' | 'favorites'
+type MusicCollectionTab = 'for-video' | 'trending' | 'premium' | 'my-music' | 'favorites'
 
 type PersonalMusicFile = {
   id: string
@@ -79,6 +79,7 @@ function readPersonalMusicLibrary() {
 }
 
 const MUSIC_COLLECTION_TABS: Array<{ id: MusicCollectionTab; label: string; icon?: string }> = [
+  { id: 'for-video', label: 'For this video' },
   { id: 'trending', label: 'Trending' },
   { id: 'premium', label: 'Premium', icon: '👑' },
   { id: 'my-music', label: 'My Music', icon: '👤' },
@@ -120,6 +121,7 @@ function MusicCollectionTabs({
   durationFilter,
   onDurationChange,
   availableGenres,
+  hasRecommendations = false,
   compact = false,
 }: {
   activeTab: MusicCollectionTab
@@ -131,12 +133,13 @@ function MusicCollectionTabs({
   durationFilter?: string
   onDurationChange?: (duration: string) => void
   availableGenres?: string[]
+  hasRecommendations?: boolean
   compact?: boolean
 }) {
   return (
     <div className="flex min-w-0 items-center justify-between gap-2 border-b border-white/10 pb-2" role="tablist" aria-label="Music collections">
       <div className="flex min-w-0 items-center gap-1 overflow-x-auto [scrollbar-width:none]">
-        {MUSIC_COLLECTION_TABS.map((tab) => {
+        {MUSIC_COLLECTION_TABS.filter((tab) => tab.id !== 'for-video' || hasRecommendations).map((tab) => {
           const active = tab.id === activeTab
           return (
             <button
@@ -1122,12 +1125,16 @@ const formatDuration = (timeInSeconds: number | undefined): string => {
 export function MusicTabPanel({
   tracks,
   projectTitle,
+  initialPrompt = '',
+  videoContext = null,
   selectedTrackId,
   onSelectTrack: onSelectTrackProp,
   variant = 'desktop',
 }: {
   tracks: MusicRecommendation[]
   projectTitle: string
+  initialPrompt?: string
+  videoContext?: MusicVideoContext | null
   selectedTrackId: string | null
   onSelectTrack: (track: MusicRecommendation) => void
   variant?: 'desktop' | 'mobile'
@@ -1146,11 +1153,12 @@ export function MusicTabPanel({
   const [catalogTracks, setCatalogTracks] = React.useState<MusicRecommendation[]>(() => cachedCatalogTracks ?? [])
   const [catalogLoading, setCatalogLoading] = React.useState(() => cachedCatalogTracks === null)
   const [catalogReady, setCatalogReady] = React.useState(() => cachedCatalogTracks !== null)
-  const [localSelectedTrackId, setLocalSelectedTrackId] = React.useState<string | null>(selectedTrackId ?? tracks[0]?.id ?? null)
-  const [focusedTrackId, setFocusedTrackId] = React.useState<string | null>(selectedTrackId ?? tracks[0]?.id ?? null)
+  const [localSelectedTrackId, setLocalSelectedTrackId] = React.useState<string | null>(selectedTrackId)
+  const [focusedTrackId, setFocusedTrackId] = React.useState<string | null>(selectedTrackId)
   const [playingTrackId, setPlayingTrackId] = React.useState<string | null>(null)
   const [selectedTrackIds, setSelectedTrackIds] = React.useState<Set<string>>(() => new Set())
-  const [activeCollection, setActiveCollection] = React.useState<MusicCollectionTab>('trending')
+  const [activeCollection, setActiveCollection] = React.useState<MusicCollectionTab>(tracks.length ? 'for-video' : 'trending')
+  const userChoseMusicCollection = React.useRef(false)
   const [personalMusicFiles, setPersonalMusicFiles] = React.useState<PersonalMusicFile[]>(() => readPersonalMusicLibrary().files)
   const [personalMusicFolders, setPersonalMusicFolders] = React.useState<string[]>(() => readPersonalMusicLibrary().folders)
   const [searchQuery, setSearchQuery] = React.useState('')
@@ -1172,6 +1180,10 @@ export function MusicTabPanel({
   const [isRepeat, setIsRepeat] = React.useState(false)
   const [favoriteTrackIds, setFavoriteTrackIds] = React.useState<Set<string>>(() => new Set(['amelie-adventures']))
 
+  React.useEffect(() => {
+    if (tracks.length && !userChoseMusicCollection.current) setActiveCollection('for-video')
+  }, [tracks.length])
+
   const toggleFavorite = React.useCallback((trackId: string) => {
     setFavoriteTrackIds((current) => {
       const next = new Set(current)
@@ -1183,7 +1195,13 @@ export function MusicTabPanel({
 
   React.useEffect(() => {
     const trackId = editorial.timeline?.music?.track.id ?? selectedTrackId
-    if (trackId) { setLocalSelectedTrackId(trackId); setFocusedTrackId(trackId) }
+    if (trackId) {
+      setLocalSelectedTrackId(trackId)
+      setFocusedTrackId(trackId)
+    } else {
+      setLocalSelectedTrackId(null)
+      setFocusedTrackId(null)
+    }
   }, [editorial.timeline?.music?.track.id, selectedTrackId])
 
   React.useEffect(() => {
@@ -1322,7 +1340,7 @@ export function MusicTabPanel({
   }, [])
 
   const displayTracks = React.useMemo(() => {
-    const sourceTracks = catalogReady && catalogTracks.length ? catalogTracks : tracks
+    const sourceTracks = [...tracks, ...(catalogReady && catalogTracks.length ? catalogTracks : [])]
     const seen = new Set<string>()
     return sourceTracks.filter((track) => {
       if (seen.has(track.id)) return false
@@ -1338,6 +1356,8 @@ export function MusicTabPanel({
       const favs = displayTracks.filter((track) => favoriteTrackIds.has(track.id))
       return favs.length ? favs : displayTracks.slice(0, 4)
     }
+
+    if (activeCollection === 'for-video') return tracks
 
     if (activeCollection === 'premium') {
       const premium = displayTracks
@@ -1356,7 +1376,7 @@ export function MusicTabPanel({
     }
 
     return displayTracks
-  }, [activeCollection, displayTracks, favoriteTrackIds])
+  }, [activeCollection, displayTracks, favoriteTrackIds, tracks])
 
   const normalizedQuery = searchQuery.trim().toLowerCase()
   const filteredTracks = React.useMemo(() => {
@@ -1439,9 +1459,9 @@ export function MusicTabPanel({
       return
     }
 
-    const fallbackTrackId = selectedTrackId && trackIds.has(selectedTrackId) ? selectedTrackId : displayTracks[0]?.id ?? null
-    setLocalSelectedTrackId((current) => (current && trackIds.has(current) ? current : fallbackTrackId))
-    setFocusedTrackId((current) => (current && trackIds.has(current) ? current : fallbackTrackId))
+    const resolvedSelectedTrackId = selectedTrackId && trackIds.has(selectedTrackId) ? selectedTrackId : null
+    setLocalSelectedTrackId((current) => resolvedSelectedTrackId ?? (current && trackIds.has(current) ? current : null))
+    setFocusedTrackId((current) => resolvedSelectedTrackId ?? (current && trackIds.has(current) ? current : null))
   }, [displayTracks, selectedTrackId])
 
   const selectedTrack = React.useMemo(
@@ -1449,13 +1469,13 @@ export function MusicTabPanel({
     [displayTracks, localSelectedTrackId, selectedTrackId],
   )
   const focusedTrack = React.useMemo(
-    () => filteredTracks.find((track) => track.id === focusedTrackId) ?? selectedTrack ?? filteredTracks[0] ?? displayTracks[0] ?? null,
-    [displayTracks, filteredTracks, focusedTrackId, selectedTrack],
+    () => filteredTracks.find((track) => track.id === focusedTrackId) ?? selectedTrack,
+    [filteredTracks, focusedTrackId, selectedTrack],
   )
   const activeTrack = selectedTrack ?? focusedTrack
   const currentPlayerTrack = React.useMemo(
-    () => displayTracks.find((track) => track.id === playingTrackId) ?? activeTrack ?? null,
-    [activeTrack, displayTracks, playingTrackId],
+    () => displayTracks.find((track) => track.id === playingTrackId) ?? selectedTrack,
+    [displayTracks, playingTrackId, selectedTrack],
   )
   // The deck is a playback surface: its spinning artwork must follow audio, not
   // merely the track last focused in the catalog.
@@ -1463,7 +1483,7 @@ export function MusicTabPanel({
     () => (currentPlayerTrack ? buildSelectedSongDisplay(currentPlayerTrack) : null),
     [currentPlayerTrack],
   )
-  const currentCardTrack = currentPlayerTrack ?? activeTrack ?? displayTracks[0] ?? null
+  const currentCardTrack = currentPlayerTrack ?? activeTrack
   const handleTrackFocus = React.useCallback(
     (track: MusicRecommendation) => {
       setLocalSelectedTrackId(track.id)
@@ -1550,7 +1570,7 @@ export function MusicTabPanel({
       const response = await fetch('/api/music/match', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ trackIds, projectTitle }),
+        body: JSON.stringify({ trackIds, projectTitle, initialPrompt, videoContext }),
       })
       if (!response.ok) throw new Error('Unable to run AI Auto-Match')
       const data = (await response.json()) as MusicMatchResponse
@@ -1574,7 +1594,7 @@ export function MusicTabPanel({
       setIsAutoMatching(false)
       setSelectedTrackIds(new Set())
     }
-  }, [displayTracks, handleTrackFocus, projectTitle, selectedTrackIds])
+  }, [displayTracks, handleTrackFocus, initialPrompt, projectTitle, selectedTrackIds, videoContext])
 
   const showCatalogLoader = activeCollection !== 'my-music' && !displayTracks.length && (!catalogReady || catalogLoading)
 
@@ -1636,7 +1656,7 @@ export function MusicTabPanel({
         ) : null}
 
         <div className="relative z-10 flex min-h-0 flex-1 flex-col gap-3 p-3">
-          <MusicCollectionTabs activeTab={activeCollection} onChange={setActiveCollection} />
+          <MusicCollectionTabs activeTab={activeCollection} onChange={(tab) => { userChoseMusicCollection.current = true; setActiveCollection(tab) }} hasRecommendations={tracks.length > 0} />
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-white/35" />
             <input
@@ -1757,7 +1777,7 @@ export function MusicTabPanel({
       animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
       exit={reduceMotion ? undefined : { opacity: 0, y: 10 }}
       transition={{ duration: reduceMotion ? 0 : 0.3, ease: chamberEase }}
-      className="premium-ambient-panel premium-vignette-surface editorial-light-effect relative flex h-full min-h-0 w-full max-w-[1280px] flex-1 self-center overflow-hidden rounded-[18px] border border-[#29486c]/60 bg-[#080c14] px-3 pb-28 pt-3 shadow-[0_32px_90px_-58px_rgba(0,0,0,0.98)] sm:px-5 sm:pt-4"
+      className="premium-ambient-panel premium-vignette-surface editorial-light-effect relative flex h-full min-h-0 w-full max-w-[1280px] flex-1 self-center overflow-hidden rounded-[18px] border border-[#29486c]/60 bg-[#080c14] px-3 pb-28 pt-3 shadow-[0_32px_90px_-58px_rgba(0,0,0,0.98)] sm:px-5 sm:pt-4 md:-mx-4 md:-my-4"
     >
         <style>{`
           @keyframes music-eq {
@@ -1792,7 +1812,8 @@ export function MusicTabPanel({
         <div className="shrink-0 px-1">
           <MusicCollectionTabs
             activeTab={activeCollection}
-            onChange={setActiveCollection}
+            onChange={(tab) => { userChoseMusicCollection.current = true; setActiveCollection(tab) }}
+            hasRecommendations={tracks.length > 0}
             moodFilter={moodFilter}
             onMoodChange={setMoodFilter}
             genreFilter={genreFilter}
@@ -1824,7 +1845,7 @@ export function MusicTabPanel({
         ) : null}
 
         {/* 2-Column Grid */}
-        <div className="grid min-h-0 flex-1 gap-3 pb-24 lg:grid-cols-[minmax(340px,0.78fr)_minmax(0,1.22fr)] xl:gap-4">
+        <div className="grid min-h-0 flex-1 gap-3 pb-24 !pb-0 lg:grid-cols-[minmax(340px,0.78fr)_minmax(0,1.22fr)] xl:gap-4">
           {/* Left column: focused artwork player. */}
           <div className="flex min-h-0 min-w-0 flex-col">
             {/* Background audio player engine */}

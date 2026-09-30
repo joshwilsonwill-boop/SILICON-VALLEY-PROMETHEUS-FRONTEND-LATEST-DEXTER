@@ -522,6 +522,7 @@ export interface BRollSuggestion {
 export type AnimationScreenRegion =
   | 'full-frame'
   | 'safe-lower-third'
+  | 'safe-upper-third'
   | 'center-stage'
   | 'left-panel'
   | 'right-panel'

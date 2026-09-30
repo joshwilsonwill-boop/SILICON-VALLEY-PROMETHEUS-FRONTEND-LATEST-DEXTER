@@ -36,6 +36,7 @@ import {
   Square,
   Upload,
   Volume2,
+  VolumeX,
   Wand2,
   X,
   ZoomIn,
@@ -1016,6 +1017,19 @@ export function MotionEditWorkspace({
                   {renderMedia()}
                   <div className="pointer-events-none absolute left-3 top-3 inline-flex max-w-[calc(100%-1.5rem)] items-center gap-2 rounded bg-black/60 px-2.5 py-1.5 text-[10px] text-white/72 backdrop-blur-sm"><Frame className="size-3 shrink-0 text-[#98f237]" /><span className="truncate">{sourceLabel ?? 'Source video'}</span></div>
                   <button type="button" onClick={onTogglePlayback} disabled={previewKind !== 'video' || !previewUrl} className="absolute bottom-3 left-3 grid size-10 place-items-center rounded-full border border-white/12 bg-black/60 text-white backdrop-blur-sm transition-colors hover:bg-black/82 disabled:cursor-not-allowed disabled:opacity-35" aria-label={previewPlaying ? 'Pause preview' : 'Play preview'}>{previewPlaying ? <Pause className="size-4 fill-current" /> : <Play className="ml-0.5 size-4 fill-current" />}</button>
+                  {previewKind === 'video' ? (
+                    <button
+                      type="button"
+                      onClick={() => onPreviewMutedChange(!previewMuted)}
+                      className="absolute bottom-3 right-3 inline-flex h-10 items-center gap-2 rounded-full border border-white/15 bg-black/65 px-3 text-white shadow-lg backdrop-blur-sm transition-colors hover:bg-black/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#b4fb60]"
+                      aria-label={previewMuted ? 'Turn video sound on' : 'Mute video sound'}
+                      aria-pressed={!previewMuted}
+                      title={previewMuted ? 'Turn video sound on' : 'Mute video sound'}
+                    >
+                      {previewMuted ? <VolumeX className="size-4" /> : <Volume2 className="size-4" />}
+                      <span className="text-[11px] font-medium">{previewMuted ? 'Sound off' : 'Sound on'}</span>
+                    </button>
+                  ) : null}
                 </div>
                 {cropEnabled ? <CropFrame rect={cropRect} onChange={setCropRect} /> : null}
               </div>

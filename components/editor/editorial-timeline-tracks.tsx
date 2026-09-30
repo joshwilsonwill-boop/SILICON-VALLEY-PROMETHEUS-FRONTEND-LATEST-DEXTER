@@ -281,10 +281,10 @@ export function EditorialTimelineTracks({
         {visualLanes.map((lane, laneIndex) => lane.map((cue) => <DraggableEditorialCue key={cue.id} cue={cue} laneIndex={laneIndex} duration={effectiveDuration} currentTime={currentTime} onSeek={onSeek} onCommit={(updated) => onEditorialCuesChange?.(replaceCue(editorialCues, cue, updated))} />))}
       </div> : null}
 
-      {/* 6. MUSIC TRACK: Reflects Music Section selection, Waveform, Fade-in/out Curves */}
+      {/* 6. MUSIC TRACK: Selected soundtrack with a clear waveform and mute control */}
       <div
         className={cn(
-          'relative mt-1.5 h-[42px] overflow-hidden rounded-[4px] transition-opacity',
+          'relative mt-1.5 h-[38px] overflow-hidden rounded-[4px] transition-opacity',
           isMusicHidden && 'opacity-20 pointer-events-none',
         )}
         aria-label="Music Track"
@@ -292,47 +292,26 @@ export function EditorialTimelineTracks({
         {selectedMusicTrack ? (
           <div
             data-timeline-track="music-active"
-            className="group relative h-full w-full overflow-hidden rounded-[4px] border border-[#7c3aed]/50 bg-[linear-gradient(90deg,#241852_0%,#3e218b_50%,#1f1448_100%)] shadow-[0_0_12px_rgba(124,58,237,0.25)]"
+            className="group relative h-full w-full overflow-hidden rounded-[4px] border border-[#55706c]/45 bg-[linear-gradient(90deg,#101a1b_0%,#182624_52%,#11191b_100%)]"
           >
             {/* Waveform visualization */}
-            <div className="absolute inset-0 flex items-center gap-[1.5px] px-2 opacity-75">
+            <div className="absolute inset-0 flex items-center gap-[1.5px] px-2 opacity-55">
               {musicWaveBars.map((height, i) => (
                 <span
                   key={i}
-                  className="flex-1 rounded-[1px] bg-[#9333ea]"
-                  style={{ height: `${Math.round(height * 82)}%` }}
+                  className="flex-1 rounded-[1px] bg-[#91b9a9]"
+                  style={{ height: `${Math.round(height * 68)}%` }}
                 />
               ))}
             </div>
 
-            {/* Volume Automation Curves (Fade-In at start, Fade-Out at end) */}
-            <svg
-              className="absolute inset-0 h-full w-full pointer-events-none"
-              viewBox="0 0 400 42"
-              preserveAspectRatio="none"
-            >
-              {/* Fade-in curve at beginning */}
-              <path
-                d="M 2 38 Q 15 30 35 10 L 370 10 Q 388 12 398 38"
-                fill="none"
-                stroke="#c084fc"
-                strokeWidth="2"
-                strokeLinecap="round"
-                className="opacity-90"
-              />
-              <circle cx="2" cy="38" r="3.5" fill="#ffffff" stroke="#7c3aed" strokeWidth="2" />
-              <circle cx="35" cy="10" r="3.5" fill="#ffffff" stroke="#7c3aed" strokeWidth="2" />
-              <circle cx="370" cy="10" r="3.5" fill="#ffffff" stroke="#7c3aed" strokeWidth="2" />
-              <circle cx="398" cy="38" r="3.5" fill="#ffffff" stroke="#7c3aed" strokeWidth="2" />
-            </svg>
-
             {/* Music Track Badge & Song Title */}
             <div className="relative z-10 flex h-full items-center justify-between px-3">
               <div className="flex items-center gap-2">
-                <div className="flex size-5 items-center justify-center rounded-full bg-[#7c3aed]/40 text-[#c084fc]">
+                <div className="flex size-5 items-center justify-center rounded-full bg-[#91b9a9]/15 text-[#b3d2c4]">
                   <Music className="size-3" />
                 </div>
-                <span className="text-[11px] font-semibold text-white tracking-wide">
+                <span className="text-[11px] font-medium text-white tracking-wide">
                   {selectedMusicTrack.title}
                 </span>
                 {selectedMusicTrack.artist && (

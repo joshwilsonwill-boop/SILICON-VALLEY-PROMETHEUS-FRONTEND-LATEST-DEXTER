@@ -223,7 +223,7 @@ export function EditorialTimelineViewport({
               style={{ marginTop: 6 }}
             >
               <div className="flex items-center gap-1.5 font-medium text-white/85">
-                <Music className="size-3 text-[#c084fc]" />
+                <Music className="size-3 text-[#a8c5b8]" />
                 <span>Music</span>
               </div>
               <div className="flex items-center gap-1">
