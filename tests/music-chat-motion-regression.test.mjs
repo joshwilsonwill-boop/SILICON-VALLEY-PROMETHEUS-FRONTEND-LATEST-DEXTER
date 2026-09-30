@@ -41,7 +41,8 @@ function run() {
   assert.match(chatStyleSelector, /whileHover/)
 
   const uploadInterface = read('components/video-upload-interface.tsx')
-  assert.match(uploadInterface, /ChatStyleSelector/)
+  assert.match(uploadInterface, /STYLE_TEMPLATES/)
+  assert.match(uploadInterface, /data-style-template=/)
   assert.match(uploadInterface, /StudioCinematicMarqueeRails/)
   assert.match(uploadInterface, /studio-marquee-left/)
   assert.match(uploadInterface, /studio-marquee-right/)
@@ -63,14 +64,14 @@ function run() {
   assert.match(prometheusChatRoute, /selectedStyleTemplate/)
 
   const motionCanvas = read('app/editor/motion/components/motion-canvas.tsx')
-  const motionOverlayPath = 'app/editor/motion/components/motion-first-run-orbit.tsx'
-  assert.equal(existsSync(join(root, motionOverlayPath)), true)
-  const motionOverlay = read(motionOverlayPath)
-  assert.match(motionCanvas, /MotionFirstRunOrbit/)
-  assert.match(motionOverlay, /prometheus\.motion\.first-run-orbit\.v1/)
-  assert.match(motionOverlay, /MagneticSelectorButton/)
-  assert.match(motionOverlay, /AudioContext/)
-  assert.match(motionOverlay, /Enter Motion Brain/)
+  const motionDialPath = 'app/editor/motion/components/motion-direction-dial.tsx'
+  assert.equal(existsSync(join(root, motionDialPath)), true)
+  const motionDial = read(motionDialPath)
+  assert.match(motionCanvas, /MotionDirectionDial/)
+  assert.match(motionDial, /data-motion-direction-dial/)
+  assert.match(motionDial, /inertialBudgetStops/)
+  assert.match(motionDial, /OrbitalReferenceCanvas/)
+  assert.match(motionDial, /useStableReducedMotion/)
 }
 
 run()

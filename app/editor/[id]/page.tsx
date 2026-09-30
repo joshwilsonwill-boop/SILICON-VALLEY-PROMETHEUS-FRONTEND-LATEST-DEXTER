@@ -127,7 +127,7 @@ import { useTextareaResize } from '@/hooks/use-textarea-resize'
 import { buildCinematicAnimationPlan } from '@/lib/cinematic/animation-planner'
 import { cn } from '@/lib/utils'
 import { fetchWithTimeout } from '@/lib/fetch-with-timeout'
-import { SELECTED_EDITOR_MUSIC_EVENT, type SelectedEditorMusicEventDetail } from '@/lib/editor-music-selection'
+import { SELECTED_EDITOR_MUSIC_EVENT, readSelectedEditorMusicRecommendation, type SelectedEditorMusicEventDetail } from '@/lib/editor-music-selection'
 import { upsertProject } from '@/lib/mock'
 import { projects } from '@/lib/projects'
 import {
@@ -7044,10 +7044,13 @@ function OriginalEditorPage() {
     () => editorMusicShelf.recommendations.slice(0, 5),
     [editorMusicShelf],
   )
-  const selectedEditorMusicTrack = React.useMemo(
-    () => editorMusicRecommendations.find((track) => track.id === selectedEditorMusicTrackId) ?? null,
-    [editorMusicRecommendations, selectedEditorMusicTrackId],
-  )
+  const selectedEditorMusicTrack = React.useMemo(() => {
+    const found = editorMusicRecommendations.find((track) => track.id === selectedEditorMusicTrackId)
+    if (found) return found
+    const persisted = readSelectedEditorMusicRecommendation(projectId)
+    if (persisted && (!selectedEditorMusicTrackId || persisted.id === selectedEditorMusicTrackId)) return persisted
+    return null
+  }, [editorMusicRecommendations, projectId, selectedEditorMusicTrackId])
 
   React.useEffect(() => {
     if (!soundtrackAudioRef.current && typeof Audio !== 'undefined') {

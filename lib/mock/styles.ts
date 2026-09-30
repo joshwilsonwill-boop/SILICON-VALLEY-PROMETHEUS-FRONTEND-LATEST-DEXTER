@@ -3,21 +3,21 @@ import type { TemplateStyle } from '@/lib/types'
 export const TEMPLATE_STYLES: TemplateStyle[] = [
   {
     id: 'style_iman_punchy',
-    name: 'Iman Punchy',
+    name: 'Alex Punchy',
     description: 'Aggressive pacing, strong captions, momentum-focused cut rhythm.',
     category: 'Iman',
     tags: { captionIntensity: 'High', pacing: 'Aggressive', broll: 'Balanced' },
   },
   {
     id: 'style_iman_clean',
-    name: 'Iman Clean',
+    name: 'Alex Clean',
     description: 'Minimalist captions, crisp jump cuts, premium sound design slots.',
     category: 'Iman',
     tags: { captionIntensity: 'Medium', pacing: 'Snappy', broll: 'Rare' },
   },
   {
     id: 'style_podcast_dynamic',
-    name: 'Long Form Typography V1',
+    name: 'Dan Long Form Typography V1',
     description: 'Long-form SVG typography, highlight markers, and smart punch-ins.',
     category: 'Podcast',
     tags: { captionIntensity: 'High', pacing: 'Snappy', broll: 'Rare' },

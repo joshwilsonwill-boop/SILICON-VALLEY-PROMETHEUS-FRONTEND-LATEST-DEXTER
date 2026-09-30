@@ -44,3 +44,4 @@ env.local
 
 .vercel
 .env*
+.unlazy/

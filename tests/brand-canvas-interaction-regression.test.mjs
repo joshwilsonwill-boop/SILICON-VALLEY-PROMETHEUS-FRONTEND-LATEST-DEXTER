@@ -17,9 +17,9 @@ assert.match(canvas, /bg-\[linear-gradient\(135deg,#1b123b_0%,#33206f_48%,#202f8
 assert.doesNotMatch(canvas, /mailto:hello@prometheus\.studio/)
 
 const assetsPage = read('app/assets/page.tsx')
-assert.match(assetsPage, /snap-y snap-mandatory/)
+assert.match(assetsPage, /snap-y snap-proximity/)
 
 const library = read('components/assets/library-collection.tsx')
-assert.match(library, /snap-start snap-always/)
+assert.match(library, /snap-start snap-normal/)
 
 console.log('brand canvas interaction regression checks passed')

@@ -19,6 +19,9 @@ import { isSupabaseConfigured } from '@/lib/supabase/config'
 import type { MusicRecommendation } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { useStableReducedMotion } from '@/hooks/use-stable-reduced-motion'
+import { useEditorialTimeline } from '@/hooks/use-editorial-timeline'
+import { writeSelectedEditorMusicRecommendation } from '@/lib/editor-music-selection'
+import { EditorialSyncStatus } from '@/components/editor/editorial-sync-status'
 
 const rowHoverSpring = {
   stiffness: 240,
@@ -803,6 +806,7 @@ function NowPlayingBar({
           <button
             type="button"
             onClick={onPlayPause}
+            aria-label={isPlaying ? `Pause ${track.title}` : `Play ${track.title}`}
             className="grid size-10 shrink-0 place-items-center rounded-full bg-accent-blue text-white shadow-[0_0_20px_rgba(59,130,246,0.3)] transition-all active:scale-95"
           >
             {isBuffering && isPlaying ? (
@@ -817,6 +821,7 @@ function NowPlayingBar({
           <button
             type="button"
             onClick={onMuteToggle}
+            aria-label={isMuted ? 'Unmute soundtrack preview' : 'Mute soundtrack preview'}
             className="grid size-10 shrink-0 place-items-center rounded-full border border-white/8 bg-white/[0.03] text-white/40 transition-colors hover:text-white"
           >
             {isMuted ? <VolumeX className="size-4" /> : <Volume2 className="size-4" />}
@@ -825,6 +830,7 @@ function NowPlayingBar({
       </div>
       <button
         type="button"
+        aria-label={`Seek ${track.title}`}
         onClick={(event) => {
           if (duration <= 0) return
           const rect = event.currentTarget.getBoundingClientRect()
@@ -844,7 +850,7 @@ export function MusicTabPanel({
   tracks,
   projectTitle,
   selectedTrackId,
-  onSelectTrack,
+  onSelectTrack: onSelectTrackProp,
   variant = 'desktop',
 }: {
   tracks: MusicRecommendation[]
@@ -853,6 +859,16 @@ export function MusicTabPanel({
   onSelectTrack: (track: MusicRecommendation) => void
   variant?: 'desktop' | 'mobile'
 }) {
+  const editorial = useEditorialTimeline()
+  const onSelectTrack = React.useCallback((track: MusicRecommendation) => {
+    onSelectTrackProp(track)
+    writeSelectedEditorMusicRecommendation(editorial.projectId, track)
+    try {
+      editorial.patch({ type: 'music', track: track as any })
+    } catch {
+      // Safe fallback if schema difference occurs
+    }
+  }, [editorial.patch, editorial.projectId, onSelectTrackProp])
   const reduceMotion = useStableReducedMotion()
   const [catalogTracks, setCatalogTracks] = React.useState<MusicRecommendation[]>(() => cachedCatalogTracks ?? [])
   const [catalogLoading, setCatalogLoading] = React.useState(() => cachedCatalogTracks === null)
@@ -865,6 +881,8 @@ export function MusicTabPanel({
   const [personalMusicFiles, setPersonalMusicFiles] = React.useState<PersonalMusicFile[]>(() => readPersonalMusicLibrary().files)
   const [personalMusicFolders, setPersonalMusicFolders] = React.useState<string[]>(() => readPersonalMusicLibrary().folders)
   const [searchQuery, setSearchQuery] = React.useState('')
+  const [showFilters, setShowFilters] = React.useState(false)
+  const [genreFilter, setGenreFilter] = React.useState('')
   const [visibleTrackCount, setVisibleTrackCount] = React.useState(INITIAL_VISIBLE_TRACKS)
   const [brokenArtworkIds, setBrokenArtworkIds] = React.useState<Record<string, true>>({})
   const [isMuted, setIsMuted] = React.useState(false)
@@ -873,6 +891,11 @@ export function MusicTabPanel({
   const [playerProgress, setPlayerProgress] = React.useState({ currentTime: 0, duration: 0 })
   const [seekRequest, setSeekRequest] = React.useState<{ time: number; token: number } | null>(null)
   const selectionTrayRef = React.useRef<HTMLDivElement | null>(null)
+
+  React.useEffect(() => {
+    const trackId = editorial.timeline?.music?.track.id ?? selectedTrackId
+    if (trackId) { setLocalSelectedTrackId(trackId); setFocusedTrackId(trackId) }
+  }, [editorial.timeline?.music?.track.id, selectedTrackId])
 
   React.useEffect(() => {
     try {
@@ -1010,14 +1033,16 @@ export function MusicTabPanel({
   }, [])
 
   const displayTracks = React.useMemo(() => {
-    const sourceTracks = catalogReady ? catalogTracks : []
+    const sourceTracks = catalogReady && catalogTracks.length ? catalogTracks : tracks
     const seen = new Set<string>()
     return sourceTracks.filter((track) => {
       if (seen.has(track.id)) return false
       seen.add(track.id)
       return true
     })
-  }, [catalogReady, catalogTracks])
+  }, [catalogReady, catalogTracks, tracks])
+
+  const availableGenres = React.useMemo(() => Array.from(new Set(displayTracks.map((track) => track.genre).filter(Boolean))).sort(), [displayTracks])
 
   const collectionTracks = React.useMemo(() => {
     if (activeCollection === 'premium') {
@@ -1041,8 +1066,9 @@ export function MusicTabPanel({
 
   const normalizedQuery = searchQuery.trim().toLowerCase()
   const filteredTracks = React.useMemo(() => {
-    if (!normalizedQuery) return collectionTracks
-    return collectionTracks.filter((track) => {
+    const genreTracks = genreFilter ? collectionTracks.filter((track) => track.genre === genreFilter) : collectionTracks
+    if (!normalizedQuery) return genreTracks
+    return genreTracks.filter((track) => {
       const anyTrack = track as unknown as Record<string, unknown>
       const title = track.title.toLowerCase()
       const artist = track.artist.toLowerCase()
@@ -1085,7 +1111,7 @@ export function MusicTabPanel({
 
       return false
     })
-  }, [collectionTracks, normalizedQuery])
+  }, [collectionTracks, genreFilter, normalizedQuery])
   const visibleTracks = React.useMemo(() => filteredTracks.slice(0, visibleTrackCount), [filteredTracks, visibleTrackCount])
 
   React.useEffect(() => {
@@ -1237,12 +1263,12 @@ export function MusicTabPanel({
     }
   }, [displayTracks, handleTrackFocus, projectTitle, selectedTrackIds])
 
-  const showCatalogLoader = activeCollection !== 'my-music' && (!catalogReady || (catalogLoading && !displayTracks.length))
+  const showCatalogLoader = activeCollection !== 'my-music' && !displayTracks.length && (!catalogReady || catalogLoading)
 
   return (
     <>
-      <CinematicLogoLoader variant="overlay" ready={catalogReady} />
-      {showCatalogLoader ? null : !displayTracks.length ? (
+      <CinematicLogoLoader variant="overlay" ready={catalogReady || tracks.length > 0 || activeCollection === 'my-music'} />
+      {showCatalogLoader ? null : !displayTracks.length && activeCollection !== 'my-music' ? (
       <section className="premium-ambient-panel premium-vignette-surface flex w-full max-w-[1060px] self-center rounded-[30px] px-5 py-5 shadow-[0_28px_64px_-38px_rgba(0,0,0,0.95)]">
         <LuxuryVignette tone="music" />
         <div className="relative z-10">
@@ -1431,11 +1457,23 @@ export function MusicTabPanel({
           <div>
             <div className="text-[26px] font-semibold tracking-[-0.035em] text-white sm:text-[30px]">Music Library</div>
             <p className="mt-1 text-xs text-white/45 sm:text-sm">Find the perfect soundtrack for your video with AI-curated music.</p>
+            <EditorialSyncStatus />
           </div>
-          <button type="button" className="grid size-10 shrink-0 place-items-center rounded-[10px] border border-white/12 bg-white/[0.04] text-white/62 transition-colors hover:border-[#4d9dff]/60 hover:bg-[#4d9dff]/10 hover:text-white" aria-label="Open music filters" title="Music filters">
+          <button type="button" onClick={() => setShowFilters((value) => !value)} aria-expanded={showFilters} className="grid size-10 shrink-0 place-items-center rounded-[10px] border border-white/12 bg-white/[0.04] text-white/62 transition-colors hover:border-[#4d9dff]/60 hover:bg-[#4d9dff]/10 hover:text-white" aria-label="Open music filters" title="Music filters">
             <SlidersHorizontal className="size-4" />
           </button>
         </div>
+
+        {showFilters ? (
+          <div className="absolute right-5 top-[5.2rem] z-30 w-56 rounded-xl border border-white/15 bg-[#171a22]/95 p-3 shadow-[0_20px_50px_rgba(0,0,0,.6)] backdrop-blur-xl">
+            <label htmlFor="music-genre-filter" className="mb-2 block text-[11px] font-medium text-white/65">Genre</label>
+            <select id="music-genre-filter" value={genreFilter} onChange={(event) => setGenreFilter(event.target.value)} className="h-9 w-full rounded-md border border-white/15 bg-[#252934] px-2 text-xs text-white outline-none focus:border-[#4d9dff]">
+              <option value="">All genres</option>
+              {availableGenres.map((genre) => <option key={genre} value={genre}>{genre}</option>)}
+            </select>
+            {genreFilter ? <button type="button" onClick={() => setGenreFilter('')} className="mt-2 text-[11px] text-[#91c6ff] hover:text-white">Clear filter</button> : null}
+          </div>
+        ) : null}
 
       <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(18rem,0.7fr)_minmax(24rem,1fr)] xl:grid-cols-[minmax(20rem,0.72fr)_minmax(26rem,1fr)]">
         <div className="flex min-h-0 min-w-0">

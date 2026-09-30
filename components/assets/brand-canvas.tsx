@@ -242,7 +242,7 @@ export function BrandCanvas() {
     <section
       id="brand-canvas"
       aria-labelledby="brand-canvas-title"
-      className="relative isolate min-h-full snap-start snap-always overflow-hidden bg-[linear-gradient(135deg,#1b123b_0%,#33206f_48%,#202f89_100%)] text-[#f8f7ff]"
+      className="relative isolate min-h-full snap-start snap-normal overflow-hidden bg-[linear-gradient(135deg,#1b123b_0%,#33206f_48%,#202f89_100%)] text-[#f8f7ff]"
       onPointerMove={onPointerMove}
       onPointerLeave={() => setPointer({ x: 0, y: 0 })}
     >

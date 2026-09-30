@@ -2992,13 +2992,18 @@ export function VideoUploadInterface() {
 
                                 const matchedKey = candidates.find((k) => !!airtableStylePreviews[k]);
 
-                                const previewImages = matchedKey
-                                    ? airtableStylePreviews[matchedKey]
-                                    : template.previewImages;
-                                const hasPreviews = previewImages.length > 0;
+                                const remotePreview = matchedKey
+                                    ? airtableStylePreviews[matchedKey]?.[0]
+                                    : undefined;
+                                const localPreview = template.previewImages[0];
+                                const previewImage = remotePreview && !failedImages[remotePreview]
+                                    ? remotePreview
+                                    : localPreview;
+                                const hasPreview = Boolean(previewImage) && !failedImages[localPreview];
                                 return (
                                     <button
                                         key={template.id}
+                                        data-style-template={template.id}
                                         type="button"
                                         aria-pressed={selected}
                                         onClick={() => {
@@ -3007,24 +3012,24 @@ export function VideoUploadInterface() {
                                             setTemplatesOpen(false);
                                         }}
                                         className={cn(
-                                            "flex min-h-[76px] w-full items-center gap-3 rounded-md border px-3 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40",
+                                            "flex min-h-[88px] w-full items-center gap-3 rounded-md border px-3 py-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40",
                                             selected
                                                 ? "border-white/30 bg-white/[0.08]"
                                                 : "border-white/10 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.05]"
                                         )}
                                     >
-                                        <div className="relative h-12 w-16 shrink-0 overflow-hidden rounded-md border border-white/10 bg-white/[0.03] sm:h-14 sm:w-20">
-                                            {hasPreviews && !failedImages[previewImages[0]] ? (
+                                        <div className="relative aspect-video w-24 shrink-0 overflow-hidden rounded-md border border-white/10 bg-white/[0.03] sm:w-28">
+                                            {hasPreview ? (
                                                 <Image
-                                                    src={previewImages[0]}
-                                                    alt=""
+                                                    src={previewImage}
+                                                    alt={`${template.name} style preview`}
                                                     fill
                                                     className="object-cover"
-                                                    sizes="80px"
+                                                    sizes="112px"
                                                     onError={() =>
                                                         setFailedImages((images) => ({
                                                             ...images,
-                                                            [previewImages[0]]: true,
+                                                            [previewImage]: true,
                                                         }))
                                                     }
                                                 />

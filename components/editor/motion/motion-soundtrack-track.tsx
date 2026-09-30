@@ -84,7 +84,7 @@ export function MotionSoundtrackTrack({
     <div
       data-timeline-track="soundtrack"
       className={cn(
-        'group relative mt-2 h-9 overflow-hidden rounded border border-white/14 bg-[linear-gradient(90deg,rgba(152,242,55,0.06)_0%,rgba(0,240,255,0.04)_50%,rgba(152,242,55,0.06)_100%)] transition-all',
+        'group relative mt-2 h-9 overflow-hidden rounded border border-[#7367ef]/45 bg-[linear-gradient(90deg,rgba(47,37,117,0.95)_0%,rgba(72,55,169,0.9)_50%,rgba(35,30,105,0.95)_100%)] transition-all',
         className,
       )}
       style={{ width, minWidth: '100%' }}
@@ -99,8 +99,8 @@ export function MotionSoundtrackTrack({
               className={cn(
                 'flex-1 rounded-t-[1px] transition-colors duration-100',
                 isPassed
-                  ? 'bg-gradient-to-t from-[#98f237]/80 to-[#b4fb60]'
-                  : 'bg-white/25 group-hover:bg-white/35',
+                  ? 'bg-gradient-to-t from-[#a899ff]/70 to-[#c4b8ff]'
+                  : 'bg-[#8f84f0]/65 group-hover:bg-[#a99dff]/85',
               )}
               style={{
                 height: `${Math.round(point.energy * 85)}%`,
@@ -126,9 +126,9 @@ export function MotionSoundtrackTrack({
               className={cn(
                 'absolute top-0 bottom-0 w-[1.5px] -translate-x-1/2 transition-all',
                 beat.type === 'climax'
-                  ? 'bg-amber-400/80 shadow-[0_0_8px_rgba(251,191,36,0.6)]'
+                  ? 'bg-[#d4b6ff]/80 shadow-[0_0_8px_rgba(182,144,255,0.6)]'
                   : beat.type === 'downbeat'
-                    ? 'bg-[#98f237]/75 shadow-[0_0_6px_rgba(152,242,55,0.4)]'
+                    ? 'bg-[#b4a7ff]/75 shadow-[0_0_6px_rgba(165,151,255,0.4)]'
                     : 'bg-white/20',
                 isCurrent && 'w-[2.5px] bg-white scale-y-110 shadow-[0_0_10px_#fff]',
               )}
@@ -152,7 +152,7 @@ export function MotionSoundtrackTrack({
               }}
             />
           ) : (
-            <div className="grid size-4 place-items-center rounded bg-[#98f237]/20 text-[#b4fb60]">
+            <div className="grid size-4 place-items-center rounded bg-[#a99dff]/20 text-[#d6ceff]">
               <Music className="size-2.5" />
             </div>
           )}
@@ -160,13 +160,14 @@ export function MotionSoundtrackTrack({
             {track.title}
           </span>
           <span className="hidden text-white/40 sm:inline">• {track.artist}</span>
-          <span className="rounded bg-[#98f237]/20 px-1 py-0.2 text-[9px] font-mono font-medium text-[#b4fb60]">
+          <span className="rounded bg-[#a99dff]/20 px-1 py-0.2 text-[9px] font-mono font-medium text-[#d6ceff]">
             {bpm} BPM
           </span>
         </div>
 
         {/* Quick action buttons */}
         <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
+          {onVolumeChange ? <label className="flex items-center gap-1 rounded bg-black/60 px-1.5 py-1 text-[9px] text-white/70"><span className="sr-only">Soundtrack volume</span><input aria-label="Soundtrack volume" type="range" min="0" max="1" step="0.05" value={volume} onChange={(event) => onVolumeChange(Number(event.target.value))} className="h-1 w-12 accent-[#b4a7ff]" /><span className="w-6 tabular-nums">{Math.round(volume * 100)}%</span></label> : null}
           {onToggleMute ? (
             <button
               type="button"
@@ -175,6 +176,7 @@ export function MotionSoundtrackTrack({
                 onToggleMute()
               }}
               title={isMuted ? 'Unmute soundtrack' : 'Mute soundtrack'}
+              aria-label={isMuted ? 'Unmute soundtrack' : 'Mute soundtrack'}
               className="grid size-6 place-items-center rounded bg-black/60 text-white/70 hover:bg-black/90 hover:text-white"
             >
               {isMuted ? <VolumeX className="size-3" /> : <Volume2 className="size-3" />}

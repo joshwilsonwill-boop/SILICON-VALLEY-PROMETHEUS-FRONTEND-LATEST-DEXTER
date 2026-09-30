@@ -124,6 +124,7 @@
     "tailwind-merge": "^3.3.1",
     "tailwindcss-animate": "^1.0.7",
     "thinking-orbs": "^0.3.1",
+    "three": "^0.186.1",
     "vaul": "^1.1.2",
     "zod": "3.25.76",
     "zustand": "^5.0.14"
@@ -137,6 +138,7 @@
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/three": "^0.186.0",
     "@types/uuid": "^10.0.0",
     "baseline-browser-mapping": "^2.10.23",
     "eslint": "^9.38.0",

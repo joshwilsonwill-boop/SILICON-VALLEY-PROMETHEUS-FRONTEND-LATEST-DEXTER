@@ -129,20 +129,21 @@ body {
   margin: 0;
 }
 
-/* Keep the Motion workspace subordinate to the editor viewport. Its timeline is
-   intentionally compact so the source frame remains completely visible. */
+/* Keep the Motion workspace responsive to the editorial timeline. */
 [data-motion-chamber] > section[aria-label='Video timeline'] {
-  height: 9rem;
+  min-height: 14rem;
+  height: 17rem;
 }
 
 [data-motion-chamber] > section[aria-label='Video timeline'] > div:first-child {
-  height: 2.5rem;
+  height: 2.75rem;
   padding-inline: 1rem;
 }
 
 @media (min-width: 640px) {
   [data-motion-chamber] > section[aria-label='Video timeline'] {
-    height: 10rem;
+    min-height: 16rem;
+    height: 18.5rem;
   }
 }
 

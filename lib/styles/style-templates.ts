@@ -9,21 +9,21 @@ export type StyleTemplate = {
 export const STYLE_TEMPLATES: StyleTemplate[] = [
   {
     id: 'style_iman_punchy',
-    name: 'Iman Punchy',
+    name: 'Alex Punchy',
     description: 'Aggressive pacing, strong captions, momentum-focused cut rhythm.',
     tags: ['Captions: High', 'Pacing: Aggressive', 'B-roll: Balanced'],
     previewImages: ['/style-previews/iman-1.jpg'],
   },
   {
     id: 'style_iman_clean',
-    name: 'Iman Clean',
+    name: 'Alex Clean',
     description: 'Minimalist captions, crisp jump cuts, premium sound design slots.',
     tags: ['Captions: Medium', 'Pacing: Snappy', 'B-roll: Rare'],
     previewImages: ['/style-previews/iman-2.jpg'],
   },
   {
     id: 'style_podcast_dynamic',
-    name: 'Long Form Typography V1',
+    name: 'Dan Long Form Typography V1',
     description: 'Long-form SVG typography, highlight markers, and smart punch-ins.',
     tags: ['Captions: High', 'Pacing: Snappy', 'B-roll: Rare'],
     previewImages: ['/style-previews/podcast-1.jpg'],
@@ -61,6 +61,6 @@ export const STYLE_TEMPLATES: StyleTemplate[] = [
     name: 'Minimal Subtle',
     description: 'Bare captions and clean cuts for brand-first content.',
     tags: ['Captions: Low', 'Pacing: Smooth', 'B-roll: Rare'],
-    previewImages: ['/style-previews/iman-2.jpg'],
+    previewImages: ['/style-previews/minimal-subtle-1.jpg'],
   },
 ]

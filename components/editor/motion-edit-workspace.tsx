@@ -39,6 +39,11 @@ import { StyleCloneCard } from '@/components/editor/style-clone-card'
 import type {EditorialReadiness} from '@/lib/editor/editorial-readiness'
 import type {EditorialCleanupRun} from '@/lib/editor/editorial-run'
 import { MotionSoundtrackTrack } from '@/components/editor/motion/motion-soundtrack-track'
+import { EditorialTimelineTracks } from '@/components/editor/editorial-timeline-tracks'
+import { EditorialTimelineViewport } from '@/components/editor/editorial-timeline-viewport'
+import { EditorialAudioPreview } from '@/components/editor/editorial-audio-preview'
+import { EditorialSyncStatus } from '@/components/editor/editorial-sync-status'
+import { useEditorialTimeline } from '@/hooks/use-editorial-timeline'
 import type { MusicRecommendation } from '@/lib/types'
 
 type PreviewMediaKind = 'video' | 'image'
@@ -162,7 +167,7 @@ const TREATMENTS: { id: PreviewTreatment; label: string; filter: string }[] = [
 ]
 
 const DEFAULT_CROP_RECT: CropRect = { left: 0, top: 0, width: 100, height: 100 }
-const DEFAULT_TIMELINE_HEIGHT = 160
+const DEFAULT_TIMELINE_HEIGHT = 292
 const MIN_TIMELINE_HEIGHT = 112
 const MAX_TIMELINE_HEIGHT_ARIA = 1000
 const TIMELINE_REVEAL_THRESHOLD = 8
@@ -261,8 +266,28 @@ export function MotionEditWorkspace({
   onTogglePlayback, onPickSource, onSourceDrop, onSourceDragOver, onSourceDragLeave, isSourceDragOver = false,
   textPlacements, onSeek, onVideoLoadedMetadata, onVideoLoadedData, onVideoCanPlay,
   onVideoTimeUpdate, onVideoEnded, onVideoPlay, onVideoPause, onVideoError, onImageLoaded, onApplyPrompt,
-  selectedMusicTrack = null, onSelectMusicTrack, onOpenMusicCatalog, soundtrackVolume = 0.5, onSoundtrackVolumeChange, soundtrackMuted = false, onSoundtrackMutedChange,
+  selectedMusicTrack: parentSelectedMusicTrack = null, onSelectMusicTrack, onOpenMusicCatalog, soundtrackVolume: parentSoundtrackVolume = 0.5, onSoundtrackVolumeChange: parentVolumeChange, soundtrackMuted: parentSoundtrackMuted = false, onSoundtrackMutedChange: parentMutedChange,
 }: MotionEditWorkspaceProps) {
+  const editorial = useEditorialTimeline()
+  const selectedMusicTrack = editorial.timeline?.music?.track ?? parentSelectedMusicTrack
+  const soundtrackVolume = editorial.timeline?.music?.volume ?? parentSoundtrackVolume
+  const soundtrackMuted = editorial.timeline?.music?.muted ?? parentSoundtrackMuted
+  const [audioError, setAudioError] = React.useState<string | null>(null)
+  const onSoundtrackVolumeChange = React.useCallback((volume: number) => {
+    parentVolumeChange?.(volume)
+    editorial.patch({ type: 'mix', volume })
+  }, [editorial.patch, parentVolumeChange])
+  const onSoundtrackMutedChange = React.useCallback((muted: boolean) => {
+    parentMutedChange?.(muted)
+    editorial.patch({ type: 'mix', muted })
+  }, [editorial.patch, parentMutedChange])
+  React.useEffect(() => {
+    if (editorial.timeline?.music) {
+      if (parentSoundtrackVolume !== soundtrackVolume) parentVolumeChange?.(soundtrackVolume)
+      if (parentSoundtrackMuted !== soundtrackMuted) parentMutedChange?.(soundtrackMuted)
+    }
+  }, [editorial.timeline?.music, parentSoundtrackVolume, parentSoundtrackMuted, soundtrackVolume, soundtrackMuted, parentVolumeChange, parentMutedChange])
+  const audioEffects = React.useMemo(() => editorial.timeline?.effects ?? [], [editorial.timeline?.effects])
   const resolvedSegments = React.useMemo(() => {
     return Array.isArray(transcriptSegments) ? transcriptSegments : []
   }, [transcriptSegments])
@@ -365,6 +390,7 @@ export function MotionEditWorkspace({
   const startTimelineDrag = (event: React.PointerEvent<HTMLDivElement>) => {
     const timeline = timelineRef.current
     if (!timeline) return
+    if (event.target instanceof Element && event.target.closest('button, input')) return
     timeline.setPointerCapture(event.pointerId)
     timelineDragRef.current = { pointerId: event.pointerId, startX: event.clientX, startScrollLeft: timeline.scrollLeft, moved: false }
     setTimelineDragging(true)
@@ -988,7 +1014,99 @@ export function MotionEditWorkspace({
         <aside className="hidden w-[72px] shrink-0 border-l border-white/8 bg-black/28 lg:flex lg:flex-col lg:items-center lg:gap-2 lg:pt-3">{TOOLS.map(({ id, label, icon: Icon }) => <button key={id} type="button" onClick={() => selectTool(id)} className={cn('group flex min-h-12 w-full flex-col items-center gap-1 border-l-2 px-1 py-1.5 text-[9px] font-medium transition-colors', activeTool === id ? 'border-[#98f237] text-white' : 'border-transparent text-white/46 hover:text-white/82')}><span className={cn('grid size-7 place-items-center rounded-md transition-colors', activeTool === id ? 'bg-[#98f237]/12 text-[#b4fb60]' : 'text-white/65 group-hover:bg-white/[0.06]')}><Icon className="size-3.5" /></span>{label}</button>)}<div className="mt-auto mb-3 text-[8px] uppercase tracking-[0.12em] text-white/28">{activeTool}</div></aside>
       </div>
 
-      {showTimeline ? <section className="relative shrink-0 border-t border-[#29486c]/55 bg-[#080d17]/95" style={{ height: timelineHeight }} aria-label="Video timeline">{timelineResizeHandle}<div className="flex h-11 items-center justify-between border-b border-white/8 px-3 sm:px-5"><div className="flex items-center gap-1.5 sm:gap-3"><span className="text-xs font-semibold tracking-wide text-white/88">Editorial timeline</span><button type="button" onClick={() => setShowTimeline(false)} className="grid size-8 place-items-center rounded-md border border-white/10 bg-white/[0.035] text-white/62 transition-all hover:border-[#4d9dff]/50 hover:bg-[#4d9dff]/10 hover:text-white" aria-label="Collapse timeline" title="Collapse timeline"><PanelBottomClose className="size-3.5" /></button><button type="button" onClick={() => setCropEnabled((value) => !value)} className={cn('grid size-8 place-items-center rounded border transition-colors', cropEnabled ? 'border-[#4d9dff]/45 bg-[#4d9dff]/10 text-[#b9ddff]' : 'border-white/10 text-white/56 hover:text-white')} aria-label="Toggle crop frame"><Crop className="size-3.5" /></button><button type="button" onClick={onTogglePlayback} disabled={previewKind !== 'video' || !previewUrl} className="grid size-8 place-items-center text-white/82 disabled:opacity-35" aria-label={previewPlaying ? 'Pause timeline' : 'Play timeline'}>{previewPlaying ? <Pause className="size-4 fill-current" /> : <Play className="size-4 fill-current" />}</button><button type="button" onClick={() => onPreviewMutedChange(!previewMuted)} disabled={previewKind !== 'video' || !previewUrl} className={cn('grid size-8 place-items-center transition-colors disabled:opacity-35', previewMuted ? 'text-white/42' : 'text-[#4d9dff]')} aria-label={previewMuted ? 'Unmute preview' : 'Mute preview'}><Volume2 className="size-3.5" /></button><span className="hidden font-mono text-xs tabular-nums text-white/78 sm:inline">{currentTimeLabel} <span className="mx-1 text-white/28">/</span> {durationLabel}</span></div><label className="flex items-center gap-2 text-white/52"><ZoomOut className="size-3.5" /><span className="sr-only">Timeline zoom</span><input aria-label="Timeline zoom" type="range" min="0.7" max="2.4" step="0.1" value={zoom} onChange={(event) => setZoom(Number(event.target.value))} className="h-1 w-16 accent-[#4d9dff] sm:w-20" /><ZoomIn className="size-3.5" /></label></div><div className="flex min-h-0"><div className="hidden w-24 shrink-0 border-r border-white/8 pt-8 text-right text-[10px] text-white/40 sm:block"><div className="pr-3">Video</div><div className="mt-7 pr-3">Audio</div><div className="mt-6 pr-3">Captions</div><div className="mt-6 pr-3">Text</div><div className="mt-6 flex items-center justify-end gap-1 pr-3 text-[#4d9dff]/90"><Music className="size-2.5" /><span>Music</span></div></div><div ref={timelineRef} onPointerDown={startTimelineDrag} onPointerMove={moveTimelineDrag} onPointerUp={endTimelineDrag} onPointerCancel={endTimelineDrag} className={cn('premium-scroll-hide relative min-w-0 flex-1 touch-none select-none overflow-x-auto overflow-y-hidden px-3 pt-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4d9dff]/60', timelineDragging ? 'cursor-grabbing' : 'cursor-grab')} role="slider" aria-label="Timeline. Drag to scroll, click to seek." aria-valuemin={0} aria-valuemax={effectiveDuration} aria-valuenow={currentTimeSec} tabIndex={0} onKeyDown={(event) => { if (event.key === 'ArrowLeft') { event.preventDefault(); onSeek(Math.max(0, currentTimeSec - 1)) } if (event.key === 'ArrowRight') { event.preventDefault(); onSeek(Math.min(effectiveDuration, currentTimeSec + 1)) } if (event.key === 'Home') { event.preventDefault(); onSeek(0) } if (event.key === 'End') { event.preventDefault(); onSeek(effectiveDuration) } }}><TimelineTracks zoom={zoom} effectiveDuration={effectiveDuration} sourceLabel={sourceLabel ?? projectTitle} transcriptSegments={resolvedSegments} captionsVisible={captionsVisible} currentTime={currentTimeSec} textPlacements={textPlacements} cutRanges={effectiveCutRanges} selectedMusicTrack={selectedMusicTrack} soundtrackVolume={soundtrackVolume} soundtrackMuted={soundtrackMuted} onSoundtrackVolumeChange={onSoundtrackVolumeChange} onSoundtrackMutedChange={onSoundtrackMutedChange} onOpenMusicCatalog={onOpenMusicCatalog} onSeek={onSeek} /><div className="pointer-events-none absolute bottom-0 top-0 z-10 border-l border-[#b9ddff] shadow-[0_0_12px_rgba(77,157,255,.75)]" style={{ left: `calc(${playheadPercent * zoom}% + 0.75rem)` }}><span className="absolute -left-1.5 -top-1 size-3 rotate-45 bg-[#b9ddff]" /></div></div></div></section> : <div className="relative h-10 shrink-0 border-t border-white/10 bg-[#080d17]">{timelineResizeHandle}<button type="button" onClick={() => setShowTimeline(true)} className="group flex h-full w-full items-center justify-center gap-2 text-xs text-white/58 transition-colors hover:bg-white/[0.025] hover:text-white"><PanelBottomOpen className="size-3.5 transition-transform group-hover:-translate-y-0.5" /> Show timeline</button></div>}
+      <EditorialAudioPreview track={parentSelectedMusicTrack?.id === selectedMusicTrack?.id ? null : selectedMusicTrack} volume={soundtrackVolume} muted={soundtrackMuted} effects={audioEffects} videoRef={videoRef} playing={previewPlaying} currentTime={currentTimeSec} onError={setAudioError} />
+      {audioError ? <p role="status" className="shrink-0 border-t border-amber-200/15 bg-[#15130d] px-4 py-1 text-[10px] text-amber-100">{audioError}</p> : null}
+      {showTimeline ? (
+        <section
+          className="relative flex shrink-0 flex-col border-t border-white/10 bg-[#090d13]/98"
+          style={{ height: timelineHeight }}
+          aria-label="Video timeline"
+        >
+          {timelineResizeHandle}
+          <div className="flex items-center justify-between border-b border-white/8 bg-[#070b11] px-3 py-1">
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-semibold tracking-wide text-white/88">Editorial timeline</span>
+              <EditorialSyncStatus />
+            </div>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setCropEnabled((value) => !value)}
+                className={cn(
+                  'flex items-center gap-1 rounded border px-2 py-0.5 text-[10px] transition-colors',
+                  cropEnabled
+                    ? 'border-[#9df65a]/50 bg-[#9df65a]/10 text-[#c5ff96]'
+                    : 'border-white/10 text-white/56 hover:text-white',
+                )}
+                aria-label="Toggle crop frame"
+              >
+                <Crop className="size-3" />
+                <span>Crop</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowTimeline(false)}
+                className="grid size-7 place-items-center rounded-md border border-white/10 bg-white/[0.035] text-white/62 transition-all hover:border-[#4d9dff]/50 hover:bg-[#4d9dff]/10 hover:text-white"
+                aria-label="Collapse timeline"
+                title="Collapse timeline"
+              >
+                <PanelBottomClose className="size-3.5" />
+              </button>
+            </div>
+          </div>
+          <div className="min-h-0 flex-1 overflow-hidden">
+            <EditorialTimelineViewport
+              previewUrl={previewKind === 'video' ? previewUrl : ''}
+              playing={previewPlaying}
+              onTogglePlayback={onTogglePlayback}
+              zoom={zoom}
+              onZoomChange={setZoom}
+              effectiveDuration={effectiveDuration}
+              sourceLabel={sourceLabel ?? projectTitle}
+              transcriptSegments={resolvedSegments}
+              captionsVisible={captionsVisible}
+              currentTime={currentTimeSec}
+              textPlacements={textPlacements}
+              cutRanges={effectiveCutRanges}
+              selectedMusicTrack={selectedMusicTrack}
+              soundtrackVolume={soundtrackVolume}
+              soundtrackMuted={soundtrackMuted}
+              onSoundtrackVolumeChange={onSoundtrackVolumeChange}
+              onSoundtrackMutedChange={onSoundtrackMutedChange}
+              onOpenMusicCatalog={onOpenMusicCatalog}
+              onSeek={onSeek}
+              onSplitClip={() => {
+                if (onCutRangesChange) {
+                  onCutRangesChange([
+                    ...(cutRanges ?? []),
+                    { start: currentTimeSec, end: Math.min(effectiveDuration, currentTimeSec + 0.5) },
+                  ])
+                }
+              }}
+              onDeleteClip={() => {
+                if (activeSegment && onToggleCutSegment) {
+                  onToggleCutSegment(activeSegment.id)
+                }
+              }}
+              isFullscreen={timelineHeight > 320}
+              onToggleFullscreen={() =>
+                setTimelineHeight((h) => (h > 320 ? DEFAULT_TIMELINE_HEIGHT : 420))
+              }
+            />
+          </div>
+        </section>
+      ) : (
+        <div className="relative h-10 shrink-0 border-t border-white/10 bg-[#080d17]">
+          {timelineResizeHandle}
+          <button
+            type="button"
+            onClick={() => setShowTimeline(true)}
+            className="group flex h-full w-full items-center justify-center gap-2 text-xs text-white/58 transition-colors hover:bg-white/[0.025] hover:text-white"
+          >
+            <PanelBottomOpen className="size-3.5 transition-transform group-hover:-translate-y-0.5" /> Show timeline
+          </button>
+        </div>
+      )}
     </section>
   )
 }
@@ -1059,6 +1177,8 @@ function ToolPanel({ activeTool, treatment, captionsVisible, cropEnabled, fitMod
 }
 
 function TimelineTracks({
+  previewUrl,
+  previewKind,
   zoom,
   effectiveDuration,
   sourceLabel,
@@ -1075,6 +1195,8 @@ function TimelineTracks({
   onOpenMusicCatalog,
   onSeek,
 }: {
+  previewUrl?: string
+  previewKind?: PreviewMediaKind
   zoom: number
   effectiveDuration: number
   sourceLabel: string
@@ -1091,6 +1213,9 @@ function TimelineTracks({
   onOpenMusicCatalog?: () => void
   onSeek?: (timeSec: number) => void
 }) {
+  if (previewKind === 'video' && previewUrl) {
+    return <EditorialTimelineTracks previewUrl={previewUrl} zoom={zoom} effectiveDuration={effectiveDuration} sourceLabel={sourceLabel} transcriptSegments={transcriptSegments} captionsVisible={captionsVisible} currentTime={currentTime} textPlacements={textPlacements} cutRanges={cutRanges} selectedMusicTrack={selectedMusicTrack} soundtrackVolume={soundtrackVolume} soundtrackMuted={soundtrackMuted} onSoundtrackVolumeChange={onSoundtrackVolumeChange} onSoundtrackMutedChange={onSoundtrackMutedChange} onOpenMusicCatalog={onOpenMusicCatalog} onSeek={onSeek} />
+  }
   const width = `${zoom * 100}%`
   const activeSegment = transcriptSegments.find((segment) => isActiveSegment(segment, currentTime))
   const resolvedTextPlacements = textPlacements ?? transcriptSegments.slice(0, 3).map((segment, index) => ({
