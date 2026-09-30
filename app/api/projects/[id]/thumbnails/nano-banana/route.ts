@@ -9,8 +9,9 @@ import {
 } from '@/lib/thumbnails/nano-banana-rulebook'
 import { buildNanoBananaImageRequest, extractGeneratedImage, parseImageDataUrl } from '@/lib/thumbnails/nano-banana-image'
 
-import { buildStudioArtDirection, parseStudioDesign, resolveStudioImageModel, type StudioDesign } from '@/lib/thumbnails/studio-art-direction'
+import { buildStudioArtDirection, parseStudioDesign, resolveStudioImageModel, resolveStudioImageSize, type StudioDesign } from '@/lib/thumbnails/studio-art-direction'
 import { getStudioReference, STUDIO_REFERENCES } from '@/lib/thumbnails/studio-references'
+import { compactGeneratedThumbnail } from '@/lib/thumbnails/thumbnail-output'
 
 export const runtime = 'nodejs'
 export const maxDuration = 180
@@ -120,7 +121,7 @@ export async function POST(
     let synthesizedPrompt = ''
 
     // 1. Channel Style-Lock Analysis via Gemini Multimodal Vision
-    if (apiKey && lockChannelStyle && (referenceImages.length > 0 || frameDataUrl)) {
+    if (apiKey && lockChannelStyle && !studioDesign && (referenceImages.length > 0 || frameDataUrl)) {
       try {
         const genAI = new GoogleGenerativeAI(apiKey)
         const visionModel = genAI.getGenerativeModel({
@@ -241,7 +242,7 @@ Extract the exact Channel Style DNA (lighting ratios, color contrast, proof card
       frameDataUrl,
       referenceImages,
       aspectRatio: effectiveAspect,
-      ...(studioDesign ? { imageSize: '2K' as const } : {}),
+      ...(studioDesign ? { imageSize: resolveStudioImageSize(studioDesign.quality) } : {}),
     })
     const imageResponse = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + imageModel + ':generateContent', {
       method: 'POST',
@@ -264,10 +265,11 @@ Extract the exact Channel Style DNA (lighting ratios, color contrast, proof card
       return NextResponse.json({ error }, { status: 502 })
     }
 
-    const dataUrl = extractGeneratedImage(imageResult)
-    if (!dataUrl) {
+    const generatedDataUrl = extractGeneratedImage(imageResult)
+    if (!generatedDataUrl) {
       return NextResponse.json({ error: 'Nano Banana returned no image. Try another frame or direction.' }, { status: 502 })
     }
+    const dataUrl = await compactGeneratedThumbnail(generatedDataUrl)
 
     return NextResponse.json({
       success: true,

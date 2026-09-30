@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { DEFAULT_STUDIO_DESIGN, STUDIO_BACKGROUNDS, parseStudioDesign, buildStudioArtDirection, resolveStudioImageModel } from '../lib/thumbnails/studio-art-direction.ts'
+import { DEFAULT_STUDIO_DESIGN, STUDIO_BACKGROUNDS, parseStudioDesign, buildStudioArtDirection, resolveStudioImageModel, resolveStudioImageSize } from '../lib/thumbnails/studio-art-direction.ts'
 import { buildNanoBananaImageRequest, extractGeneratedImage } from '../lib/thumbnails/nano-banana-image.ts'
 import { readThumbnailGenerationResponse } from '../lib/thumbnails/thumbnail-response.ts'
+import { compactGeneratedThumbnail, MAX_THUMBNAIL_DATA_URL_BYTES } from '../lib/thumbnails/thumbnail-output.ts'
+import sharp from 'sharp'
 
 test('every supported background produces explicit reference-led art direction', () => {
   const directions = new Set()
@@ -29,11 +31,24 @@ test('invalid design controls fail before a generation request can be assembled'
 test('quality resolves to a fixed supported model and requests high resolution', () => {
   assert.equal(resolveStudioImageModel('fast'), 'gemini-3.1-flash-image')
   assert.equal(resolveStudioImageModel('pro'), 'gemini-3-pro-image')
+  assert.equal(resolveStudioImageSize('fast'), '1K')
+  assert.equal(resolveStudioImageSize('pro'), '2K')
   for (const aspectRatio of ['16:9','3:2','1:1','9:16','2:3']) {
     const request = buildNanoBananaImageRequest({ prompt: 'Exact headline', frameDataUrl: 'data:image/png;base64,YQ==', aspectRatio, imageSize: '2K' })
     assert.deepEqual(request.generationConfig.imageConfig, { aspectRatio, imageSize: '2K' })
     assert.equal(request.contents[0].parts[2].inline_data.data, 'YQ==')
   }
+})
+
+test('generated thumbnails are returned as compact WebP under the server response budget', async () => {
+  const source = await sharp({ create: { width: 2400, height: 1600, channels: 3, background: '#345678' } }).png().toBuffer()
+  const compact = await compactGeneratedThumbnail(`data:image/png;base64,${source.toString('base64')}`)
+  assert.match(compact, /^data:image\/webp;base64,/)
+  assert.ok(Buffer.byteLength(compact, 'utf8') <= MAX_THUMBNAIL_DATA_URL_BYTES)
+  const image = await sharp(Buffer.from(compact.split(',')[1], 'base64')).metadata()
+  assert.ok(image.width <= 1920)
+  assert.ok(image.height <= 1920)
+  await assert.rejects(compactGeneratedThumbnail('data:text/html;base64,PGgxPmVycm9yPC9oMT4='), /unsupported image format/)
 })
 
 test('legacy requests preserve their original image configuration', () => {

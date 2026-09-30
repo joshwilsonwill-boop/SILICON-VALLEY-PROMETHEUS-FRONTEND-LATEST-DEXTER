@@ -1412,7 +1412,10 @@ export function MusicTabPanel({
   const availableGenres = React.useMemo(() => Array.from(new Set(displayTracks.map((track) => track.genre).filter(Boolean))).sort(), [displayTracks])
 
   const forVideoTracks = React.useMemo(() => {
-    const fullLengthTracks = catalogTracks.filter((track) => track.durationSec >= 30)
+    const fullLengthTracks = catalogTracks.filter((track) => {
+      const sourceUrl = (track as MusicRecommendation & { sourceUrl?: string }).sourceUrl
+      return track.durationSec >= 30 && Boolean(sourceUrl || track.previewUrl !== `/api/music/preview?trackId=${encodeURIComponent(track.id)}`)
+    })
     if (!catalogReady || !fullLengthTracks.length) return tracks
 
     const sourceById = new Map(fullLengthTracks.map((track) => [track.id, track]))
@@ -1463,7 +1466,7 @@ export function MusicTabPanel({
     }
 
     return displayTracks
-  }, [activeCollection, displayTracks, favoriteTrackIds, forVideoTracks, tracks])
+  }, [activeCollection, displayTracks, favoriteTrackIds, forVideoTracks])
 
   const normalizedQuery = searchQuery.trim().toLowerCase()
   const filteredTracks = React.useMemo(() => {
@@ -1865,7 +1868,7 @@ export function MusicTabPanel({
       animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
       exit={reduceMotion ? undefined : { opacity: 0, y: 10 }}
       transition={{ duration: reduceMotion ? 0 : 0.3, ease: chamberEase }}
-      className="premium-ambient-panel premium-vignette-surface editorial-light-effect relative flex h-full min-h-0 w-full max-w-[1280px] flex-1 self-center overflow-hidden rounded-[18px] border border-[#29486c]/60 bg-[#080c14] px-3 pb-28 pt-3 shadow-[0_32px_90px_-58px_rgba(0,0,0,0.98)] sm:px-5 sm:pt-4 md:-mx-4 md:-my-4 md:relative md:left-1/2 md:w-[calc(100vw-2rem)] md:max-w-none md:-translate-x-1/2"
+      className="premium-ambient-panel premium-vignette-surface editorial-light-effect relative flex h-full min-h-0 w-full max-w-[1280px] flex-1 self-center overflow-hidden rounded-[18px] border border-[#29486c]/60 bg-[#080c14] px-3 pb-28 pt-3 shadow-[0_32px_90px_-58px_rgba(0,0,0,0.98)] sm:px-5 sm:pt-4 md:-mx-4 md:-mt-5 md:-mb-4 md:w-[calc(100%_+_2rem)] md:max-w-none"
     >
         <style>{`
           @keyframes music-eq {

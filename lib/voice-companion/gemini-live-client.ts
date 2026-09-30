@@ -193,7 +193,8 @@ Be concise, direct, and natural. Default to one short sentence; add detail only 
 
 ### MEDIA AND PROJECT TRUTH:
 Call get_editor_state before answering questions about the current project or attempting a media edit. Treat hasVideo and sourceMediaState as the authority for whether playable video is available. A nonzero timelineDurationSec, transcript, project title, or remembered context does not prove a source video is loaded. If media is missing, say: "No video is attached yet. Add source media to continue." If it is still loading, say so. If unavailable, say: "The linked video is not playable here. Reattach the source video." If the source is not a video, say that directly. Do not redirect an empty-project request into unrelated research or invent footage.
-You can inspect visual content only when video frames were explicitly provided in this session. A transcript is not visual evidence. If no frames were provided, be clear that you cannot see the footage.
+You can inspect visual content by calling inspect_video, which samples up to five frames from the active source. Call it before making claims or edit decisions that depend on what is visible. A transcript is not visual evidence. If no frames are returned, be clear that the footage could not be visually read here.
+When the user explicitly delegates a video edit, call toggle_agent_takeover once to begin a persistent editing session, then inspect_video and get_editor_state before acting. Do not ask the user to enable takeover or re-enable it between actions. Keep the session active while you inspect the available evidence, navigate, make the requested edits, and review the result. Call end_agent_takeover only when the task is complete or the user asks to stop. Use available transcript and music-context evidence; never invent visual observations or claim browser research unless a tool actually provides it.
 For questions about specific spoken content, call search_video_transcript and ground the answer in its returned excerpts. The full transcript is retrieved on demand.
 Never claim an edit, playback change, or render happened unless its tool result reports success. When a tool returns success:false, explain the blocker briefly.
 
@@ -300,6 +301,14 @@ Keep your spoken responses fluid, punchy, conversational, and helpful. Never rea
                 },
               },
               {
+                name: 'inspect_video',
+                description: 'Move across the active video and send up to five evenly spaced decoded frames to this live session for visual analysis. Use before making visual editing decisions; returns the timestamps that were actually captured.',
+                parameters: {
+                  type: 'object',
+                  properties: {},
+                },
+              },
+              {
                 name: 'search_video_transcript',
                 description: 'Search the active video transcript for short relevant excerpts. Use this before answering questions about specific spoken content. The transcript is retrieved on demand to keep Live sessions fast.',
                 parameters: {
@@ -349,7 +358,15 @@ Keep your spoken responses fluid, punchy, conversational, and helpful. Never rea
               },
               {
                 name: 'toggle_agent_takeover',
-                description: 'Toggle autonomous takeover mode. When enabled, you may execute editing changes (caption styling, renders, playback speed). Announce the new state to the user.',
+                description: 'Begin a persistent autonomous editing session for a task the user explicitly delegated. Call once at the start; it stays active across actions and does not navigate to a different workspace.',
+                parameters: {
+                  type: 'object',
+                  properties: {},
+                },
+              },
+              {
+                name: 'end_agent_takeover',
+                description: 'Return control to the user and end the persistent autonomous editing session. Use when the task is complete or the user asks to stop.',
                 parameters: {
                   type: 'object',
                   properties: {},

@@ -8393,6 +8393,33 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
     }
   }, [])
 
+  const captureVoiceVideoFrame = React.useCallback(async (timeSec: number): Promise<string | null> => {
+    const video = previewVideoRef.current
+    if (!video || video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA || !video.videoWidth || !video.videoHeight) {
+      return null
+    }
+
+    // Let the seeked frame reach the compositor before drawing it to canvas.
+    await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())))
+    if (Math.abs(video.currentTime - timeSec) > 0.75) return null
+
+    const width = Math.min(480, video.videoWidth)
+    const height = Math.max(1, Math.round((width / video.videoWidth) * video.videoHeight))
+    const canvas = document.createElement('canvas')
+    canvas.width = width
+    canvas.height = height
+    const context = canvas.getContext('2d')
+    if (!context) return null
+
+    try {
+      context.drawImage(video, 0, 0, width, height)
+      return canvas.toDataURL('image/jpeg', 0.68)
+    } catch {
+      // Cross-origin sources may taint the canvas; keep the text-only edit path available.
+      return null
+    }
+  }, [])
+
   const chatContextProvider = React.useCallback<AIChatContextProvider>(
     () => ({ ...chatLiveStateRef.current, frameThumbs: captureChatFrameThumbs() }),
     [captureChatFrameThumbs],
@@ -8507,19 +8534,22 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
     setIsAgentTakeoverEnabled((prev) => {
       const next = !prev
       if (next) {
-        toast.info('Autonomous Takeover active — Jarvis taking control', {
-          description: 'Navigating to Motion Schema and executing autonomous actions.',
+        toast.info('Autonomous editing session active', {
+          description: 'Jarvis can now move through the edit and keep control for the full task.',
         })
-        autonomousCoordinator.executeAutonomousTakeover('Motion', (tab) => {
-          setActiveWorkspaceTab(tab as HeaderNavMode)
-          setBottomMode(tab === 'Music' ? 'Music' : 'Original')
-        })
+        autonomousCoordinator.beginTakeover('Jarvis is preparing the edit')
       } else {
         autonomousCoordinator.endTakeover()
         toast.info('Autonomous Takeover disabled — control returned to user.')
       }
       return next
     })
+  }, [])
+
+  React.useEffect(() => {
+    const handleTakeoverEnded = () => setIsAgentTakeoverEnabled(false)
+    window.addEventListener('prometheus:autonomous-takeover-ended', handleTakeoverEnded)
+    return () => window.removeEventListener('prometheus:autonomous-takeover-ended', handleTakeoverEnded)
   }, [])
 
   // Wire the Jarvis voice companion (global filament) to this editor instance
@@ -8559,6 +8589,7 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
               ? 'unavailable'
               : 'missing',
       videoMusicContext: videoContext,
+      captureVideoFrame: captureVoiceVideoFrame,
       onSelectMusicTrack: (trackId: string) => setSelectedEditorMusicTrackId(trackId),
     })
     return () => {
@@ -8581,6 +8612,7 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
     isSourceStageActivelyLoading,
     transportDurationSec,
     videoContext,
+    captureVoiceVideoFrame,
   ])
 
   React.useEffect(() => {

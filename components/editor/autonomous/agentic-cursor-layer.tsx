@@ -38,6 +38,7 @@ import { Agent3DCursor } from './agent-3d-cursor'
 import { AgentTakeoverScrim } from './agent-takeover-scrim'
 import { AgentBoundingReticle } from './agent-bounding-reticle'
 import { AgentEscapeHatch } from './agent-escape-hatch'
+import { AgentSessionHud } from './agent-session-hud'
 
 // ─── Pill icon mapping ───────────────────────────────────────────────────────
 
@@ -364,6 +365,7 @@ export function AgenticCursorLayer() {
 
       {/* z-[9998] Escape hatch — always last so it's never occluded */}
       <AgentEscapeHatch />
+      <AgentSessionHud />
     </>
   )
 }

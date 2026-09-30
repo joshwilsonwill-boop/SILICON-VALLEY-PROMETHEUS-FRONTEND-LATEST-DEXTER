@@ -200,6 +200,38 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
           }
         }
 
+        case 'inspect_video': {
+          const bridge = handlersRef.current
+          if (!bridge.hasVideo) return { success: false, error: 'There is no playable source video to inspect.' }
+          if (!bridge.captureVideoFrame) return { success: false, error: 'The editor cannot capture a decoded frame from this source.' }
+          const durationSec = bridge.videoDurationSec || bridge.timelineDurationSec || 0
+          if (durationSec <= 0) return { success: false, error: 'The video duration is not available yet.' }
+
+          const sampleFractions = [0.08, 0.28, 0.5, 0.72, 0.92]
+          const sampledAtSec: number[] = []
+          for (const fraction of sampleFractions) {
+            const timeSec = Math.max(0, Math.min(durationSec, durationSec * fraction))
+            const seekSucceeded = await autonomousCoordinator.executeSeekTimeline(
+              timeSec,
+              durationSec,
+              (time) => { void bridge.onSeek?.(time) },
+              true,
+            )
+            if (!seekSucceeded) continue
+
+            const frameDataUrl = await bridge.captureVideoFrame(timeSec)
+            const frameBase64 = frameDataUrl?.split(',')[1]
+            if (!frameBase64) continue
+
+            clientRef.current?.sendVisualFrame(frameBase64)
+            sampledAtSec.push(Number(timeSec.toFixed(1)))
+          }
+
+          return sampledAtSec.length > 0
+            ? { success: true, frameCount: sampledAtSec.length, sampledAtSec, note: 'Video frames were sent to the live session for visual inspection.' }
+            : { success: false, error: 'No readable video frames could be captured from the source.' }
+        }
+
         case 'search_video_transcript': {
           const transcript = handlersRef.current.transcriptText || ''
           if (!transcript.trim()) return { success: false, error: 'There is no video transcript available in this project.' }
@@ -260,8 +292,13 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
 
         case 'toggle_agent_takeover': {
           if (!onToggleTakeover) return { success: false, error: 'Editor not linked — cannot toggle takeover.' }
-          onToggleTakeover()
-          return { success: true, takeoverEnabled: !isTakeoverEnabled }
+          if (!isTakeoverEnabled) onToggleTakeover()
+          return { success: true, takeoverEnabled: true, status: 'Persistent editing access is active for this task.' }
+        }
+
+        case 'end_agent_takeover': {
+          autonomousCoordinator.endTakeover()
+          return { success: true, takeoverEnabled: false, status: 'Control returned to the user.' }
         }
 
         case 'set_playback_rate': {

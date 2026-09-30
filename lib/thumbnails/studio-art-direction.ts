@@ -59,3 +59,7 @@ export function buildStudioArtDirection(design: StudioDesign, headline: string, 
 export function resolveStudioImageModel(quality: StudioQuality): string {
   return quality === 'pro' ? 'gemini-3-pro-image' : 'gemini-3.1-flash-image'
 }
+
+export function resolveStudioImageSize(quality: StudioQuality): '1K' | '2K' {
+  return quality === 'pro' ? '2K' : '1K'
+}

@@ -120,6 +120,7 @@
     "recharts": "2.15.4",
     "remark-gfm": "^4.0.1",
     "remotion": "^4.0.446",
+    "sharp": "^0.34.5",
     "sonner": "^1.7.4",
     "tailwind-merge": "^3.3.1",
     "tailwindcss-animate": "^1.0.7",
