@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { DEFAULT_STUDIO_DESIGN, STUDIO_LAYOUTS, STUDIO_BACKGROUNDS, parseStudioDesign, buildStudioArtDirection, resolveStudioImageModel } from '../lib/thumbnails/studio-art-direction.ts'
 import { buildNanoBananaImageRequest, extractGeneratedImage } from '../lib/thumbnails/nano-banana-image.ts'
+import { readThumbnailGenerationResponse } from '../lib/thumbnails/thumbnail-response.ts'
 
 test('every supported layout and background produces distinct explicit art direction', () => {
   const directions = new Set()
@@ -28,7 +29,7 @@ test('invalid design controls fail before a generation request can be assembled'
 test('quality resolves to a fixed supported model and requests high resolution', () => {
   assert.equal(resolveStudioImageModel('fast'), 'gemini-3.1-flash-image')
   assert.equal(resolveStudioImageModel('pro'), 'gemini-3-pro-image')
-  for (const aspectRatio of ['16:9','1:1','9:16','2:3']) {
+  for (const aspectRatio of ['16:9','3:2','1:1','9:16','2:3']) {
     const request = buildNanoBananaImageRequest({ prompt: 'Exact headline', frameDataUrl: 'data:image/png;base64,YQ==', aspectRatio, imageSize: '2K' })
     assert.deepEqual(request.generationConfig.imageConfig, { aspectRatio, imageSize: '2K' })
     assert.equal(request.contents[0].parts[2].inline_data.data, 'YQ==')
@@ -44,6 +45,11 @@ test('thinking images are skipped and only finished artwork is exported', () => 
   const response = { candidates: [{ content: { parts: [{ thought: true, inlineData: { mimeType: 'image/png', data: 'dGhvdWdodA==' } }, { inlineData: { mimeType: 'image/png', data: 'ZmluYWw=' } }] } }] }
   assert.equal(extractGeneratedImage(response), 'data:image/png;base64,ZmluYWw=')
   assert.equal(extractGeneratedImage({ candidates: [{ content: { parts: [response.candidates[0].content.parts[0]] } }] }), null)
+})
+
+test('HTML gateway pages produce a recoverable message and valid JSON artwork survives parsing', async () => {
+  await assert.rejects(readThumbnailGenerationResponse(new Response('<!DOCTYPE html><title>Gateway</title>', { status: 502, headers: { 'Content-Type': 'text/html' } })), /returned a web page instead of artwork/)
+  assert.deepEqual(await readThumbnailGenerationResponse(Response.json({ dataUrl: 'data:image/png;base64,YQ==' })), { dataUrl: 'data:image/png;base64,YQ==' })
 })
 
 test('user headline, color, and no-emphasis choices stay authoritative', () => {

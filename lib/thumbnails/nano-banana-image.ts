@@ -5,7 +5,7 @@ export type NanoBananaImageRequest = {
   contents: Array<{ role: 'user'; parts: Array<TextPart | ImagePart> }>
   generationConfig: {
     responseModalities: ['TEXT', 'IMAGE']
-    imageConfig: { aspectRatio: '9:16' | '2:3' | '1:1' | '16:9'; imageSize?: '1K' | '2K' }
+    imageConfig: { aspectRatio: '9:16' | '2:3' | '1:1' | '3:2' | '16:9'; imageSize?: '1K' | '2K' }
   }
 }
 
@@ -18,7 +18,7 @@ export function buildNanoBananaImageRequest(input: {
   prompt: string
   frameDataUrl: string
   referenceImages?: string[]
-  aspectRatio: '9:16' | '2:3' | '1:1' | '16:9'
+  aspectRatio: '9:16' | '2:3' | '1:1' | '3:2' | '16:9'
   imageSize?: '1K' | '2K'
 }): NanoBananaImageRequest {
   const frame = parseImageDataUrl(input.frameDataUrl)

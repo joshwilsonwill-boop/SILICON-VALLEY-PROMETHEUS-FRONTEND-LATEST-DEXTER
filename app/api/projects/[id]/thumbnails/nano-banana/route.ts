@@ -30,7 +30,7 @@ interface NanoBananaRequestBody {
   lightingId?: string
   brandColor?: string
   userPrompt?: string
-  aspectRatio?: '9:16' | '2:3' | '1:1' | '16:9'
+  aspectRatio?: '9:16' | '2:3' | '1:1' | '3:2' | '16:9'
   referenceImages?: string[]
   lockChannelStyle?: boolean
 }
@@ -210,7 +210,7 @@ Extract the exact Channel Style DNA (lighting ratios, color contrast, proof card
     }
 
     const recipe = VIRAL_THUMBNAIL_RECIPES.find((r) => r.id === body?.recipeId)
-    const effectiveAspect = aspectRatio === '16:9' ? '16:9' : aspectRatio === '1:1' ? '1:1' : aspectRatio === '2:3' ? '2:3' : '9:16'
+    const effectiveAspect = aspectRatio === '16:9' || aspectRatio === '3:2' || aspectRatio === '1:1' || aspectRatio === '2:3' || aspectRatio === '9:16' ? aspectRatio : '9:16'
 
     const rulebookPrompt = buildNanoBananaPrompt({
       headline,

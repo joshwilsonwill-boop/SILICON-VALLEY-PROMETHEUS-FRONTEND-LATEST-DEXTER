@@ -23,7 +23,7 @@ export type ThumbnailVariant = {
 type Props = {
   projectTitle: string
   aspectRatio: string
-  onAspectRatio: (value: '16:9' | '1:1' | '9:16' | '2:3') => void
+  onAspectRatio: (value: '16:9' | '3:2' | '1:1' | '9:16' | '2:3') => void
   design: StudioDesign
   onDesign: (update: Partial<StudioDesign>) => void
   headline: string
@@ -80,6 +80,9 @@ export function ThumbnailWorkspace(props: Props) {
   const [view, setView] = React.useState<'artwork' | 'source' | 'feed'>('artwork')
   const [guides, setGuides] = React.useState(false)
   const [dimensions, setDimensions] = React.useState('')
+  const [artboardSize, setArtboardSize] = React.useState({ width: 640, height: 360 })
+  const [tilt, setTilt] = React.useState({ x: 0, y: 0, pointerX: 50, pointerY: 50 })
+  const stageRef = React.useRef<HTMLDivElement>(null)
   const dialogRef = React.useRef<HTMLDivElement>(null)
   const closeRef = React.useRef<HTMLButtonElement>(null)
   const frameStripRef = React.useRef<HTMLDivElement>(null)
@@ -106,8 +109,32 @@ export function ThumbnailWorkspace(props: Props) {
   const source = props.candidates[props.selectedFrameIndex]
   const image = view === 'source' ? source?.dataUrl : props.generatedUrl ?? props.previewUrl
   const background = STUDIO_BACKGROUNDS.find(item => item.id === props.design.background)!
-  const aspect = props.aspectRatio.replace(':', ' / ')
-  const portrait = props.aspectRatio === '9:16' || props.aspectRatio === '2:3'
+  const [ratioWidth, ratioHeight] = props.aspectRatio.split(':').map(Number)
+  const feedScale = view === 'feed' ? Math.min(1, 320 / artboardSize.width, 270 / artboardSize.height) : 1
+  React.useEffect(() => {
+    const node = stageRef.current
+    if (!node) return
+    const update = () => {
+      const bounds = node.getBoundingClientRect()
+      const maxWidth = Math.max(80, bounds.width - 36)
+      const maxHeight = Math.max(120, Math.min(bounds.height - 36, window.innerWidth <= 800 ? 360 : 510))
+      const scale = Math.min(maxWidth / ratioWidth, maxHeight / ratioHeight)
+      setArtboardSize({ width: Math.round(ratioWidth * scale), height: Math.round(ratioHeight * scale) })
+    }
+    update()
+    const observer = new ResizeObserver(update)
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [ratioWidth, ratioHeight])
+  const handleStagePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType !== 'mouse' || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    const bounds = stageRef.current?.getBoundingClientRect()
+    if (!bounds) return
+    const px = (event.clientX - bounds.left) / bounds.width
+    const py = (event.clientY - bounds.top) / bounds.height
+    setTilt({ x: (0.5 - py) * 5, y: (px - 0.5) * 7, pointerX: px * 100, pointerY: py * 100 })
+  }
+  const resetStageTilt = () => setTilt({ x: 0, y: 0, pointerX: 50, pointerY: 50 })
   const headlineWords = Array.from(new Set(props.headline.trim().split(/\s+/).filter(Boolean)))
   const onFileInput = (event: React.ChangeEvent<HTMLInputElement>, action: (files: File[]) => void) => { action(Array.from(event.target.files ?? [])); event.target.value = '' }
   const title = tab === 'create' ? 'Make the first impression count.' : tab === 'styles' ? 'Find your visual direction.' : 'Make it unmistakably yours.'
@@ -150,10 +177,11 @@ export function ThumbnailWorkspace(props: Props) {
       </header>
       <div className={styles.body}>
         <section className={styles.canvasColumn} aria-label="Thumbnail preview and source frames">
-          <div className={styles.canvasToolbar}><p className={styles.subtitle}>A great video deserves a great first look.</p><div className={styles.aspectGroup} aria-label="Aspect ratio">{(['16:9','1:1','9:16','2:3'] as const).map(ratio => <button type="button" className={styles.aspectButton} key={ratio} aria-pressed={props.aspectRatio === ratio} onClick={() => props.onAspectRatio(ratio)}>{ratio}</button>)}</div></div>
-          <div className={styles.stage} aria-busy={props.isGenerating}>
-            {image ? <div style={{ position: 'relative', maxWidth: '100%', display: 'grid', placeItems: 'center' }}>
-              <img key={image} src={image} alt={view === 'source' ? 'Selected video frame at ' + source?.timecode : props.headline ? 'Thumbnail: ' + props.headline : 'Video frame layout preview'} className={[styles.stageImage, portrait ? styles.portrait : styles.landscape, view === 'feed' ? styles.feedImage : ''].join(' ')} style={{ aspectRatio: aspect }} onLoad={event => setDimensions(event.currentTarget.naturalWidth + ' × ' + event.currentTarget.naturalHeight)} />
+          <div className={styles.canvasToolbar}><div className={styles.previewIdentity}><span className={styles.previewSparkle}><Sparkles size={14} /></span><div><span className={styles.previewEyebrow}>YOUR NEXT FIRST IMPRESSION</span><p className={styles.subtitle}>A great video deserves a great first look.</p></div></div><div className={styles.aspectGroup} aria-label="Aspect ratio">{(['16:9','3:2','1:1','2:3','9:16'] as const).map(ratio => <button type="button" className={styles.aspectButton} key={ratio} aria-pressed={props.aspectRatio === ratio} onClick={() => props.onAspectRatio(ratio)}>{ratio}</button>)}</div></div>
+          <div className={styles.stage} ref={stageRef} aria-busy={props.isGenerating} onPointerMove={handleStagePointerMove} onPointerLeave={resetStageTilt}>
+            {image ? <div className={styles.artboard} data-testid="thumbnail-artboard" style={{ width: artboardSize.width * feedScale, height: artboardSize.height * feedScale, transform: `perspective(1200px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`, '--pointer-x': `${tilt.pointerX}%`, '--pointer-y': `${tilt.pointerY}%` } as React.CSSProperties}>
+              <img key={image} src={image} alt={view === 'source' ? 'Selected video frame at ' + source?.timecode : props.headline ? 'Thumbnail: ' + props.headline : 'Video frame layout preview'} className={[styles.stageImage, view === 'source' ? styles.stageSource : ''].join(' ')} onLoad={event => setDimensions(`${event.currentTarget.naturalWidth} × ${event.currentTarget.naturalHeight}`)} />
+              <div className={styles.stageGlare} aria-hidden="true" />
               {guides && view !== 'source' && <div className={styles.guides} aria-hidden="true" />}
             </div> : <div className={styles.empty}>{props.isExtracting ? <Loader2 size={25} className={styles.spin} /> : <Camera size={28} />}<strong>{props.isExtracting ? 'Finding your best frames' : 'Start with your subject'}</strong><p>{props.isExtracting ? 'We’re preparing frames from your video.' : 'Load a video in the editor, or add a still image to start creating.'}</p>{!props.isExtracting && <label className={styles.upload}><ImagePlus size={16} /><span>Add a source image</span><input className={styles.hiddenInput} type="file" accept="image/png,image/jpeg,image/webp" aria-label="Upload source image" onChange={event => onFileInput(event, props.onUploadFrame)} /></label>}</div>}
             {props.isGenerating && <div className={styles.generating} role="status"><Sparkles size={27} className={styles.spin} /><strong>Composing your thumbnail</strong><small>Refining the subject, lighting, and headline.</small><button className={styles.secondary} type="button" onClick={props.onCancel}>Cancel generation</button></div>}

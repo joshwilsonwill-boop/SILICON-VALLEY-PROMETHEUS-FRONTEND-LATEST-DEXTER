@@ -5,6 +5,7 @@ import { ThumbnailEngine, type ExtractedFrameCandidate, type ThumbnailTextPositi
 import { VIRAL_THUMBNAIL_RECIPES } from '@/lib/thumbnails/nano-banana-rulebook'
 import { DEFAULT_STUDIO_DESIGN, STUDIO_LAYOUTS, type StudioDesign, type StudioLayout } from '@/lib/thumbnails/studio-art-direction'
 import { renderStudioDraft } from '@/lib/thumbnails/studio-draft'
+import { readThumbnailGenerationResponse } from '@/lib/thumbnails/thumbnail-response'
 import { ThumbnailWorkspace, type ThumbnailVariant } from '@/components/editor/thumbnail-studio/ThumbnailWorkspace'
 
 interface ThumbnailStudioModalProps {
@@ -23,8 +24,8 @@ interface AiCurationResponse {
   hookTitles: string[]
 }
 
-export type StudioAspectRatio = '9:16' | '2:3' | '1:1' | '16:9'
-const DIMENSIONS: Record<StudioAspectRatio, [number, number]> = { '16:9': [1280,720], '1:1': [1080,1080], '9:16': [720,1280], '2:3': [720,1080] }
+export type StudioAspectRatio = '9:16' | '2:3' | '1:1' | '3:2' | '16:9'
+const DIMENSIONS: Record<StudioAspectRatio, [number, number]> = { '16:9': [1280,720], '3:2': [1440,960], '1:1': [1080,1080], '9:16': [720,1280], '2:3': [720,1080] }
 
 export type SpatialPointId =
   | 'top-left'
@@ -253,9 +254,9 @@ export function ThumbnailStudioModal({ isOpen, onClose, projectId, projectTitle,
         method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: controller.signal,
         body: JSON.stringify({ frameDataUrl: activeFrame.dataUrl, headline: headline.trim(), highlightWord, recipeId, backgroundId: recipe.backgroundStyle, textTreatmentId: recipe.textTreatmentStyle, proofArtifactId: recipe.proofArtifact, directionalId: recipe.directionalStyle, lightingId: recipe.lightingStyle, brandColor: design.accent, aspectRatio, userPrompt: creativeDirection.trim(), referenceImages: channelReferences, lockChannelStyle: channelReferences.length > 0, studioDesign: design }),
       })
-      const data = await response.json()
+      const data = await readThumbnailGenerationResponse(response)
       if (controller.signal.aborted) return
-      if (!response.ok || typeof data.dataUrl !== 'string' || !/^data:image\/(png|jpeg|webp);base64,/.test(data.dataUrl)) throw new Error(data.error || 'Nano Banana did not return an image. Try another frame or direction.')
+      if (!response.ok || typeof data.dataUrl !== 'string' || !/^data:image\/(png|jpeg|webp);base64,/.test(data.dataUrl)) throw new Error(typeof data.error === 'string' ? data.error : 'Nano Banana did not return an image. Try another frame or direction.')
       const generatedImage = new Image()
       generatedImage.src = data.dataUrl
       await generatedImage.decode()
