@@ -20,7 +20,7 @@ assert.match(client, /connection failed\. Verify the network connection and serv
 assert.doesNotMatch(audio, /suppressUntil|suppressTransmission/)
 assert.match(client, /projectContext\?: string/)
 assert.doesNotMatch(hook, /PRE-BRIEFING CONTEXT/)
-assert.match(hook, /disconnect\(\)\s+setError\(msg\)\s+setUserStatus\('error'\)/)
+assert.match(hook, /onClose:\s*\(\)\s*=>\s*\{[\s\S]*?setConnectionNotice\('The voice stream ended\.[\s\S]*?setUserStatus\('error'\)/)
 
 const transcript = 'The opening shows a quiet harbor. The speaker says the launch moved to Friday after the weather cleared. Later, the crew returns to the harbor at sunset.'
 assert.match(searchTranscriptText(transcript, 'launch Friday').join('\n'), /launch moved to Friday/)

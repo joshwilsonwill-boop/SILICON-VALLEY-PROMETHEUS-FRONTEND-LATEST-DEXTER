@@ -23,8 +23,8 @@ assert.match(
 )
 assert.match(
   audioStreamer,
-  /BARGE_IN_SUSTAINED_FRAMES\s*=\s*2/,
-  'AudioRecorder must require at most 2 sustained frames (~170ms) to capture fast words like "stop"',
+  /BARGE_IN_SUSTAINED_FRAMES\s*=\s*3/,
+  'AudioRecorder must reject brief noise spikes before interrupting playback',
 )
 assert.match(
   audioStreamer,
@@ -40,8 +40,8 @@ assert.doesNotMatch(
 )
 assert.match(
   useVoiceCompanion,
-  /hasRecentSpeech/,
-  'useVoiceCompanion must honor interruption when recent user speech was detected',
+  /onSpeechOnset:[\s\S]*?localInterruptRef\.current = true[\s\S]*?player\.flush\(\)/,
+  'useVoiceCompanion must flush playback after sustained local speech is confirmed',
 )
 assert.match(
   useVoiceCompanion,
@@ -91,8 +91,8 @@ assert.match(
 )
 assert.match(
   useVoiceCompanion,
-  /onSpeechOnset[\s\S]*?playerRef\.current\?\.duck/,
-  'useVoiceCompanion must duck assistant audio playback on speech onset to let speaker words go through',
+  /onSpeechOnset:[\s\S]*?player\.flush\(\)/,
+  'useVoiceCompanion must stop queued assistant audio once the speaker interrupts',
 )
 assert.match(
   prometheusChat,

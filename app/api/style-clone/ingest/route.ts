@@ -6,27 +6,13 @@ import OpenAI from 'openai'
 import { createClient } from '@supabase/supabase-js'
 
 import { resolveGeminiApiKey } from '@/lib/prometheus-assistant/gemini-stream'
+import { normalizeReferenceUrl, parseReferenceAnalysis, type ReferenceAnalysis } from '@/lib/editor/reference-style'
+
+export const maxDuration = 60
 
 const EMBEDDING_MODEL = 'text-embedding-3-small'
 const EMBEDDING_DIMENSIONS = 1536
 const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.0-flash'] as const
-
-const SUPPORTED_HOSTS = [
-  'youtube.com',
-  'www.youtube.com',
-  'youtu.be',
-  'm.youtube.com',
-  'tiktok.com',
-  'www.tiktok.com',
-  'vm.tiktok.com',
-  'vimeo.com',
-  'player.vimeo.com',
-]
-
-type StyleBreakdown = {
-  style_reference: string
-  editing_breakdown: string
-}
 
 type SupabaseMotionRow = {
   id: number
@@ -51,17 +37,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'A reference video URL is required.' }, { status: 400 })
     }
 
-    let parsed: URL
+    let videoUrl: string
     try {
-      parsed = new URL(rawUrl)
-    } catch {
-      return NextResponse.json({ error: 'That does not look like a valid URL.' }, { status: 400 })
-    }
-    if (!/^https?:$/.test(parsed.protocol) || !SUPPORTED_HOSTS.includes(parsed.hostname)) {
-      return NextResponse.json(
-        { error: 'Only YouTube, TikTok, and Vimeo reference links are supported.' },
-        { status: 400 },
-      )
+      videoUrl = normalizeReferenceUrl(rawUrl)
+    } catch (error) {
+      return NextResponse.json({ error: error instanceof Error ? error.message : 'Use a public YouTube video link.' }, { status: 400 })
     }
 
     // Auth: only signed-in users may grow the shared knowledge base.
@@ -76,19 +56,13 @@ export async function POST(req: Request) {
     const openaiApiKey = cleanEnvValue(process.env.OPENAI_API_KEY)
     const geminiApiKey = resolveGeminiApiKey()
 
-    if (!supabaseUrl || !supabaseServiceRoleKey) {
-      return NextResponse.json({ error: 'Server is missing Supabase service configuration.' }, { status: 503 })
-    }
-    if (!openaiApiKey) {
-      return NextResponse.json({ error: 'Server is missing OPENAI_API_KEY for style embeddings.' }, { status: 503 })
-    }
     if (!geminiApiKey) {
       return NextResponse.json({ error: 'Server is missing GEMINI_API_KEY for reference analysis.' }, { status: 503 })
     }
 
     const breakdown = await analyzeReferenceVideo({
       apiKey: geminiApiKey,
-      videoUrl: parsed.toString(),
+      videoUrl,
       styleHint,
     })
     if (!breakdown) {
@@ -98,49 +72,59 @@ export async function POST(req: Request) {
       )
     }
 
-    const openai = new OpenAI({ apiKey: openaiApiKey })
-    const embeddingResponse = await openai.embeddings.create({
-      model: EMBEDDING_MODEL,
-      input: `${breakdown.style_reference}\n\n${breakdown.editing_breakdown}`,
-      encoding_format: 'float',
-    })
-    const rawEmbedding = embeddingResponse.data[0]?.embedding
-    if (!rawEmbedding?.length) {
-      return NextResponse.json({ error: 'Embedding service returned an empty vector.' }, { status: 502 })
+    // Reference editing remains available if optional shared-library storage is unavailable.
+    const analysisResponse = { videoUrl, styleReference: breakdown.style_reference, editingBreakdown: breakdown.editing_breakdown, analysis: breakdown, previewOnly: true }
+    if (!supabaseUrl || !supabaseServiceRoleKey || !openaiApiKey) {
+      return NextResponse.json({ ...analysisResponse, savedToLibrary: false })
     }
-    const embedding = normalizeEmbedding(rawEmbedding)
 
-    const supabase = createClient(supabaseUrl, supabaseServiceRoleKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    })
+    try {
 
-    const { data, error } = await supabase
-      .from('motion_knowledge_base')
-      .insert({
-        video_url: parsed.toString(),
-        style_reference: breakdown.style_reference,
-        editing_breakdown: breakdown.editing_breakdown,
-        embedding,
+      const openai = new OpenAI({ apiKey: openaiApiKey, timeout: 4000, maxRetries: 0 })
+      const embeddingResponse = await openai.embeddings.create({
+        model: EMBEDDING_MODEL,
+        input: `${breakdown.style_reference}\n\n${breakdown.editing_breakdown}`,
+        encoding_format: 'float',
       })
-      .select('id, video_url, style_reference')
-      .single()
+      const rawEmbedding = embeddingResponse.data[0]?.embedding
+      if (!rawEmbedding?.length) {
+        return NextResponse.json({ ...analysisResponse, savedToLibrary: false })
+      }
+      const embedding = normalizeEmbedding(rawEmbedding)
 
-    if (error || !data) {
-      console.error('[api/style-clone/ingest] insert failed:', error)
-      return NextResponse.json({ error: 'Could not save the style breakdown.' }, { status: 500 })
+      const supabase = createClient(supabaseUrl, supabaseServiceRoleKey, {
+        auth: { autoRefreshToken: false, persistSession: false },
+      })
+
+      const { data, error } = await supabase
+        .from('motion_knowledge_base')
+        .insert({
+          video_url: videoUrl,
+          style_reference: breakdown.style_reference,
+          editing_breakdown: breakdown.editing_breakdown,
+          embedding,
+        })
+        .select('id, video_url, style_reference')
+        .single()
+
+      if (error || !data) {
+        console.error('[api/style-clone/ingest] insert failed:', error)
+        return NextResponse.json({ ...analysisResponse, savedToLibrary: false })
+      }
+
+      const row = data as SupabaseMotionRow
+      return NextResponse.json({
+        id: row.id,
+        ...analysisResponse,
+        savedToLibrary: true,
+      })
+    } catch {
+      return NextResponse.json({ ...analysisResponse, savedToLibrary: false })
     }
-
-    const row = data as SupabaseMotionRow
-    return NextResponse.json({
-      id: row.id,
-      videoUrl: row.video_url,
-      styleReference: row.style_reference,
-      editingBreakdown: breakdown.editing_breakdown,
-    })
   } catch (err) {
     console.error('[api/style-clone/ingest] error:', err)
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'Failed to ingest the reference style.' },
+      { error: 'Reference analysis could not finish. Try again.' },
       { status: 500 },
     )
   }
@@ -159,12 +143,16 @@ async function analyzeReferenceVideo({
   apiKey: string
   videoUrl: string
   styleHint: string
-}): Promise<StyleBreakdown | null> {
+}): Promise<ReferenceAnalysis | null> {
   const genAI = new GoogleGenerativeAI(apiKey)
   const prompt = [
     'Analyze this reference video as a Prometheus motion-architect research pass.',
-    'Return STRICT JSON only, no markdown fences, with exactly two keys:',
-    '{"style_reference": "<one vivid sentence naming the style>", "editing_breakdown": "<5-8 sentences of implementable editing direction>"}',
+    'Only report what you can see in the supplied video. If it cannot be viewed, return null; do not infer from its title.',
+    'Return STRICT JSON only, no markdown fences, with these keys:',
+    '{"style_reference":"one sentence","editing_breakdown":"implementable directions", "reference_duration_sec":20, "treatment":"clean|contrast|warm|mono", "caption_style":"none|clean_bold|karaoke_pop|typewriter|lower_third", "zooms":[{"start_sec":2,"end_sec":5,"scale":1.12,"kind":"smooth|punch"}], "observations":[{"time_sec":2,"detail":"visible evidence"}], "limitations":["elements requiring assets or unsupported effects"]}',
+    'Use actual measured duration and timestamps in seconds. Give 1-12 timestamped observations supporting every chosen setting.',
+    'Return zero zooms if no camera push is observed. Max 24 moves, scale 1.0-1.4, all times within duration. No invented timestamps.',
+    'Choose the nearest supported treatment and caption behavior as an approximation; identify deviations in limitations. Exact scenes, LUT matching, transitions and soundtrack copying are not implemented.',
     'The editing_breakdown must specify: cut rhythm and average shot length, kinetic typography/caption behavior,',
     'transition logic between shots, color/grade and lighting mood, sound-design alignment, and one signature move worth cloning.',
     styleHint ? `The creator wants emphasis on: ${styleHint}.` : '',
@@ -178,39 +166,22 @@ async function analyzeReferenceVideo({
         model: modelName,
         generationConfig: {
           temperature: 0.35,
-          maxOutputTokens: 1400,
+          maxOutputTokens: 3000,
           responseMimeType: 'application/json',
         },
       })
       const result = await model.generateContent([
         { text: prompt },
         { fileData: { mimeType: 'video/mp4', fileUri: videoUrl } },
-      ])
+      ], { timeout: 12000 })
       const text = result.response.text()
-      const parsed = parseBreakdown(text)
+      const parsed = parseReferenceAnalysis(text)
       if (parsed) return parsed
     } catch (err) {
       console.warn('[api/style-clone/ingest] gemini attempt failed', { model: modelName, error: err })
     }
   }
   return null
-}
-
-function parseBreakdown(text: string): StyleBreakdown | null {
-  if (!text) return null
-  const cleaned = text.trim().replace(/^```(?:json)?/i, '').replace(/```$/, '').trim()
-  try {
-    const parsed = JSON.parse(cleaned) as Record<string, unknown>
-    const styleReference = typeof parsed.style_reference === 'string' ? parsed.style_reference.trim() : ''
-    const editingBreakdown = typeof parsed.editing_breakdown === 'string' ? parsed.editing_breakdown.trim() : ''
-    if (!styleReference || !editingBreakdown) return null
-    return {
-      style_reference: styleReference.slice(0, 300),
-      editing_breakdown: editingBreakdown.slice(0, 4000),
-    }
-  } catch {
-    return null
-  }
 }
 
 function normalizeEmbedding(embedding: number[]): number[] {

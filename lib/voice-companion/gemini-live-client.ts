@@ -28,7 +28,7 @@ export type ToolCallHandler = (
 
 export interface GeminiLiveEvents {
   onAudio?: (base64Pcm24k: string) => void
-  onTranscript?: (text: string, isUser: boolean) => void
+  onTranscript?: (text: string, isUser: boolean, finished?: boolean) => void
   onInterrupted?: () => void
   onTurnComplete?: () => void
   onError?: (error: Error) => void
@@ -71,6 +71,8 @@ export class GeminiLiveClient {
   // Keep tool execution ordered without blocking audio, transcripts or barge-in.
   private toolExecutionQueue: Promise<void> = Promise.resolve()
   private connectionGeneration = 0
+  private cancelConnection: (() => void) | null = null
+  private cancelledToolIds = new Set<string>()
 
   constructor(config: GeminiLiveConfig, events: GeminiLiveEvents = {}) {
     this.config = config
@@ -91,7 +93,10 @@ export class GeminiLiveClient {
 
     const candidateUrls = this.getCandidateUrls()
     this.connectionGeneration += 1
+    const generation = this.connectionGeneration
     this.toolExecutionQueue = Promise.resolve()
+    this.incomingMessageQueue = Promise.resolve()
+    this.cancelledToolIds.clear()
 
     const attemptConnect = (index: number): Promise<void> => {
       this.activeUrlIndex = index
@@ -103,26 +108,37 @@ export class GeminiLiveClient {
         try {
           const socket = new WebSocket(targetUrl)
           this.ws = socket
+          const isCurrent = () => socket === this.ws && generation === this.connectionGeneration
+          this.cancelConnection = () => {
+            if (settled) return
+            settled = true
+            clearTimeout(timeout)
+            reject(new Error('Voice connection cancelled.'))
+          }
 
           const fail = (error: Error, retryable: boolean) => {
-            if (settled) return
+            if (settled || !isCurrent()) return
             settled = true
             clearTimeout(timeout)
             if (retryable && index < candidateUrls.length - 1) {
               console.warn(`[GeminiLive] Key #${index + 1} connection failed. Trying candidate #${index + 2}...`)
-              this.ws?.close()
+              this.ws = null
+              socket.close()
               attemptConnect(index + 1).then(resolve).catch(reject)
               return
             }
             this.events.onError?.(error)
+            this.ws = null
+            socket.close()
             reject(error)
           }
 
           const confirmSetup = () => {
-            if (settled) return
+            if (settled || !isCurrent()) return
             settled = true
             clearTimeout(timeout)
             this.isSetupComplete = true
+            this.cancelConnection = null
             this.events.onSetupConfirmed?.()
             resolve()
           }
@@ -131,42 +147,40 @@ export class GeminiLiveClient {
             // A different API key cannot repair a slow network route. Fail
             // once with a bounded timeout instead of serially waiting per key.
             fail(new Error('Gemini Live setup timed out after 8s. Check the network connection and try again.'), false)
-            this.ws?.close()
           }, 8000)
 
           this.ws.onopen = () => {
+            if (!isCurrent()) return
             this.sendSetupMessage()
             this.events.onOpen?.()
-            // Some compatible Live endpoints omit setupComplete. Keep this
-            // compatibility path short so it does not add visible startup lag.
-            setTimeout(() => {
-              if (!settled && this.ws?.readyState === WebSocket.OPEN) {
-                confirmSetup()
-              }
-            }, 250)
           }
 
           this.ws.onmessage = (event: MessageEvent) => {
-            const generation = this.connectionGeneration
+            if (!isCurrent()) return
             this.incomingMessageQueue = this.incomingMessageQueue.then(async () => {
               if (socket !== this.ws || generation !== this.connectionGeneration) return
               await this.handleMessage(event.data, () => {
                 confirmSetup()
               }, (error, credentialFailure) => {
                 fail(error, credentialFailure)
-              })
+              }, generation)
             }).catch((err) => {
-              console.error('[GeminiLive] Error handling message:', err)
+              if (isCurrent()) this.events.onError?.(new Error(`Could not read the voice response: ${err instanceof Error ? err.message : String(err)}`))
             })
           }
 
           this.ws.onerror = () => {
+            if (!isCurrent()) return
+            if (this.isSetupComplete) {
+              this.events.onError?.(new Error('The voice connection was interrupted. Reconnect to continue.'))
+              socket.close()
+              return
+            }
             fail(new Error('Gemini Live WebSocket connection failed. Verify the network connection and server credentials.'), false)
           }
 
           this.ws.onclose = (event) => {
-            if (socket !== this.ws) return
-            this.connectionGeneration += 1
+            if (!isCurrent()) return
             const wasSetup = this.isSetupComplete
             this.isSetupComplete = false
 
@@ -179,6 +193,10 @@ export class GeminiLiveClient {
             } else if (!wasSetup) {
               fail(new Error('Gemini Live connection closed before setup completed.'), isGeminiCredentialFailure(event.code, '', event.reason))
             }
+            if (!isCurrent()) return
+            this.connectionGeneration += 1
+            this.ws = null
+            this.connectionPromise = null
             this.events.onClose?.(event.code, event.reason)
           }
         } catch (err) {
@@ -208,13 +226,13 @@ You can inspect visual content by calling inspect_video, which samples up to fiv
 When the user explicitly delegates a video edit, call toggle_agent_takeover once to begin a persistent editing session, then inspect_video and get_editor_state before acting. Do not ask the user to enable takeover or re-enable it between actions. Keep the session active while you inspect the available evidence, navigate, make the requested edits, and review the result. Call end_agent_takeover only when the task is complete or the user asks to stop. Use available transcript and music-context evidence; never invent visual observations or claim browser research unless a tool actually provides it.
 For questions about specific spoken content, call search_video_transcript and ground the answer in its returned excerpts. The full transcript is retrieved on demand.
 Never claim an edit, playback change, or render happened unless its tool result reports success. When a tool returns success:false, explain the blocker briefly.
+Report the actual affected count and timing precision returned by an edit tool. Zero changes means nothing was removed. Repeating a request must not undo an earlier cut. Await the result before saying an action is complete. Do not invent handoffs to a design team, another agent, or an external service: your supported tools are your capabilities. Apply already requested edits directly within the delegated task; do not repeatedly ask for the same consent.
+For a public YouTube reference, call reference_video_style with its URL. You can analyze returned reference evidence and apply supported Motion preview grade, captions and timed zooms. Ask for the URL when missing. Explain returned precision limits; do not claim an exact clone, copied music, scene transitions, or a rendered effect unless the result confirms that capability.
 For workspace changes, only name the workspace confirmed by the tool, never the requested destination when confirmation failed. If the user reports that their view differs from your state, acknowledge the mismatch and check get_editor_state; do not dismiss it as a frozen browser or tell them to refresh without evidence.
 You cannot measure the user's network latency or see their screen. Acknowledge reported lag; never claim that there is no lag on your end. Microphone transcription may be inaccurate, and audio from a playing video can be picked up by the microphone. Treat sudden unrelated language or content as uncertain and ask a short clarification before acting on it.
 
 ### MUSIC AUDITIONING & PLAYBACK TRUTHFULNESS:
-When asked to recommend or play music, execute autonomous_music_action with action: 'preview'. You are previewing/auditioning the soundtrack in the Music Studio for their consideration.
-Tell the user you are auditioning/previewing the candidate track (e.g. "I'm previewing '[Track Name]' in the Music Studio — how does this vibe feel?").
-NEVER falsely claim that a song is already playing on the video timeline when you are only auditioning candidate tracks in the Music Studio.
+Preserve the exact requested song title in trackName. Search with action: 'search' when discovery is requested; preview with action: 'preview' when auditioning is requested. A request to choose, add or use a named song requires action: 'select'; use 'select_and_preview' when the user also asks to hear it. Selection and audible preview are different outcomes. Report only the title, staged flag and previewStarted flag confirmed by the tool result. If no exact title matches, explain that before proposing another track.
 
 When the user asks you to navigate, play, pause, seek, or change views, ALWAYS execute the appropriate tool function.
 Keep your spoken responses fluid, punchy, conversational, and helpful. Never read out raw JSON or markup. Respond directly as an elite studio collaborator.`
@@ -356,19 +374,34 @@ Keep your spoken responses fluid, punchy, conversational, and helpful. Never rea
                   properties: {
                     action: {
                       type: 'string',
-                      enum: ['select', 'preview'],
-                      description: 'Action to perform (preview or select soundtrack).',
+                      enum: ['search', 'select', 'preview', 'select_and_preview'],
+                      description: 'Search candidates, audition audio, stage a soundtrack, or stage and audition.',
                     },
                     genreOrMood: {
                       type: 'string',
                       description: 'Target mood or genre (e.g., atmospheric, upbeat, lofi, cinematic).',
                     },
+                    trackName: { type: 'string', description: 'Exact song title requested by the user. Preserve spelling.' },
+                    query: { type: 'string', description: 'Catalog search phrase or requested genre/mood.' },
                     trackId: {
                       type: 'string',
                       description: 'Optional specific track ID.',
                     },
                   },
                   required: ['action'],
+                },
+              },
+              {
+                name: 'reference_video_style',
+                description: 'Analyze a public YouTube reference and optionally apply supported Motion preview grade, captions and timed zooms. Returns actual outcomes and precision limits.',
+                parameters: {
+                  type: 'object',
+                  properties: {
+                    url: { type: 'string', description: 'Public YouTube reference URL supplied by the user.' },
+                    styleHint: { type: 'string', description: 'Optional visual direction to emphasize.' },
+                    apply: { type: 'boolean', description: 'Apply supported preview edits when requested; false only analyzes.' },
+                  },
+                  required: ['url'],
                 },
               },
               {
@@ -507,6 +540,7 @@ Keep your spoken responses fluid, punchy, conversational, and helpful. Never rea
     data: unknown,
     onSetupConfirmed?: () => void,
     onSetupError?: (error: Error, credentialFailure: boolean) => void,
+    generation: number = this.connectionGeneration,
   ): Promise<void> {
     let textData = ''
     if (typeof data === 'string') {
@@ -516,7 +550,7 @@ Keep your spoken responses fluid, punchy, conversational, and helpful. Never rea
     } else if (data instanceof ArrayBuffer) {
       textData = new TextDecoder().decode(data)
     }
-
+    if (generation !== this.connectionGeneration) return
     if (!textData) return
 
     const message = JSON.parse(textData)
@@ -559,7 +593,7 @@ Keep your spoken responses fluid, punchy, conversational, and helpful. Never rea
       }
 
       for (const transcript of getLiveTranscripts(message.serverContent)) {
-        this.events.onTranscript?.(transcript.text, transcript.role === 'user')
+        this.events.onTranscript?.(transcript.text, transcript.role === 'user', transcript.finished)
       }
 
       if (turnComplete) {
@@ -567,7 +601,11 @@ Keep your spoken responses fluid, punchy, conversational, and helpful. Never rea
       }
     }
 
-    // 2. Tool Calls
+    if (message.toolCallCancellation?.ids) {
+      for (const id of message.toolCallCancellation.ids) this.cancelledToolIds.add(String(id))
+    }
+
+    // Tool promises never hold the incoming audio/transcript queue.
     if (message.toolCall?.functionCalls && this.events.onToolCall) {
       const functionCalls = message.toolCall.functionCalls
       const generation = this.connectionGeneration
@@ -588,13 +626,17 @@ Keep your spoken responses fluid, punchy, conversational, and helpful. Never rea
 
     for (const call of functionCalls) {
       if (generation !== this.connectionGeneration) return
+      if (this.cancelledToolIds.has(call.id)) continue
       try {
         const result = await this.events.onToolCall!(call.name, call.args || {})
+        if (generation !== this.connectionGeneration) return
+        if (this.cancelledToolIds.has(call.id)) continue
         functionResponses.push({
           id: call.id,
           response: { output: result },
         })
       } catch (err) {
+        if (generation !== this.connectionGeneration || this.cancelledToolIds.has(call.id)) continue
         functionResponses.push({
           id: call.id,
           response: { error: (err as Error).message || 'Execution error' },
@@ -602,7 +644,7 @@ Keep your spoken responses fluid, punchy, conversational, and helpful. Never rea
       }
     }
 
-    if (generation === this.connectionGeneration) this.sendToolResponse(functionResponses)
+    if (generation === this.connectionGeneration && functionResponses.length > 0) this.sendToolResponse(functionResponses)
   }
 
   sendAudioChunk(base64Pcm: string): void {
@@ -650,6 +692,8 @@ Keep your spoken responses fluid, punchy, conversational, and helpful. Never rea
   }
 
   disconnect(): void {
+    this.cancelConnection?.()
+    this.cancelConnection = null
     this.connectionGeneration += 1
     this.isSetupComplete = false
     if (this.ws) {

@@ -91,3 +91,25 @@ export interface GhostCursorState {
 }
 
 export type AutonomousUIEventListener = (state: GhostCursorState) => void
+
+export type ActionStatus = 'running' | 'succeeded' | 'failed' | 'partial' | 'cancelled'
+
+/** A receipt is completed only by the result of an awaited editor operation. */
+export interface ActionReceipt {
+  id: string
+  label: string
+  targetLabel?: string
+  target?: TargetSelector
+  targetRect: DOMRect | null
+  status: ActionStatus
+  summary: string
+  affectedCount?: number
+  durationRemovedSec?: number
+  startedAt: number
+  finishedAt?: number
+}
+
+export type ActionStart = Pick<ActionReceipt, 'label' | 'targetLabel' | 'target'> & { id?: string }
+export type ActionOutcome = Pick<ActionReceipt, 'summary' | 'affectedCount' | 'durationRemovedSec'> & {
+  status: Exclude<ActionStatus, 'running'>
+}

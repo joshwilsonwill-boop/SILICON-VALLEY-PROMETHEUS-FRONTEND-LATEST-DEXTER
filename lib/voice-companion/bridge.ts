@@ -2,6 +2,9 @@
 
 import type { EditorActionDraft } from '@/lib/editor-actions'
 import type { ChatEditorContext } from '@/lib/prometheus-assistant/editor-context'
+import type { VoiceActionResult, VoiceMusicTrack } from './music-controls'
+import type { VoiceEditResult } from './edit-results'
+import type { AppliedReferenceStyle } from '@/lib/editor/reference-style'
 
 /**
  * Shared registry that lets the editor page expose live state + action handlers
@@ -9,6 +12,9 @@ import type { ChatEditorContext } from '@/lib/prometheus-assistant/editor-contex
  * outside the editor tree and therefore receives no props).
  */
 export interface VoiceCompanionBridgeHandlers {
+  projectId?: string
+  sourceAssetId?: string | null
+  onApplyReferenceStyle?: (style: AppliedReferenceStyle) => Promise<VoiceActionResult>
   contextProvider?: () => ChatEditorContext | null
   onApplyActions?: (drafts: EditorActionDraft[]) => Promise<void> | void
   onSeek?: (timeSec: number) => Promise<void> | void
@@ -28,11 +34,19 @@ export interface VoiceCompanionBridgeHandlers {
   /** User brand context and stylistic DNA */
   brandProfile?: unknown
   /** Direct word cut handler for transcript inline strike-out ("read canceled out") */
-  onToggleCutWord?: (segmentId: string, wordIndex: number) => void
-  onToggleCutSegment?: (segmentId: string) => void
+  onToggleCutWord?: (segmentId: string, wordIndex: number) => VoiceEditResult | void
+  onToggleCutSegment?: (segmentId: string) => VoiceEditResult | void
+  onCutTranscriptWord?: (segmentId: string, wordIndex: number) => VoiceEditResult
+  onCutTranscriptSegment?: (segmentId: string) => VoiceEditResult
+  onCutTranscriptPhrase?: (phrase: string) => VoiceEditResult
+  onCutSilence?: (minDurationSec?: number) => Promise<VoiceEditResult> | VoiceEditResult
+  onRemoveFillerWords?: () => Promise<VoiceEditResult> | VoiceEditResult
   /** Direct music track staging and audition handlers */
-  onSelectMusicTrack?: (trackId: string) => void
-  onPlayMusicPreview?: (trackId: string) => void
+  getMusicCatalog?: () => VoiceMusicTrack[]
+  searchMusicTracks?: (query: string) => Promise<VoiceMusicTrack[]>
+  getActiveWorkspaceTab?: () => 'Editor' | 'Music' | 'Motion'
+  onSelectMusicTrack?: (trackId: string) => Promise<VoiceActionResult> | VoiceActionResult | void
+  onPlayMusicPreview?: (trackId: string) => Promise<VoiceActionResult> | VoiceActionResult | void
   /** Capture the current decoded source frame as a JPEG data URL for live visual analysis. */
   captureVideoFrame?: (timeSec: number) => Promise<string | null>
   /** Inferred video mood, tempo, and audio energy context */

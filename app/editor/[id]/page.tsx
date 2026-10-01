@@ -95,6 +95,11 @@ import { clearPendingEditorNavigation, getRememberedEditorReturnPath } from '@/l
 import { useFrameTargeting } from '@/hooks/use-frame-targeting'
 import { parseFrameReference } from '@/lib/editorial-frame/parse-frame-reference'
 import { registerVoiceCompanionBridge, unregisterVoiceCompanionBridge } from '@/lib/voice-companion/bridge'
+import { cutTranscriptWord, cutTranscriptSegment, cutTranscriptPhrase, removeTimedFillerWords, mergeCutRanges, planAdditionalCuts, type VoiceEditResult } from '@/lib/voice-companion/edit-results'
+import type { VoiceActionResult } from '@/lib/voice-companion/music-controls'
+import { applyReferenceStyleToController } from '@/lib/voice-companion/reference-controls'
+import { getEditorialTimelineController } from '@/lib/editor/editorial-timeline-client'
+import type { AppliedReferenceStyle } from '@/lib/editor/reference-style'
 import {
   consumePendingEditorialChatOpen,
   EDITORIAL_CHAT_OPEN_EVENT,
@@ -112,6 +117,7 @@ import {
 } from '@/lib/media/source-profile'
 import {
   MUSIC_CATALOG,
+  buildMusicRecommendationSet as buildCatalogRecommendations,
   createDefaultMusicPreference,
   normalizeMusicPreference,
 } from '@/lib/music-catalog'
@@ -127,7 +133,7 @@ import { useTextareaResize } from '@/hooks/use-textarea-resize'
 import { buildCinematicAnimationPlan } from '@/lib/cinematic/animation-planner'
 import { cn } from '@/lib/utils'
 import { fetchWithTimeout } from '@/lib/fetch-with-timeout'
-import { SELECTED_EDITOR_MUSIC_EVENT, clearSelectedEditorMusicRecommendation, readSelectedEditorMusicRecommendation, type SelectedEditorMusicEventDetail } from '@/lib/editor-music-selection'
+import { SELECTED_EDITOR_MUSIC_EVENT, writeSelectedEditorMusicRecommendation, clearSelectedEditorMusicRecommendation, readSelectedEditorMusicRecommendation, type SelectedEditorMusicEventDetail } from '@/lib/editor-music-selection'
 import { useEditorialTimeline } from '@/hooks/use-editorial-timeline'
 import { upsertProject } from '@/lib/mock'
 import { projects } from '@/lib/projects'
@@ -7088,6 +7094,22 @@ function OriginalEditorPage() {
     return null
   }, [editorMusicRecommendations, projectId, selectedEditorMusicTrackId])
 
+  const voiceMusicCatalogRef = React.useRef<Map<string, MusicRecommendation>>(new Map())
+  const voiceMusicCatalogProjectRef = React.useRef(projectId)
+  if (voiceMusicCatalogProjectRef.current !== projectId) {
+    voiceMusicCatalogProjectRef.current = projectId
+    voiceMusicCatalogRef.current = new Map()
+  }
+  const fullLocalMusicCatalog = React.useMemo(() => buildCatalogRecommendations({ query: '', limit: MUSIC_CATALOG.length }).recommendations, [])
+  for (const track of fullLocalMusicCatalog) {
+    if (!voiceMusicCatalogRef.current.has(track.id)) voiceMusicCatalogRef.current.set(track.id, track)
+  }
+  for (const track of editorMusicRecommendations) voiceMusicCatalogRef.current.set(track.id, track)
+  if (selectedEditorMusicTrack) voiceMusicCatalogRef.current.set(selectedEditorMusicTrack.id, selectedEditorMusicTrack)
+  const voiceMusicPreviewRef = React.useRef<HTMLAudioElement | null>(null)
+  const voiceWorkspaceRef = React.useRef(activeWorkspaceTab)
+  voiceWorkspaceRef.current = activeWorkspaceTab
+
   React.useEffect(() => {
     if (!soundtrackAudioRef.current && typeof Audio !== 'undefined') {
       soundtrackAudioRef.current = new Audio()
@@ -7116,6 +7138,8 @@ function OriginalEditorPage() {
     return () => {
       soundtrackAudioRef.current?.pause()
       soundtrackAudioRef.current = null
+      voiceMusicPreviewRef.current?.pause()
+      voiceMusicPreviewRef.current = null
     }
   }, [])
   const viralClipClipPreset = VIRAL_CLIP_COUNT_PRESETS[viralClipClipPresetIndex] ?? VIRAL_CLIP_COUNT_PRESETS[1]!
@@ -7357,6 +7381,8 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
 
   const persistTranscriptTimerRef = React.useRef<number | null>(null)
   const pendingTranscriptSegmentsRef = React.useRef<TranscriptSegment[] | null>(null)
+  const voiceTranscriptRef = React.useRef<TranscriptSegment[]>(job?.artifacts.transcript ?? [])
+  voiceTranscriptRef.current = job?.artifacts.transcript ?? []
 
   const persistTranscriptSegments = React.useCallback((segments: TranscriptSegment[]) => {
     if (!project?.sourceAssetId) return
@@ -7540,32 +7566,38 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
   }, [project, projectId])
 
   const handleApplySilenceCuts = React.useCallback((spans: Array<{ start: number; end: number }>) => {
-    if (spans.length === 0) {
-      toast.info('No transcript-aligned pauses meet the current cut threshold.')
-      return
+    const result = planAdditionalCuts(editorCutRangesRef.current, spans)
+    if (result.count === 0) {
+      toast.info(result.summary)
+      return result
     }
-    const combined = [...editorCutRangesRef.current, ...spans]
-    const nextRanges = (() => {
-      if (combined.length <= 1) return combined
-      combined.sort((a, b) => a.start - b.start)
-      const merged: Array<{ start: number; end: number }> = [combined[0]!]
-      for (let i = 1; i < combined.length; i++) {
-        const last = merged[merged.length - 1]!
-        const curr = combined[i]!
-        if (curr.start <= last.end + 0.05) {
-          last.end = Math.max(last.end, curr.end)
-        } else {
-          merged.push(curr)
-        }
-      }
-      return merged
-    })()
+    const nextRanges = mergeCutRanges([...editorCutRangesRef.current, ...result.ranges])
     editorCutRangesRef.current = nextRanges
     setEditorCutRanges(nextRanges)
     persistTimelineCutRanges(nextRanges)
-    const totalSec = spans.reduce((sum, s) => sum + (s.end - s.start), 0)
-    toast.success(`Ripple-cut ${totalSec.toFixed(1)}s of dead air & silences from timeline.`)
+    toast.success(`Cut ${result.totalRemovedSec.toFixed(3)}s from ${result.count} transcript-aligned ranges.`)
+    return result
   }, [persistTimelineCutRanges])
+
+  const applyVoiceTranscriptResult = React.useCallback((change: { segments: TranscriptSegment[]; result: VoiceEditResult }) => {
+    if (!change.result.success || change.result.count === 0) return change.result
+    if (!job || !project?.sourceAssetId) return { ...change.result, success: false, count: 0, totalRemovedSec: 0, ranges: [], summary: 'Open a source transcript before applying cuts.' }
+    const actual = planAdditionalCuts(editorCutRangesRef.current, change.result.ranges)
+    voiceTranscriptRef.current = change.segments
+    persistTranscriptSegments(change.segments)
+    setJob((current) => {
+      if (!current) return current
+      const next = { ...current, artifacts: { ...current.artifacts, transcript: change.segments } }
+      projects.upsertJob(next)
+      return next
+    })
+    if (actual.count) handleApplySilenceCuts(actual.ranges)
+    return { ...change.result, totalRemovedSec: actual.totalRemovedSec, ranges: actual.ranges, summary: `${change.result.count} transcript cut${change.result.count === 1 ? '' : 's'} applied; ${actual.totalRemovedSec.toFixed(3)}s newly removed using transcript timestamps. Review the cut boundaries for transcription accuracy.` }
+  }, [job, project?.sourceAssetId, persistTranscriptSegments, handleApplySilenceCuts])
+  const handleVoiceCutWord = React.useCallback((segmentId: string, wordIndex: number) => applyVoiceTranscriptResult(cutTranscriptWord(voiceTranscriptRef.current, segmentId, wordIndex)), [applyVoiceTranscriptResult])
+  const handleVoiceCutSegment = React.useCallback((segmentId: string) => applyVoiceTranscriptResult(cutTranscriptSegment(voiceTranscriptRef.current, segmentId)), [applyVoiceTranscriptResult])
+  const handleVoiceCutPhrase = React.useCallback((phrase: string) => applyVoiceTranscriptResult(cutTranscriptPhrase(voiceTranscriptRef.current, phrase)), [applyVoiceTranscriptResult])
+  const handleVoiceRemoveFillers = React.useCallback(() => applyVoiceTranscriptResult(removeTimedFillerWords(voiceTranscriptRef.current)), [applyVoiceTranscriptResult])
 
   const handleCutRangesChange = React.useCallback((ranges: Array<{ start: number; end: number }>) => {
     editorCutRangesRef.current = ranges
@@ -7675,8 +7707,63 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
   }, [projectId])
 
   const handleEditorMusicTrackSelect = React.useCallback((track: MusicRecommendation) => {
+    writeSelectedEditorMusicRecommendation(projectId, track)
     setSelectedEditorMusicTrackId(track.id)
+  }, [projectId])
+
+  const handleVoiceMusicSearch = React.useCallback(async (query: string) => {
+    const expectedProjectId = projectId
+    const response = await fetch('/api/music/recommendations', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, cache: 'no-store',
+      signal: AbortSignal.timeout(30000),
+      body: JSON.stringify({ query, projectTitle: project?.title, videoContext }),
+    })
+    const payload = await response.json() as MusicApiResponse
+    if (!response.ok) throw new Error(payload?.error || 'The music catalog could not be searched.')
+    if (voiceMusicCatalogProjectRef.current !== expectedProjectId) throw new Error('The project changed during the music search. Try again in the current editor.')
+    const tracks = (payload.recommendations ?? []).filter((track) => Boolean(track?.id && track.title && track.previewUrl))
+    for (const track of tracks) voiceMusicCatalogRef.current.set(track.id, track)
+    return tracks
+  }, [projectId, project?.title, videoContext])
+
+  const handleVoiceMusicSelect = React.useCallback(async (trackId: string): Promise<VoiceActionResult> => {
+    const track = voiceMusicCatalogRef.current.get(trackId)
+    if (!track || !project?.sourceAssetId) return { success: false, summary: 'The selected song or source timeline is unavailable.' }
+    const controller = getEditorialTimelineController(projectId)
+    await controller.select(trackId, track)
+    const snapshot = controller.getSnapshot()
+    if (snapshot.timeline?.music?.track.id !== trackId) return { success: false, summary: snapshot.error || 'The timeline did not confirm soundtrack staging.' }
+    writeSelectedEditorMusicRecommendation(projectId, track, 'timeline')
+    setSelectedEditorMusicTrackId(track.id)
+    return { success: true, summary: `"${track.title}" is staged on the soundtrack lane${snapshot.status === 'saved' ? '.' : '; timeline sync is pending.'}`, trackId }
+  }, [projectId, project?.sourceAssetId])
+
+  const handleVoiceMusicPreview = React.useCallback(async (trackId: string): Promise<VoiceActionResult> => {
+    const track = voiceMusicCatalogRef.current.get(trackId)
+    if (!track?.previewUrl || typeof Audio === 'undefined') return { success: false, summary: 'This song has no playable preview.' }
+    if (!voiceMusicPreviewRef.current) voiceMusicPreviewRef.current = new Audio()
+    const audio = voiceMusicPreviewRef.current
+    audio.pause()
+    audio.src = track.previewUrl
+    audio.currentTime = 0
+    audio.muted = false
+    audio.volume = 0.7
+    try {
+      // play() resolves only when the browser starts playback. Rejections are
+      // reported to Jarvis instead of calling an unheard audition successful.
+      await Promise.race([audio.play(), new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Music preview did not start within 12 seconds.')), 12000))])
+      if (audio.paused || audio.muted || audio.volume === 0) throw new Error('Music preview is not playing audibly.')
+      return { success: true, summary: `Preview playback started for "${track.title}".`, trackId }
+    } catch (error) {
+      audio.pause()
+      return { success: false, summary: `Could not play "${track.title}": ${error instanceof Error ? error.message : 'browser playback failed'}. Use the song preview button to retry.`, trackId }
+    }
   }, [])
+
+  const handleVoiceReferenceStyle = React.useCallback(async (style: AppliedReferenceStyle) => {
+    if (!hasPlayableVideo || !project?.sourceAssetId) return { success: false, summary: 'Open a ready source video before applying a reference look.' }
+    return applyReferenceStyleToController(getEditorialTimelineController(projectId), style)
+  }, [hasPlayableVideo, projectId, project?.sourceAssetId])
 
   const handleRemoveEditorMusicTrack = React.useCallback(() => {
     clearSelectedEditorMusicRecommendation(projectId)
@@ -8590,13 +8677,12 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
       } else if (draft.kind === 'open_master_review') {
         setIsMasterReviewOpen(true)
       } else {
-        toast.info(draft.summary)
+        // Each draft has one mutation path. Previously the whole batch was
+        // replayed through the generic executor, duplicating splits/navigation.
+        const [result] = applyEditorActionDrafts([draft], chatEditorActionContext)
+        if (!result?.applied) toast.info(result?.message || draft.summary)
       }
     }
-
-    // The workflow above already applies silence spans. Do not dispatch the
-    // same timeline mutation a second time through the generic executor.
-    applyEditorActionDrafts(drafts.filter((draft) => draft.kind !== 'cut_silence' && draft.kind !== 'soundtrack_control'), chatEditorActionContext)
   }, [
     chatEditorActionContext,
     startPreviewPlayback,
@@ -8638,6 +8724,9 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
   // so tool calls can read live timeline state and apply granular actions.
   React.useEffect(() => {
     registerVoiceCompanionBridge({
+      projectId,
+      sourceAssetId: project?.sourceAssetId ?? null,
+      onApplyReferenceStyle: handleVoiceReferenceStyle,
       contextProvider: chatContextProvider,
       onApplyActions: handleApplyChatActions,
       onSeek: (timeSec) => handleApplyChatActions([{ kind: 'seek', timeSec, summary: `Seek to ${timeSec.toFixed(1)}s` }]),
@@ -8645,18 +8734,31 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
       onPause: () => handleApplyChatActions([{ kind: 'preview_control', command: 'pause', summary: 'Pause preview' }]),
       onMute: () => handleApplyChatActions([{ kind: 'preview_control', command: 'mute', summary: 'Mute audio' }]),
       onUnmute: () => handleApplyChatActions([{ kind: 'preview_control', command: 'unmute', summary: 'Unmute audio' }]),
-      onTabChange: (tab) => handleApplyChatActions([{ kind: 'switch_tab', tab, summary: `Switch to ${tab}` }]),
+      onTabChange: async (tab) => {
+        await handleApplyChatActions([{ kind: 'switch_tab', tab, summary: `Switch to ${tab}` }])
+        await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())))
+      },
+      getActiveWorkspaceTab: () => voiceWorkspaceRef.current as 'Editor' | 'Music' | 'Motion',
+      onFitModeChange: (mode) => { setFitMode(mode) },
       isTakeoverEnabled: isAgentTakeoverEnabled,
       onToggleTakeover: handleToggleAgentTakeover,
       transcriptText: motionTranscriptSegments.map((s) => s.text).join(' '),
-      transcriptSegments: motionTranscriptSegments,
+      transcriptSegments: job?.artifacts.transcript ?? [],
       brandProfile: {
         brandName: project?.title ?? 'Prometheus Creator',
         tone: 'Cinematic High-Tech',
         preferredCaptionStyle: editorCaptionStyle,
       },
-      onToggleCutWord: handleToggleCutWord,
-      onToggleCutSegment: handleToggleCutSegment,
+      onToggleCutWord: handleVoiceCutWord,
+      onToggleCutSegment: handleVoiceCutSegment,
+      onCutTranscriptWord: handleVoiceCutWord,
+      onCutTranscriptSegment: handleVoiceCutSegment,
+      onCutTranscriptPhrase: handleVoiceCutPhrase,
+      onCutSilence: (threshold) => {
+        if (!voiceTranscriptRef.current.length) return { success: false, count: 0, totalRemovedSec: 0, ranges: [], summary: 'Transcript timestamps are unavailable. No silence cuts were applied.' }
+        return handleApplySilenceCuts(findTranscriptSilenceCuts(voiceTranscriptRef.current, threshold, transportDurationSec))
+      },
+      onRemoveFillerWords: handleVoiceRemoveFillers,
       hasVideo: hasPlayableVideo,
       videoTitle: project?.title ?? 'Untitled Project',
       videoDurationSec: hasPlayableVideo ? (previewDurationSec || transportDurationSec) : 0,
@@ -8672,7 +8774,10 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
               : 'missing',
       videoMusicContext: videoContext,
       captureVideoFrame: captureVoiceVideoFrame,
-      onSelectMusicTrack: (trackId: string) => setSelectedEditorMusicTrackId(trackId),
+      getMusicCatalog: () => [...voiceMusicCatalogRef.current.values()],
+      searchMusicTracks: handleVoiceMusicSearch,
+      onSelectMusicTrack: handleVoiceMusicSelect,
+      onPlayMusicPreview: handleVoiceMusicPreview,
     })
     return () => {
       unregisterVoiceCompanionBridge()
@@ -8684,8 +8789,17 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
     handleToggleAgentTakeover,
     motionTranscriptSegments,
     editorCaptionStyle,
-    handleToggleCutWord,
-    handleToggleCutSegment,
+    handleVoiceCutWord,
+    handleVoiceCutSegment,
+    handleVoiceCutPhrase,
+    job?.artifacts.transcript,
+    handleVoiceRemoveFillers,
+    handleApplySilenceCuts,
+    handleVoiceMusicSearch,
+    handleVoiceMusicSelect,
+    handleVoiceMusicPreview,
+    handleVoiceReferenceStyle,
+    projectId,
     project?.title,
     project?.sourceAssetId,
     previewUrl,
@@ -9183,6 +9297,7 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
 
                 {activeWorkspaceTab === 'Motion' ? (
                   <MotionEditWorkspace
+                    captionStyle={editorCaptionStyle}
                     projectTitle={project?.title ?? 'Untitled Project'}
                     previewUrl={previewUrl}
                     previewKind={previewKind}

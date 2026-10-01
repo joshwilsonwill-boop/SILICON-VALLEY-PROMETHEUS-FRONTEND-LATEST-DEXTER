@@ -16,6 +16,10 @@ import { detectFillerWords } from '@/lib/voice-companion/filler-words'
 import { buildEditorialPlan } from '@/lib/editor/timeline-document'
 import { searchTranscriptText } from '@/lib/voice-companion/transcript-search'
 import { inspectVoiceVideo, switchVoiceWorkspace } from '@/lib/voice-companion/session-controls'
+import { performVoiceMusicAction, type VoiceMusicActionArgs } from '@/lib/voice-companion/music-controls'
+import { performVoiceReferenceStyleAction } from '@/lib/voice-companion/reference-controls'
+import { ResponseRecovery, type ResponseStatus } from '@/lib/voice-companion/response-recovery'
+import { useAutonomousStore } from '@/lib/autonomous-ui/autonomous-store'
 
 export type VoiceCompanionStatus =
   | 'disconnected'
@@ -30,6 +34,7 @@ export interface VoiceCompanionTranscriptItem {
   role: 'user' | 'assistant'
   text: string
   timestamp: number
+  status?: ResponseStatus
 }
 
 export interface UseVoiceCompanionOptions {
@@ -54,6 +59,12 @@ export interface UseVoiceCompanionReturn {
   getAssistantVolume: () => number
   transcripts: VoiceCompanionTranscriptItem[]
   error: string | null
+  connectionNotice: string | null
+  canReplayResponse: boolean
+  lastResponseText: string
+  replayLastResponse: () => Promise<void>
+  reconnect: () => Promise<void>
+  getCapturedAudio: () => Blob | null
   selectedVoice: string
   setSelectedVoice: (voice: string) => void
   connect: () => Promise<void>
@@ -80,6 +91,19 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
   const [assistantVolume, setAssistantVolume] = useState(0)
   const [transcripts, setTranscripts] = useState<VoiceCompanionTranscriptItem[]>([])
   const [selectedVoice, setSelectedVoice] = useState('Puck')
+  const [connectionNotice, setConnectionNotice] = useState<string | null>(null)
+  const [canReplayResponse, setCanReplayResponse] = useState(false)
+  const [lastResponseText, setLastResponseText] = useState('')
+  const recoveryRef = useRef(new ResponseRecovery())
+  const connectionGenerationRef = useRef(0)
+  const fetchAbortRef = useRef<AbortController | null>(null)
+  const capturedAudioRef = useRef<Blob | null>(null)
+  const localInterruptRef = useRef(false)
+  const syncRecovery = useCallback(() => {
+    setTranscripts(recoveryRef.current.snapshot())
+    setCanReplayResponse(recoveryRef.current.replayAudio.length > 0)
+    setLastResponseText(recoveryRef.current.lastResponseText)
+  }, [])
 
   const clientRef = useRef<GeminiLiveClient | null>(null)
   const recorderRef = useRef<AudioRecorder | null>(null)
@@ -122,8 +146,9 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
 
   // Tool call executor. Reads handlers through a ref so late-registered editor
   // bridges (or re-mounted panels) are always honored without reconnecting.
-  const handleToolCall: ToolCallHandler = useCallback(
-    async (name: string, args: Record<string, unknown>) => {
+  const executeToolCall = useCallback(
+    async (name: string, args: Record<string, unknown>, isSessionActive: () => boolean) => {
+      const getCurrentHandlers = () => isSessionActive() ? handlersRef.current : {}
       const {
         contextProvider,
         onApplyActions,
@@ -228,46 +253,34 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
           if (!handlersRef.current.hasVideo) return { success: false, error: 'There is no playable source video in this project yet.' }
           if (!Array.isArray(handlersRef.current.transcriptSegments) || handlersRef.current.transcriptSegments.length === 0) return { success: false, error: 'There is no timed transcript to cut from yet.' }
           if (!isTakeoverEnabled) return { success: false, error: 'Editing access is off. Enable Jarvis editing to apply transcript cuts.' }
-          if (!handlersRef.current.onToggleCutWord && !handlersRef.current.onToggleCutSegment) return { success: false, error: 'The editor is not linked, so I cannot apply transcript cuts.' }
-          const success = await autonomousCoordinator.executeTranscriptCut(phrase, {
-            onSwitchTab: onTabChange ? (tab) => onTabChange(tab as 'Editor' | 'Music' | 'Motion') : undefined,
-            onToggleCutWord: handlersRef.current.onToggleCutWord,
-            onToggleCutSegment: handlersRef.current.onToggleCutSegment,
-          })
-          return { success, cutPhrase: phrase }
+          if (!handlersRef.current.onCutTranscriptPhrase) return { success: false, error: 'Confirmed phrase editing is unavailable in this editor.' }
+          const switched = await switchVoiceWorkspace('Motion', () => handlersRef.current)
+          if (!switched.success) return switched
+          const outcome = await handlersRef.current.onCutTranscriptPhrase(phrase)
+          return { ...outcome, cutPhrase: phrase, precision: 'Transcript word timestamps; ambiguous repeated phrases require clarification.' }
         }
 
         case 'autonomous_music_action': {
-          const trackId = args.trackId ? String(args.trackId) : undefined
-          const genreOrMood = args.genreOrMood ? String(args.genreOrMood) : undefined
-          const action = (args.action as 'preview' | 'select') || 'preview'
-          if (action === 'select' && !isTakeoverEnabled) return { success: false, error: 'Editing access is off. Enable Jarvis editing to stage a soundtrack.' }
-          const musicContext = handlersRef.current.videoMusicContext as { summary?: string; pace?: string; intent?: unknown } | undefined
-          const success = await autonomousCoordinator.executeMusicSelection({
-            trackId,
-            genreOrMood,
-            query: genreOrMood,
-            action,
-            context: {
-              transcript: handlersRef.current.transcriptText,
-              mood: musicContext?.summary || musicContext?.pace,
-              pace: musicContext?.pace,
-            },
-            onSwitchTab: onTabChange ? (tab) => onTabChange(tab as 'Editor' | 'Music' | 'Motion') : undefined,
-            onSelectTrack: handlersRef.current.onSelectMusicTrack,
-            onPlayPreview: handlersRef.current.onPlayMusicPreview,
-          })
-          return {
-            success,
-            action,
-            genreOrMood,
-            isAuditioning: action === 'preview',
-            status: success
-              ? action === 'preview'
-                ? 'Candidate track is previewing in Music Studio.'
-                : 'Soundtrack staged to timeline.'
-              : 'The requested music action could not be completed.',
+          const action = args.action as VoiceMusicActionArgs['action']
+          if ((action === 'select' || action === 'select_and_preview') && !isTakeoverEnabled) {
+            return { success: false, error: 'Editing access is off. Begin the delegated editing session before staging a soundtrack.' }
           }
+          return performVoiceMusicAction({
+            action,
+            trackId: typeof args.trackId === 'string' ? args.trackId : undefined,
+            trackName: typeof args.trackName === 'string' ? args.trackName : typeof args.trackTitle === 'string' ? args.trackTitle : undefined,
+            query: typeof args.query === 'string' ? args.query : typeof args.genreOrMood === 'string' ? args.genreOrMood : undefined,
+            context: handlersRef.current.videoMusicContext,
+          }, getCurrentHandlers)
+        }
+
+        case 'reference_video_style': {
+          if (args.apply && !isTakeoverEnabled) return { success: false, error: 'Begin the delegated editing session before applying the reference look.' }
+          return performVoiceReferenceStyleAction({
+            url: typeof args.url === 'string' ? args.url : '',
+            styleHint: typeof args.styleHint === 'string' ? args.styleHint : undefined,
+            apply: args.apply === true,
+          }, getCurrentHandlers)
         }
 
         case 'toggle_agent_takeover': {
@@ -325,16 +338,11 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
           const result = detectFillerWords(segments)
           const shouldApply = Boolean(args.applyCuts)
 
-          if (shouldApply && result.items.length > 0 && !handlersRef.current.onToggleCutWord) {
-            return { success: false, error: 'The editor is not linked, so I cannot apply filler-word cuts.' }
-          }
-          if (shouldApply && result.items.length > 0 && !isTakeoverEnabled) {
-            return { success: false, error: 'Editing access is off. Enable Jarvis editing to apply filler-word cuts.' }
-          }
-          if (shouldApply && result.items.length > 0 && handlersRef.current.onToggleCutWord) {
-            for (const item of result.items) {
-              handlersRef.current.onToggleCutWord(item.segmentId, item.wordIndex)
-            }
+          if (shouldApply) {
+            if (!isTakeoverEnabled) return { success: false, error: 'Begin the delegated editing session before applying filler-word cuts.' }
+            if (!handlersRef.current.onRemoveFillerWords) return { success: false, error: 'Confirmed filler-word editing is unavailable in this editor.' }
+            const outcome = await handlersRef.current.onRemoveFillerWords()
+            return { ...outcome, appliedCuts: outcome.success && outcome.count > 0 }
           }
 
           return {
@@ -352,19 +360,10 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
           if (!handlersRef.current.hasVideo) return { success: false, error: 'There is no playable source video in this project yet.' }
           if (!Array.isArray(handlersRef.current.transcriptSegments) || handlersRef.current.transcriptSegments.length === 0) return { success: false, error: 'There is no timed transcript to find silences in yet.' }
           if (!isTakeoverEnabled) return { success: false, error: 'Editing access is off. Enable Jarvis editing to remove silences.' }
-          if (!onApplyActions) return { success: false, error: 'The editor is not linked, so I cannot remove silences.' }
-          await onApplyActions([
-            {
-              kind: 'cut_silence',
-              minDurationSec,
-              summary: `Remove transcript-detected silences (> ${minDurationSec}s)`,
-            },
-          ])
-          return {
-            success: true,
-            minDurationSec,
-            summary: `Sent a request to remove transcript-timed pauses over ${minDurationSec}s.`,
-          }
+          if (!Number.isFinite(minDurationSec) || minDurationSec <= 0) return { success: false, error: 'Choose a positive silence duration.' }
+          if (!handlersRef.current.onCutSilence) return { success: false, error: 'Confirmed silence editing is unavailable in this editor.' }
+          const outcome = await handlersRef.current.onCutSilence(minDurationSec)
+          return { ...outcome, minDurationSec, precision: 'Transcript timestamps; not sample-accurate waveform analysis.' }
         }
 
         case 'apply_editorial_plan':
@@ -417,66 +416,94 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
     []
   )
 
-  const disconnect = useCallback(() => {
-    // An unused HUD instance must not stop the active global voice session.
-    if (clientRef.current || recorderRef.current || playerRef.current) autonomousCoordinator.endTakeover()
-    if (volumeTimerRef.current) {
-      clearInterval(volumeTimerRef.current)
-      volumeTimerRef.current = null
+  const handleToolCall: ToolCallHandler = useCallback(async (name, args) => {
+    const generation = connectionGenerationRef.current
+    const labels: Record<string, string> = {
+      autonomous_music_action: 'Choosing soundtrack', autonomous_transcript_cut: 'Cutting transcript',
+      detect_filler_words: args.applyCuts ? 'Removing hesitation words' : 'Checking hesitation words',
+      cut_silence: 'Removing pauses', remove_silence: 'Removing pauses', inspect_video: 'Inspecting video',
+      reference_video_style: args.apply ? 'Applying reference look' : 'Analyzing reference',
+      apply_editorial_plan: 'Applying caption plan', set_caption_style: 'Restyling captions',
+      switch_workspace_tab: 'Opening workspace', start_render: 'Opening export workflow',
     }
+    const label = labels[name]
+    const receipt = label ? useAutonomousStore.getState().beginAction({ label }) : null
+    try {
+      const result = await executeToolCall(name, args, () => generation === connectionGenerationRef.current) as Record<string, any>
+      if (receipt) {
+        useAutonomousStore.getState().finishAction(receipt, {
+          status: result.success === false || result.error ? (result.staged || result.previewStarted ? 'partial' : 'failed') : 'succeeded',
+          summary: String(result.summary ?? result.status ?? result.error ?? (result.success ? 'Action confirmed.' : 'Action finished without a confirmed outcome.')),
+          affectedCount: typeof result.affectedCount === 'number' ? result.affectedCount : typeof result.count === 'number' ? result.count : undefined,
+          durationRemovedSec: typeof result.totalRemovedSec === 'number' ? result.totalRemovedSec : undefined,
+        })
+      }
+      return result
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'The editor action failed.'
+      if (receipt) useAutonomousStore.getState().finishAction(receipt, { status: 'failed', summary: message })
+      return { success: false, error: message }
+    }
+  }, [executeToolCall])
+
+  const disconnect = useCallback(() => {
+    connectionGenerationRef.current += 1
+    fetchAbortRef.current?.abort()
+    fetchAbortRef.current = null
+    if (clientRef.current || recorderRef.current || playerRef.current) autonomousCoordinator.endTakeover()
+    if (volumeTimerRef.current) clearInterval(volumeTimerRef.current)
+    volumeTimerRef.current = null
     assistantTurnActiveRef.current = false
+    localInterruptRef.current = false
+    capturedAudioRef.current = recorderRef.current?.getCapturedAudio() ?? capturedAudioRef.current
     recorderRef.current?.stop()
     recorderRef.current = null
-
     playerRef.current?.stop()
     playerRef.current = null
-
     clientRef.current?.disconnect()
     clientRef.current = null
-
+    recoveryRef.current.finish('partial')
+    syncRecovery()
     setUserVolume(0)
     setAssistantVolume(0)
+    setConnectionNotice(null)
     setUserStatus('disconnected')
-  }, [setUserStatus])
+  }, [setUserStatus, syncRecovery])
 
   const connect = useCallback(async () => {
     disconnect()
+    const generation = connectionGenerationRef.current
+    const isCurrent = () => connectionGenerationRef.current === generation
+    const controller = new AbortController()
+    fetchAbortRef.current = controller
     setError(null)
+    setConnectionNotice(null)
     setUserStatus('connecting')
-
-    // 0. Prime and resume AudioContext synchronously on the user click gesture
+    // Preserve the browser click gesture when unlocking speaker playback.
+    try { primeAudioContext() } catch {}
     try {
-      primeAudioContext()
-    } catch {
-      // Ignore initial SSR/non-browser checks
-    }
-
-    try {
-      // 1. Fetch authorized session credentials
-      const res = await fetch('/api/voice-companion/session')
+      const res = await fetch('/api/voice-companion/session', { signal: controller.signal })
+      if (!isCurrent()) return
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
         throw new Error(data.error || 'Failed to initialize voice session')
       }
       const sessionData = await res.json()
-
-      // 2. Initialize Audio Player and unlock Web Audio context
+      if (!isCurrent()) return
       const player = new AudioPlayer({
         onPlaybackStateChange: (playing) => {
-          if (!playing) {
-            assistantTurnActiveRef.current = false
-            recorderRef.current?.resetBargeFrames()
-          }
+          if (!isCurrent()) return
+          // An underrun is not a turn boundary. Keep microphone echo gating
+          // active until the server completes or genuine local speech interrupts.
           setUserStatus((prev) => {
-            if (prev === 'disconnected' || prev === 'error') return prev
+            if (prev === 'disconnected' || prev === 'error' || prev === 'connecting') return prev
             return playing ? 'speaking' : 'listening'
           })
         },
       })
-      await player.resume()
       playerRef.current = player
-
-      // 3. Initialize Gemini Live Client
+      await player.resume()
+      if (!isCurrent()) { player.stop(); return }
       const bridgeHandlers = getVoiceCompanionBridge()
       const projectContext = JSON.stringify({
         hasVideo: bridgeHandlers.hasVideo ?? false,
@@ -486,173 +513,153 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
         videoMusicSummary: (bridgeHandlers.videoMusicContext as { summary?: string } | undefined)?.summary ?? null,
         transcriptAvailable: Boolean(bridgeHandlers.transcriptText || bridgeHandlers.transcriptSegments),
       })
-      const client = new GeminiLiveClient(
-          {
-            wsUrl: sessionData.wsUrl,
-            wsUrls: sessionData.wsUrls,
-            model: sessionData.model,
-            voiceName: selectedVoice || sessionData.voiceName,
-            projectContext,
-          },
-        {
-          onOpen: () => {
-            // Connected to socket
-          },
-          onSetupConfirmed: () => {
-            setUserStatus('listening')
-          },
-          onAudio: (base64Pcm24k) => {
-            // Assistant turn is live: keep the echo gate engaged even between
-            // chunks (and after a barge-in flush) until turnComplete arrives.
-            assistantTurnActiveRef.current = true
-            void player.playChunk(base64Pcm24k).catch((playbackError) => {
-              const message = playbackError instanceof Error ? playbackError.message : 'Jarvis audio playback failed.'
-              setError(message)
-              setUserStatus('error')
-            })
-          },
-          onTranscript: (text, isUser) => {
-            setTranscripts((prev) => {
-              const last = prev[prev.length - 1]
-              if (last && last.role === (isUser ? 'user' : 'assistant')) {
-                return [
-                  ...prev.slice(0, -1),
-                  { ...last, text: appendTranscriptText(last.text, text) },
-                ]
-              }
-              return [
-                ...prev,
-                {
-                  id: `tr-${Date.now()}-${Math.random()}`,
-                  role: isUser ? 'user' : 'assistant',
-                  text,
-                  timestamp: Date.now(),
-                },
-              ]
-            })
-          },
-          onInterrupted: () => {
-            // When Gemini Live server sends an interrupted event, its server-side VAD
-            // detected user speech barge-in. We honor the interrupt whenever:
-            // 1. Instantaneous mic volume is above minimal background noise (> 0.04), OR
-            // 2. The recorder detected speech energy recently (hasRecentSpeech), OR
-            // 3. Audio was playing or queued and the user is unmuted.
-            // This guarantees Jarvis stops immediately when the user interrupts instead
-            // of forcing statement completion.
-            const userVol = recorderRef.current?.getVolume() ?? 0
-            const hadRecentSpeech = recorderRef.current?.hasRecentSpeech(1200) ?? false
-            const isPlayingOrPending =
-              (playerRef.current?.getIsPlaying() ?? false) ||
-              ((playerRef.current?.getPendingMs() ?? 0) > 0)
-
-            if (userVol > 0.04 || hadRecentSpeech || isPlayingOrPending) {
-              assistantTurnActiveRef.current = false
-              player.flush()
-              recorderRef.current?.resetBargeFrames()
-              setUserStatus('interrupted')
-              setTimeout(() => {
-                setUserStatus((prev) => (prev === 'interrupted' ? 'listening' : prev))
-              }, 300)
-            }
-          },
-          onTurnComplete: () => {
-            assistantTurnActiveRef.current = false
-            if (!playerRef.current?.getIsPlaying() && (playerRef.current?.getPendingMs() ?? 0) <= 0) {
-              setUserStatus((prev) => (prev === 'speaking' ? 'listening' : prev))
-            }
-          },
-          onError: (err) => {
-            setError(err.message)
-            setUserStatus('error')
-          },
-          onClose: () => {
-            if (clientRef.current !== client) return
-            assistantTurnActiveRef.current = false
-            recorderRef.current?.stop()
-            recorderRef.current = null
-            playerRef.current?.stop()
-            playerRef.current = null
-            if (volumeTimerRef.current) clearInterval(volumeTimerRef.current)
-            volumeTimerRef.current = null
-            clientRef.current = null
-            setUserVolume(0)
-            setAssistantVolume(0)
-            autonomousCoordinator.endTakeover()
-            setUserStatus((prev) => (prev === 'error' ? 'error' : 'disconnected'))
-          },
-          onToolCall: handleToolCall,
-        }
-      )
+      const client = new GeminiLiveClient({
+        wsUrl: sessionData.wsUrl, wsUrls: sessionData.wsUrls, model: sessionData.model,
+        voiceName: selectedVoice || sessionData.voiceName, projectContext,
+      }, {
+        onSetupConfirmed: () => { if (isCurrent()) setUserStatus('listening') },
+        onAudio: (chunk) => {
+          if (!isCurrent()) return
+          assistantTurnActiveRef.current = true
+          recoveryRef.current.addAudio(chunk)
+          syncRecovery()
+          if (localInterruptRef.current) return
+          void player.playChunk(chunk).catch((err) => {
+            if (!isCurrent()) return
+            setError(err instanceof Error ? err.message : 'Jarvis audio playback failed.')
+            setConnectionNotice('Playback failed. Read the received reply below or replay its received audio.')
+          })
+        },
+        onTranscript: (text, isUser, finished) => {
+          if (!isCurrent()) return
+          recoveryRef.current.append(text, isUser, finished)
+          syncRecovery()
+        },
+        onInterrupted: () => {
+          if (!isCurrent()) return
+          const genuineSpeech = !isMutedRef.current && localInterruptRef.current
+          assistantTurnActiveRef.current = false
+          localInterruptRef.current = false
+          recoveryRef.current.finishRole('assistant', genuineSpeech ? 'interrupted' : 'partial')
+          syncRecovery()
+          if (genuineSpeech) {
+            player.flush()
+            setUserStatus('interrupted')
+          } else {
+            // The server already stopped generation. Preserve buffered audio
+            // rather than discarding it because playback itself was active.
+            setConnectionNotice('The reply stopped before completion. Received text and audio are retained; replay it or ask Jarvis to continue.')
+          }
+        },
+        onTurnComplete: () => {
+          if (!isCurrent()) return
+          assistantTurnActiveRef.current = false
+          recoveryRef.current.finish(localInterruptRef.current ? 'interrupted' : 'complete')
+          localInterruptRef.current = false
+          syncRecovery()
+          if (!player.getIsPlaying() && player.getPendingMs() <= 0) setUserStatus('listening')
+        },
+        onError: (err) => {
+          if (!isCurrent()) return
+          recoveryRef.current.finish('partial')
+          syncRecovery()
+          setError(err.message)
+          setConnectionNotice('Voice connection interrupted. Received replies are retained. Reconnect to continue; incomplete audio cannot be recovered from the server.')
+          setUserStatus('error')
+        },
+        onClose: () => {
+          if (!isCurrent()) return
+          assistantTurnActiveRef.current = false
+          capturedAudioRef.current = recorderRef.current?.getCapturedAudio() ?? capturedAudioRef.current
+          recorderRef.current?.stop()
+          recorderRef.current = null
+          if (volumeTimerRef.current) clearInterval(volumeTimerRef.current)
+          volumeTimerRef.current = null
+          clientRef.current = null
+          recoveryRef.current.finish('partial')
+          syncRecovery()
+          setUserVolume(0)
+          autonomousCoordinator.endTakeover()
+          setConnectionNotice('The voice stream ended. Received text and audio are retained. Reconnect to start a new stream.')
+          setUserStatus('error')
+          // Let already scheduled audio finish; disconnect/replay still stops it.
+        },
+        onToolCall: async (name, args) => {
+          if (!isCurrent()) return { success: false, error: 'The voice session ended before this action started.' }
+          return handleToolCall(name, args)
+        },
+      })
       clientRef.current = client
-
-      // 4. Connect WebSocket and await setup confirmation
       await client.connect()
-
-      // 5. Start Audio Recorder with turn-aware echo gating. Gating stays
-      //    engaged for the whole assistant turn (turn flag OR pending buffer),
-      //    which is what kills the interrupt-flush-open-gate feedback loop.
+      if (!isCurrent()) { client.disconnect(); return }
       const recorder = new AudioRecorder({
-        getIsSpeaking: () =>
-          assistantTurnActiveRef.current ||
-          (playerRef.current?.getIsPlaying() ?? false) ||
-          (playerRef.current?.getPendingMs() ?? 0) > 0,
+        getIsSpeaking: () => assistantTurnActiveRef.current || player.getIsPlaying() || player.getPendingMs() > 0,
+        shouldCapture: () => !isMutedRef.current,
         onSpeechOnset: () => {
-          const isPlaying = playerRef.current?.getIsPlaying() ?? false
-          const pendingMs = playerRef.current?.getPendingMs() ?? 0
-          if (isPlaying || pendingMs > 0 || assistantTurnActiveRef.current) {
-            // If the server generation turn already completed, user speaking is an
-            // immediate follow-up: flush residual audio immediately so echo gating
-            // clears and user speech transmits in full without clipping!
-            if (!assistantTurnActiveRef.current) {
-              playerRef.current?.flush()
-              recorderRef.current?.resetBargeFrames()
-              setUserStatus('listening')
-            } else {
-              playerRef.current?.duck(0.0, 15)
-            }
+          if (!isCurrent() || isMutedRef.current) return
+          if (assistantTurnActiveRef.current || player.getIsPlaying() || player.getPendingMs() > 0) {
+            localInterruptRef.current = true
+            // This callback is emitted only after sustained speech confirmation.
+            player.flush()
+            recoveryRef.current.markRole('assistant', 'interrupted')
+            syncRecovery()
+            setUserStatus('interrupted')
           }
         },
       })
-      await recorder.start((base64Chunk) => {
-        if (!isMutedRef.current && client.isConnected()) {
-          client.sendAudioChunk(base64Chunk)
-        }
-      })
+      // Register before awaiting permission so cancellation can stop a pending
+      // getUserMedia request and dispose its tracks when it eventually resolves.
       recorderRef.current = recorder
-
-      // 6. Poll live volumes for reactive HUD visuals (throttled state updates)
+      await recorder.start((chunk) => {
+        if (isCurrent() && !isMutedRef.current && client.isConnected()) client.sendAudioChunk(chunk)
+      })
+      if (!isCurrent()) { recorder.stop(); return }
       volumeTimerRef.current = setInterval(() => {
-        const nextUser = recorderRef.current?.getVolume() ?? 0
-        const nextAssistant = playerRef.current?.getVolume() ?? 0
-        setUserVolume((prev) => (Math.abs(prev - nextUser) > 0.02 ? nextUser : prev))
-        setAssistantVolume((prev) => (Math.abs(prev - nextAssistant) > 0.02 ? nextAssistant : prev))
-
-        // If the assistant was ducked on user speech onset, but user stopped speaking
-        // without an interruption arriving after 1400ms, gently unduck so playback resumes
-        if (
-          playerRef.current?.getIsDucked() &&
-          assistantTurnActiveRef.current &&
-          !recorderRef.current?.hasRecentSpeech(1400)
-        ) {
-          playerRef.current.unduck(50)
-        }
+        if (!isCurrent()) return
+        const nextUser = isMutedRef.current ? 0 : recorder.getVolume()
+        const nextAssistant = player.getVolume()
+        setUserVolume((prev) => Math.abs(prev - nextUser) > 0.02 ? nextUser : prev)
+        setAssistantVolume((prev) => Math.abs(prev - nextAssistant) > 0.02 ? nextAssistant : prev)
       }, 90)
-
     } catch (err) {
+      if (!isCurrent()) return
       const msg = err instanceof Error ? err.message : 'Failed to connect to voice companion'
       disconnect()
       setError(msg)
+      setConnectionNotice('Voice could not connect. Your received conversation is retained. Reconnect to try again.')
       setUserStatus('error')
     }
-  }, [disconnect, handleToolCall, selectedVoice, setUserStatus])
+  }, [disconnect, handleToolCall, selectedVoice, setUserStatus, syncRecovery])
+
+  const replayLastResponse = useCallback(async () => {
+    const chunks = recoveryRef.current.replayAudio
+    if (!chunks.length) return
+    const generation = connectionGenerationRef.current
+    try {
+      const player = playerRef.current ?? new AudioPlayer()
+      playerRef.current = player
+      player.flush()
+      await player.resume()
+      if (generation !== connectionGenerationRef.current) { player.stop(); return }
+      setConnectionNotice(recoveryRef.current.replayIsPartial
+        ? 'Replaying the received portion of this reply. Missing audio was not received.'
+        : 'Replaying the received reply.')
+      await Promise.all(chunks.map((chunk) => player.playChunk(chunk)))
+    } catch (err) {
+      if (generation === connectionGenerationRef.current) setError(err instanceof Error ? err.message : 'Replay failed.')
+    }
+  }, [])
+
+  const getCapturedAudio = useCallback(() => recorderRef.current?.getCapturedAudio() ?? capturedAudioRef.current, [])
 
   const toggleMute = useCallback(() => {
     setIsMuted((prev) => !prev)
   }, [])
 
   const clearTranscripts = useCallback(() => {
-    setTranscripts([])
-  }, [])
+    recoveryRef.current.clear()
+    syncRecovery()
+  }, [syncRecovery])
 
   const sendTextMessage = useCallback((text: string) => {
     const trimmed = text.trim()
@@ -666,17 +673,10 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
     // Clear any stale barge-in state before sending this complete text turn.
     recorderRef.current?.resetBargeFrames()
 
-    clientRef.current.sendContextText(trimmed)
-    setTranscripts((prev) => [
-      ...prev,
-      {
-        id: `tr-${Date.now()}`,
-        role: 'user',
-        text: trimmed,
-        timestamp: Date.now(),
-      },
-    ])
-  }, [setUserStatus])
+    clientRef.current.sendContextText(text)
+    recoveryRef.current.addUserMessage(text)
+    syncRecovery()
+  }, [setUserStatus, syncRecovery])
 
   useEffect(() => {
     return () => {
@@ -693,6 +693,12 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
     getAssistantVolume,
     transcripts,
     error,
+    connectionNotice,
+    canReplayResponse,
+    lastResponseText,
+    replayLastResponse,
+    reconnect: connect,
+    getCapturedAudio,
     selectedVoice,
     setSelectedVoice,
     connect,
@@ -701,12 +707,4 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
     clearTranscripts,
     sendTextMessage,
   }
-}
-
-function appendTranscriptText(current: string, next: string) {
-  if (!current) return next
-  if (next.startsWith(current)) return next
-  if (current.endsWith(next)) return current
-  const separator = /\s$/.test(current) || /^[\s,.;!?]/.test(next) ? '' : ' '
-  return `${current}${separator}${next}`
 }

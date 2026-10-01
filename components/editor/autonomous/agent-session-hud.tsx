@@ -1,91 +1,41 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
-import { ArrowUpRight, AudioLines, Circle, Command, MousePointer2 } from 'lucide-react'
 import { autonomousCoordinator } from '@/lib/autonomous-ui/coordinator'
-import type { GhostCursorState } from '@/lib/autonomous-ui/types'
-
-const PHASE_LABELS: Record<GhostCursorState['phase'], string> = {
-  idle: 'Ready for next action',
-  moving: 'Moving through the edit',
-  hovering: 'Holding position between actions',
-  clicking: 'Applying an edit',
-  yielding: 'Returning control',
-}
+import { useAutonomousStore } from '@/lib/autonomous-ui/autonomous-store'
+import { ACTION_STATUS_LABELS, getReceiptMetrics } from './action-feedback'
 
 export function AgentSessionHud() {
-  const prefersReducedMotion = useReducedMotion() ?? false
-  const [state, setState] = useState<GhostCursorState | null>(null)
-
-  useEffect(() => autonomousCoordinator.subscribe((next) => setState({ ...next })), [])
-
-  const active = state?.isTakeover ?? false
-  const busy = active && state?.pillMode !== 'idle'
-  const currentAction = (state?.statusText ?? 'Preparing the edit')
-    .replace(/^Jarvis(?: is in control| taking control[^:]*|:)?\s*/i, '')
-    .trim()
-
+  const actions = useAutonomousStore((store) => store.actions)
+  const [editingEnabled, setEditingEnabled] = useState(false)
+  const [expanded, setExpanded] = useState(false)
+  useEffect(() => autonomousCoordinator.subscribe((next) => setEditingEnabled(next.isTakeover)), [])
+  if (!editingEnabled && actions.length === 0) return null
+  const running = actions.filter((action) => action.status === 'running')
+  const displayed = expanded ? [...actions].reverse() : [...actions].reverse().slice(0, 2)
+  const latest = actions.at(-1)
   return (
-    <AnimatePresence>
-      {active && (
-        <motion.aside
-          key="agent-session-hud"
-          initial={{ opacity: 0, y: prefersReducedMotion ? 0 : -12, scale: 0.98 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: prefersReducedMotion ? 0 : -8, scale: 0.99 }}
-          transition={prefersReducedMotion ? { duration: 0.1 } : { type: 'spring', stiffness: 240, damping: 28 }}
-          className="pointer-events-auto fixed right-5 top-5 z-[9999] w-[min(360px,calc(100vw-2.5rem))] overflow-hidden rounded-[18px] border border-white/[0.12] bg-[#090b0d]/90 text-white shadow-[0_20px_80px_rgba(0,0,0,0.55),0_0_35px_rgba(0,240,255,0.07)] backdrop-blur-2xl"
-          aria-label="Autonomous editing session"
-        >
-          <div className="h-px w-full bg-gradient-to-r from-transparent via-[#00f0ff]/70 to-transparent" />
-          <div className="p-4">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex min-w-0 items-center gap-2.5">
-                <span className="relative flex h-2 w-2 shrink-0">
-                  {busy && !prefersReducedMotion && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#00f0ff]/55" />}
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-[#00f0ff] shadow-[0_0_12px_rgba(0,240,255,0.8)]" />
-                </span>
-                <div className="min-w-0">
-                  <p className="text-[9px] font-semibold uppercase tracking-[0.22em] text-white/45">Prometheus · autonomous session</p>
-                  <p className="mt-1 truncate text-[13px] font-medium tracking-[-0.02em] text-white/90">{busy ? 'Editing in progress' : 'Editing access enabled'}</p>
-                </div>
-              </div>
-              <span className="rounded-full border border-[#00f0ff]/20 bg-[#00f0ff]/[0.07] px-2 py-1 text-[9px] font-medium uppercase tracking-[0.14em] text-[#8cf6ff]">{busy ? 'Live' : 'Ready'}</span>
-            </div>
-
-            <div className="mt-4 rounded-xl border border-white/[0.075] bg-white/[0.035] px-3.5 py-3">
-              <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.16em] text-white/40">
-                <AudioLines className="h-3.5 w-3.5 text-[#76eaf4]" strokeWidth={1.7} />
-                <span>{state?.pillMode === 'waiting' ? 'Waiting for an editor result' : PHASE_LABELS[state?.phase ?? 'idle']}</span>
-              </div>
-              <p className="mt-2 line-clamp-2 text-[13px] leading-5 text-white/85">{busy ? currentAction || 'Continuing the edit' : 'Ready for your next instruction'}</p>
-            </div>
-
-            <div className="mt-3 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2 text-[10px] text-white/42">
-                <MousePointer2 className="h-3.5 w-3.5" strokeWidth={1.7} />
-                <span>Workspace movement and edit controls remain active</span>
-              </div>
-              <div className="flex shrink-0 items-center gap-1 text-[9px] text-white/35" aria-hidden="true">
-                <Circle className="h-1.5 w-1.5 fill-[#00f0ff] text-[#00f0ff]" />
-                <span>Session held</span>
-              </div>
-            </div>
-
-            <div className="mt-4 flex items-center justify-between border-t border-white/[0.08] pt-3">
-              <span className="inline-flex items-center gap-1.5 text-[10px] text-white/40"><Command className="h-3 w-3" /> ESC to return control</span>
-              <button
-                type="button"
-                onClick={() => autonomousCoordinator.endTakeover()}
-                className="group inline-flex items-center gap-1.5 rounded-lg border border-white/[0.13] bg-white/[0.07] px-2.5 py-1.5 text-[10px] font-medium text-white/80 transition-colors hover:border-[#00f0ff]/40 hover:bg-[#00f0ff]/[0.09] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00f0ff]/70"
-              >
-                Return control <ArrowUpRight className="h-3 w-3 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
-              </button>
-            </div>
+    <aside aria-label="Jarvis edit activity" className="pointer-events-auto fixed bottom-4 right-3 z-[9999] w-[min(340px,calc(100vw-24px))] rounded-lg border border-zinc-600 bg-[#101316] text-zinc-100 forced-colors:border-[CanvasText] forced-colors:bg-[Canvas] forced-colors:text-[CanvasText] sm:right-5 [body:has([data-jarvis-conversation])_&]:hidden">
+      <div className="flex items-center justify-between gap-3 px-3 py-2.5">
+        <p className="text-xs font-medium">{running.length ? 'Jarvis is editing' : 'Jarvis edit activity'}</p>
+        <button type="button" aria-expanded={expanded} onClick={() => setExpanded(!expanded)} className="min-h-9 rounded px-2 text-xs text-cyan-200 hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-200">{expanded ? 'Show less' : `History (${actions.length})`}</button>
+      </div>
+      <p role="status" aria-live="polite" aria-atomic="true" className="sr-only">{latest ? `${ACTION_STATUS_LABELS[latest.status]}: ${latest.label}. ${latest.summary}` : 'Jarvis editing access enabled'}</p>
+      <ol aria-label="Recent edit results" className="max-h-[min(40dvh,320px)] overflow-y-auto overscroll-contain border-t border-zinc-700 px-3">
+        {displayed.map((action) => <li key={action.id} data-action-status={action.status} className="border-b border-zinc-700 py-3 last:border-0">
+          <div className="flex items-start justify-between gap-3">
+            <p className="min-w-0 break-words text-xs font-medium leading-5">{action.label}</p>
+            <span className={`shrink-0 text-[11px] leading-5 ${action.status === 'failed' ? 'text-rose-200' : action.status === 'partial' || action.status === 'cancelled' ? 'text-amber-200' : 'text-cyan-200'}`}>{ACTION_STATUS_LABELS[action.status]}</span>
           </div>
-        </motion.aside>
-      )}
-    </AnimatePresence>
+          {action.targetLabel && <p className="mt-0.5 break-words text-xs text-zinc-300">{action.targetLabel}</p>}
+          {action.summary && <p className="mt-1 whitespace-pre-wrap break-words text-xs leading-5 text-zinc-200">{action.summary}</p>}
+          {getReceiptMetrics(action) && <p className="mt-1 text-xs tabular-nums text-zinc-300">{getReceiptMetrics(action)}</p>}
+        </li>)}
+      </ol>
+      {editingEnabled && <div className="flex items-center justify-between gap-2 border-t border-zinc-700 px-3 py-2">
+        <span className="text-[11px] text-zinc-300">Esc to stop editing</span>
+        <button type="button" onClick={() => autonomousCoordinator.endTakeover()} className="min-h-10 rounded border border-zinc-500 px-3 text-xs hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-200">Stop editing</button>
+      </div>}
+    </aside>
   )
 }

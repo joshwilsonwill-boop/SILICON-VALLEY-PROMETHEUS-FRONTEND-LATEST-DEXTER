@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import type { MusicRecommendation } from '@/lib/types'
+import { appliedReferenceStyleSchema, type AppliedReferenceStyle } from './reference-style'
 
 const time = z.number().finite().min(0).max(86400)
 const gain = z.number().finite().min(0).max(1)
@@ -60,6 +61,7 @@ export interface EditorialTimelineState {
   effects: EditorialSoundEffect[]
   cues: EditorialCue[]
   transcript?: EditorialTranscript[]
+  referenceStyle?: AppliedReferenceStyle | null
 }
 
 export const editorialTimelinePatchSchema = z.discriminatedUnion('type', [
@@ -69,6 +71,7 @@ export const editorialTimelinePatchSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('effect'), id: z.string().min(1), volume: gain.optional(), muted: z.boolean().optional() }),
   z.object({ type: z.literal('cues'), cues: z.array(editorialCueSchema).max(2000) }),
   z.object({ type: z.literal('transcript'), segments: z.array(editorialTranscriptSchema).max(5000) }),
+  z.object({ type: z.literal('reference_style'), style: appliedReferenceStyleSchema.nullable() }),
 ])
 export type EditorialTimelinePatch = z.infer<typeof editorialTimelinePatchSchema>
 
@@ -85,6 +88,7 @@ export function readEditorialTimeline(editorState: unknown, sourceAssetId: strin
   const effects = z.array(editorialSoundEffectSchema).max(200).safeParse(raw.effects)
   const cues = z.array(editorialCueSchema).max(2000).safeParse(raw.cues)
   const transcript = z.array(editorialTranscriptSchema).max(5000).safeParse(raw.transcript)
+  const referenceStyle = appliedReferenceStyleSchema.nullable().safeParse(raw.referenceStyle)
   return {
     ...empty,
     revision: Number.isSafeInteger(raw.revision) && (raw.revision ?? 0) >= 0 ? raw.revision! : 0,
@@ -97,6 +101,7 @@ export function readEditorialTimeline(editorState: unknown, sourceAssetId: strin
     effects: effects.success ? effects.data : [],
     cues: cues.success ? cues.data : [],
     ...(transcript.success ? { transcript: transcript.data } : {}),
+    ...(referenceStyle.success ? { referenceStyle: referenceStyle.data } : {}),
   }
 }
 
@@ -109,6 +114,7 @@ export function applyEditorialTimelinePatch(state: EditorialTimelineState, patch
     case 'effect': return { ...next, effects: state.effects.map((cue) => cue.id === patch.id ? { ...cue, ...(patch.volume !== undefined ? { volume: patch.volume } : {}), ...(patch.muted !== undefined ? { muted: patch.muted } : {}) } : cue) }
     case 'cues': return { ...next, cues: patch.cues }
     case 'transcript': return { ...next, transcript: patch.segments }
+    case 'reference_style': return { ...next, referenceStyle: patch.style }
   }
 }
 

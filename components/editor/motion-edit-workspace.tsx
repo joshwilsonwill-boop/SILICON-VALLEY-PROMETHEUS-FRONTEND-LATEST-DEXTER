@@ -45,6 +45,12 @@ import {
 
 import { cn } from '@/lib/utils'
 import { StyleCloneCard } from '@/components/editor/style-clone-card'
+import { ReferenceCaptionOverlay } from '@/components/editor/reference-caption-overlay'
+import { referencePreviewAt, type AppliedReferenceStyle } from '@/lib/editor/reference-style'
+import { applyReferenceStyleToController } from '@/lib/voice-companion/reference-controls'
+import { getEditorialTimelineController } from '@/lib/editor/editorial-timeline-client'
+import { useAutonomousStore } from '@/lib/autonomous-ui/autonomous-store'
+import type { EditorCaptionStyle } from '@/lib/editor-actions'
 import type {EditorialReadiness} from '@/lib/editor/editorial-readiness'
 import type {EditorialCleanupRun} from '@/lib/editor/editorial-run'
 import { MotionSoundtrackTrack } from '@/components/editor/motion/motion-soundtrack-track'
@@ -114,6 +120,7 @@ export interface MotionEditWorkspaceProps {
   onPreviewMutedChange: (muted: boolean) => void
   videoRef: React.Ref<HTMLVideoElement>
   transcriptSegments?: MotionTranscriptSegment[]
+  captionStyle?: EditorCaptionStyle
   onUpdateTranscriptSegment?: (segmentId: string, nextText: string) => void
   onToggleCutSegment?: (segmentId: string) => void
   onToggleCutWord?: (segmentId: string, wordIndex: number) => void
@@ -273,7 +280,7 @@ function HighlightedTranscript({
 export function MotionEditWorkspace({
   projectTitle, previewUrl, previewKind, hasPreviewMedia, sourceLabel, previewAspectRatio, fitMode,
   onFitModeChange, objectFit, mediaTransformStyle, currentTimeLabel, durationLabel, currentTimeSec,
-  durationSec, previewPlaying, previewMuted, onPreviewMutedChange, videoRef, transcriptSegments,
+  durationSec, previewPlaying, previewMuted, onPreviewMutedChange, videoRef, transcriptSegments, captionStyle,
   onUpdateTranscriptSegment, onToggleCutSegment, onToggleCutWord, cutRanges, onCutRangesChange, editorialReadiness, editorialCleanupRun, onApplySuggestedSilenceCuts, onRequestTranscribe, isTranscribing = false, transcriptError = null, isSourceUploading = false, videoMetadata,
   onTogglePlayback, onPickSource, onSourceDrop, onSourceDragOver, onSourceDragLeave, isSourceDragOver = false,
   textPlacements, onSeek, onVideoLoadedMetadata, onVideoLoadedData, onVideoCanPlay,
@@ -281,6 +288,7 @@ export function MotionEditWorkspace({
   selectedMusicTrack: parentSelectedMusicTrack = null, onSelectMusicTrack, onOpenMusicCatalog, soundtrackVolume: parentSoundtrackVolume = 0.5, onSoundtrackVolumeChange: parentVolumeChange, soundtrackMuted: parentSoundtrackMuted = false, onSoundtrackMutedChange: parentMutedChange, soundtrackDucking: parentSoundtrackDucking = true, onSoundtrackDuckingChange: parentDuckingChange, onRemoveMusicTrack,
 }: MotionEditWorkspaceProps) {
   const editorial = useEditorialTimeline()
+  const patchEditorial = editorial.patch
   const selectedMusicTrack = editorial.timeline?.music?.track ?? parentSelectedMusicTrack
   const soundtrackVolume = editorial.timeline?.music?.volume ?? parentSoundtrackVolume
   const soundtrackMuted = editorial.timeline?.music?.muted ?? parentSoundtrackMuted
@@ -306,10 +314,22 @@ export function MotionEditWorkspace({
     }
   }, [editorial.timeline?.music, parentSoundtrackVolume, parentSoundtrackMuted, parentSoundtrackDucking, soundtrackVolume, soundtrackMuted, soundtrackDucking, parentVolumeChange, parentMutedChange, parentDuckingChange])
   const audioEffects = React.useMemo(() => editorial.timeline?.effects ?? [], [editorial.timeline?.effects])
-  const editorialCues = editorial.timeline?.cues ?? []
+  const referenceStyle = editorial.timeline?.referenceStyle
+  const referencePreview = referencePreviewAt(referenceStyle, currentTimeSec)
+  const editorialCues = React.useMemo(() => [...(editorial.timeline?.cues ?? []), ...(referenceStyle?.zooms ?? []).map(cue => ({
+    id: cue.id, type: 'movement' as const, start: cue.start, end: cue.end,
+    title: `Reference ${cue.kind} zoom (${cue.scale.toFixed(2)}x)`, origin: 'editor' as const,
+  }))], [editorial.timeline?.cues, referenceStyle])
   const updateEditorialCues = React.useCallback((cues: typeof editorialCues) => {
-    editorial.patch({ type: 'cues', cues })
-  }, [editorial.patch])
+    patchEditorial({ type: 'cues', cues: cues.filter(cue => !referenceStyle?.zooms.some(zoom => zoom.id === cue.id)) })
+    if (referenceStyle) {
+      const zooms = referenceStyle.zooms.flatMap(zoom => {
+        const updated = cues.find(cue => cue.id === zoom.id)
+        return updated ? [{ ...zoom, start: updated.start, end: updated.end }] : []
+      })
+      patchEditorial({ type: 'reference_style', style: { ...referenceStyle, zooms } })
+    }
+  }, [patchEditorial, referenceStyle])
   const resolvedSegments = React.useMemo(() => {
     return Array.isArray(transcriptSegments) ? transcriptSegments : []
   }, [transcriptSegments])
@@ -321,6 +341,7 @@ export function MotionEditWorkspace({
   const [cropEnabled, setCropEnabled] = React.useState(true)
   const [cropRect, setCropRect] = React.useState<CropRect>(DEFAULT_CROP_RECT)
   const [captionsVisible, setCaptionsVisible] = React.useState(false)
+  const [captionsOverride, setCaptionsOverride] = React.useState<boolean | null>(null)
   const [treatment, setTreatment] = React.useState<PreviewTreatment>('clean')
   const [transcriptQuery, setTranscriptQuery] = React.useState('')
   const [activeOnly, setActiveOnly] = React.useState(false)
@@ -342,7 +363,37 @@ export function MotionEditWorkspace({
     const matchesQuery = query === '' || segment.text.toLowerCase().includes(query)
     return matchesQuery && (!activeOnly || isActiveSegment(segment, currentTimeSec))
   })
-  const activeTreatment = TREATMENTS.find((item) => item.id === treatment) ?? TREATMENTS[0]
+  const activeTreatment = TREATMENTS.find((item) => item.id === (referenceStyle?.treatment ?? treatment)) ?? TREATMENTS[0]
+  const effectiveCaptionsVisible = referenceStyle ? referenceStyle.captionStyle !== 'none' : captionsOverride ?? (captionsVisible || Boolean(captionStyle))
+  const effectiveCaptionStyle = referenceStyle?.captionStyle === 'none' ? undefined : referenceStyle?.captionStyle ?? captionStyle ?? 'clean_bold'
+  const referenceMediaStyle = {
+    ...mediaTransformStyle,
+    ...(referenceStyle ? { transform: `${mediaTransformStyle?.transform ?? ''} scale(${referencePreview.scale})`.trim(), filter: referencePreview.filter } : { filter: activeTreatment.filter }),
+    objectFit: fitMode === 'fill' ? 'cover' as const : objectFit,
+  }
+  const applyReference = React.useCallback(async (style: AppliedReferenceStyle) => {
+    const store = useAutonomousStore.getState()
+    const action = store.beginAction({ label: 'Applying reference look', targetLabel: 'Motion preview' })
+    const rect = workspaceRef.current?.getBoundingClientRect()
+    if (rect) store.setActionTarget(action, rect)
+    const result = await applyReferenceStyleToController(getEditorialTimelineController(editorial.projectId), style)
+    useAutonomousStore.getState().finishAction(action, { status: result.success ? 'succeeded' : 'failed', summary: result.summary, affectedCount: result.affectedCount })
+    return result
+  }, [editorial.projectId])
+  React.useEffect(() => {
+    if (!referenceStyle?.zooms.length || !previewPlaying) return
+    let frame = 0
+    const update = () => {
+      const video = (videoRef as React.RefObject<HTMLVideoElement>)?.current
+      if (video) {
+        const pose = referencePreviewAt(referenceStyle, video.currentTime)
+        video.style.transform = `${mediaTransformStyle?.transform ?? ''} scale(${pose.scale})`.trim()
+      }
+      frame = requestAnimationFrame(update)
+    }
+    frame = requestAnimationFrame(update)
+    return () => cancelAnimationFrame(frame)
+  }, [referenceStyle, previewPlaying, videoRef, mediaTransformStyle?.transform])
 
   const effectiveCutRanges = React.useMemo(() => {
     const ranges: { start: number; end: number }[] = [...(cutRanges ?? [])]
@@ -528,18 +579,19 @@ export function MotionEditWorkspace({
   const selectTool = (tool: MotionToolId) => {
     setActiveTool(tool)
     if (tool === 'media') onPickSource()
-    if (tool === 'captions') setCaptionsVisible(true)
+    if (tool === 'captions') { setCaptionsVisible(true); setCaptionsOverride(true) }
   }
 
   const applyTreatment = (nextTreatment: PreviewTreatment) => {
     setTreatment(nextTreatment)
+    if (referenceStyle) editorial.patch({ type: 'reference_style', style: { ...referenceStyle, treatment: nextTreatment } })
   }
 
   const renderMedia = () => hasPreviewMedia ? (
     previewKind === 'image' ? (
-      <img src={previewUrl} alt={projectTitle} onLoad={onImageLoaded} className="h-full w-full bg-black object-center" style={{ ...mediaTransformStyle, objectFit: fitMode === 'fill' ? 'cover' : objectFit, filter: activeTreatment.filter }} />
+      <img src={previewUrl} alt={projectTitle} onLoad={onImageLoaded} className="h-full w-full bg-black object-center" style={referenceMediaStyle} />
     ) : (
-      <video key={previewUrl} ref={videoRef} src={previewUrl} className="h-full w-full bg-black object-center" muted={previewMuted} playsInline controls={false} preload="metadata" onLoadedMetadata={onVideoLoadedMetadata} onLoadedData={onVideoLoadedData} onCanPlay={onVideoCanPlay} onTimeUpdate={onVideoTimeUpdate} onEnded={onVideoEnded} onPlay={onVideoPlay} onPause={onVideoPause} onError={onVideoError} style={{ ...mediaTransformStyle, objectFit: fitMode === 'fill' ? 'cover' : objectFit, filter: activeTreatment.filter }} />
+      <video key={previewUrl} ref={videoRef} src={previewUrl} className="h-full w-full bg-black object-center" muted={previewMuted} playsInline controls={false} preload="metadata" onLoadedMetadata={onVideoLoadedMetadata} onLoadedData={onVideoLoadedData} onCanPlay={onVideoCanPlay} onTimeUpdate={onVideoTimeUpdate} onEnded={onVideoEnded} onPlay={onVideoPlay} onPause={onVideoPause} onError={onVideoError} style={referenceMediaStyle} />
     )
   ) : (
     <button type="button" onClick={onPickSource} className="absolute inset-0 grid place-items-center bg-[radial-gradient(circle_at_center,rgba(152,242,55,0.1),transparent_38%)] text-sm text-white/66 transition-colors hover:text-white"><span className="inline-flex items-center gap-2 rounded-md border border-white/12 bg-black/45 px-4 py-2.5"><Upload className="size-4" /> Choose source media</span></button>
@@ -866,7 +918,6 @@ export function MotionEditWorkspace({
               </div>
             ) : null}
 
-            <StyleCloneCard className="mt-4" />
 
             <div className="space-y-3.5 text-[17px] leading-8">
               {visibleSegments.map((segment) => {
@@ -1013,7 +1064,15 @@ export function MotionEditWorkspace({
               <div className="flex items-center gap-1.5"><button type="button" onClick={() => onApplyPrompt?.(`Add a motion marker at ${formatTime(currentTimeSec)} in ${projectTitle}.`)} className="grid size-9 place-items-center rounded-md border border-white/10 bg-white/[0.045] text-white/72 transition-colors hover:bg-white/[0.1] hover:text-white" aria-label="Add motion marker"><Plus className="size-4" /></button><button type="button" onClick={() => onApplyPrompt?.('Prepare the current motion edit for export.')} className="inline-flex min-h-9 items-center gap-2 rounded-md bg-white px-3 py-2 text-xs font-semibold text-black transition-colors hover:bg-white/85"><Download className="size-3.5" /> <span className="hidden sm:inline">Export</span></button></div>
             </div>
             <div className="mt-1.5 flex gap-1 overflow-x-auto pb-0.5 lg:hidden" aria-label="Motion tools">{TOOLS.map(({ id, label, icon: Icon }) => <button key={id} type="button" onClick={() => selectTool(id)} className={cn('inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-md border px-2.5 text-xs transition-colors', activeTool === id ? 'border-[#98f237]/35 bg-[#98f237]/10 text-[#c9ff7d]' : 'border-white/10 text-white/58 hover:text-white')}><Icon className="size-3.5" />{label}</button>)}</div>
-            <ToolPanel activeTool={activeTool} treatment={treatment} captionsVisible={captionsVisible} cropEnabled={cropEnabled} fitMode={fitMode} onTreatment={applyTreatment} onToggleCaptions={() => setCaptionsVisible((value) => !value)} onToggleCrop={() => setCropEnabled((value) => !value)} onToggleFit={() => onFitModeChange(fitMode === 'fill' ? 'fit' : 'fill')} onPickSource={onPickSource} />
+            <ToolPanel activeTool={activeTool} treatment={referenceStyle?.treatment ?? treatment} captionsVisible={effectiveCaptionsVisible} cropEnabled={cropEnabled} fitMode={fitMode} onTreatment={applyTreatment} onToggleCaptions={() => {
+              if (referenceStyle) editorial.patch({ type: 'reference_style', style: { ...referenceStyle, captionStyle: effectiveCaptionsVisible ? 'none' : captionStyle ?? 'clean_bold' } })
+              else setCaptionsOverride(!effectiveCaptionsVisible)
+            }} onToggleCrop={() => setCropEnabled((value) => !value)} onToggleFit={() => onFitModeChange(fitMode === 'fill' ? 'fit' : 'fill')} onPickSource={onPickSource} />
+            <details className="mt-2 max-h-[40vh] overflow-y-auto rounded-lg border border-white/10 bg-[#101214] text-xs">
+              <summary className="cursor-pointer px-3 py-2 text-white/80">Reference look{referenceStyle ? ' · Preview only' : ''}</summary>
+              <StyleCloneCard key={previewUrl} sourceKey={previewUrl} durationSec={hasPreviewMedia && previewKind === 'video' ? durationSec : 0} onApplyStyle={applyReference} />
+              {referenceStyle && <button type="button" onClick={() => editorial.patch({ type: 'reference_style', style: null })} className="m-3 min-h-9 rounded border border-white/20 px-3 text-white/80">Remove reference look</button>}
+            </details>
           </header>
 
           <div className="relative min-h-[220px] flex-1 overflow-hidden bg-black/18 p-2 sm:min-h-[280px] sm:p-3 lg:min-h-0 lg:p-3">
@@ -1024,6 +1083,7 @@ export function MotionEditWorkspace({
               >
                 <div className="relative h-full w-full overflow-hidden border border-white/18 bg-black shadow-[0_28px_80px_rgba(0,0,0,0.56)]">
                   {renderMedia()}
+                  {effectiveCaptionsVisible && effectiveCaptionStyle && <ReferenceCaptionOverlay segment={activeSegment} timeSec={currentTimeSec} style={effectiveCaptionStyle} />}
                   <div className="pointer-events-none absolute left-3 top-3 inline-flex max-w-[calc(100%-1.5rem)] items-center gap-2 rounded bg-black/60 px-2.5 py-1.5 text-[10px] text-white/72 backdrop-blur-sm"><Frame className="size-3 shrink-0 text-[#98f237]" /><span className="truncate">{sourceLabel ?? 'Source video'}</span></div>
                   <button type="button" onClick={onTogglePlayback} disabled={previewKind !== 'video' || !previewUrl} className="absolute bottom-3 left-3 grid size-10 place-items-center rounded-full border border-white/12 bg-black/60 text-white backdrop-blur-sm transition-colors hover:bg-black/82 disabled:cursor-not-allowed disabled:opacity-35" aria-label={previewPlaying ? 'Pause preview' : 'Play preview'}>{previewPlaying ? <Pause className="size-4 fill-current" /> : <Play className="ml-0.5 size-4 fill-current" />}</button>
                   {previewKind === 'video' ? (
@@ -1099,7 +1159,7 @@ export function MotionEditWorkspace({
               effectiveDuration={effectiveDuration}
               sourceLabel={sourceLabel ?? projectTitle}
               transcriptSegments={resolvedSegments}
-              captionsVisible={captionsVisible}
+              captionsVisible={effectiveCaptionsVisible}
               currentTime={currentTimeSec}
               textPlacements={textPlacements}
               cutRanges={effectiveCutRanges}

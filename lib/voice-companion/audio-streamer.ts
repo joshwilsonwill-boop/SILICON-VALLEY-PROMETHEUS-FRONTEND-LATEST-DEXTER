@@ -121,13 +121,13 @@ function calculateRMS(samples: Float32Array): number {
 export interface AudioRecorderOptions {
   getIsSpeaking?: () => boolean
   onSpeechOnset?: () => void
+  shouldCapture?: () => boolean
 }
 
 // Barge-in tuning: echo bleed from speakers rarely exceeds these levels while a
 // genuine user interruption sustains much louder energy across multiple frames.
 const BARGE_IN_RMS_THRESHOLD = 0.04
-const BARGE_IN_SUSTAINED_FRAMES = 2
-const SILENCE_CHUNK_SAMPLES = 1600 // 100ms at 16kHz keeps server VAD stream continuous
+const BARGE_IN_SUSTAINED_FRAMES = 3
 
 /**
  * Manages microphone capture, resampling to 16kHz PCM, and audio emission.
@@ -146,19 +146,25 @@ export class AudioRecorder {
   private onSpeechOnset?: () => void
   private currentVolume = 0
   private bargeFrames = 0
-  private silenceChunkBase64: string | null = null
   private lastSpeechTimestamp = 0
+  private startGeneration = 0
+  private preRoll: string[] = []
+  private capturedPcm: ArrayBuffer[] = []
+  private capturedBytes = 0
+  private shouldCapture?: () => boolean
 
   constructor(options?: AudioRecorderOptions) {
     this.getIsSpeaking = options?.getIsSpeaking
     this.onSpeechOnset = options?.onSpeechOnset
+    this.shouldCapture = options?.shouldCapture
   }
 
   async start(onAudioChunk: (base64Chunk: string) => void): Promise<void> {
     if (this.isRecording) return
+    const generation = ++this.startGeneration
     this.onAudioChunk = onAudioChunk
 
-    this.stream = await navigator.mediaDevices.getUserMedia({
+    const stream = await navigator.mediaDevices.getUserMedia({
       audio: {
         echoCancellation: true,
         noiseSuppression: true,
@@ -166,11 +172,17 @@ export class AudioRecorder {
         channelCount: 1,
       },
     })
+    if (generation !== this.startGeneration) {
+      stream.getTracks().forEach((track) => track.stop())
+      return
+    }
+    this.stream = stream
 
     this.audioContext = primeAudioContext()
     if (this.audioContext.state === 'suspended') {
       await this.audioContext.resume().catch(() => {})
     }
+    if (generation !== this.startGeneration) return
 
     this.source = this.audioContext.createMediaStreamSource(this.stream)
     this.analyser = this.audioContext.createAnalyser()
@@ -192,9 +204,16 @@ export class AudioRecorder {
       const inputData = e.inputBuffer.getChannelData(0)
       const rms = calculateRMS(inputData)
       this.currentVolume = Math.min(1, rms * 4)
-
-      if (rms > 0.035) {
-        this.lastSpeechTimestamp = Date.now()
+      const downsampled = downsampleBuffer(inputData, inputSampleRate, targetSampleRate)
+      const pcmBuffer = floatTo16BitPCM(downsampled)
+      const base64 = arrayBufferToBase64(pcmBuffer)
+      if (this.shouldCapture?.()) {
+        this.capturedPcm.push(pcmBuffer)
+        this.capturedBytes += pcmBuffer.byteLength
+        // Keep the last two minutes, in memory only. Export is user initiated.
+        while (this.capturedBytes > 16000 * 2 * 120 && this.capturedPcm.length > 0) {
+          this.capturedBytes -= this.capturedPcm.shift()!.byteLength
+        }
       }
 
       // ACOUSTIC ECHO GATING (turn-aware, with silence-fill):
@@ -207,10 +226,10 @@ export class AudioRecorder {
       if (isAssistantSpeaking) {
         if (rms > BARGE_IN_RMS_THRESHOLD) {
           this.bargeFrames += 1
-          this.lastSpeechTimestamp = Date.now()
-          this.onSpeechOnset?.()
+          this.preRoll.push(base64)
         } else {
           this.bargeFrames = 0
+          this.preRoll = []
         }
         if (this.bargeFrames < BARGE_IN_SUSTAINED_FRAMES) {
           const targetSilenceSamples = Math.max(
@@ -222,16 +241,21 @@ export class AudioRecorder {
           this.onAudioChunk?.(silenceBase64)
           return
         }
+        this.lastSpeechTimestamp = Date.now()
+        if (this.bargeFrames === BARGE_IN_SUSTAINED_FRAMES) this.onSpeechOnset?.()
+        // Preserve the beginning of a deliberate interruption after confirming it.
+        for (const chunk of this.preRoll) this.onAudioChunk?.(chunk)
+        this.preRoll = []
+        return
       } else {
         this.bargeFrames = 0
+        this.preRoll = []
         if (rms > BARGE_IN_RMS_THRESHOLD) {
+          this.lastSpeechTimestamp = Date.now()
           this.onSpeechOnset?.()
         }
       }
 
-      const downsampled = downsampleBuffer(inputData, inputSampleRate, targetSampleRate)
-      const pcmBuffer = floatTo16BitPCM(downsampled)
-      const base64 = arrayBufferToBase64(pcmBuffer)
       this.onAudioChunk?.(base64)
     }
 
@@ -243,10 +267,11 @@ export class AudioRecorder {
   }
 
   stop(): void {
+    this.startGeneration += 1
     this.isRecording = false
     this.bargeFrames = 0
+    this.preRoll = []
     this.lastSpeechTimestamp = 0
-    this.silenceChunkBase64 = null
     this.processor?.disconnect()
     this.analyser?.disconnect()
     this.silentGain?.disconnect()
@@ -273,6 +298,11 @@ export class AudioRecorder {
 
   resetBargeFrames(): void {
     this.bargeFrames = 0
+    this.preRoll = []
+  }
+
+  getCapturedAudio(): Blob | null {
+    return this.capturedBytes ? pcmToWav(this.capturedPcm, 16000) : null
   }
 
   getLastSpeechTimestamp(): number {
@@ -418,7 +448,9 @@ export class AudioPlayer {
     }
 
     const currentTime = ctx.currentTime
-    const startTime = Math.max(currentTime, this.nextPlayTime)
+    // Reserve a short lead when the queue starts or underflows. Small network
+    // delays can then arrive before playback reaches the edge of the buffer.
+    const startTime = this.nextPlayTime > currentTime ? this.nextPlayTime : currentTime + 0.18
     source.start(startTime)
     this.nextPlayTime = startTime + audioBuffer.duration
 
@@ -429,6 +461,7 @@ export class AudioPlayer {
     }
 
     source.onended = () => {
+      if (generation !== this.playbackGeneration) return
       const idx = this.scheduledSources.indexOf(source)
       if (idx !== -1) {
         this.scheduledSources.splice(idx, 1)
@@ -491,8 +524,25 @@ export class AudioPlayer {
     this.flush()
     this.playbackDrain = Promise.resolve()
     this.gainNode?.disconnect()
+    this.analyser?.disconnect()
     this.gainNode = null
     this.audioContext = null
     this.analyser = null
   }
+}
+
+/** A WAV of the exact PCM received/captured, without synthesized replacements. */
+export function pcmToWav(chunks: ArrayBuffer[], sampleRate: number): Blob {
+  const bytes = chunks.reduce((total, chunk) => total + chunk.byteLength, 0)
+  const header = new ArrayBuffer(44)
+  const view = new DataView(header)
+  const label = (offset: number, value: string) => {
+    for (let i = 0; i < value.length; i++) view.setUint8(offset + i, value.charCodeAt(i))
+  }
+  label(0, 'RIFF'); view.setUint32(4, 36 + bytes, true); label(8, 'WAVE')
+  label(12, 'fmt '); view.setUint32(16, 16, true); view.setUint16(20, 1, true)
+  view.setUint16(22, 1, true); view.setUint32(24, sampleRate, true)
+  view.setUint32(28, sampleRate * 2, true); view.setUint16(32, 2, true); view.setUint16(34, 16, true)
+  label(36, 'data'); view.setUint32(40, bytes, true)
+  return new Blob([header, ...chunks], { type: 'audio/wav' })
 }

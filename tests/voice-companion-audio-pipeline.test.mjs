@@ -16,7 +16,7 @@ assert.match(audioStreamer, /export function primeAudioContext\(\)/, 'primeAudio
 assert.match(audioStreamer, /getIsSpeaking/, 'AudioRecorder must support getIsSpeaking ducking callback')
 assert.match(audioStreamer, /BARGE_IN_RMS_THRESHOLD/, 'AudioRecorder must gate mic transmission with a barge-in threshold during model speech')
 assert.match(audioStreamer, /BARGE_IN_SUSTAINED_FRAMES/, 'AudioRecorder must require sustained user energy for deliberate barge-in')
-assert.match(audioStreamer, /silenceChunkBase64/, 'AudioRecorder must silence-fill gated frames instead of dropping them')
+assert.match(audioStreamer, /silenceBase64/, 'AudioRecorder must silence-fill gated frames instead of dropping them')
 assert.match(audioStreamer, /getIsPlaying\(\)/, 'AudioPlayer must expose getIsPlaying()')
 assert.match(audioStreamer, /getPendingMs\(\)/, 'AudioPlayer must expose getPendingMs() for turn-aware gating')
 assert.match(audioStreamer, /playbackQueue/, 'AudioPlayer must serialize incoming model audio chunks')
@@ -32,8 +32,8 @@ assert.match(geminiLiveClient, /realtimeInput:\s*\{\s*video:\s*\{/s, 'Live clien
 // 3. useVoiceCompanion: Synchronous Priming & Error Preservation
 assert.match(useVoiceCompanion, /primeAudioContext\(\)/, 'useVoiceCompanion must synchronously prime Web Audio on connect gesture')
 assert.match(useVoiceCompanion, /getIsSpeaking:\s*\(\)\s*=>\s*\n?\s*assistantTurnActiveRef\.current/, 'useVoiceCompanion must gate the recorder on the assistant turn flag, not just playback state')
-assert.match(useVoiceCompanion, /setUserStatus\(\(prev\) => \(prev === 'error' \? 'error' : 'disconnected'\)\)/, 'useVoiceCompanion must preserve error state on socket close')
-assert.match(useVoiceCompanion, /userVol > 0\.04 \|\| hadRecentSpeech/, 'useVoiceCompanion must honor server interruptions backed by speech level or recent speech memory')
+assert.match(useVoiceCompanion, /setConnectionNotice\('The voice stream ended\.[\s\S]*?setUserStatus\('error'\)/, 'useVoiceCompanion must preserve a recoverable notice on socket close')
+assert.match(useVoiceCompanion, /localInterruptRef\.current = true[\s\S]*?player\.flush\(\)/, 'useVoiceCompanion must honor confirmed local speech interruptions')
 
 // 4. Session Route: Models & Candidate Keys
 assert.match(sessionRoute, /models\/gemini-3\.1-flash-live-preview/, 'Session route must provide a supported Gemini Live model')
