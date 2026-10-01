@@ -9,6 +9,7 @@ import {
   parseEditorActionDrafts,
   type EditorActionDraft,
 } from '@/lib/editor-actions'
+import { STUDIO_REFERENCES } from '@/lib/thumbnails/studio-references'
 
 /**
  * Shared tool surface for both Prometheus chat routes (streaming and non-streaming).
@@ -90,7 +91,7 @@ export const PROMETHEUS_TOOLS = [
     function: {
       name: 'draft_editor_actions',
       description:
-        'Draft non-destructive editor actions the user approves before execution. Use for any request that implies changing the editor: seeking, preview transport, fit mode, workspace tabs. Anything that mutates the media itself (trim, captions, typography/style, renders) must be proposed with kind "propose" — it is shown as a plan, never executed here.',
+        'Draft whitelisted editor actions. For a thumbnail request, use open_thumbnail_studio and carry the user’s creative brief, exact headline when specified, and a matching referenceId when clearly requested. This opens the studio with those choices prefilled; the user reviews the frame and starts generation. Anything that mutates timeline media (trim, captions, renders) must be proposed with kind "propose".',
       parameters: {
         type: 'object',
         properties: {
@@ -103,9 +104,9 @@ export const PROMETHEUS_TOOLS = [
               properties: {
                 kind: {
                   type: 'string',
-                  enum: ['seek', 'preview_control', 'soundtrack_control', 'set_fit_mode', 'switch_tab', 'split_at_playhead', 'cut_silence', 'propose'],
+                  enum: ['seek', 'preview_control', 'soundtrack_control', 'set_fit_mode', 'switch_tab', 'open_thumbnail_studio', 'split_at_playhead', 'cut_silence', 'propose'],
                   description:
-                    'seek → jump the playhead; preview_control → play/pause/mute/unmute; soundtrack_control → set_volume (0-100), set_ducking (enabled boolean), or remove the selected soundtrack; set_fit_mode → fill|fit; switch_tab → Editor|Music|Motion; split_at_playhead → split clip at playhead timeSec; cut_silence → ripple-cut silent dead air pauses; propose → media-mutating change, planned only.',
+                    'seek → jump the playhead; preview_control → play/pause/mute/unmute; soundtrack_control → set_volume (0-100), set_ducking (enabled boolean), or remove the selected soundtrack; set_fit_mode → fill|fit; switch_tab → Editor|Music|Motion; open_thumbnail_studio → open the thumbnail creator with the user’s requested brief and optional reference; split_at_playhead → split clip at playhead timeSec; cut_silence → ripple-cut silent dead air pauses; propose → media-mutating change, planned only.',
                 },
                 timeSec: { type: 'number', description: 'For kind "seek" or "split_at_playhead": target time in seconds.' },
                 command: { type: 'string', enum: ['play', 'pause', 'mute', 'unmute'], description: 'For kind "preview_control".' },
@@ -113,6 +114,10 @@ export const PROMETHEUS_TOOLS = [
                 enabled: { type: 'boolean', description: 'For soundtrack_control set_ducking: whether music lowers under dialogue.' },
                 mode: { type: 'string', enum: ['fill', 'fit'], description: 'For kind "set_fit_mode".' },
                 tab: { type: 'string', enum: ['Editor', 'Music', 'Motion'], description: 'For kind "switch_tab".' },
+                creativeDirection: { type: 'string', description: 'For kind "open_thumbnail_studio": the user’s thumbnail brief, up to 500 characters.' },
+                headline: { type: 'string', description: 'For kind "open_thumbnail_studio": preserve the exact headline only when the user specified one.' },
+                referenceId: { type: 'string', enum: STUDIO_REFERENCES.map(reference => reference.id), description: 'For kind "open_thumbnail_studio": choose only when the user asks for a named or clearly matching reference thumbnail.' },
+                generateNow: { type: 'boolean', description: 'For kind "open_thumbnail_studio": true only when the user directly asked Jarvis to create/generate the thumbnail now; this starts one image generation after frame curation.' },
                 minDurationSec: { type: 'number', description: 'For kind "cut_silence": minimum pause length to cut (default 0.4s).' },
                 description: { type: 'string', description: 'For kind "propose": what the media-mutating change would do.' },
                 summary: { type: 'string', description: 'Short user-facing label for this action.' },

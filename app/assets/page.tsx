@@ -170,8 +170,6 @@ export default function AssetsPage() {
           <div className="h-full overflow-y-auto overscroll-contain bg-black">
             <CinematicLibrary
               tab={tab}
-              onTabChange={setTab}
-              assets={assets}
               filteredAssets={filteredAssets}
               onUploadClick={() => setOpen(true)}
               savedCharacterIds={savedCharacterIds}

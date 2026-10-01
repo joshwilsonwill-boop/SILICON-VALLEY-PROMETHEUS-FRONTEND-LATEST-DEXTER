@@ -8,11 +8,18 @@ import {
   VIRAL_THUMBNAIL_RECIPES,
 } from '@/lib/thumbnails/nano-banana-rulebook'
 import { buildNanoBananaImageRequest, extractGeneratedImage, parseImageDataUrl } from '@/lib/thumbnails/nano-banana-image'
+import {
+  buildOpenAIImageEditRequest,
+  DEFAULT_THUMBNAIL_IMAGE_MODEL,
+  extractOpenAIImageEditResult,
+  resolveOpenAIImageEditEndpoint,
+} from '@/lib/thumbnails/openai-image-edit'
 
 import { buildStudioArtDirection, parseStudioDesign, resolveStudioImageModel, resolveStudioImageSize, type StudioDesign } from '@/lib/thumbnails/studio-art-direction'
 import { getStudioReference, STUDIO_REFERENCES } from '@/lib/thumbnails/studio-references'
 import { compactGeneratedThumbnail } from '@/lib/thumbnails/thumbnail-output'
 import { THUMBNAIL_PROVIDER_TIMEOUT_MS } from '@/lib/thumbnails/thumbnail-runtime'
+import { buildThumbnailPromptPlannerText, extractPlannedArtDirection, THUMBNAIL_PROMPT_PLANNER_INSTRUCTIONS } from '@/lib/thumbnails/retention-prompt'
 
 export const runtime = 'nodejs'
 export const maxDuration = 300
@@ -38,6 +45,8 @@ interface NanoBananaRequestBody {
   referenceImages?: string[]
   lockChannelStyle?: boolean
   studioReferenceId?: string
+  projectTitle?: string
+  transcriptSnippet?: string
 }
 
 interface ChannelStyleDna {
@@ -123,18 +132,20 @@ export async function POST(
 
     const archetype = SHORT_FORM_ARCHETYPES.find((a) => a.id === styleId) || SHORT_FORM_ARCHETYPES[0]
 
-    const apiKey = resolveGeminiApiKey()
-    if (!apiKey) {
-      return NextResponse.json({ error: 'Nano Banana is unavailable: image generation is not configured.' }, { status: 503 })
+    const imageApiKey = process.env.THUMBNAIL_IMAGE_API_KEY?.trim()
+    const useOpenAICompatibleImageApi = Boolean(imageApiKey)
+    const geminiApiKey = useOpenAICompatibleImageApi ? '' : resolveGeminiApiKey()
+    if (!imageApiKey && !geminiApiKey) {
+      return NextResponse.json({ error: 'Thumbnail image generation is not configured. Add a server-side image API key and retry.' }, { status: 503 })
     }
 
     let channelDna: ChannelStyleDna | null = null
     let synthesizedPrompt = ''
 
     // 1. Channel Style-Lock Analysis via Gemini Multimodal Vision
-    if (apiKey && lockChannelStyle && !studioDesign && (referenceImages.length > 0 || frameDataUrl)) {
+    if (geminiApiKey && lockChannelStyle && !studioDesign && (referenceImages.length > 0 || frameDataUrl)) {
       try {
-        const genAI = new GoogleGenerativeAI(apiKey)
+        const genAI = new GoogleGenerativeAI(geminiApiKey)
         const visionModel = genAI.getGenerativeModel({
           model: 'gemini-2.5-flash',
           generationConfig: {
@@ -246,41 +257,101 @@ Extract the exact Channel Style DNA (lighting ratios, color contrast, proof card
       const referenceId = typeof body?.studioReferenceId === 'string' && STUDIO_REFERENCES.some(reference => reference.id === body.studioReferenceId) ? body.studioReferenceId : ''
       const referenceCue = referenceId ? getStudioReference(referenceId).cue : ''
       synthesizedPrompt += '\n\n' + buildStudioArtDirection(studioDesign, headline, body?.highlightWord || '', referenceCue)
+
+      if (geminiApiKey) {
+        try {
+          const source = parseImageDataUrl(frameDataUrl)
+          const plannerParts: Array<Record<string, unknown>> = [{
+            text: buildThumbnailPromptPlannerText({
+              projectTitle: typeof body?.projectTitle === 'string' ? body.projectTitle : '',
+              transcriptSnippet: typeof body?.transcriptSnippet === 'string' ? body.transcriptSnippet : '',
+              headline,
+              creativeDirection: userPrompt,
+              aspectRatio: effectiveAspect,
+              referenceCue,
+            }),
+          }]
+          if (source) plannerParts.push({ inlineData: { mimeType: source.mimeType, data: source.data } })
+          for (const reference of referenceImages) {
+            const parsedReference = parseImageDataUrl(reference)
+            if (parsedReference) plannerParts.push({ inlineData: { mimeType: parsedReference.mimeType, data: parsedReference.data } })
+          }
+          const planner = new GoogleGenerativeAI(geminiApiKey).getGenerativeModel({
+            model: 'gemini-2.5-flash',
+            generationConfig: { responseMimeType: 'application/json', temperature: 0.35 },
+            systemInstruction: THUMBNAIL_PROMPT_PLANNER_INSTRUCTIONS,
+          })
+          const planned = await planner.generateContent(plannerParts as never)
+          const artDirection = extractPlannedArtDirection(planned.response?.text() ?? '')
+          if (artDirection) synthesizedPrompt += '\n\nRETENTION-AWARE CREATIVE CONCEPT: ' + artDirection
+          else console.warn('[Thumbnail Prompt Planner]', { requestId, result: 'empty-or-invalid-json' })
+        } catch {
+          console.warn('[Thumbnail Prompt Planner]', { requestId, result: 'unavailable; using structured art direction' })
+        }
+      }
     }
-    const imageModel = studioDesign ? resolveStudioImageModel(studioDesign.quality) : 'gemini-2.5-flash-image'
-    const imageRequest = buildNanoBananaImageRequest({
-      prompt: synthesizedPrompt,
-      frameDataUrl,
-      referenceImages,
-      aspectRatio: effectiveAspect,
-      ...(studioDesign ? { imageSize: resolveStudioImageSize(studioDesign.quality) } : {}),
-    })
+    const imageModel = useOpenAICompatibleImageApi
+      ? process.env.THUMBNAIL_IMAGE_MODEL?.trim() || DEFAULT_THUMBNAIL_IMAGE_MODEL
+      : studioDesign ? resolveStudioImageModel(studioDesign.quality) : 'gemini-2.5-flash-image'
+    const imageRequest = useOpenAICompatibleImageApi
+      ? buildOpenAIImageEditRequest({
+          model: imageModel,
+          prompt: synthesizedPrompt,
+          frameDataUrl,
+          referenceImages,
+          aspectRatio: effectiveAspect,
+          quality: studioDesign?.quality ?? 'fast',
+        })
+      : buildNanoBananaImageRequest({
+          prompt: synthesizedPrompt,
+          frameDataUrl,
+          referenceImages,
+          aspectRatio: effectiveAspect,
+          ...(studioDesign ? { imageSize: resolveStudioImageSize(studioDesign.quality) } : {}),
+        })
     stage = 'image generation'
     const providerStartedAt = Date.now()
-    console.info('[Nano Banana Stage]', { requestId, stage: 'image generation started', quality: studioDesign?.quality || 'legacy', requestBytes: contentLength || undefined })
-    const imageResponse = await fetch('https://generativelanguage.googleapis.com/v1/models/' + imageModel + ':generateContent', {
+    const provider = useOpenAICompatibleImageApi ? 'openai-compatible image group' : 'Google Gemini'
+    console.info('[Thumbnail Stage]', { requestId, provider, stage: 'image generation started', model: imageModel, quality: studioDesign?.quality || 'legacy', requestBytes: contentLength || undefined })
+    const endpoint = useOpenAICompatibleImageApi
+      ? resolveOpenAIImageEditEndpoint(process.env.THUMBNAIL_IMAGE_API_BASE_URL)
+      : 'https://generativelanguage.googleapis.com/v1/models/' + imageModel + ':generateContent'
+    const imageResponse = await fetch(endpoint, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+      headers: useOpenAICompatibleImageApi
+        ? { 'Content-Type': 'application/json', Authorization: `Bearer ${imageApiKey}` }
+        : { 'Content-Type': 'application/json', 'x-goog-api-key': geminiApiKey! },
       body: JSON.stringify(imageRequest),
       signal: AbortSignal.any([request.signal, AbortSignal.timeout(THUMBNAIL_PROVIDER_TIMEOUT_MS)]),
     })
-    console.info('[Nano Banana Stage]', { requestId, stage: 'image generation finished', status: imageResponse.status, durationMs: Date.now() - providerStartedAt })
-    const imageResult = await imageResponse.json().catch(() => null)
+    const responseContentType = imageResponse.headers.get('content-type') || ''
+    console.info('[Thumbnail Stage]', { requestId, provider, stage: 'image generation finished', status: imageResponse.status, contentType: responseContentType, durationMs: Date.now() - providerStartedAt })
+    const imageResult = responseContentType.includes('json')
+      ? await imageResponse.json().catch(() => null)
+      : await imageResponse.text().catch(() => '')
     if (!imageResponse.ok) {
-      console.error('[Nano Banana Image Generation]', imageResponse.status, imageResult?.error?.message)
-      const providerMessage = typeof imageResult?.error?.message === 'string' ? imageResult.error.message : ''
-      const safeProviderMessage = providerMessage.replace(/AIza[0-9A-Za-z_-]{20,}/g, '[redacted credential]').slice(0, 240)
+      const providerMessage = typeof imageResult === 'string'
+        ? imageResult
+        : typeof imageResult?.error?.message === 'string'
+          ? imageResult.error.message
+          : ''
+      console.error('[Thumbnail Image Provider Error]', { requestId, provider, status: imageResponse.status, contentType: responseContentType })
+      const htmlGateway = !responseContentType.includes('json')
       const error = imageResponse.status === 401 || imageResponse.status === 403
-        ? 'Google rejected the configured Gemini API credential (HTTP ' + imageResponse.status + '). Check that the server key is valid and has image generation access.'
+        ? useOpenAICompatibleImageApi
+          ? 'The configured image group rejected its server credential. Check the dedicated image-generation key in the deployment environment.'
+          : 'Google rejected the configured Gemini API credential. Check the server key and image-generation access.'
         : imageResponse.status === 429
-          ? 'Google image generation rate limit or quota reached (HTTP 429). Wait a little or check the project quota.'
-          : safeProviderMessage.toLowerCase().includes('api key') || safeProviderMessage.toLowerCase().includes('api_key')
-            ? 'Google rejected the configured Gemini API credential: ' + safeProviderMessage
-            : 'Google image generation failed (HTTP ' + imageResponse.status + '). ' + (safeProviderMessage || 'Try again in a moment.')
+          ? 'The image provider reached its rate limit or usage quota. Check the group quota and retry.'
+        : htmlGateway
+            ? `The image provider returned an HTML gateway error (HTTP ${imageResponse.status}). Request reference: ${requestId}. Check the matching function and provider logs.`
+            : `${provider} failed (HTTP ${imageResponse.status}). ${providerMessage.slice(0, 220) || 'Retry in a moment.'} Request reference: ${requestId}.`
       return NextResponse.json({ error }, { status: 502 })
     }
 
-    const generatedDataUrl = extractGeneratedImage(imageResult)
+    const generatedDataUrl = useOpenAICompatibleImageApi
+      ? extractOpenAIImageEditResult(imageResult)
+      : extractGeneratedImage(imageResult)
     if (!generatedDataUrl) {
       return NextResponse.json({ error: 'Nano Banana returned no image. Try another frame or direction.' }, { status: 502 })
     }
@@ -289,7 +360,7 @@ Extract the exact Channel Style DNA (lighting ratios, color contrast, proof card
 
     return NextResponse.json({
       success: true,
-      mode: 'nano_banana_image',
+      mode: useOpenAICompatibleImageApi ? 'openai_compatible_image_edit' : 'nano_banana_image',
       model: imageModel,
       dataUrl,
       prompt: synthesizedPrompt,

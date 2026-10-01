@@ -67,10 +67,13 @@ export function LibraryCollection({ onSelect }: { onSelect: (showcaseId: string)
                 fill
                 loading="eager"
                 sizes="(max-width: 639px) 50vw, (max-width: 767px) 33vw, (max-width: 1023px) 25vw, (max-width: 1279px) 20vw, 190px"
-                className="absolute inset-0 h-full w-full object-cover grayscale-[0.22] transition duration-500 group-hover:scale-[1.035] group-hover:grayscale-0"
+                className={`absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-[1.035] ${index === 0 ? 'grayscale-[0.82] brightness-[0.7] contrast-125 group-hover:grayscale-[0.64] group-hover:brightness-[0.78]' : 'grayscale-[0.22] group-hover:grayscale-0'}`}
                 style={{ objectPosition: CREATOR_IMAGE_POSITIONS[index] ?? '50% 18%' }}
               />
               <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.02)_24%,rgba(0,0,0,0.2)_48%,rgba(0,0,0,0.96)_100%)]" />
+              {index === 0 ? (
+                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_12%,rgba(0,0,0,0.36)_100%)]" />
+              ) : null}
               <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(72,255,151,0.12),transparent_32%)] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 
               <div className="absolute inset-x-0 top-0 flex items-center justify-between p-2.5">

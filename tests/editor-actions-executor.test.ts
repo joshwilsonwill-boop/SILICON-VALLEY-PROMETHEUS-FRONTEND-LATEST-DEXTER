@@ -27,6 +27,20 @@ function run() {
   assert.equal(seek, null, 'timecode strings are not numbers and must be rejected')
   const seekAliased = parseEditorActionDraft({ kind: 'seek', time_sec: 25.4, summary: 'Go to 0:25' })
   assert.ok(seekAliased && seekAliased.kind === 'seek' && seekAliased.timeSec === 25.4)
+  const thumbnailDraft = parseEditorActionDraft({
+    kind: 'open_thumbnail_studio',
+    creativeDirection: '  cinematic reveal   with honest curiosity ',
+    headline: 'The Hidden Cost',
+    referenceId: 'time-ticking',
+  })
+  assert.deepEqual(thumbnailDraft, {
+    kind: 'open_thumbnail_studio',
+    creativeDirection: 'cinematic reveal with honest curiosity',
+    headline: 'The Hidden Cost',
+    referenceId: 'time-ticking',
+    summary: 'Open Thumbnail Studio',
+  })
+  assert.equal(parseEditorActionDraft({ kind: 'open_thumbnail_studio', referenceId: 'unknown-style' })?.kind, 'open_thumbnail_studio')
 
   const list = parseEditorActionDrafts({
     actions: [
@@ -104,15 +118,15 @@ function run() {
     },
   )
   // --- Executor: studio modal actions dispatch cleanly
-  let thumbnailOpened = false
+  let openedThumbnailBrief = ''
   let masterReviewOpened = false
   const studioCtx: EditorActionContext = {
-    openThumbnailStudio: () => { thumbnailOpened = true },
+    openThumbnailStudio: (draft) => { openedThumbnailBrief = draft.creativeDirection ?? '' },
     openMasterReview: () => { masterReviewOpened = true },
   }
   const studioDrafts = applyEditorActionDrafts(
     [
-      { kind: 'open_thumbnail_studio', summary: 'Open Thumbnail Studio' },
+      { kind: 'open_thumbnail_studio', creativeDirection: 'cinematic reveal', summary: 'Open Thumbnail Studio' },
       { kind: 'open_master_review', summary: 'Open Master Review' },
     ],
     studioCtx,
@@ -120,7 +134,7 @@ function run() {
   assert.equal(studioDrafts.length, 2)
   assert.equal(studioDrafts[0].applied, true)
   assert.equal(studioDrafts[1].applied, true)
-  assert.equal(thumbnailOpened, true)
+  assert.equal(openedThumbnailBrief, 'cinematic reveal')
   assert.equal(masterReviewOpened, true)
 }
 

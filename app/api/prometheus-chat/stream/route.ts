@@ -776,6 +776,9 @@ function buildStreamSystemPrompt({
     toolsEnabled
       ? "Execute available tools decisively. A direct editing instruction is consent to apply a whitelisted client-side editor action. For timeline operations, use draft_editor_actions with machine-readable actions immediately: use cut_silence for silence removal, split_at_playhead for a split, and never replace these with a generic proposal. cut_silence works from timed transcript gaps and updates timeline state without FFmpeg or a render. Use kind \"propose\" only when the requested work needs a later render/export or lacks evidence. Cite specific video frames using reference_video_frames whenever temporal precision is needed."
       : "",
+    toolsEnabled
+      ? "When the user asks for a thumbnail, cover, or video artwork, use draft_editor_actions with kind \"open_thumbnail_studio\". Carry their requested concept and mood in creativeDirection, an exact headline only if they gave one, and a referenceId only if they name or clearly choose a library look. Set generateNow=true only for a direct request to create/generate the artwork now; this starts one generation after frame curation. Otherwise leave it false so the user can review settings first."
+      : "",
     originalPrompt ? `Relevant creative direction: ${originalPrompt}` : "",
     projectId ? `Current project ID: ${projectId}` : "",
     projectContextBlock ? `Current project context:\n${projectContextBlock}` : "",

@@ -6232,11 +6232,20 @@ function OriginalEditorPage() {
   const [activeWorkspaceTab, setActiveWorkspaceTab] = React.useState<HeaderNavMode>(
     () => requestedWorkspaceTab ?? 'Editor',
   )
+  const previousWorkspaceTabRef = React.useRef(activeWorkspaceTab)
   const [isExporting, setIsExporting] = React.useState(false)
   const [isDownloading, setIsDownloading] = React.useState(false)
   const [isDownloadDialogOpen, setIsDownloadDialogOpen] = React.useState(false)
   const [isNewProjectUploadOpen, setIsNewProjectUploadOpen] = React.useState(false)
   const [isThumbnailStudioOpen, setIsThumbnailStudioOpen] = React.useState(false)
+  const [thumbnailJarvisDraft, setThumbnailJarvisDraft] = React.useState<{
+    id: number
+    creativeDirection?: string
+    headline?: string
+    referenceId?: Extract<EditorActionDraft, { kind: 'open_thumbnail_studio' }>['referenceId']
+    generateNow?: boolean
+  } | null>(null)
+  const thumbnailJarvisDraftSequenceRef = React.useRef(0)
   const [isMasterReviewOpen, setIsMasterReviewOpen] = React.useState(false)
   const [isEditingTitle, setIsEditingTitle] = React.useState(false)
   const [tempTitle, setTempTitle] = React.useState('')
@@ -8297,6 +8306,8 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
 
   const handlePreviewEnded = React.useCallback(() => {
     previewPlaybackIntentRef.current = 'paused'
+    previewPlaybackCommandRef.current += 1
+    soundtrackAudioRef.current?.pause()
     debugEditorPreview('video-ended', {
       projectId,
       previewUrl,
@@ -8314,7 +8325,11 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
   }, [previewUrl, projectId])
 
   const handlePreviewVideoPause = React.useCallback(() => {
-    if (previewPlaybackIntentRef.current !== 'paused') return
+    const video = previewVideoRef.current
+    if (previewPlaybackIntentRef.current === 'playing' && video && !video.paused) return
+    previewPlaybackIntentRef.current = 'paused'
+    previewPlaybackCommandRef.current += 1
+    soundtrackAudioRef.current?.pause()
     debugEditorPreview('video-pause', {
       projectId,
       previewUrl,
@@ -8324,6 +8339,10 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
 
   const handlePreviewVideoError = React.useCallback(() => {
     const video = previewVideoRef.current
+    previewPlaybackIntentRef.current = 'paused'
+    previewPlaybackCommandRef.current += 1
+    soundtrackAudioRef.current?.pause()
+    setPreviewPlaying(false)
     debugEditorPreview('video-error', {
       projectId,
       previewUrl,
@@ -8340,14 +8359,6 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
     return framePreset
   }, [])
 
-  const handlePreviewSeek = React.useCallback((nextValue: number) => {
-    const video = previewVideoRef.current
-    if (!video || !transportDurationSec) return
-    const nextTime = (nextValue / 100) * transportDurationSec
-    video.currentTime = nextTime
-    setPreviewCurrentTimeSec(nextTime)
-  }, [transportDurationSec])
-
   const handlePreviewSeekSeconds = React.useCallback((nextTimeSec: number) => {
     if (!transportDurationSec) return
     const nextTime = Math.min(transportDurationSec, Math.max(0, nextTimeSec))
@@ -8356,11 +8367,19 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
       video.currentTime = nextTime
     }
     const audio = soundtrackAudioRef.current
-    if (audio && Number.isFinite(audio.duration) && audio.duration > 0) {
-      audio.currentTime = nextTime % audio.duration
+    if (audio) {
+      audio.currentTime = Number.isFinite(audio.duration) && audio.duration > 0
+        ? nextTime % audio.duration
+        : nextTime
+      if (video?.paused) audio.pause()
     }
     setPreviewCurrentTimeSec(nextTime)
   }, [transportDurationSec])
+
+  const handlePreviewSeek = React.useCallback((nextValue: number) => {
+    if (!transportDurationSec) return
+    handlePreviewSeekSeconds((nextValue / 100) * transportDurationSec)
+  }, [handlePreviewSeekSeconds, transportDurationSec])
 
   const pausePreviewPlayback = React.useCallback(() => {
     const video = previewVideoRef.current
@@ -8372,6 +8391,12 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
     soundtrackAudioRef.current?.pause()
     setPreviewPlaying(false)
   }, [])
+
+  React.useEffect(() => {
+    if (previousWorkspaceTabRef.current === activeWorkspaceTab) return
+    previousWorkspaceTabRef.current = activeWorkspaceTab
+    pausePreviewPlayback()
+  }, [activeWorkspaceTab, pausePreviewPlayback])
 
   // Live editor context handed to the Prometheus chat on every send.
   // Kept in a ref so the memoized chat panel does not re-render per playhead tick.
@@ -8466,6 +8491,20 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
     [job?.artifacts.transcript, transportDurationSec],
   )
 
+  const openThumbnailStudioFromJarvis = React.useCallback((draft?: Extract<EditorActionDraft, { kind: 'open_thumbnail_studio' }>) => {
+    if (draft) {
+      thumbnailJarvisDraftSequenceRef.current += 1
+      setThumbnailJarvisDraft({
+        id: thumbnailJarvisDraftSequenceRef.current,
+        creativeDirection: draft.creativeDirection,
+        headline: draft.headline,
+        referenceId: draft.referenceId,
+        generateNow: draft.generateNow,
+      })
+    }
+    setIsThumbnailStudioOpen(true)
+  }, [])
+
   const chatEditorActionContext = React.useMemo<EditorActionContext>(() => ({
     durationSec: transportDurationSec,
     seek: handlePreviewSeekSeconds,
@@ -8478,7 +8517,7 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
     removeSoundtrack: handleRemoveEditorMusicTrack,
     setFitMode,
     setWorkspaceTab: setActiveWorkspaceTab,
-    openThumbnailStudio: () => setIsThumbnailStudioOpen(true),
+    openThumbnailStudio: openThumbnailStudioFromJarvis,
     openMasterReview: () => setIsMasterReviewOpen(true),
     setPlaybackRate: (rate) => {
       setPreviewPlaybackRate(rate)
@@ -8512,7 +8551,7 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
     },
     // A direct chat instruction is explicit consent for this whitelisted action set.
     allowMutations: true,
-  }), [transportDurationSec, handlePreviewSeekSeconds, startPreviewPlayback, pausePreviewPlayback, handleSoundtrackVolumeChange, handleSoundtrackDuckingChange, handleRemoveEditorMusicTrack, handleApplySilenceCuts, resolveSilenceCuts, project?.id, project?.sourceAssetId])
+  }), [transportDurationSec, handlePreviewSeekSeconds, startPreviewPlayback, pausePreviewPlayback, handleSoundtrackVolumeChange, handleSoundtrackDuckingChange, handleRemoveEditorMusicTrack, handleApplySilenceCuts, resolveSilenceCuts, openThumbnailStudioFromJarvis, project?.id, project?.sourceAssetId])
 
   const handleApplyChatActions = React.useCallback(async (drafts: EditorActionDraft[]) => {
     if (!drafts || drafts.length === 0) return
@@ -8548,8 +8587,6 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
       } else if (draft.kind === 'start_render') {
         if (draft.mode === 'final') setIsMasterReviewOpen(true)
         else handlePrepareExport()
-      } else if (draft.kind === 'open_thumbnail_studio') {
-        setIsThumbnailStudioOpen(true)
       } else if (draft.kind === 'open_master_review') {
         setIsMasterReviewOpen(true)
       } else {
@@ -9389,7 +9426,8 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
       <EditorNewProjectUploadDialog open={isNewProjectUploadOpen} onOpenChange={setIsNewProjectUploadOpen} />
       <ThumbnailStudioModal
         isOpen={isThumbnailStudioOpen}
-        onClose={() => setIsThumbnailStudioOpen(false)}
+        onClose={() => { setIsThumbnailStudioOpen(false); setThumbnailJarvisDraft(null) }}
+        jarvisDraft={thumbnailJarvisDraft}
         projectId={projectId}
         projectTitle={project?.title ?? 'Untitled Project'}
         videoElement={previewVideoRef.current}

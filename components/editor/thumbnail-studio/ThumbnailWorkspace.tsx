@@ -170,13 +170,13 @@ export function ThumbnailWorkspace(props: Props) {
   </div>
 
   const referenceControl = <div className={styles.field}>
-    <div className={styles.label}>Style references <small>{props.references.length}/4 · optional</small></div>
+    <div className={styles.label}>Style references <small>{1 + props.references.length}/4 including selected look</small></div>
     <label className={styles.upload} onDragOver={event => event.preventDefault()} onDrop={event => { event.preventDefault(); props.onReferences(Array.from(event.dataTransfer.files)) }}>
       <ImagePlus size={17} /><span>Add a reference image</span><small>Drop images here · PNG, JPG, WebP · up to 5 MB</small>
-      <input className={styles.hiddenInput} type="file" multiple accept="image/png,image/jpeg,image/webp" aria-label="Upload style references" onChange={event => onFileInput(event, props.onReferences)} disabled={props.references.length >= 4} />
+      <input className={styles.hiddenInput} type="file" multiple accept="image/png,image/jpeg,image/webp" aria-label="Upload style references" onChange={event => onFileInput(event, props.onReferences)} disabled={props.references.length >= 3} />
     </label>
     {props.references.length > 0 && <div className={styles.referenceStrip}>{props.references.map((url, index) => <div className={styles.reference} key={url}><img src={url} alt={'Style reference ' + (index + 1)} /><button type="button" aria-label={'Remove style reference ' + (index + 1)} onClick={() => props.onRemoveReference(index)}><X size={10} /></button></div>)}</div>}
-    <p className={styles.hint}>Your selected thumbnail reference guides composition, lighting, color, and graphic treatment. Your video frame anchors the subject.</p>
+    <p className={styles.hint}>Your selected cinematic look plus up to three uploads guide composition, lighting, color, and graphic treatment. Your video frame anchors the subject.</p>
   </div>
 
   return <div className={styles.studio}>
@@ -222,7 +222,7 @@ export function ThumbnailWorkspace(props: Props) {
               {backgroundControl}<div className={styles.field}><label className={styles.label} htmlFor="thumbnail-text-scale">Headline size<small>{Math.round(props.design.textScale * 100)}%</small></label><input className={styles.range} id="thumbnail-text-scale" type="range" min="0.7" max="1.3" step="0.05" value={props.design.textScale} onChange={event => props.onDesign({ textScale: Number(event.target.value) })} /></div>{accentControl}
             </>}
             {tab === 'brand' && <>{accentControl}{referenceControl}<div className={styles.panelIntro}><h2>A consistent first impression</h2><p>Match the lighting, colors, and typography of your best thumbnails. The subject stays anchored to your selected video frame.</p></div></>}
-            <div className={styles.field}><div className={styles.label}>Generation quality</div><div className={styles.qualityGroup}><button type="button" className={styles.quality} aria-pressed={props.design.quality === 'fast'} onClick={() => props.onDesign({ quality: 'fast' })}>Nano Banana 2<small>2K artwork · faster</small></button><button type="button" className={styles.quality} aria-pressed={props.design.quality === 'pro'} onClick={() => props.onDesign({ quality: 'pro' })}>Nano Banana Pro<small>2K artwork · finer control</small></button></div></div>
+            <div className={styles.field}><div className={styles.label}>Generation quality</div><div className={styles.qualityGroup}><button type="button" className={styles.quality} aria-pressed={props.design.quality === 'fast'} onClick={() => props.onDesign({ quality: 'fast' })}>Fast<small>Quicker draft generation</small></button><button type="button" className={styles.quality} aria-pressed={props.design.quality === 'pro'} onClick={() => props.onDesign({ quality: 'pro' })}>High detail<small>More room for fine detail</small></button></div></div>
           </div>
           <footer className={styles.footer}>
             {props.error && <p className={styles.error} role="alert">{props.error}</p>}{props.success && <p className={styles.success} role="status"><Check size={12} />{props.success}</p>}

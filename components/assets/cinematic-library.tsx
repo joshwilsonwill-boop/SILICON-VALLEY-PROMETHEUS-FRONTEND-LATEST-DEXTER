@@ -80,8 +80,6 @@ export const CHARACTER_PREFERENCES_KEY = 'prometheus.character-preferences.v1'
 
 export function CinematicLibrary({
   tab,
-  onTabChange,
-  assets,
   filteredAssets,
   onUploadClick,
   savedCharacterIds,
@@ -90,8 +88,6 @@ export function CinematicLibrary({
   initialShowcaseId,
 }: {
   tab: LibraryTab
-  onTabChange: (tab: LibraryTab) => void
-  assets: AssetItem[]
   filteredAssets: AssetItem[]
   onUploadClick: () => void
   savedCharacterIds: string[]
@@ -101,7 +97,6 @@ export function CinematicLibrary({
 }) {
   const reduceMotion = useReducedMotion() ?? false
   const showcaseItems = React.useMemo(() => buildShowcaseItems(tab, filteredAssets), [filteredAssets, tab])
-  const assetCounts = React.useMemo(() => countAssetsByTab(assets), [assets])
   const [activeId, setActiveId] = React.useState<string | null>(() =>
     initialShowcaseId && showcaseItems.some((item) => item.id === initialShowcaseId)
       ? initialShowcaseId
@@ -335,28 +330,6 @@ export function CinematicLibrary({
                             }}
                             className="pt-1"
                           />
-                        </motion.div>
-                        <motion.div className="flex flex-wrap gap-2" {...reveal(0.18, 18)}>
-                          {TAB_ORDER.map((entry) => {
-                            const entryConfig = TAB_CONFIG[entry]
-                            const isActive = tab === entry
-                            return (
-                              <motion.button
-                                key={entry}
-                                type="button"
-                                onClick={() => onTabChange(entry)}
-                                className={cn(
-                                  'border px-3 py-2 text-[11px] uppercase tracking-[0.2em] transition-colors',
-                                  isActive
-                                    ? 'border-[#55ff9b]/45 bg-[#0b1b12] text-white shadow-[0_18px_34px_-28px_rgba(85,255,155,0.36)]'
-                                    : 'border-white/12 bg-black/18 text-white/62 hover:border-white/22 hover:text-white',
-                                )}
-                                {...reveal(0.22 + entryConfig.label.length * 0.005, 16)}
-                              >
-                                {entryConfig.label} <span className="ml-2 text-white/45">{String(assetCounts[entry]).padStart(2, '0')}</span>
-                              </motion.button>
-                            )
-                          })}
                         </motion.div>
                       </div>
                     </motion.div>
@@ -757,7 +730,6 @@ function HoverTiltMediaCard({
   )
 }
 
-const TAB_ORDER: LibraryTab[] = ['uploads', 'music', 'broll', 'fonts', 'logos']
 const HORMOZI_HERO_IMAGE = '/library/alex-hormozi/hero.jpg'
 
 const ART_POOL = [
@@ -1262,22 +1234,6 @@ function buildShowcaseItems(tab: LibraryTab, filteredAssets: AssetItem[]): Showc
   }))
 
   return [...curatedItems, ...localItems].slice(0, 8)
-}
-
-function countAssetsByTab(assets: AssetItem[]) {
-  const counts: Record<LibraryTab, number> = {
-    uploads: 0,
-    music: 0,
-    broll: 0,
-    fonts: 0,
-    logos: 0,
-  }
-
-  for (const asset of assets) {
-    counts[tabFromKind(asset.kind)] += 1
-  }
-
-  return counts
 }
 
 function tabFromKind(kind: AssetKind): LibraryTab {

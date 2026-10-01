@@ -12,6 +12,8 @@
  *    degrade to a plan message instead of silently mutating media.
  */
 
+import { STUDIO_REFERENCES, type StudioReferenceId } from '@/lib/thumbnails/studio-references'
+
 export type PreviewControlCommand = 'play' | 'pause' | 'mute' | 'unmute'
 export type SoundtrackCommand = 'set_volume' | 'set_ducking' | 'remove'
 export type EditorFitMode = 'fill' | 'fit'
@@ -25,7 +27,7 @@ export type EditorActionDraft =
   | { kind: 'soundtrack_control'; command: SoundtrackCommand; volume?: number; enabled?: boolean; summary: string }
   | { kind: 'set_fit_mode'; mode: EditorFitMode; summary: string }
   | { kind: 'switch_tab'; tab: EditorWorkspaceTab; summary: string }
-  | { kind: 'open_thumbnail_studio'; summary: string }
+  | { kind: 'open_thumbnail_studio'; creativeDirection?: string; headline?: string; referenceId?: StudioReferenceId; generateNow?: boolean; summary: string }
   | { kind: 'open_master_review'; summary: string }
   | { kind: 'set_playback_rate'; rate: number; summary: string }
   | { kind: 'step_frames'; frames: number; summary: string }
@@ -153,6 +155,16 @@ export function parseEditorActionDraft(input: unknown): EditorActionDraft | null
     case 'open_thumbnail_studio':
       return {
         kind: 'open_thumbnail_studio',
+        ...(typeof (record.creativeDirection ?? record.brief ?? record.userPrompt) === 'string'
+          ? { creativeDirection: String(record.creativeDirection ?? record.brief ?? record.userPrompt).replace(/\s+/g, ' ').trim().slice(0, 500) }
+          : {}),
+        ...(typeof record.headline === 'string' && record.headline.trim()
+          ? { headline: record.headline.replace(/\s+/g, ' ').trim().slice(0, 64) }
+          : {}),
+        ...(typeof record.referenceId === 'string' && STUDIO_REFERENCES.some(reference => reference.id === record.referenceId)
+          ? { referenceId: record.referenceId as StudioReferenceId }
+          : {}),
+        ...(typeof record.generateNow === 'boolean' ? { generateNow: record.generateNow } : {}),
         summary: cleanSummary(record.summary, 'Open Thumbnail Studio'),
       }
     case 'open_master_review':
@@ -270,7 +282,7 @@ export interface EditorActionContext {
   removeSoundtrack?: () => void
   setFitMode?: (mode: EditorFitMode) => void
   setWorkspaceTab?: (tab: EditorWorkspaceTab) => void
-  openThumbnailStudio?: () => void
+  openThumbnailStudio?: (draft: Extract<EditorActionDraft, { kind: 'open_thumbnail_studio' }>) => void
   openMasterReview?: () => void
   setPlaybackRate?: (rate: number) => void
   stepFrames?: (frames: number) => void
@@ -350,7 +362,7 @@ export function applyEditorAction(action: EditorActionDraft, ctx: EditorActionCo
     }
     case 'open_thumbnail_studio': {
       if (!ctx.openThumbnailStudio) return { applied: false, message: 'Thumbnail Studio is unavailable right now.' }
-      ctx.openThumbnailStudio()
+      ctx.openThumbnailStudio(action)
       return { applied: true, message: action.summary }
     }
     case 'open_master_review': {

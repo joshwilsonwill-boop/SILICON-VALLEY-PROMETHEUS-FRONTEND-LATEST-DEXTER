@@ -14,6 +14,7 @@ import { ThumbnailWorkspace, type ThumbnailVariant } from '@/components/editor/t
 interface ThumbnailStudioModalProps {
   isOpen: boolean
   onClose: () => void
+  jarvisDraft?: { id: number; creativeDirection?: string; headline?: string; referenceId?: StudioReferenceId; generateNow?: boolean } | null
   projectId: string
   projectTitle: string
   videoElement?: HTMLVideoElement | null
@@ -116,7 +117,7 @@ async function readStudioReference(id: StudioReferenceId): Promise<string> {
   })
 }
 
-export function ThumbnailStudioModal({ isOpen, onClose, projectId, projectTitle, videoElement, videoUrl, transcriptSnippet = '', onSaveProjectThumbnail }: ThumbnailStudioModalProps) {
+export function ThumbnailStudioModal({ isOpen, onClose, jarvisDraft, projectId, projectTitle, videoElement, videoUrl, transcriptSnippet = '', onSaveProjectThumbnail }: ThumbnailStudioModalProps) {
   const [candidates, setCandidates] = React.useState<ExtractedFrameCandidate[]>([])
   const [selectedFrameIndex, setSelectedFrameIndex] = React.useState(0)
   const [isExtracting, setIsExtracting] = React.useState(false)
@@ -148,6 +149,8 @@ export function ThumbnailStudioModal({ isOpen, onClose, projectId, projectTitle,
   const generatedSignatureRef = React.useRef('')
   const fileReadEpochRef = React.useRef(0)
   const pendingReferenceCountRef = React.useRef(0)
+  const appliedJarvisDraftIdRef = React.useRef<number | null>(null)
+  const autoGenerateQueuedRef = React.useRef(false)
   const savedTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
   const activeFrame = candidates[selectedFrameIndex]
   const requestSignature = React.useMemo(() => JSON.stringify({ frameDataUrl: activeFrame?.dataUrl, headline, highlightWord, aspectRatio, studioDesign: design, recipeId, userPrompt: creativeDirection, referenceImages: channelReferences, studioReferenceId: referenceId }), [activeFrame, headline, highlightWord, aspectRatio, design, recipeId, creativeDirection, channelReferences, referenceId])
@@ -157,6 +160,17 @@ export function ThumbnailStudioModal({ isOpen, onClose, projectId, projectTitle,
   React.useEffect(() => { currentSignatureRef.current = requestSignature }, [requestSignature])
   React.useEffect(() => { currentGeneratedUrlRef.current = generatedDataUrl }, [generatedDataUrl])
   React.useEffect(() => { candidatesRef.current = candidates }, [candidates])
+  React.useEffect(() => {
+    if (!isOpen || !jarvisDraft || appliedJarvisDraftIdRef.current === jarvisDraft.id) return
+    appliedJarvisDraftIdRef.current = jarvisDraft.id
+    autoGenerateQueuedRef.current = Boolean(jarvisDraft.generateNow)
+    if (jarvisDraft.creativeDirection) setCreativeDirection(jarvisDraft.creativeDirection.slice(0, 500))
+    if (jarvisDraft.headline) {
+      headlineTouchedRef.current = true
+      setHeadline(jarvisDraft.headline.slice(0, 64))
+    }
+    if (jarvisDraft.referenceId) setReferenceId(jarvisDraft.referenceId)
+  }, [isOpen, jarvisDraft])
   React.useEffect(() => {
     generationAbortRef.current?.abort()
     setIsGeneratingNano(false)
@@ -244,7 +258,7 @@ export function ThumbnailStudioModal({ isOpen, onClose, projectId, projectTitle,
   }
   const handleAddReferenceImages = async (files: File[]) => {
     if (!files.length) return
-    if (files.length + channelReferences.length + pendingReferenceCountRef.current > 4) { setNanoErrorMessage('You can use up to four style references. Remove one before adding more.'); return }
+    if (files.length + channelReferences.length + pendingReferenceCountRef.current > 3) { setNanoErrorMessage('The selected library look plus up to three uploaded images can guide one generation. Remove an upload before adding more.'); return }
     const epoch = fileReadEpochRef.current
     pendingReferenceCountRef.current += files.length
     try {
@@ -287,7 +301,7 @@ export function ThumbnailStudioModal({ isOpen, onClose, projectId, projectTitle,
       const visualReference = await readStudioReference(referenceId)
       if (controller.signal.aborted) return
       const referenceImages = [visualReference, ...channelReferences].slice(0, 4)
-      const requestBody = { frameDataUrl: activeFrame.dataUrl, headline: headline.trim(), highlightWord, recipeId, backgroundId: recipe.backgroundStyle, textTreatmentId: recipe.textTreatmentStyle, proofArtifactId: recipe.proofArtifact, directionalId: recipe.directionalStyle, lightingId: recipe.lightingStyle, brandColor: design.accent, aspectRatio, userPrompt: creativeDirection.trim(), referenceImages, lockChannelStyle: true, studioReferenceId: referenceId, studioDesign: design }
+      const requestBody = { frameDataUrl: activeFrame.dataUrl, headline: headline.trim(), highlightWord, recipeId, backgroundId: recipe.backgroundStyle, textTreatmentId: recipe.textTreatmentStyle, proofArtifactId: recipe.proofArtifact, directionalId: recipe.directionalStyle, lightingId: recipe.lightingStyle, brandColor: design.accent, aspectRatio, userPrompt: creativeDirection.trim(), projectTitle, transcriptSnippet: transcriptSnippet.slice(0, 5000), referenceImages, lockChannelStyle: true, studioReferenceId: referenceId, studioDesign: design }
       if (!isThumbnailRequestWithinBudget(requestBody)) {
         setNanoErrorMessage('The selected image references make this request too large. Remove a reference image or choose a smaller source, then try again.')
         return
@@ -313,6 +327,14 @@ export function ThumbnailStudioModal({ isOpen, onClose, projectId, projectTitle,
     } catch (error) { if (!controller.signal.aborted) setNanoErrorMessage(error instanceof Error ? error.message : 'Thumbnail generation failed. Try again.') }
     finally { clearTimeout(timeout); if (!controller.signal.aborted) setIsGeneratingNano(false) }
   }
+  const generateFromJarvisRef = React.useRef<() => Promise<void>>(handleGenerateNanoBanana)
+  generateFromJarvisRef.current = handleGenerateNanoBanana
+  React.useEffect(() => {
+    if (!isOpen || !autoGenerateQueuedRef.current || isExtracting || isAiCurating || !activeFrame || !headline.trim() || isGeneratingNano) return
+    autoGenerateQueuedRef.current = false
+    const timer = setTimeout(() => { void generateFromJarvisRef.current() }, 0)
+    return () => clearTimeout(timer)
+  }, [isOpen, isExtracting, isAiCurating, activeFrame, headline, isGeneratingNano])
   const handleRestoreVariant = (variant: ThumbnailVariant) => {
     generationAbortRef.current?.abort()
     curationAbortRef.current?.abort()
