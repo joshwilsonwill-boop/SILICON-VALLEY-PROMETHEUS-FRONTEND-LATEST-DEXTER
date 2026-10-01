@@ -15,6 +15,7 @@ type AnalyticsVideo = {
   id: string
   title: string
   thumbnailUrl: string | null
+  latestExport: { id: string; status: string } | null
   platformBreakdown: GalleryPlatform[]
 }
 
@@ -32,6 +33,9 @@ export function SphereAnalytics() {
   const [activePlatform, setActivePlatform] = React.useState('all')
   const [page, setPage] = React.useState(0)
   const [metricsWarning, setMetricsWarning] = React.useState<string | null>(null)
+  const [firstFrames, setFirstFrames] = React.useState<Record<string, string>>({})
+  const firstFramesRef = React.useRef(firstFrames)
+  firstFramesRef.current = firstFrames
 
   React.useEffect(() => {
     const controller = new AbortController()
@@ -67,19 +71,38 @@ export function SphereAnalytics() {
       ? true
       : video.platformBreakdown.some((platform) => platform.platform === selectedPlatform && Boolean(platform.publishedUrl)),
   ), [selectedPlatform, videos])
-  const thumbnailVideos = React.useMemo(() => filteredVideos.filter((video) => video.thumbnailUrl), [filteredVideos])
-  const pageCount = Math.max(1, Math.ceil(thumbnailVideos.length / PAGE_SIZE))
+  const pageCount = Math.max(1, Math.ceil(filteredVideos.length / PAGE_SIZE))
   const currentPage = Math.min(page, pageCount - 1)
   const pageVideos = React.useMemo(
-    () => thumbnailVideos.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE),
-    [currentPage, thumbnailVideos],
+    () => filteredVideos.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE),
+    [currentPage, filteredVideos],
   )
+
+  React.useEffect(() => {
+    let active = true
+    const videosNeedingFrames = pageVideos.filter((video) =>
+      !video.thumbnailUrl && video.latestExport?.status === 'completed' && !firstFramesRef.current[video.id],
+    )
+    let nextIndex = 0
+
+    async function captureNextFrame() {
+      while (active && nextIndex < videosNeedingFrames.length) {
+        const video = videosNeedingFrames[nextIndex++]!
+        const frame = await captureFirstVideoFrame(`/api/exports/${encodeURIComponent(video.latestExport!.id)}/preview`)
+        if (active && frame) setFirstFrames((current) => ({ ...current, [video.id]: frame }))
+      }
+    }
+
+    void Promise.all(Array.from({ length: Math.min(3, videosNeedingFrames.length) }, () => captureNextFrame()))
+    return () => { active = false }
+  }, [pageVideos])
+
   const galleryItems = React.useMemo(() => pageVideos.map((video) => ({
-    image: video.thumbnailUrl ?? undefined,
+    image: video.thumbnailUrl || firstFrames[video.id] || undefined,
     link: video.platformBreakdown.find((platform) => platform.platform === selectedPlatform)?.publishedUrl
       ?? video.platformBreakdown.find((platform) => platform.publishedUrl)?.publishedUrl
       ?? '',
-  })), [pageVideos, selectedPlatform])
+  })), [firstFrames, pageVideos, selectedPlatform])
 
   const selectPlatform = (platform: string) => {
     setActivePlatform(platform)
@@ -98,7 +121,7 @@ export function SphereAnalytics() {
         <div className="text-right">
           <p className="text-[9px] uppercase tracking-[0.26em] text-[#8D8E85]">PROMETHEUS / VIDEO ORBIT</p>
           <p className="mt-1 text-[10px] uppercase tracking-[0.15em] text-white/55">
-            {loadState === 'ready' ? `${filteredVideos.length} videos · ${thumbnailVideos.length} with thumbnails` : 'Loading video library'}
+            {loadState === 'ready' ? `${filteredVideos.length} videos · ${filteredVideos.length} in gallery` : 'Loading video library'}
           </p>
         </div>
       </header>
@@ -137,9 +160,7 @@ export function SphereAnalytics() {
             <div className="max-w-lg px-6 text-center">
               <p className="font-[family-name:var(--font-vogue-display)] text-3xl text-[#F1F0EA]">The orbit is waiting.</p>
               <p className="mt-3 text-[12px] leading-6 text-[#8D8E85]">
-                {filteredVideos.length > 0
-                  ? 'These videos do not have thumbnails yet, so there is nothing to place in the gallery.'
-                  : metricsWarning ?? 'Your generated videos will appear here as soon as they are available.'}
+                {metricsWarning ?? 'Your generated videos will appear here as soon as they are available.'}
               </p>
             </div>
           )}
@@ -157,6 +178,44 @@ export function SphereAnalytics() {
       </section>
     </main>
   )
+}
+
+async function captureFirstVideoFrame(src: string): Promise<string | null> {
+  const video = document.createElement('video')
+  video.preload = 'auto'
+  video.muted = true
+  video.playsInline = true
+  video.crossOrigin = 'anonymous'
+  video.src = src
+
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const timeout = window.setTimeout(() => reject(new Error('Video preview timed out')), 20_000)
+      video.onloadeddata = () => { window.clearTimeout(timeout); resolve() }
+      video.onerror = () => { window.clearTimeout(timeout); reject(new Error('Video preview could not be loaded')) }
+      video.load()
+    })
+
+    const sourceWidth = video.videoWidth
+    const sourceHeight = video.videoHeight
+    if (!sourceWidth || !sourceHeight) return null
+
+    const maxWidth = 640
+    const ratio = Math.min(1, maxWidth / sourceWidth)
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.round(sourceWidth * ratio)
+    canvas.height = Math.round(sourceHeight * ratio)
+    const context = canvas.getContext('2d')
+    if (!context) return null
+    context.drawImage(video, 0, 0, canvas.width, canvas.height)
+    return canvas.toDataURL('image/jpeg', 0.78)
+  } catch {
+    return null
+  } finally {
+    video.pause()
+    video.removeAttribute('src')
+    video.load()
+  }
 }
 
 function PlatformFilter({
