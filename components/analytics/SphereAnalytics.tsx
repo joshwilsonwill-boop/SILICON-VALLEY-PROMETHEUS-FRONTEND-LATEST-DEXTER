@@ -81,7 +81,7 @@ export function SphereAnalytics() {
   React.useEffect(() => {
     let active = true
     const videosNeedingFrames = pageVideos.filter((video) =>
-      !video.thumbnailUrl && video.latestExport?.status === 'completed' && !firstFramesRef.current[video.id],
+      video.latestExport?.status === 'completed' && !firstFramesRef.current[video.id],
     )
     let nextIndex = 0
 
@@ -98,7 +98,7 @@ export function SphereAnalytics() {
   }, [pageVideos])
 
   const galleryItems = React.useMemo(() => pageVideos.map((video) => ({
-    image: video.thumbnailUrl || firstFrames[video.id] || undefined,
+    image: firstFrames[video.id] || video.thumbnailUrl || undefined,
     link: video.platformBreakdown.find((platform) => platform.platform === selectedPlatform)?.publishedUrl
       ?? video.platformBreakdown.find((platform) => platform.publishedUrl)?.publishedUrl
       ?? '',
@@ -150,7 +150,8 @@ export function SphereAnalytics() {
               images={galleryItems}
               branches={galleryItems.length}
               background="transparent"
-              scale={55}
+              scale={galleryItems.length <= 30 ? 78 : 68}
+              size={galleryItems.length <= 30 ? 36 : 31}
               speed={18}
               direction="counterclockwise"
               className="w-full"

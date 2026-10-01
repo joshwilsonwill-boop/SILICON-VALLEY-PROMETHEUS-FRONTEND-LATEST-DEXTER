@@ -51,6 +51,7 @@ type ExportRow = {
   updated_at: string | null
   file_size_bytes: number | null
   duration_ms: number | null
+  storage_path: string | null
   metadata: Record<string, unknown> | null
 }
 
@@ -297,7 +298,7 @@ async function composeAnalytics(
   for (let offset = 0; offset < projectIds.length; offset += projectIdBatchSize) {
     const { data } = await supabase
       .from('project_exports')
-      .select('id, project_id, status, preset, completed_at, created_at, updated_at, file_size_bytes, duration_ms, metadata')
+      .select('id, project_id, status, preset, completed_at, created_at, updated_at, file_size_bytes, duration_ms, storage_path, metadata')
       .eq('user_id', userId)
       .in('project_id', projectIds.slice(offset, offset + projectIdBatchSize))
       .order('created_at', { ascending: false })
@@ -329,7 +330,11 @@ async function composeAnalytics(
   const videos = (projectRows ?? []).map((project) => {
     const projectMetrics = metricsByProjectId.get(project.id) ?? []
     const projectExports = exportsByProjectId.get(project.id) ?? []
-    const latestExport = projectExports[0] ?? null
+    const latestExport = projectExports.find((projectExport) =>
+      projectExport.status === 'completed' && Boolean(projectExport.storage_path),
+    )
+      ?? projectExports[0]
+      ?? null
 
     const platformBreakdown = visibleProviders.map((provider) => {
       const metric = projectMetrics.find((row) => row.platform === provider)
