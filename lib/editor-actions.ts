@@ -265,6 +265,9 @@ export interface EditorActionContext {
   pause?: () => void
   mute?: () => void
   unmute?: () => void
+  setSoundtrackVolume?: (volume: number) => void
+  setSoundtrackDucking?: (enabled: boolean) => void
+  removeSoundtrack?: () => void
   setFitMode?: (mode: EditorFitMode) => void
   setWorkspaceTab?: (tab: EditorWorkspaceTab) => void
   openThumbnailStudio?: () => void
@@ -316,6 +319,23 @@ export function applyEditorAction(action: EditorActionDraft, ctx: EditorActionCo
               : ctx.unmute
       if (!handler) return { applied: false, message: 'Playback control is unavailable right now.' }
       handler()
+      return { applied: true, message: action.summary }
+    }
+    case 'soundtrack_control': {
+      if (action.command === 'set_volume') {
+        if (typeof action.volume !== 'number' || !ctx.setSoundtrackVolume) {
+          return { applied: false, message: 'Soundtrack level control is unavailable right now.' }
+        }
+        ctx.setSoundtrackVolume(action.volume)
+      } else if (action.command === 'set_ducking') {
+        if (typeof action.enabled !== 'boolean' || !ctx.setSoundtrackDucking) {
+          return { applied: false, message: 'Voice ducking control is unavailable right now.' }
+        }
+        ctx.setSoundtrackDucking(action.enabled)
+      } else {
+        if (!ctx.removeSoundtrack) return { applied: false, message: 'Soundtrack removal is unavailable right now.' }
+        ctx.removeSoundtrack()
+      }
       return { applied: true, message: action.summary }
     }
     case 'set_fit_mode': {

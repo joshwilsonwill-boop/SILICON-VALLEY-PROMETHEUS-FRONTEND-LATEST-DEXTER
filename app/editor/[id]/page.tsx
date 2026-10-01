@@ -8473,6 +8473,9 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
     pause: pausePreviewPlayback,
     mute: () => setIsPreviewMuted(true),
     unmute: () => setIsPreviewMuted(false),
+    setSoundtrackVolume: handleSoundtrackVolumeChange,
+    setSoundtrackDucking: handleSoundtrackDuckingChange,
+    removeSoundtrack: handleRemoveEditorMusicTrack,
     setFitMode,
     setWorkspaceTab: setActiveWorkspaceTab,
     openThumbnailStudio: () => setIsThumbnailStudioOpen(true),
@@ -8509,7 +8512,7 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
     },
     // A direct chat instruction is explicit consent for this whitelisted action set.
     allowMutations: true,
-  }), [transportDurationSec, handlePreviewSeekSeconds, startPreviewPlayback, pausePreviewPlayback, handleApplySilenceCuts, resolveSilenceCuts, project?.id, project?.sourceAssetId])
+  }), [transportDurationSec, handlePreviewSeekSeconds, startPreviewPlayback, pausePreviewPlayback, handleSoundtrackVolumeChange, handleSoundtrackDuckingChange, handleRemoveEditorMusicTrack, handleApplySilenceCuts, resolveSilenceCuts, project?.id, project?.sourceAssetId])
 
   const handleApplyChatActions = React.useCallback(async (drafts: EditorActionDraft[]) => {
     if (!drafts || drafts.length === 0) return
