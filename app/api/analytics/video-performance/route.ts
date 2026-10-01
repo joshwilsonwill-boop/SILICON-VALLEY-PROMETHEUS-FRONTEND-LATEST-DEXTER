@@ -368,12 +368,13 @@ async function composeAnalytics(
     const totals = sumRows(platformBreakdown)
     const retentionValues = platformBreakdown.map((platform) => platform.retentionRate).filter((value) => value > 0)
     const engagementValues = platformBreakdown.map((platform) => platform.engagementRate).filter((value) => value > 0)
+    const metricsThumbnail = projectMetrics.find((metric) => metric.thumbnail_url?.trim())?.thumbnail_url?.trim() ?? null
 
     return {
       id: project.id,
       title: project.name ?? 'Untitled video',
       status: project.status ?? 'draft',
-      thumbnailUrl: project.thumbnail_url,
+      thumbnailUrl: project.thumbnail_url?.trim() || metricsThumbnail,
       previewKind: project.preview_kind ?? 'video',
       updatedAt: project.updated_at,
       createdAt: project.created_at,
