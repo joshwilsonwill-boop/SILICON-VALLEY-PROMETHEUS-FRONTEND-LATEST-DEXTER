@@ -12,9 +12,10 @@ import { buildNanoBananaImageRequest, extractGeneratedImage, parseImageDataUrl }
 import { buildStudioArtDirection, parseStudioDesign, resolveStudioImageModel, resolveStudioImageSize, type StudioDesign } from '@/lib/thumbnails/studio-art-direction'
 import { getStudioReference, STUDIO_REFERENCES } from '@/lib/thumbnails/studio-references'
 import { compactGeneratedThumbnail } from '@/lib/thumbnails/thumbnail-output'
+import { THUMBNAIL_PROVIDER_TIMEOUT_MS } from '@/lib/thumbnails/thumbnail-runtime'
 
 export const runtime = 'nodejs'
-export const maxDuration = 180
+export const maxDuration = 300
 const MAX_REQUEST_BODY_BYTES = 4_000_000
 
 interface NanoBananaRequestBody {
@@ -76,6 +77,9 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const startedAt = Date.now()
+  const requestId = request.headers.get('x-vercel-id') || request.headers.get('x-request-id') || 'unavailable'
+  let stage = 'authentication'
   try {
     const contentLength = Number(request.headers.get('content-length'))
     if (Number.isFinite(contentLength) && contentLength > MAX_REQUEST_BODY_BYTES) {
@@ -89,6 +93,7 @@ export async function POST(
     }
 
     const { id: projectId } = await params
+    stage = 'request parsing'
     const body = (await request.json().catch(() => null)) as NanoBananaRequestBody | null
 
     const frameDataUrl = body?.frameDataUrl
@@ -250,12 +255,16 @@ Extract the exact Channel Style DNA (lighting ratios, color contrast, proof card
       aspectRatio: effectiveAspect,
       ...(studioDesign ? { imageSize: resolveStudioImageSize(studioDesign.quality) } : {}),
     })
-    const imageResponse = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + imageModel + ':generateContent', {
+    stage = 'image generation'
+    const providerStartedAt = Date.now()
+    console.info('[Nano Banana Stage]', { requestId, stage: 'image generation started', quality: studioDesign?.quality || 'legacy', requestBytes: contentLength || undefined })
+    const imageResponse = await fetch('https://generativelanguage.googleapis.com/v1/models/' + imageModel + ':generateContent', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
       body: JSON.stringify(imageRequest),
-      signal: AbortSignal.any([request.signal, AbortSignal.timeout(150000)]),
+      signal: AbortSignal.any([request.signal, AbortSignal.timeout(THUMBNAIL_PROVIDER_TIMEOUT_MS)]),
     })
+    console.info('[Nano Banana Stage]', { requestId, stage: 'image generation finished', status: imageResponse.status, durationMs: Date.now() - providerStartedAt })
     const imageResult = await imageResponse.json().catch(() => null)
     if (!imageResponse.ok) {
       console.error('[Nano Banana Image Generation]', imageResponse.status, imageResult?.error?.message)
@@ -275,6 +284,7 @@ Extract the exact Channel Style DNA (lighting ratios, color contrast, proof card
     if (!generatedDataUrl) {
       return NextResponse.json({ error: 'Nano Banana returned no image. Try another frame or direction.' }, { status: 502 })
     }
+    stage = 'image compaction'
     const dataUrl = await compactGeneratedThumbnail(generatedDataUrl)
 
     return NextResponse.json({
@@ -287,9 +297,9 @@ Extract the exact Channel Style DNA (lighting ratios, color contrast, proof card
       projectId,
     })
   } catch (error) {
+    console.error('[Nano Banana Route Error]', { requestId, stage, durationMs: Date.now() - startedAt, error: error instanceof Error ? error.message : String(error) })
     if (request.signal.aborted) return NextResponse.json({ error: 'Thumbnail generation cancelled.' }, { status: 499 })
-    if (error instanceof Error && error.name === 'TimeoutError') return NextResponse.json({ error: 'Image generation timed out. Try again with Nano Banana 2.' }, { status: 504 })
-    console.error('[Nano Banana Route Error]', error)
+    if (error instanceof Error && error.name === 'TimeoutError') return NextResponse.json({ error: 'The image model did not finish within four minutes. Your current versions are safe. Retry, or choose Fast quality for a quicker render.' }, { status: 504 })
     return NextResponse.json(
       {
         error: 'Failed to process Nano Banana generation request',

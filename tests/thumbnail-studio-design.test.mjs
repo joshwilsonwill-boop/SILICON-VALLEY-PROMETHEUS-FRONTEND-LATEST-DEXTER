@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import test from 'node:test'
 import { DEFAULT_STUDIO_DESIGN, STUDIO_BACKGROUNDS, parseStudioDesign, buildStudioArtDirection, resolveStudioImageModel, resolveStudioImageSize } from '../lib/thumbnails/studio-art-direction.ts'
 import { buildNanoBananaImageRequest, extractGeneratedImage } from '../lib/thumbnails/nano-banana-image.ts'
 import { readThumbnailGenerationResponse } from '../lib/thumbnails/thumbnail-response.ts'
 import { compactGeneratedThumbnail, MAX_THUMBNAIL_DATA_URL_BYTES } from '../lib/thumbnails/thumbnail-output.ts'
 import { getThumbnailRequestByteLength, isThumbnailRequestWithinBudget, MAX_THUMBNAIL_REQUEST_BYTES } from '../lib/thumbnails/thumbnail-request.ts'
+import { THUMBNAIL_CLIENT_TIMEOUT_MS, THUMBNAIL_PROVIDER_TIMEOUT_MS, THUMBNAIL_ROUTE_MAX_DURATION_SECONDS } from '../lib/thumbnails/thumbnail-runtime.ts'
 import sharp from 'sharp'
 
 test('every supported background produces explicit reference-led art direction', () => {
@@ -61,6 +63,17 @@ test('studio request size guard keeps image data below the serverless upload lim
   assert.equal(isThumbnailRequestWithinBudget(oversizedRequest), false)
 })
 
+test('image generation timing stays within Vercel request and route deadlines', () => {
+  assert.ok(THUMBNAIL_PROVIDER_TIMEOUT_MS < THUMBNAIL_ROUTE_MAX_DURATION_SECONDS * 1000)
+  assert.ok(THUMBNAIL_CLIENT_TIMEOUT_MS > THUMBNAIL_PROVIDER_TIMEOUT_MS)
+  assert.ok(THUMBNAIL_CLIENT_TIMEOUT_MS < THUMBNAIL_ROUTE_MAX_DURATION_SECONDS * 1000)
+  const route = readFileSync('app/api/projects/[id]/thumbnails/nano-banana/route.ts', 'utf8')
+  const routeDuration = Number(route.match(/export const maxDuration = (\d+)/)?.[1])
+  assert.equal(routeDuration, THUMBNAIL_ROUTE_MAX_DURATION_SECONDS)
+  assert.match(route, /AbortSignal\.timeout\(THUMBNAIL_PROVIDER_TIMEOUT_MS\)/)
+  assert.match(route, /generativelanguage\.googleapis\.com\/v1\/models\//)
+})
+
 test('legacy requests preserve their original image configuration', () => {
   const request = buildNanoBananaImageRequest({ prompt: 'test', frameDataUrl: 'data:image/png;base64,YQ==', aspectRatio: '16:9' })
   assert.deepEqual(request.generationConfig.imageConfig, { aspectRatio: '16:9' })
@@ -73,7 +86,7 @@ test('thinking images are skipped and only finished artwork is exported', () => 
 })
 
 test('HTML gateway pages produce a recoverable message and valid JSON artwork survives parsing', async () => {
-  await assert.rejects(readThumbnailGenerationResponse(new Response('<!DOCTYPE html><title>Gateway</title>', { status: 502, headers: { 'Content-Type': 'text/html' } })), /HTTP 502, text\/html.*does not identify a Gemini key error/)
+  await assert.rejects(readThumbnailGenerationResponse(new Response('<!DOCTYPE html><title>Gateway</title>', { status: 502, headers: { 'Content-Type': 'text/html', 'x-vercel-error': 'NO_RESPONSE_FROM_FUNCTION', 'x-vercel-id': 'sfo1::abc-123' } })), /HTTP 502, text\/html.*Vercel details: NO_RESPONSE_FROM_FUNCTION, request sfo1::abc-123.*Check the Vercel function logs/)
   await assert.rejects(readThumbnailGenerationResponse(new Response('<!DOCTYPE html><title>Payload too large</title>', { status: 413, headers: { 'Content-Type': 'text/html' } })), /request as too large \(HTTP 413\)/)
   assert.deepEqual(await readThumbnailGenerationResponse(Response.json({ dataUrl: 'data:image/png;base64,YQ==' })), { dataUrl: 'data:image/png;base64,YQ==' })
 })

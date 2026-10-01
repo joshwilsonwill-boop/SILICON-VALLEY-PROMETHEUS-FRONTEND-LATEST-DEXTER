@@ -8,6 +8,7 @@ import { STUDIO_REFERENCES, getStudioReference, type StudioReferenceId } from '@
 import { renderStudioDraft } from '@/lib/thumbnails/studio-draft'
 import { readThumbnailGenerationResponse } from '@/lib/thumbnails/thumbnail-response'
 import { isThumbnailRequestWithinBudget } from '@/lib/thumbnails/thumbnail-request'
+import { THUMBNAIL_CLIENT_TIMEOUT_MS } from '@/lib/thumbnails/thumbnail-runtime'
 import { ThumbnailWorkspace, type ThumbnailVariant } from '@/components/editor/thumbnail-studio/ThumbnailWorkspace'
 
 interface ThumbnailStudioModalProps {
@@ -276,7 +277,7 @@ export function ThumbnailStudioModal({ isOpen, onClose, projectId, projectTitle,
     generationAbortRef.current?.abort()
     const controller = new AbortController()
     generationAbortRef.current = controller
-    const timeout = setTimeout(() => { if (!controller.signal.aborted) { controller.abort(); setIsGeneratingNano(false); setNanoErrorMessage('Generation took too long. Your versions are safe. Try again with Nano Banana 2.'); } },180000)
+    const timeout = setTimeout(() => { if (!controller.signal.aborted) { controller.abort(); setIsGeneratingNano(false); setNanoErrorMessage('The thumbnail service did not respond in time. Your versions are safe. Try again, or choose Fast quality for a quicker render.'); } },THUMBNAIL_CLIENT_TIMEOUT_MS)
     setIsGeneratingNano(true)
     setNanoErrorMessage(null)
     setNanoSuccessMessage(null)
