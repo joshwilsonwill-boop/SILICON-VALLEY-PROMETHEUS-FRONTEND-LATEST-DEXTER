@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
+import { ConversationExportButton } from '@/components/editor/conversation-export-button'
 import {
   useVoiceCompanion,
   type UseVoiceCompanionOptions,
@@ -245,6 +246,11 @@ export function VoiceCompanionHud({
           </div>
 
           <div className="flex items-center gap-1.5">
+            <ConversationExportButton
+              turns={companion.transcripts.map(({ role, text, timestamp }) => ({ role, text, timestamp }))}
+              filename="jarvis-voice-session"
+              className="size-8"
+            />
             {companion.status === 'error' && (
               <button
                 type="button"

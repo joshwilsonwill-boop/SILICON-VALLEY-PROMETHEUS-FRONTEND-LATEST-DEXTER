@@ -8,6 +8,7 @@
 
 import { getJarvisMemory, formatMemoryForSystemInstruction } from './memory'
 import { isGeminiCredentialFailure } from './live-errors'
+import { getLiveTranscripts } from './transcription'
 export { isGeminiCredentialFailure } from './live-errors'
 
 export interface GeminiLiveConfig {
@@ -227,6 +228,8 @@ Keep your spoken responses fluid, punchy, conversational, and helpful. Never rea
             },
           },
         },
+        inputAudioTranscription: { mode: 'VERBATIM' },
+        outputAudioTranscription: { mode: 'VERBATIM' },
         systemInstruction: {
           parts: [{ text: combinedInstruction }],
         },
@@ -540,10 +543,11 @@ Keep your spoken responses fluid, punchy, conversational, and helpful. Never rea
           if (part.inlineData && part.inlineData.data) {
             this.events.onAudio?.(part.inlineData.data)
           }
-          if (part.text) {
-            this.events.onTranscript?.(part.text, false)
-          }
         }
+      }
+
+      for (const transcript of getLiveTranscripts(message.serverContent)) {
+        this.events.onTranscript?.(transcript.text, transcript.role === 'user')
       }
 
       if (turnComplete) {

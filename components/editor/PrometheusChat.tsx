@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils'
 import { useVoiceInput } from '@/hooks/use-voice-input'
 
 import { AIChatHistoryButton } from './ai-chat-history-button'
+import { ConversationExportButton } from './conversation-export-button'
 import { ChatCarousel } from './chat-carousel'
 import { ElegistChatGreeting } from './elegist-chat-greeting'
 import { ChatSuggestions } from './ai-chat-suggestions'
@@ -472,11 +473,20 @@ export function PrometheusChat({
       )}
       aria-label="Prometheus chat"
     >
-      <div className="absolute left-4 top-4 z-30">
+      <div className="absolute left-4 top-4 z-30 flex items-center gap-1">
         <AIChatHistoryButton
           buttonRef={historyButtonRef}
           open={historyOpen}
           onClick={() => setHistoryOpen((current) => !current)}
+        />
+        <ConversationExportButton
+          turns={persistentChat.messages.map((message) => ({
+            role: message.role,
+            text: message.content,
+            timestamp: message.createdAt,
+          }))}
+          filename={`jarvis-${persistentChat.currentSessionId ?? 'chat'}`}
+          className="size-9"
         />
       </div>
 

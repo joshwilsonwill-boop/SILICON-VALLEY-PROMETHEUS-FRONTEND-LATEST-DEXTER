@@ -535,11 +535,11 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
               if (last && last.role === (isUser ? 'user' : 'assistant')) {
                 return [
                   ...prev.slice(0, -1),
-                  { ...last, text: `${last.text} ${text}`.trim() },
+                  { ...last, text: appendTranscriptText(last.text, text) },
                 ]
               }
               return [
-                ...prev.slice(-15),
+                ...prev,
                 {
                   id: `tr-${Date.now()}-${Math.random()}`,
                   role: isUser ? 'user' : 'assistant',
@@ -708,4 +708,12 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
     clearTranscripts,
     sendTextMessage,
   }
+}
+
+function appendTranscriptText(current: string, next: string) {
+  if (!current) return next
+  if (next.startsWith(current)) return next
+  if (current.endsWith(next)) return current
+  const separator = /\s$/.test(current) || /^[\s,.;!?]/.test(next) ? '' : ' '
+  return `${current}${separator}${next}`
 }

@@ -9,6 +9,7 @@ import { useAuth } from "@/components/auth/auth-provider";
 import { ChatMessageBubble } from "@/components/chat/chat-message-bubble";
 import { MobileChatInput } from "@/components/chat/mobile-chat-input";
 import { AIChatHistoryButton } from "@/components/editor/ai-chat-history-button";
+import { ConversationExportButton } from "@/components/editor/conversation-export-button";
 import { ChatCarousel } from "@/components/editor/chat-carousel";
 import { ChatSuggestions } from "@/components/editor/ai-chat-suggestions";
 import { ElegistChatGreeting } from "@/components/editor/elegist-chat-greeting";
@@ -111,11 +112,20 @@ export function PrometheusChatMobile({
         >
           <span className="mx-auto block h-px w-10 bg-white/20" aria-hidden="true" />
         </button>
-        <div className="absolute left-2 top-2 z-20">
+        <div className="absolute left-2 top-2 z-20 flex items-center gap-1">
           <AIChatHistoryButton
             buttonRef={historyButtonRef}
             open={historyOpen}
             onClick={() => setHistoryOpen((current) => !current)}
+          />
+          <ConversationExportButton
+            turns={chat.messages.map((message) => ({
+              role: message.role,
+              text: message.content,
+              timestamp: message.createdAt,
+            }))}
+            filename={`jarvis-${chat.currentSessionId ?? 'chat'}`}
+            className="size-9"
           />
         </div>
 
