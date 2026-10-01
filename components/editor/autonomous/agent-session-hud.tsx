@@ -21,6 +21,7 @@ export function AgentSessionHud() {
   useEffect(() => autonomousCoordinator.subscribe((next) => setState({ ...next })), [])
 
   const active = state?.isTakeover ?? false
+  const busy = active && state?.pillMode !== 'idle'
   const currentAction = (state?.statusText ?? 'Preparing the edit')
     .replace(/^Jarvis(?: is in control| taking control[^:]*|:)?\s*/i, '')
     .trim()
@@ -42,23 +43,23 @@ export function AgentSessionHud() {
             <div className="flex items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-2.5">
                 <span className="relative flex h-2 w-2 shrink-0">
-                  {!prefersReducedMotion && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#00f0ff]/55" />}
+                  {busy && !prefersReducedMotion && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#00f0ff]/55" />}
                   <span className="relative inline-flex h-2 w-2 rounded-full bg-[#00f0ff] shadow-[0_0_12px_rgba(0,240,255,0.8)]" />
                 </span>
                 <div className="min-w-0">
                   <p className="text-[9px] font-semibold uppercase tracking-[0.22em] text-white/45">Prometheus · autonomous session</p>
-                  <p className="mt-1 truncate text-[13px] font-medium tracking-[-0.02em] text-white/90">Editing in progress</p>
+                  <p className="mt-1 truncate text-[13px] font-medium tracking-[-0.02em] text-white/90">{busy ? 'Editing in progress' : 'Editing access enabled'}</p>
                 </div>
               </div>
-              <span className="rounded-full border border-[#00f0ff]/20 bg-[#00f0ff]/[0.07] px-2 py-1 text-[9px] font-medium uppercase tracking-[0.14em] text-[#8cf6ff]">Live</span>
+              <span className="rounded-full border border-[#00f0ff]/20 bg-[#00f0ff]/[0.07] px-2 py-1 text-[9px] font-medium uppercase tracking-[0.14em] text-[#8cf6ff]">{busy ? 'Live' : 'Ready'}</span>
             </div>
 
             <div className="mt-4 rounded-xl border border-white/[0.075] bg-white/[0.035] px-3.5 py-3">
               <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.16em] text-white/40">
                 <AudioLines className="h-3.5 w-3.5 text-[#76eaf4]" strokeWidth={1.7} />
-                <span>{PHASE_LABELS[state?.phase ?? 'idle']}</span>
+                <span>{state?.pillMode === 'waiting' ? 'Waiting for an editor result' : PHASE_LABELS[state?.phase ?? 'idle']}</span>
               </div>
-              <p className="mt-2 line-clamp-2 text-[13px] leading-5 text-white/85">{currentAction || 'Continuing the edit'}</p>
+              <p className="mt-2 line-clamp-2 text-[13px] leading-5 text-white/85">{busy ? currentAction || 'Continuing the edit' : 'Ready for your next instruction'}</p>
             </div>
 
             <div className="mt-3 flex items-center justify-between gap-3">

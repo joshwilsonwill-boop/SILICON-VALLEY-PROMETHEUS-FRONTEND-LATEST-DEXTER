@@ -15,6 +15,7 @@ import { getJarvisMemory, saveJarvisMemory } from '@/lib/voice-companion/memory'
 import { detectFillerWords } from '@/lib/voice-companion/filler-words'
 import { buildEditorialPlan } from '@/lib/editor/timeline-document'
 import { searchTranscriptText } from '@/lib/voice-companion/transcript-search'
+import { inspectVoiceVideo, switchVoiceWorkspace } from '@/lib/voice-companion/session-controls'
 
 export type VoiceCompanionStatus =
   | 'disconnected'
@@ -164,11 +165,7 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
         }
 
         case 'switch_workspace_tab': {
-          const tab = args.tab as 'Editor' | 'Music' | 'Motion'
-          if (onTabChange) await onTabChange(tab)
-          else if (onApplyActions) await onApplyActions([{ kind: 'switch_tab', tab, summary: `Switch to ${tab}` }])
-          else return { success: false, error: 'The editor is not linked, so I cannot switch workspaces.' }
-          return { success: true, activeTab: tab }
+          return switchVoiceWorkspace(args.tab, () => handlersRef.current)
         }
 
         case 'set_fit_mode': {
@@ -201,35 +198,18 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
         }
 
         case 'inspect_video': {
-          const bridge = handlersRef.current
-          if (!bridge.hasVideo) return { success: false, error: 'There is no playable source video to inspect.' }
-          if (!bridge.captureVideoFrame) return { success: false, error: 'The editor cannot capture a decoded frame from this source.' }
-          const durationSec = bridge.videoDurationSec || bridge.timelineDurationSec || 0
-          if (durationSec <= 0) return { success: false, error: 'The video duration is not available yet.' }
-
-          const sampleFractions = [0.08, 0.28, 0.5, 0.72, 0.92]
-          const sampledAtSec: number[] = []
-          for (const fraction of sampleFractions) {
-            const timeSec = Math.max(0, Math.min(durationSec, durationSec * fraction))
-            const seekSucceeded = await autonomousCoordinator.executeSeekTimeline(
-              timeSec,
-              durationSec,
-              (time) => { void bridge.onSeek?.(time) },
-              true,
+          const inspectingClient = clientRef.current
+          autonomousCoordinator.setPillMode('waiting', 'Inspecting source video')
+          try {
+            return await inspectVoiceVideo(
+              () => handlersRef.current,
+              (frame) => inspectingClient?.sendVisualFrame(frame),
+              { isSessionActive: () => clientRef.current === inspectingClient && (inspectingClient?.isConnected() ?? false) },
             )
-            if (!seekSucceeded) continue
-
-            const frameDataUrl = await bridge.captureVideoFrame(timeSec)
-            const frameBase64 = frameDataUrl?.split(',')[1]
-            if (!frameBase64) continue
-
-            clientRef.current?.sendVisualFrame(frameBase64)
-            sampledAtSec.push(Number(timeSec.toFixed(1)))
+          } finally {
+            // Inspection does not own a persistent cursor badge or moving scrim.
+            if (clientRef.current === inspectingClient) autonomousCoordinator.abortAction('cancelled')
           }
-
-          return sampledAtSec.length > 0
-            ? { success: true, frameCount: sampledAtSec.length, sampledAtSec, note: 'Video frames were sent to the live session for visual inspection.' }
-            : { success: false, error: 'No readable video frames could be captured from the source.' }
         }
 
         case 'search_video_transcript': {
@@ -438,6 +418,8 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
   )
 
   const disconnect = useCallback(() => {
+    // An unused HUD instance must not stop the active global voice session.
+    if (clientRef.current || recorderRef.current || playerRef.current) autonomousCoordinator.endTakeover()
     if (volumeTimerRef.current) {
       clearInterval(volumeTimerRef.current)
       volumeTimerRef.current = null
@@ -584,7 +566,18 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
             setUserStatus('error')
           },
           onClose: () => {
+            if (clientRef.current !== client) return
             assistantTurnActiveRef.current = false
+            recorderRef.current?.stop()
+            recorderRef.current = null
+            playerRef.current?.stop()
+            playerRef.current = null
+            if (volumeTimerRef.current) clearInterval(volumeTimerRef.current)
+            volumeTimerRef.current = null
+            clientRef.current = null
+            setUserVolume(0)
+            setAssistantVolume(0)
+            autonomousCoordinator.endTakeover()
             setUserStatus((prev) => (prev === 'error' ? 'error' : 'disconnected'))
           },
           onToolCall: handleToolCall,

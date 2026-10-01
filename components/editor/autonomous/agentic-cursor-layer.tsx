@@ -128,7 +128,7 @@ export function AgenticCursorLayer() {
 
   // Track previous click state to know when a new click just fired
   const [clickFlash, setClickFlash] = useState(false)
-  const [clickPos, setClickPos] = useState({ x: 0, y: 0 })
+  const [clickPos, setClickPos] = useState({ x: 0, y: 0, id: 0 })
   const clickCountRef = useRef(0)
 
   useEffect(() => {
@@ -203,7 +203,7 @@ export function AgenticCursorLayer() {
           if (!prev.isClicking && nextState.isClicking) {
             clickCountRef.current += 1
             setClickFlash(true)
-            setClickPos({ x: nextState.x, y: nextState.y })
+            setClickPos({ x: nextState.x, y: nextState.y, id: clickCountRef.current })
             setTimeout(() => setClickFlash(false), 600)
           }
           return nextState
@@ -251,13 +251,13 @@ export function AgenticCursorLayer() {
       {/* ── Cinematic Layers (ordered by z-index) ───────────────────────── */}
 
       {/* z-[9989] Viewport Perimeter Moving Border (Aceternity continuous moving gradient) */}
-      <AgentViewportMovingBorder />
+      {visible && <AgentViewportMovingBorder />}
 
       {/* z-[9990-9991] Ambient scrim + spotlight */}
-      <AgentTakeoverScrim />
+      {visible && <AgentTakeoverScrim />}
 
       {/* z-[9995] Bounding reticle */}
-      <AgentBoundingReticle />
+      {visible && <AgentBoundingReticle />}
 
       {/* ── Ghost Cursor Shell ──────────────────────────────────────────── */}
       {/* Note: overflow-hidden removed — has no effect on position:fixed children */}
@@ -269,7 +269,7 @@ export function AgenticCursorLayer() {
         <AnimatePresence>
           {clickFlash && !prefersReducedMotion && (
             <ClickShockwave
-              key={`sw-${clickCountRef.current}`}
+              key={`sw-${clickPos.id}`}
               x={clickPos.x}
               y={clickPos.y}
             />

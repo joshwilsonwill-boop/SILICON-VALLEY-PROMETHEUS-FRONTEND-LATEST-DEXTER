@@ -67,6 +67,7 @@ class AutonomousUICoordinator {
   private cancelCurrentMotion: (() => void) | null = null
   private isHumanInteracting = false
   private humanInteractionTimer: NodeJS.Timeout | null = null
+  private actionGeneration = 0
 
   constructor() {
     if (typeof window !== 'undefined') {
@@ -117,6 +118,7 @@ class AutonomousUICoordinator {
    * Abort any ongoing autonomous action
    */
   public abortAction(reason: 'user_barge_in' | 'cancelled' = 'cancelled') {
+    this.actionGeneration += 1
     if (this.cancelCurrentMotion) {
       this.cancelCurrentMotion()
       this.cancelCurrentMotion = null
@@ -128,10 +130,10 @@ class AutonomousUICoordinator {
       isClicking: false,
       statusText: reason === 'user_barge_in' ? 'Control returned to you' : this.state.statusText,
       activeTargetRect: null,
-      phase: this.state.isTakeover && reason === 'cancelled' ? 'hovering' : 'yielding',
+      phase: this.state.isTakeover && reason === 'cancelled' ? 'idle' : 'yielding',
       // Completing one action hides the cursor while the task session stays visible.
       isTakeover: reason === 'user_barge_in' ? false : this.state.isTakeover,
-      pillMode: reason === 'user_barge_in' ? 'idle' : 'action',
+      pillMode: 'idle',
       anticipatedTargetRect: null,
       spotlightRect: null,
     }
@@ -162,9 +164,10 @@ class AutonomousUICoordinator {
     this.state = {
       ...this.state,
       isTakeover: true,
-      visible: true,
+      visible: false,
+      phase: 'idle',
       statusText: label,
-      pillMode: 'action',
+      pillMode: 'idle',
     }
     this.notify()
   }
@@ -347,7 +350,7 @@ class AutonomousUICoordinator {
     this.notify()
 
     return new Promise<boolean>((resolve) => {
-      this.cancelCurrentMotion = animateGlide(
+      const cancelMotion = animateGlide(
         { x: startX, y: startY },
         { x: targetX, y: targetY },
         effectiveDuration,
@@ -358,6 +361,7 @@ class AutonomousUICoordinator {
           this.notify()
         },
         () => {
+          this.cancelCurrentMotion = null
           this.state.x = targetX
           this.state.y = targetY
           this.state.tiltAngleDeg = 0
@@ -366,6 +370,12 @@ class AutonomousUICoordinator {
           resolve(true)
         }
       )
+      // A cancelled animation must also settle its awaiting tool/workflow.
+      // Otherwise one interruption can leave the command queue waiting forever.
+      this.cancelCurrentMotion = () => {
+        cancelMotion()
+        resolve(false)
+      }
     })
   }
 
@@ -399,11 +409,13 @@ class AutonomousUICoordinator {
    * Perform a visual click pulse at current cursor position
    */
   public async simulateClick(): Promise<void> {
+    const generation = this.actionGeneration
     this.state.isClicking = true
     this.state.phase = 'clicking'
     this.notify()
 
     await new Promise((resolve) => setTimeout(resolve, 220))
+    if (generation !== this.actionGeneration) return
 
     this.state.isClicking = false
     this.state.phase = 'hovering'
@@ -935,6 +947,9 @@ class AutonomousUICoordinator {
     isContinuous?: boolean
   ): Promise<boolean> {
     const tabTarget = resolveTabElement(tabName)
+    const switchHandler = onSwitchTab ?? useAutonomousStore.getState().onSwitchTab
+    if (!tabTarget && !switchHandler) return false
+    const generation = this.actionGeneration
     if (tabTarget) {
       this.anticipateTarget(tabTarget.element)
       const glided = await this.glideTo(
@@ -946,15 +961,11 @@ class AutonomousUICoordinator {
       )
       if (!glided) return false
       await this.simulateClick()
-      tabTarget.element.click()
+      if (generation !== this.actionGeneration) return false
+      if (!switchHandler) tabTarget.element.click()
     }
 
-    if (onSwitchTab) {
-      onSwitchTab(tabName)
-    } else {
-      // Fallback: read from the zustand store bridge
-      useAutonomousStore.getState().onSwitchTab?.(tabName)
-    }
+    switchHandler?.(tabName)
 
     await new Promise((resolve) => setTimeout(resolve, 300))
     if (!isContinuous) {
@@ -976,54 +987,20 @@ class AutonomousUICoordinator {
   ): Promise<boolean> {
     if (this.isHumanInteracting) return false
 
-    // 1. Activate full takeover mode with perimeter moving border
+    // Enabling access is idle; only real navigation renders cursor activity.
     this.beginTakeover(`Jarvis taking control: ${targetTab} schema`)
-
-    await new Promise((resolve) => setTimeout(resolve, 150))
-
-    // 2. Resolve target element (e.g. Motion tab button)
-    const tabTarget = resolveTabElement(targetTab)
-
-    if (tabTarget) {
-      // Pre-signal 200ms ahead with precision corner ticks
-      this.anticipateTarget(tabTarget.element)
-      await new Promise((resolve) => setTimeout(resolve, 200))
-
-      // Glide the 3D pillowy black cursor to target
-      const glided = await this.glideTo(
-        tabTarget.centerX,
-        tabTarget.centerY,
-        `Jarvis: Switching to ${targetTab} Schema`,
-        tabTarget.rect,
-        650
-      )
-
-      if (!glided) return false
-
-      // Stimulate tactile click
-      await this.simulateClick()
-      tabTarget.element.click()
+    try {
+      const switched = await this.executeTabSwitch(targetTab, onSwitchTab, true)
+      if (!switched) {
+        this.endTakeover()
+        return false
+      }
+      this.abortAction('cancelled')
+      return true
+    } catch {
+      this.endTakeover()
+      return false
     }
-
-    // Switch tab callback
-    if (onSwitchTab) {
-      onSwitchTab(targetTab)
-    } else {
-      useAutonomousStore.getState().onSwitchTab?.(targetTab)
-    }
-
-    // Retain takeover active state so the viewport moving border and escape hatch persist
-    this.state = {
-      ...this.state,
-      isTakeover: true,
-      visible: true,
-      phase: 'hovering',
-      statusText: `Jarvis: ${targetTab} Schema Active`,
-      pillMode: 'action',
-    }
-    this.notify()
-
-    return true
   }
 
   /**

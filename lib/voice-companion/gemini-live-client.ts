@@ -68,6 +68,9 @@ export class GeminiLiveClient {
   private connectionPromise: Promise<void> | null = null
   private activeUrlIndex = 0
   private incomingMessageQueue: Promise<void> = Promise.resolve()
+  // Keep tool execution ordered without blocking audio, transcripts or barge-in.
+  private toolExecutionQueue: Promise<void> = Promise.resolve()
+  private connectionGeneration = 0
 
   constructor(config: GeminiLiveConfig, events: GeminiLiveEvents = {}) {
     this.config = config
@@ -87,6 +90,8 @@ export class GeminiLiveClient {
     }
 
     const candidateUrls = this.getCandidateUrls()
+    this.connectionGeneration += 1
+    this.toolExecutionQueue = Promise.resolve()
 
     const attemptConnect = (index: number): Promise<void> => {
       this.activeUrlIndex = index
@@ -96,7 +101,8 @@ export class GeminiLiveClient {
         let settled = false
         let timeout: ReturnType<typeof setTimeout>
         try {
-          this.ws = new WebSocket(targetUrl)
+          const socket = new WebSocket(targetUrl)
+          this.ws = socket
 
           const fail = (error: Error, retryable: boolean) => {
             if (settled) return
@@ -141,7 +147,9 @@ export class GeminiLiveClient {
           }
 
           this.ws.onmessage = (event: MessageEvent) => {
+            const generation = this.connectionGeneration
             this.incomingMessageQueue = this.incomingMessageQueue.then(async () => {
+              if (socket !== this.ws || generation !== this.connectionGeneration) return
               await this.handleMessage(event.data, () => {
                 confirmSetup()
               }, (error, credentialFailure) => {
@@ -157,6 +165,8 @@ export class GeminiLiveClient {
           }
 
           this.ws.onclose = (event) => {
+            if (socket !== this.ws) return
+            this.connectionGeneration += 1
             const wasSetup = this.isSetupComplete
             this.isSetupComplete = false
 
@@ -198,6 +208,8 @@ You can inspect visual content by calling inspect_video, which samples up to fiv
 When the user explicitly delegates a video edit, call toggle_agent_takeover once to begin a persistent editing session, then inspect_video and get_editor_state before acting. Do not ask the user to enable takeover or re-enable it between actions. Keep the session active while you inspect the available evidence, navigate, make the requested edits, and review the result. Call end_agent_takeover only when the task is complete or the user asks to stop. Use available transcript and music-context evidence; never invent visual observations or claim browser research unless a tool actually provides it.
 For questions about specific spoken content, call search_video_transcript and ground the answer in its returned excerpts. The full transcript is retrieved on demand.
 Never claim an edit, playback change, or render happened unless its tool result reports success. When a tool returns success:false, explain the blocker briefly.
+For workspace changes, only name the workspace confirmed by the tool, never the requested destination when confirmation failed. If the user reports that their view differs from your state, acknowledge the mismatch and check get_editor_state; do not dismiss it as a frozen browser or tell them to refresh without evidence.
+You cannot measure the user's network latency or see their screen. Acknowledge reported lag; never claim that there is no lag on your end. Microphone transcription may be inaccurate, and audio from a playing video can be picked up by the microphone. Treat sudden unrelated language or content as uncertain and ask a short clarification before acting on it.
 
 ### MUSIC AUDITIONING & PLAYBACK TRUTHFULNESS:
 When asked to recommend or play music, execute autonomous_music_action with action: 'preview'. You are previewing/auditioning the soundtrack in the Music Studio for their consideration.
@@ -558,25 +570,39 @@ Keep your spoken responses fluid, punchy, conversational, and helpful. Never rea
     // 2. Tool Calls
     if (message.toolCall?.functionCalls && this.events.onToolCall) {
       const functionCalls = message.toolCall.functionCalls
-      const functionResponses = []
-
-      for (const call of functionCalls) {
-        try {
-          const result = await this.events.onToolCall(call.name, call.args || {})
-          functionResponses.push({
-            id: call.id,
-            response: { output: result },
-          })
-        } catch (err) {
-          functionResponses.push({
-            id: call.id,
-            response: { error: (err as Error).message || 'Execution error' },
-          })
-        }
-      }
-
-      this.sendToolResponse(functionResponses)
+      const generation = this.connectionGeneration
+      this.toolExecutionQueue = this.toolExecutionQueue.then(async () => {
+        if (generation !== this.connectionGeneration) return
+        await this.executeToolCalls(functionCalls, generation)
+      }).catch((err) => {
+        console.error('[GeminiLive] Error executing tools:', err)
+      })
     }
+  }
+
+  private async executeToolCalls(
+    functionCalls: Array<{ id: string; name: string; args?: Record<string, unknown> }>,
+    generation: number,
+  ): Promise<void> {
+    const functionResponses = []
+
+    for (const call of functionCalls) {
+      if (generation !== this.connectionGeneration) return
+      try {
+        const result = await this.events.onToolCall!(call.name, call.args || {})
+        functionResponses.push({
+          id: call.id,
+          response: { output: result },
+        })
+      } catch (err) {
+        functionResponses.push({
+          id: call.id,
+          response: { error: (err as Error).message || 'Execution error' },
+        })
+      }
+    }
+
+    if (generation === this.connectionGeneration) this.sendToolResponse(functionResponses)
   }
 
   sendAudioChunk(base64Pcm: string): void {
@@ -624,6 +650,7 @@ Keep your spoken responses fluid, punchy, conversational, and helpful. Never rea
   }
 
   disconnect(): void {
+    this.connectionGeneration += 1
     this.isSetupComplete = false
     if (this.ws) {
       try {
