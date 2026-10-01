@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Mic, MicOff, Sparkles, X, ArrowUp, Power } from 'lucide-react'
+import { Mic, MicOff, Sparkles, X, ArrowUp, Power, Download } from 'lucide-react'
 import { Dock, DockItem, DockLabel, DockIcon } from '@/components/ui/dock'
 
 import { cn } from '@/lib/utils'
@@ -12,6 +12,7 @@ import {
   subscribeVoiceCompanionBridge,
 } from '@/lib/voice-companion/bridge'
 import { autonomousCoordinator } from '@/lib/autonomous-ui/coordinator'
+import { downloadConversationLog } from '@/lib/conversation-log'
 
 export interface JarvisTopNavFilamentProps {
   className?: string
@@ -304,6 +305,19 @@ export function JarvisTopNavFilament({ className }: JarvisTopNavFilamentProps) {
               </div>
 
               <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => downloadConversationLog(
+                    companion.transcripts.map(({ role, text, timestamp }) => ({ role, text, timestamp })),
+                    'jarvis-voice-session',
+                  )}
+                  disabled={!companion.transcripts.some((turn) => turn.text.trim())}
+                  className="grid size-8 place-items-center rounded-[6px] text-white/45 transition-colors duration-300 hover:bg-white/[0.08] hover:text-white disabled:cursor-not-allowed disabled:opacity-25"
+                  aria-label="Download Jarvis conversation log"
+                  title="Download conversation log"
+                >
+                  <Download className="size-4" strokeWidth={1.5} />
+                </button>
                 <button
                   type="button"
                   onClick={() => setIsExpanded(false)}
