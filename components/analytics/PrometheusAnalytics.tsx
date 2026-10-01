@@ -11,6 +11,7 @@ import { BackButton } from '@/components/navigation/BackButton'
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet'
 import { Jarvis, JarvisFollow, JarvisProvider, useJarvisAgent } from '@/components/ui/jarvis'
 import { cn } from '@/lib/utils'
+import { VideoPlatformGallery } from './VideoPlatformGallery'
 import { JarvisReachChart, metricVisuals, type JarvisChartPoint, type ReachMetric } from './JarvisReachChart'
 import type { ChartPhase } from './bklit/chart-phase'
 
@@ -181,7 +182,6 @@ function AnalyticsStage() {
     return livePayload.videos
       .slice()
       .sort((first, second) => second.totals.views - first.totals.views)
-      .slice(0, 6)
   }, [livePayload])
 
   React.useEffect(() => {
@@ -501,6 +501,19 @@ function AnalyticsStage() {
         </div>
         <div className="mt-7">
           <RecentAssetsGrid videos={videoLedger} onOpenVideo={handleOpenVideo} />
+        </div>
+      </section>
+
+      <section className="mt-16 border-t border-white/[0.09] pt-7" data-jarvis-reveal>
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.28em] text-[#8D8E85]">Published library</p>
+            <h2 className="mt-2 font-[family-name:var(--font-vogue-display)] text-[clamp(2rem,3.4vw,3.8rem)] leading-none text-[#F1F0EA]">Your videos, by channel.</h2>
+          </div>
+          <p className="text-[11px] uppercase tracking-[0.16em] text-[#777970]">{videoLedger.length} videos in your library</p>
+        </div>
+        <div className="mt-7">
+          <VideoPlatformGallery videos={videoLedger} onOpenVideo={handleOpenVideo} />
         </div>
       </section>
 

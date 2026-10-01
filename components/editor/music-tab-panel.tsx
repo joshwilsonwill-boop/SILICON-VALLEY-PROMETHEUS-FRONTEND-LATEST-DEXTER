@@ -1648,23 +1648,20 @@ export function MusicTabPanel({
   const availableGenres = React.useMemo(() => Array.from(new Set(displayTracks.map((track) => track.genre).filter(Boolean))).sort(), [displayTracks])
 
   const forVideoTracks = React.useMemo(() => {
-    const fullLengthTracks = catalogTracks.filter((track) => {
-      const sourceUrl = (track as MusicRecommendation & { sourceUrl?: string }).sourceUrl
-      return track.durationSec >= 30 && Boolean(sourceUrl || track.previewUrl !== `/api/music/preview?trackId=${encodeURIComponent(track.id)}`)
-    })
-    if (!catalogReady || !fullLengthTracks.length) return tracks
+    const videoCatalogTracks = catalogTracks
+    if (!catalogReady || !videoCatalogTracks.length) return tracks
 
-    const sourceById = new Map(fullLengthTracks.map((track) => [track.id, track]))
+    const sourceById = new Map(videoCatalogTracks.map((track) => [track.id, track]))
     const recommendations = buildMusicRecommendationSet({
       query: initialPrompt,
       projectTitle,
       initialPrompt,
       videoContext,
-      limit: fullLengthTracks.length,
-      catalog: fullLengthTracks.map(toRecommendationCatalogTrack),
+      limit: videoCatalogTracks.length,
+      catalog: videoCatalogTracks.map(toRecommendationCatalogTrack),
     }).recommendations
 
-    return recommendations.flatMap((recommendation) => {
+    const rankedTracks = recommendations.flatMap((recommendation) => {
       const sourceTrack = sourceById.get(recommendation.id)
       return sourceTrack
         ? [{
@@ -1675,6 +1672,12 @@ export function MusicTabPanel({
           }]
         : []
     })
+    const rankedTrackIds = new Set(rankedTracks.map((track) => track.id))
+
+    return [
+      ...rankedTracks,
+      ...videoCatalogTracks.filter((track) => !rankedTrackIds.has(track.id)),
+    ]
   }, [catalogReady, catalogTracks, initialPrompt, projectTitle, tracks, videoContext])
 
   const collectionTracks = React.useMemo(() => {

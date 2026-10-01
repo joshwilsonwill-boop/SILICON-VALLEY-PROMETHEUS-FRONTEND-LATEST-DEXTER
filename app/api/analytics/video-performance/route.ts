@@ -266,35 +266,50 @@ async function composeAnalytics(
     }
   }
 
-  const { data: projectRows, error: projectsError } = await supabase
-    .from('projects')
-    .select('id, name, status, thumbnail_url, created_at, updated_at, source_profile, preview_kind')
-    .eq('user_id', userId)
-    .order('updated_at', { ascending: false })
-    .limit(12)
-    .returns<ProjectRow[]>()
+  const projectRows: ProjectRow[] = []
+  let projectsError: { message: string; details?: string | null } | null = null
+  const projectPageSize = 500
+  for (let offset = 0; ; offset += projectPageSize) {
+    const { data, error } = await supabase
+      .from('projects')
+      .select('id, name, status, thumbnail_url, created_at, updated_at, source_profile, preview_kind')
+      .eq('user_id', userId)
+      .order('updated_at', { ascending: false })
+      .range(offset, offset + projectPageSize - 1)
+      .returns<ProjectRow[]>()
+
+    if (error) {
+      projectsError = error
+      break
+    }
+    const page = data ?? []
+    projectRows.push(...page)
+    if (page.length < projectPageSize) break
+  }
 
   if (projectsError) {
     return errorBody('PROJECTS_FETCH_FAILED', projectsError.message, projectsError.details ?? null)
   }
 
-  const projectIds = (projectRows ?? []).map((project) => project.id)
-  const { data: exportRows } =
-    projectIds.length > 0
-      ? await supabase
-          .from('project_exports')
-          .select('id, project_id, status, preset, completed_at, created_at, updated_at, file_size_bytes, duration_ms, metadata')
-          .eq('user_id', userId)
-          .in('project_id', projectIds)
-          .order('created_at', { ascending: false })
-          .limit(36)
-          .returns<ExportRow[]>()
-      : { data: [] as ExportRow[] }
+  const projectIds = projectRows.map((project) => project.id)
+  const exportRows: ExportRow[] = []
+  const projectIdBatchSize = 100
+  for (let offset = 0; offset < projectIds.length; offset += projectIdBatchSize) {
+    const { data } = await supabase
+      .from('project_exports')
+      .select('id, project_id, status, preset, completed_at, created_at, updated_at, file_size_bytes, duration_ms, metadata')
+      .eq('user_id', userId)
+      .in('project_id', projectIds.slice(offset, offset + projectIdBatchSize))
+      .order('created_at', { ascending: false })
+      .limit(5000)
+      .returns<ExportRow[]>()
+    exportRows.push(...(data ?? []))
+  }
 
   const metricsAvailable = !metricError && Array.isArray(metricRows) && metricRows.length > 0
   const exportsByProjectId = new Map<string, ExportRow[]>()
 
-  for (const exportRow of exportRows ?? []) {
+  for (const exportRow of exportRows) {
     const current = exportsByProjectId.get(exportRow.project_id) ?? []
     current.push(exportRow)
     exportsByProjectId.set(exportRow.project_id, current)
@@ -480,7 +495,7 @@ async function composeAnalytics(
         ...totals,
         connectedPlatformCount: activeProviders.size,
         videoCount: allVideos.length,
-        exportCount: exportRows?.length ?? 0,
+        exportCount: exportRows.length,
       },
     },
   }
