@@ -1,5 +1,5 @@
-import { PrometheusAnalytics } from '@/components/analytics/PrometheusAnalytics'
+﻿import { SphereAnalytics } from '@/components/analytics/SphereAnalytics'
 
 export default function AnalyticsPage() {
-  return <PrometheusAnalytics />
+  return <SphereAnalytics />
 }
