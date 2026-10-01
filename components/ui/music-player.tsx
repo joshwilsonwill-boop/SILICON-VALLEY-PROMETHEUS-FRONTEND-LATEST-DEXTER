@@ -170,6 +170,15 @@ export function MusicPlayer({
   }, [audioSrc, isPlaying, repeatEnabled, onProgressChange, setBufferingState, setPlayingState, syncProgressVisual])
 
   React.useEffect(() => {
+    const audio = audioRef.current
+    return () => {
+      audio?.pause()
+      audio?.removeAttribute('src')
+      audio?.load()
+    }
+  }, [])
+
+  React.useEffect(() => {
     if (!audioRef.current) return
     audioRef.current.muted = isMuted
   }, [isMuted])

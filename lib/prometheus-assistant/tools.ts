@@ -103,12 +103,14 @@ export const PROMETHEUS_TOOLS = [
               properties: {
                 kind: {
                   type: 'string',
-                  enum: ['seek', 'preview_control', 'set_fit_mode', 'switch_tab', 'split_at_playhead', 'cut_silence', 'propose'],
+                  enum: ['seek', 'preview_control', 'soundtrack_control', 'set_fit_mode', 'switch_tab', 'split_at_playhead', 'cut_silence', 'propose'],
                   description:
-                    'seek → jump the playhead; preview_control → play/pause/mute/unmute; set_fit_mode → fill|fit; switch_tab → Editor|Music|Motion; split_at_playhead → split clip at playhead timeSec; cut_silence → ripple-cut silent dead air pauses; propose → media-mutating change, planned only.',
+                    'seek → jump the playhead; preview_control → play/pause/mute/unmute; soundtrack_control → set_volume (0-100), set_ducking (enabled boolean), or remove the selected soundtrack; set_fit_mode → fill|fit; switch_tab → Editor|Music|Motion; split_at_playhead → split clip at playhead timeSec; cut_silence → ripple-cut silent dead air pauses; propose → media-mutating change, planned only.',
                 },
                 timeSec: { type: 'number', description: 'For kind "seek" or "split_at_playhead": target time in seconds.' },
                 command: { type: 'string', enum: ['play', 'pause', 'mute', 'unmute'], description: 'For kind "preview_control".' },
+                volume: { type: 'number', description: 'For soundtrack_control set_volume: level from 0 to 100 percent.' },
+                enabled: { type: 'boolean', description: 'For soundtrack_control set_ducking: whether music lowers under dialogue.' },
                 mode: { type: 'string', enum: ['fill', 'fit'], description: 'For kind "set_fit_mode".' },
                 tab: { type: 'string', enum: ['Editor', 'Music', 'Motion'], description: 'For kind "switch_tab".' },
                 minDurationSec: { type: 'number', description: 'For kind "cut_silence": minimum pause length to cut (default 0.4s).' },

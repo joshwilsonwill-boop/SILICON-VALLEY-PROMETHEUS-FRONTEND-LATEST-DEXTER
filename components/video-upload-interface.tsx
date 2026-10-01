@@ -26,7 +26,6 @@ import {
     SendIcon,
     XIcon,
     Sparkles,
-    Command,
     Grid3X3,
     PanelsTopLeft,
     Film,
@@ -1311,25 +1310,6 @@ const PromptComposer = React.memo(function PromptComposer({
                                 layoutId="button-highlight"
                             />
                         </motion.button>
-                        <motion.button
-                            type="button"
-                            data-command-button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setShowCommandPalette((prev) => !prev);
-                            }}
-                            whileTap={{ scale: 0.94 }}
-                            className={cn(
-                                "group premium-icon-orbit relative rounded-lg p-2 text-white/40 transition-colors hover:text-white/90",
-                                showCommandPalette && "bg-white/10 text-white/90"
-                            )}
-                        >
-                            <Command className="h-4 w-4" />
-                            <motion.span
-                                className="absolute inset-0 rounded-lg bg-white/[0.05] opacity-0 transition-opacity group-hover:opacity-100"
-                                layoutId="button-highlight"
-                            />
-                        </motion.button>
                     </div>
 
                     <motion.button
@@ -2389,6 +2369,10 @@ export function VideoUploadInterface() {
                     <DialogClose asChild>
                         <button
                             type="button"
+                            onClick={() => {
+                                setShowFileUploadModal(false);
+                                closeSourceModal();
+                            }}
                             className="absolute right-3 top-3 z-20 grid h-10 w-10 place-items-center rounded-lg border border-white/12 bg-black/55 text-white/70 shadow-[0_18px_42px_-26px_rgba(0,0,0,0.92)] backdrop-blur-xl transition-colors hover:bg-black/72 hover:text-white sm:right-5 sm:top-5"
                             aria-label="Close source popup"
                         >

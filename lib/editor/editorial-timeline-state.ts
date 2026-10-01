@@ -56,7 +56,7 @@ export interface EditorialTimelineState {
   version: 1
   revision: number
   sourceAssetId: string | null
-  music: { track: MusicRecommendation; volume: number; muted: boolean } | null
+  music: { track: MusicRecommendation; volume: number; muted: boolean; ducking: boolean } | null
   effects: EditorialSoundEffect[]
   cues: EditorialCue[]
   transcript?: EditorialTranscript[]
@@ -64,7 +64,7 @@ export interface EditorialTimelineState {
 
 export const editorialTimelinePatchSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('music'), track: editorialMusicSchema.nullable() }),
-  z.object({ type: z.literal('mix'), volume: gain.optional(), muted: z.boolean().optional() }),
+  z.object({ type: z.literal('mix'), volume: gain.optional(), muted: z.boolean().optional(), ducking: z.boolean().optional() }),
   z.object({ type: z.literal('effects'), effects: z.array(editorialSoundEffectSchema).max(200) }),
   z.object({ type: z.literal('effect'), id: z.string().min(1), volume: gain.optional(), muted: z.boolean().optional() }),
   z.object({ type: z.literal('cues'), cues: z.array(editorialCueSchema).max(2000) }),
@@ -92,6 +92,7 @@ export function readEditorialTimeline(editorState: unknown, sourceAssetId: strin
       track: music.data as unknown as MusicRecommendation,
       volume: gain.safeParse(raw.music?.volume).success ? raw.music!.volume : 0.5,
       muted: raw.music?.muted === true,
+      ducking: raw.music?.ducking !== false,
     } : null,
     effects: effects.success ? effects.data : [],
     cues: cues.success ? cues.data : [],
@@ -102,8 +103,8 @@ export function readEditorialTimeline(editorState: unknown, sourceAssetId: strin
 export function applyEditorialTimelinePatch(state: EditorialTimelineState, patch: EditorialTimelinePatch): EditorialTimelineState {
   const next = { ...state, revision: state.revision + 1 }
   switch (patch.type) {
-    case 'music': return { ...next, music: patch.track ? { track: patch.track as unknown as MusicRecommendation, volume: state.music?.volume ?? 0.5, muted: state.music?.muted ?? false } : null }
-    case 'mix': return { ...next, music: state.music ? { ...state.music, ...(patch.volume !== undefined ? { volume: patch.volume } : {}), ...(patch.muted !== undefined ? { muted: patch.muted } : {}) } : null }
+    case 'music': return { ...next, music: patch.track ? { track: patch.track as unknown as MusicRecommendation, volume: state.music?.volume ?? 0.5, muted: state.music?.muted ?? false, ducking: state.music?.ducking ?? true } : null }
+    case 'mix': return { ...next, music: state.music ? { ...state.music, ...(patch.volume !== undefined ? { volume: patch.volume } : {}), ...(patch.muted !== undefined ? { muted: patch.muted } : {}), ...(patch.ducking !== undefined ? { ducking: patch.ducking } : {}) } : null }
     case 'effects': return { ...next, effects: patch.effects }
     case 'effect': return { ...next, effects: state.effects.map((cue) => cue.id === patch.id ? { ...cue, ...(patch.volume !== undefined ? { volume: patch.volume } : {}), ...(patch.muted !== undefined ? { muted: patch.muted } : {}) } : cue) }
     case 'cues': return { ...next, cues: patch.cues }

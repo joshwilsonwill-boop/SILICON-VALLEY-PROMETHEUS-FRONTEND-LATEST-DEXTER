@@ -39,6 +39,19 @@ export function writeSelectedEditorMusicRecommendation(projectId: string, track:
   }))
 }
 
+export function clearSelectedEditorMusicRecommendation(projectId: string) {
+  if (typeof window === 'undefined') return
+  try {
+    window.localStorage.removeItem(selectedEditorMusicStorageKey(projectId))
+    window.localStorage.removeItem(`${selectedEditorMusicStorageKey(projectId)}.record`)
+  } catch {
+    // The current editor still clears even when browser storage is unavailable.
+  }
+  window.dispatchEvent(new CustomEvent<SelectedEditorMusicEventDetail>(SELECTED_EDITOR_MUSIC_EVENT, {
+    detail: { projectId, trackId: '' },
+  }))
+}
+
 export function readSelectedEditorMusicRecommendation(projectId: string): MusicRecommendation | null {
   if (typeof window === 'undefined') return null
   try {
@@ -49,4 +62,3 @@ export function readSelectedEditorMusicRecommendation(projectId: string): MusicR
     return null
   }
 }
-

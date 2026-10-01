@@ -5,7 +5,7 @@ import type { MusicRecommendation } from '@/lib/types'
 import { editorialAudioTime, type EditorialSoundEffect } from '@/lib/editor/editorial-timeline-state'
 
 /** Follow the preview's media clock, including scrubs and transcript cut jumps. */
-export function EditorialAudioPreview({ track, volume, muted, effects, videoRef, playing, currentTime, onError }: {
+export function EditorialAudioPreview({ track, volume, muted, effects, videoRef, playing, currentTime, ducking = false, voiceActive = false, onError }: {
   track: MusicRecommendation | null
   volume: number
   muted: boolean
@@ -13,11 +13,13 @@ export function EditorialAudioPreview({ track, volume, muted, effects, videoRef,
   videoRef: React.Ref<HTMLVideoElement>
   playing: boolean
   currentTime: number
+  ducking?: boolean
+  voiceActive?: boolean
   onError: (message: string | null) => void
 }) {
   const players = React.useRef(new Map<string, HTMLAudioElement>())
-  const latest = React.useRef({ volume, muted, playing, currentTime, effects })
-  latest.current = { volume, muted, playing, currentTime, effects }
+  const latest = React.useRef({ volume, muted, playing, currentTime, effects, ducking, voiceActive })
+  latest.current = { volume, muted, playing, currentTime, effects, ducking, voiceActive }
   const syncNow = React.useRef<(() => void) | null>(null)
   const sources = JSON.stringify([
     ...(track?.previewUrl ? [{ id: 'music', url: track.previewUrl }] : []),
@@ -51,7 +53,9 @@ export function EditorialAudioPreview({ track, volume, muted, effects, videoRef,
       for (const [id, audio] of players.current) {
         const cue = state.effects.find((item) => `effect:${item.id}` === id)
         let position = id === 'music' ? time : cue ? editorialAudioTime(cue, time) : null
-        audio.volume = id === 'music' ? (state.muted ? 0 : state.volume) : cue?.muted ? 0 : cue?.volume ?? 0.7
+        audio.volume = id === 'music'
+          ? (state.muted ? 0 : state.volume * (state.ducking && state.voiceActive ? 0.24 : 1))
+          : cue?.muted ? 0 : cue?.volume ?? 0.7
         if (position === null || !isPlaying) audio.pause()
         if (position === null || audio.readyState < 1) continue
         if (audio.loop && Number.isFinite(audio.duration) && audio.duration > 0) position %= audio.duration
@@ -68,6 +72,6 @@ export function EditorialAudioPreview({ track, volume, muted, effects, videoRef,
     tick()
     return () => { syncNow.current = null; cancelAnimationFrame(frame); for (const audio of players.current.values()) audio.pause() }
   }, [playing, sources, videoRef, onError])
-  React.useEffect(() => { syncNow.current?.() }, [currentTime, volume, muted, effects])
+  React.useEffect(() => { syncNow.current?.() }, [currentTime, volume, muted, effects, ducking, voiceActive])
   return null
 }

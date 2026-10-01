@@ -42,6 +42,8 @@ function saveSavedCharacterPreferences(items: SavedCharacterPreference[]) {
   writeLocalStorageJSON(CHARACTER_PREFERENCES_KEY, items)
 }
 
+const CREATOR_DIALOG_HISTORY_KEY = 'prometheusCreatorLibraryDialog'
+
 function kindFromTab(tab: LibraryTab): AssetKind {
   if (tab === 'uploads') return 'upload'
   if (tab === 'music') return 'music'
@@ -63,6 +65,42 @@ export default function AssetsPage() {
     setAssets(loadAssets())
     setSavedCharacters(loadSavedCharacterPreferences())
   }, [])
+
+  React.useEffect(() => {
+    const handlePopState = (event: PopStateEvent) => {
+      const historyState = event.state as Record<string, unknown> | null
+      if (historyState?.[CREATOR_DIALOG_HISTORY_KEY] === true) {
+        const creatorId = historyState.creatorId
+        if (typeof creatorId === 'string') setSelectedCreatorId(creatorId)
+        setLibraryOpen(true)
+        return
+      }
+      setLibraryOpen(false)
+      setActiveShowcaseItem(null)
+    }
+
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [])
+
+  const openCreatorLibrary = (showcaseId: string) => {
+    setTab('uploads')
+    setSelectedCreatorId(showcaseId)
+    setLibraryOpen(true)
+    window.history.pushState(
+      { ...(window.history.state ?? {}), [CREATOR_DIALOG_HISTORY_KEY]: true, creatorId: showcaseId },
+      '',
+    )
+  }
+
+  const closeCreatorLibrary = () => {
+    if ((window.history.state as Record<string, unknown> | null)?.[CREATOR_DIALOG_HISTORY_KEY] === true) {
+      window.history.back()
+      return
+    }
+    setLibraryOpen(false)
+    setActiveShowcaseItem(null)
+  }
 
   const filteredAssets = React.useMemo(
     () => assets.filter((asset) => asset.kind === kindFromTab(tab)),
@@ -109,11 +147,7 @@ export default function AssetsPage() {
       mainClassName="relative z-auto h-full snap-y snap-proximity scroll-smooth overflow-y-auto overflow-x-hidden overscroll-contain"
     >
       <LibraryCollection
-        onSelect={(showcaseId) => {
-          setTab('uploads')
-          setSelectedCreatorId(showcaseId)
-          setLibraryOpen(true)
-        }}
+        onSelect={openCreatorLibrary}
       />
 
       <BrandCanvas />
@@ -121,8 +155,8 @@ export default function AssetsPage() {
       <Dialog
         open={libraryOpen}
         onOpenChange={(nextOpen) => {
-          setLibraryOpen(nextOpen)
-          if (!nextOpen) setActiveShowcaseItem(null)
+          if (nextOpen) setLibraryOpen(true)
+          else closeCreatorLibrary()
         }}
       >
         <DialogContent
@@ -186,4 +220,3 @@ export default function AssetsPage() {
     </PrometheusShell>
   )
 }
-

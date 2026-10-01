@@ -45,13 +45,33 @@ type PersonalMusicFile = {
   id: string
   name: string
   sizeLabel: string
+  storagePath?: string
+  previewUrl?: string
+  title?: string
+  artist?: string
+  genre?: string
+  folderName?: string
   uploadState?: 'failed' | 'uploading'
 }
 
 type PersonalMusicTrackRow = {
   id: string
   original_filename: string
+  storage_path: string
   size_bytes: number
+  title: string | null
+  artist: string | null
+  genre: string | null
+  folder_name: string
+}
+
+type CloudMusicFile = {
+  id: string
+  name: string
+  mimeType: string
+  size: number | null
+  path?: string
+  provider: 'google_drive' | 'dropbox'
 }
 
 const PERSONAL_MUSIC_LIBRARY_STORAGE_KEY = 'prometheus.editor.personal-music.v1'
@@ -101,11 +121,41 @@ function toPersonalMusicFile(file: File): PersonalMusicFile {
   }
 }
 
-function fromPersonalMusicTrackRow(track: PersonalMusicTrackRow): PersonalMusicFile {
+function fromPersonalMusicTrackRow(track: PersonalMusicTrackRow, previewUrl?: string): PersonalMusicFile {
   return {
     id: track.id,
     name: track.original_filename,
     sizeLabel: formatPersonalMusicSize(track.size_bytes),
+    storagePath: track.storage_path,
+    previewUrl,
+    title: track.title ?? undefined,
+    artist: track.artist ?? undefined,
+    genre: track.genre ?? undefined,
+    folderName: track.folder_name || 'Unsorted',
+  }
+}
+
+function personalMusicRecommendation(file: PersonalMusicFile): MusicRecommendation | null {
+  if (!file.storagePath || !file.previewUrl) return null
+  const title = file.title || file.name.replace(/\.[^.]+$/, '')
+  return {
+    id: file.id,
+    title,
+    artist: file.artist || 'Your music',
+    producer: file.artist || 'Your library',
+    genre: file.genre || 'Personal',
+    bpm: 0,
+    vibeTags: [file.folderName || 'Unsorted'],
+    coverArtUrl: FALLBACK_ALBUM_ART,
+    previewUrl: file.previewUrl,
+    reason: 'Uploaded to your private music library.',
+    mood: 'minimal',
+    energy: 'low',
+    sourcePlatform: 'local',
+    durationSec: 0,
+    subtitle: file.folderName || 'Your music',
+    storageKey: file.storagePath,
+    license: 'owned',
   }
 }
 
@@ -223,12 +273,34 @@ function MyMusicShelf({
   query,
   onCreateFolder,
   onFilesSelected,
+  onSelectTrack,
+  onPreviewTrack,
+  onRemoveTrack,
+  onMoveTrack,
+  selectedTrackId,
+  playingTrackId,
+  cloudFiles,
+  cloudLoading,
+  cloudImportingId,
+  onLoadCloudFiles,
+  onImportCloudFile,
 }: {
   files: PersonalMusicFile[]
   folders: string[]
   query: string
   onCreateFolder: () => void
   onFilesSelected: React.ChangeEventHandler<HTMLInputElement>
+  onSelectTrack: (file: PersonalMusicFile) => void
+  onPreviewTrack: (file: PersonalMusicFile) => void
+  onRemoveTrack: (file: PersonalMusicFile) => void
+  onMoveTrack: (file: PersonalMusicFile, folder: string) => void
+  selectedTrackId: string | null
+  playingTrackId: string | null
+  cloudFiles: CloudMusicFile[]
+  cloudLoading: string | null
+  cloudImportingId: string | null
+  onLoadCloudFiles: (provider: CloudMusicFile['provider']) => void
+  onImportCloudFile: (file: CloudMusicFile) => void
 }) {
   const inputRef = React.useRef<HTMLInputElement | null>(null)
   const matchingFiles = files.filter((file) => file.name.toLowerCase().includes(query.trim().toLowerCase()))
@@ -260,6 +332,28 @@ function MyMusicShelf({
         </button>
       </div>
 
+      <div className="flex items-center gap-2">
+        <span className="text-[10px] text-white/42">Import from</span>
+        {(['google_drive', 'dropbox'] as const).map((provider) => (
+          <button key={provider} type="button" onClick={() => onLoadCloudFiles(provider)} disabled={cloudLoading === provider} className="rounded-md border border-white/10 bg-white/[0.035] px-2.5 py-1.5 text-[10px] text-white/65 transition hover:border-white/25 hover:text-white disabled:opacity-45">
+            {cloudLoading === provider ? 'Loading…' : provider === 'google_drive' ? 'Google Drive' : 'Dropbox'}
+          </button>
+        ))}
+      </div>
+
+      {cloudFiles.length ? (
+        <div className="max-h-32 space-y-1 overflow-y-auto rounded-lg border border-white/[0.07] bg-black/20 p-2">
+          {cloudFiles.map((file) => (
+            <div key={`${file.provider}:${file.id}`} className="flex items-center justify-between gap-3 text-xs text-white/65">
+              <span className="min-w-0 truncate">{file.name} <span className="text-white/32">· {file.provider === 'google_drive' ? 'Drive' : 'Dropbox'}</span></span>
+              <button type="button" onClick={() => onImportCloudFile(file)} disabled={cloudImportingId === file.id} className="shrink-0 rounded-md bg-white/[0.08] px-2 py-1 text-[10px] text-white/75 hover:bg-white/[0.14] hover:text-white disabled:opacity-45">
+                {cloudImportingId === file.id ? 'Importing…' : 'Add'}
+              </button>
+            </div>
+          ))}
+        </div>
+      ) : null}
+
       {folders.length ? (
         <div className="flex flex-wrap gap-2">
           {folders.map((folder) => <span key={folder} className="inline-flex items-center gap-1.5 rounded-full border border-white/12 bg-black/20 px-2.5 py-1 text-[10px] text-white/58"><Folder className="size-3" />{folder}</span>)}
@@ -270,11 +364,27 @@ function MyMusicShelf({
         {matchingFiles.length ? (
           <div className="space-y-1.5">
             {matchingFiles.map((file) => (
-              <div key={file.id} className="flex items-center justify-between gap-3 rounded-[10px] border border-white/[0.06] bg-black/20 px-3 py-2.5 text-sm text-white/74">
+              <div key={file.id} className={cn('flex items-center justify-between gap-3 rounded-[10px] border bg-black/20 px-3 py-2.5 text-sm text-white/74', selectedTrackId === file.id ? 'border-[#4d9dff]/45 bg-[#4d9dff]/[0.07]' : 'border-white/[0.06]')}>
                 <span className="flex min-w-0 items-center gap-2 truncate"><Music className="size-3.5 shrink-0 text-[#a5b4fc]" /> <span className="truncate">{file.name}</span></span>
                 <span className={cn('shrink-0 font-mono text-[10px]', file.uploadState === 'failed' ? 'text-red-300/70' : 'text-white/35')}>
                   {file.uploadState === 'uploading' ? 'Uploading…' : file.uploadState === 'failed' ? 'Upload failed' : file.sizeLabel}
                 </span>
+                {file.uploadState ? null : (
+                  <span className="flex shrink-0 items-center gap-1">
+                    <select aria-label={`Move ${file.title || file.name} to folder`} value={file.folderName || 'Unsorted'} onChange={(event) => onMoveTrack(file, event.target.value)} className="max-w-24 rounded-md border border-white/10 bg-black/35 px-1.5 py-1 text-[10px] text-white/65">
+                      {Array.from(new Set(['Unsorted', ...folders, file.folderName || 'Unsorted'])).map((folder) => <option key={folder} value={folder}>{folder}</option>)}
+                    </select>
+                    <button type="button" onClick={() => onPreviewTrack(file)} disabled={!file.previewUrl} className="grid size-7 place-items-center rounded-full text-white/58 transition hover:bg-white/10 hover:text-white disabled:opacity-30" aria-label={playingTrackId === file.id ? `Pause ${file.title || file.name}` : `Preview ${file.title || file.name}`}>
+                      {playingTrackId === file.id ? <Pause className="size-3.5 fill-current" /> : <Play className="ml-0.5 size-3.5 fill-current" />}
+                    </button>
+                    <button type="button" onClick={() => onSelectTrack(file)} disabled={!file.previewUrl} className="grid size-7 place-items-center rounded-full text-white/58 transition hover:bg-[#4d9dff]/15 hover:text-white disabled:opacity-30" aria-label={`Add ${file.title || file.name} to this video`}>
+                      <Plus className="size-3.5" />
+                    </button>
+                    <button type="button" onClick={() => onRemoveTrack(file)} className="grid size-7 place-items-center rounded-full text-white/38 transition hover:bg-red-400/10 hover:text-red-200" aria-label={`Remove ${file.title || file.name} from your library`} title="Remove from your music library">
+                      <X className="size-3.5" />
+                    </button>
+                  </span>
+                )}
               </div>
             ))}
           </div>
@@ -1183,6 +1293,7 @@ export function MusicTabPanel({
   videoContext = null,
   selectedTrackId,
   onSelectTrack: onSelectTrackProp,
+  onRemoveTrack: onRemoveTrackProp,
   variant = 'desktop',
 }: {
   tracks: MusicRecommendation[]
@@ -1191,6 +1302,7 @@ export function MusicTabPanel({
   videoContext?: MusicVideoContext | null
   selectedTrackId: string | null
   onSelectTrack: (track: MusicRecommendation) => void
+  onRemoveTrack?: () => void
   variant?: 'desktop' | 'mobile'
 }) {
   const editorial = useEditorialTimeline()
@@ -1215,6 +1327,9 @@ export function MusicTabPanel({
   const userChoseMusicCollection = React.useRef(false)
   const [personalMusicFiles, setPersonalMusicFiles] = React.useState<PersonalMusicFile[]>(() => readPersonalMusicLibrary().files)
   const [personalMusicFolders, setPersonalMusicFolders] = React.useState<string[]>(() => readPersonalMusicLibrary().folders)
+  const [cloudMusicFiles, setCloudMusicFiles] = React.useState<CloudMusicFile[]>([])
+  const [cloudMusicLoading, setCloudMusicLoading] = React.useState<string | null>(null)
+  const [cloudImportingId, setCloudImportingId] = React.useState<string | null>(null)
   const [searchQuery, setSearchQuery] = React.useState('')
   const [showFilters, setShowFilters] = React.useState(false)
   const [genreFilter, setGenreFilter] = React.useState('')
@@ -1261,7 +1376,17 @@ export function MusicTabPanel({
   React.useEffect(() => {
     try {
       window.localStorage.setItem(PERSONAL_MUSIC_LIBRARY_STORAGE_KEY, JSON.stringify({
-        files: personalMusicFiles,
+        files: personalMusicFiles.map((file) => ({
+          id: file.id,
+          name: file.name,
+          sizeLabel: file.sizeLabel,
+          storagePath: file.storagePath,
+          title: file.title,
+          artist: file.artist,
+          genre: file.genre,
+          folderName: file.folderName,
+          uploadState: file.uploadState,
+        })),
         folders: personalMusicFolders,
       }))
     } catch {
@@ -1281,11 +1406,23 @@ export function MusicTabPanel({
 
         const { data, error } = await supabase
           .from('user_music_tracks')
-          .select('id, original_filename, size_bytes')
+          .select('id, original_filename, storage_path, size_bytes, title, artist, genre, folder_name')
           .order('created_at', { ascending: false })
 
         if (error) throw error
-        if (!disposed && data) setPersonalMusicFiles(data.map((track) => fromPersonalMusicTrackRow(track as PersonalMusicTrackRow)))
+        const files = await Promise.all((data ?? []).map(async (track) => {
+          const row = track as PersonalMusicTrackRow
+          const { data: signed, error: signedUrlError } = await supabase.storage
+            .from('user-music')
+            .createSignedUrl(row.storage_path, 3600)
+          if (signedUrlError) return fromPersonalMusicTrackRow(row)
+          return fromPersonalMusicTrackRow(row, signed.signedUrl)
+        }))
+        const { data: folderRows } = await supabase.from('user_music_folders').select('name').order('name')
+        if (!disposed) {
+          setPersonalMusicFiles(files)
+          setPersonalMusicFolders(Array.from(new Set([...(folderRows ?? []).map((folder) => folder.name), ...files.map((file) => file.folderName || 'Unsorted')])).filter((folder) => folder !== 'Unsorted'))
+        }
       } catch {
         // Local storage keeps the shelf useful until Supabase is configured or the migration is applied.
       }
@@ -1302,6 +1439,15 @@ export function MusicTabPanel({
     if (!nextFiles.length) return
     event.target.value = ''
 
+    const unsupported = nextFiles.find((file) => (
+      (!file.type.startsWith('audio/') && !/\.(mp3|m4a|aac|wav|ogg|flac|webm)$/i.test(file.name)) ||
+      file.size <= 0 || file.size > 50 * 1024 * 1024
+    ))
+    if (unsupported) {
+      toast.error(`${unsupported.name} is not a supported audio file or exceeds the 50 MB limit.`)
+      return
+    }
+
     const optimisticFiles = nextFiles.map((file) => ({ ...toPersonalMusicFile(file), uploadState: 'uploading' as const }))
     setPersonalMusicFiles((current) => [
       ...optimisticFiles,
@@ -1311,9 +1457,10 @@ export function MusicTabPanel({
     if (!isSupabaseConfigured()) {
       setPersonalMusicFiles((current) => current.map((currentFile) => (
         optimisticFiles.some((file) => file.id === currentFile.id)
-          ? { ...currentFile, uploadState: undefined }
+          ? { ...currentFile, uploadState: 'failed' }
           : currentFile
       )))
+      toast.error('Sign in and connect storage before saving music to your library.')
       return
     }
 
@@ -1323,7 +1470,7 @@ export function MusicTabPanel({
       if (userError) throw userError
       if (!user) throw new Error('Sign in to save music to your library.')
 
-      const uploadedFiles = await Promise.all(nextFiles.map(async (file) => {
+      const results = await Promise.allSettled(nextFiles.map(async (file) => {
         const storagePath = createMusicStoragePath(user.id)
         const { error: storageError } = await supabase.storage
           .from('user-music')
@@ -1338,21 +1485,29 @@ export function MusicTabPanel({
             storage_path: storagePath,
             mime_type: file.type || null,
             size_bytes: file.size,
+            title: file.name.replace(/\.[^.]+$/, ''),
+            folder_name: 'Unsorted',
           })
-          .select('id, original_filename, size_bytes')
+          .select('id, original_filename, storage_path, size_bytes, title, artist, genre, folder_name')
           .single()
 
         if (insertError) {
           await supabase.storage.from('user-music').remove([storagePath])
           throw insertError
         }
-        return fromPersonalMusicTrackRow(data as PersonalMusicTrackRow)
+        const row = data as PersonalMusicTrackRow
+        const { data: signed } = await supabase.storage.from('user-music').createSignedUrl(storagePath, 3600)
+        return { optimisticId: toPersonalMusicFile(file).id, track: fromPersonalMusicTrackRow(row, signed?.signedUrl) }
       }))
-
+      const uploadedFiles = results.flatMap((result) => result.status === 'fulfilled' ? [result.value] : [])
+      const failedIds = new Set(results.flatMap((result, index) => result.status === 'rejected' ? [optimisticFiles[index]!.id] : []))
       setPersonalMusicFiles((current) => [
-        ...uploadedFiles,
-        ...current.filter((currentFile) => !optimisticFiles.some((file) => file.id === currentFile.id)),
+        ...uploadedFiles.map((result) => result.track),
+        ...current
+          .filter((currentFile) => !uploadedFiles.some((result) => result.optimisticId === currentFile.id))
+          .map((currentFile) => failedIds.has(currentFile.id) ? { ...currentFile, uploadState: 'failed' as const } : currentFile),
       ])
+      if (failedIds.size) toast.error(`${failedIds.size} of ${nextFiles.length} tracks could not be uploaded.`)
     } catch (error) {
       setPersonalMusicFiles((current) => current.map((currentFile) => (
         optimisticFiles.some((file) => file.id === currentFile.id)
@@ -1363,10 +1518,90 @@ export function MusicTabPanel({
     }
   }, [])
 
-  const createPersonalMusicFolder = React.useCallback(() => {
-    const name = window.prompt('Name this music folder')?.trim()
+  const createPersonalMusicFolder = React.useCallback(async () => {
+    const name = window.prompt('Name this music folder')?.trim().slice(0, 60)
     if (!name) return
-    setPersonalMusicFolders((current) => current.includes(name) ? current : [...current, name])
+    try {
+      const supabase = createClient()
+      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      if (userError) throw userError
+      if (!user) throw new Error('Sign in to save music folders.')
+      const { error } = await supabase.from('user_music_folders').insert({ user_id: user.id, name })
+      if (error && !/duplicate key/i.test(error.message)) throw error
+      setPersonalMusicFolders((current) => current.includes(name) ? current : [...current, name].sort())
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Unable to create music folder')
+    }
+  }, [])
+
+  const handlePersonalMusicRemove = React.useCallback(async (file: PersonalMusicFile) => {
+    if (!file.storagePath) {
+      setPersonalMusicFiles((current) => current.filter((candidate) => candidate.id !== file.id))
+      return
+    }
+    try {
+      const supabase = createClient()
+      const { error: storageError } = await supabase.storage.from('user-music').remove([file.storagePath])
+      if (storageError) throw storageError
+      const { error: rowError } = await supabase.from('user_music_tracks').delete().eq('id', file.id)
+      if (rowError) throw rowError
+      setPersonalMusicFiles((current) => current.filter((candidate) => candidate.id !== file.id))
+      if (selectedTrackId === file.id) onRemoveTrackProp?.()
+      toast.success('Music removed from your library')
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Unable to remove music')
+    }
+  }, [onRemoveTrackProp, selectedTrackId])
+
+  const handlePersonalMusicMove = React.useCallback(async (file: PersonalMusicFile, folderName: string) => {
+    if (!file.storagePath) return
+    try {
+      const supabase = createClient()
+      const { error } = await supabase.from('user_music_tracks').update({ folder_name: folderName }).eq('id', file.id)
+      if (error) throw error
+      setPersonalMusicFiles((current) => current.map((candidate) => candidate.id === file.id ? { ...candidate, folderName } : candidate))
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Unable to organize music')
+    }
+  }, [])
+
+  const handleLoadCloudMusic = React.useCallback(async (provider: CloudMusicFile['provider']) => {
+    setCloudMusicLoading(provider)
+    try {
+      const response = await fetch(`/api/music/import?provider=${provider}`, { cache: 'no-store' })
+      const payload = await response.json() as { files?: Omit<CloudMusicFile, 'provider'>[]; error?: string }
+      if (!response.ok) throw new Error(payload.error || 'Unable to read connected storage.')
+      setCloudMusicFiles((current) => [
+        ...current.filter((file) => file.provider !== provider),
+        ...(payload.files ?? []).map((file) => ({ ...file, provider })),
+      ])
+      if (!payload.files?.length) toast.message('No audio files found in this account.')
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Unable to read connected storage.')
+    } finally {
+      setCloudMusicLoading(null)
+    }
+  }, [])
+
+  const handleImportCloudMusic = React.useCallback(async (file: CloudMusicFile) => {
+    setCloudImportingId(file.id)
+    try {
+      const response = await fetch('/api/music/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(file),
+      })
+      const payload = await response.json() as { track?: PersonalMusicTrackRow; previewUrl?: string; error?: string }
+      if (!response.ok || !payload.track || !payload.previewUrl) throw new Error(payload.error || 'Unable to import this file.')
+      const imported = fromPersonalMusicTrackRow(payload.track, payload.previewUrl)
+      setPersonalMusicFiles((current) => [imported, ...current.filter((candidate) => candidate.id !== imported.id)])
+      setActiveCollection('my-music')
+      toast.success(`Added ${imported.name} to your music library`)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Unable to import this file.')
+    } finally {
+      setCloudImportingId(null)
+    }
   }, [])
 
   React.useEffect(() => {
@@ -1400,14 +1635,15 @@ export function MusicTabPanel({
   }, [])
 
   const displayTracks = React.useMemo(() => {
-    const sourceTracks = [...tracks, ...(catalogReady && catalogTracks.length ? catalogTracks : [])]
+    const personalTracks = personalMusicFiles.map(personalMusicRecommendation).filter((track): track is MusicRecommendation => Boolean(track))
+    const sourceTracks = [...tracks, ...personalTracks, ...(catalogReady && catalogTracks.length ? catalogTracks : [])]
     const seen = new Set<string>()
     return sourceTracks.filter((track) => {
       if (seen.has(track.id)) return false
       seen.add(track.id)
       return true
     })
-  }, [catalogReady, catalogTracks, tracks])
+  }, [catalogReady, catalogTracks, personalMusicFiles, tracks])
 
   const availableGenres = React.useMemo(() => Array.from(new Set(displayTracks.map((track) => track.genre).filter(Boolean))).sort(), [displayTracks])
 
@@ -1604,6 +1840,18 @@ export function MusicTabPanel({
     [onSelectTrack],
   )
 
+  const handlePersonalMusicSelect = React.useCallback((file: PersonalMusicFile) => {
+    const track = personalMusicRecommendation(file)
+    if (!track) return
+    handleTrackFocus(track)
+    setActiveCollection('my-music')
+  }, [handleTrackFocus])
+
+  const handlePersonalMusicPreview = React.useCallback((file: PersonalMusicFile) => {
+    const track = personalMusicRecommendation(file)
+    if (track) handleTrackPlayPause(track)
+  }, [handleTrackPlayPause])
+
   const handlePlayerStep = React.useCallback(
     (direction: 'previous' | 'next', options: { shuffle: boolean }) => {
       const playlist = filteredTracks.length ? filteredTracks : displayTracks
@@ -1776,6 +2024,17 @@ export function MusicTabPanel({
               query={searchQuery}
               onCreateFolder={createPersonalMusicFolder}
               onFilesSelected={handlePersonalMusicUpload}
+              onSelectTrack={handlePersonalMusicSelect}
+              onPreviewTrack={handlePersonalMusicPreview}
+              onRemoveTrack={handlePersonalMusicRemove}
+              onMoveTrack={handlePersonalMusicMove}
+              selectedTrackId={selectedTrackId}
+              playingTrackId={playingTrackId}
+              cloudFiles={cloudMusicFiles}
+              cloudLoading={cloudMusicLoading}
+              cloudImportingId={cloudImportingId}
+              onLoadCloudFiles={handleLoadCloudMusic}
+              onImportCloudFile={handleImportCloudMusic}
             />
           ) : (
             <>
@@ -2124,6 +2383,17 @@ export function MusicTabPanel({
                   query={searchQuery}
                   onCreateFolder={createPersonalMusicFolder}
                   onFilesSelected={handlePersonalMusicUpload}
+                  onSelectTrack={handlePersonalMusicSelect}
+                  onPreviewTrack={handlePersonalMusicPreview}
+                  onRemoveTrack={handlePersonalMusicRemove}
+                  onMoveTrack={handlePersonalMusicMove}
+                  selectedTrackId={selectedTrackId}
+                  playingTrackId={playingTrackId}
+                  cloudFiles={cloudMusicFiles}
+                  cloudLoading={cloudMusicLoading}
+                  cloudImportingId={cloudImportingId}
+                  onLoadCloudFiles={handleLoadCloudMusic}
+                  onImportCloudFile={handleImportCloudMusic}
                 />
               </div>
             ) : (

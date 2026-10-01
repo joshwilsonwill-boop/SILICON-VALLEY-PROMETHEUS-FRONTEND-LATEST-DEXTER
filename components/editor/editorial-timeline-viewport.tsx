@@ -219,7 +219,7 @@ export function EditorialTimelineViewport({
 
             {/* Music Track Header */}
             <div
-              className="flex h-[42px] items-center justify-between border-b border-white/[0.04] px-2.5 transition-colors hover:bg-white/[0.02]"
+              className="flex h-[46px] items-center justify-between border-b border-white/[0.04] px-2.5 transition-colors hover:bg-white/[0.02]"
               style={{ marginTop: 6 }}
             >
               <div className="flex items-center gap-1.5 font-medium text-white/85">

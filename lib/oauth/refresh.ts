@@ -41,7 +41,7 @@ export async function getValidAccessToken(userId: string, provider: OAuthProvide
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
-      client_id: process.env[`${provider.toUpperCase()}_CLIENT_ID`]!,
+      client_id: process.env[config.clientIdEnvVar ?? `${provider.toUpperCase()}_CLIENT_ID`]!,
       client_secret: process.env[`${provider.toUpperCase()}_CLIENT_SECRET`]!,
       grant_type: "refresh_token",
       refresh_token: refreshToken,

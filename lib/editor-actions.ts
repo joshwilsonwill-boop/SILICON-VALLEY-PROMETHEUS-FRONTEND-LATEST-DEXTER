@@ -13,6 +13,7 @@
  */
 
 export type PreviewControlCommand = 'play' | 'pause' | 'mute' | 'unmute'
+export type SoundtrackCommand = 'set_volume' | 'set_ducking' | 'remove'
 export type EditorFitMode = 'fill' | 'fit'
 export type EditorWorkspaceTab = 'Editor' | 'Music' | 'Motion'
 export type EditorCaptionStyle = 'clean_bold' | 'karaoke_pop' | 'typewriter' | 'lower_third'
@@ -21,6 +22,7 @@ export type EditorRenderMode = 'preview' | 'final'
 export type EditorActionDraft =
   | { kind: 'seek'; timeSec: number; summary: string }
   | { kind: 'preview_control'; command: PreviewControlCommand; summary: string }
+  | { kind: 'soundtrack_control'; command: SoundtrackCommand; volume?: number; enabled?: boolean; summary: string }
   | { kind: 'set_fit_mode'; mode: EditorFitMode; summary: string }
   | { kind: 'switch_tab'; tab: EditorWorkspaceTab; summary: string }
   | { kind: 'open_thumbnail_studio'; summary: string }
@@ -39,6 +41,7 @@ export type EditorActionKind = EditorActionDraft['kind']
 export const EDITOR_ACTION_KINDS: readonly EditorActionKind[] = [
   'seek',
   'preview_control',
+  'soundtrack_control',
   'set_fit_mode',
   'switch_tab',
   'open_thumbnail_studio',
@@ -114,6 +117,22 @@ export function parseEditorActionDraft(input: unknown): EditorActionDraft | null
         command: command as PreviewControlCommand,
         summary: cleanSummary(record.summary, `${command} preview`),
       }
+    }
+    case 'soundtrack_control': {
+      const rawCommand = typeof record.command === 'string' ? record.command.toLowerCase().trim() : null
+      if (!rawCommand || !['set_volume', 'set_ducking', 'remove'].includes(rawCommand)) return null
+      const command = rawCommand as SoundtrackCommand
+      if (command === 'set_volume') {
+        const rawVolume = asFiniteNumber(record.volume ?? record.level ?? record.value)
+        if (rawVolume === null) return null
+        const volume = Math.max(0, Math.min(1, rawVolume > 1 ? rawVolume / 100 : rawVolume))
+        return { kind: 'soundtrack_control', command, volume, summary: cleanSummary(record.summary, `Set soundtrack level to ${Math.round(volume * 100)}%`) }
+      }
+      if (command === 'set_ducking') {
+        if (typeof record.enabled !== 'boolean') return null
+        return { kind: 'soundtrack_control', command, enabled: record.enabled, summary: cleanSummary(record.summary, `${record.enabled ? 'Enable' : 'Disable'} voice ducking`) }
+      }
+      return { kind: 'soundtrack_control', command, summary: cleanSummary(record.summary, 'Remove soundtrack') }
     }
     case 'set_fit_mode': {
       const mode = typeof record.mode === 'string' ? record.mode.toLowerCase().trim() : null

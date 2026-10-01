@@ -4,8 +4,10 @@ import * as React from 'react'
 import {
   Music,
   Plus,
-  Volume2,
   VolumeX,
+  AudioLines,
+  X,
+  Volume2,
 } from 'lucide-react'
 
 import { useEditorialTimelineThumbnails } from '@/components/editor/editorial-timeline-thumbnails'
@@ -37,8 +39,11 @@ export interface EditorialTimelineTracksProps {
   onEditorialCuesChange?: (cues: EditorialCue[]) => void
   soundtrackVolume?: number
   soundtrackMuted?: boolean
+  soundtrackDucking?: boolean
   onSoundtrackVolumeChange?: (volume: number) => void
   onSoundtrackMutedChange?: (muted: boolean) => void
+  onSoundtrackDuckingChange?: (enabled: boolean) => void
+  onRemoveSoundtrack?: () => void
   onOpenMusicCatalog?: () => void
   onSeek?: (timeSec: number) => void
   // Interactive clip manipulation
@@ -88,8 +93,11 @@ export function EditorialTimelineTracks({
   onEditorialCuesChange,
   soundtrackVolume = 0.7,
   soundtrackMuted = false,
+  soundtrackDucking = true,
   onSoundtrackVolumeChange,
   onSoundtrackMutedChange,
+  onSoundtrackDuckingChange,
+  onRemoveSoundtrack,
   onOpenMusicCatalog,
   onSeek,
   selectedClipId: controlledSelectedClipId,
@@ -284,7 +292,7 @@ export function EditorialTimelineTracks({
       {/* 6. MUSIC TRACK: Selected soundtrack with a clear waveform and mute control */}
       <div
         className={cn(
-          'relative mt-1.5 h-[38px] overflow-hidden rounded-[4px] transition-opacity',
+          'relative mt-1.5 h-[46px] overflow-hidden rounded-[4px] transition-opacity',
           isMusicHidden && 'opacity-20 pointer-events-none',
         )}
         aria-label="Music Track"
@@ -322,17 +330,18 @@ export function EditorialTimelineTracks({
               </div>
 
               {/* Mute toggle button */}
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onSoundtrackMutedChange?.(!soundtrackMuted)
-                }}
-                aria-label={soundtrackMuted ? 'Unmute music' : 'Mute music'}
-                className="grid size-6 place-items-center rounded bg-black/40 text-white/70 hover:bg-black/60 hover:text-white transition-colors"
-              >
-                {soundtrackMuted ? <VolumeX className="size-3" /> : <Volume2 className="size-3" />}
-              </button>
+              <div className="flex items-center gap-1.5">
+                <input type="range" min="0" max="1" step="0.01" value={soundtrackVolume} onChange={(event) => onSoundtrackVolumeChange?.(Number(event.target.value))} onClick={(event) => event.stopPropagation()} aria-label="Soundtrack volume" title={`Soundtrack volume ${Math.round(soundtrackVolume * 100)}%`} className="w-16 accent-[#91b9a9]" />
+                <button type="button" onClick={(event) => { event.stopPropagation(); onSoundtrackDuckingChange?.(!soundtrackDucking) }} aria-label={soundtrackDucking ? 'Disable voice ducking' : 'Enable voice ducking'} title={soundtrackDucking ? 'Voice ducking on' : 'Voice ducking off'} className={cn('grid size-6 place-items-center rounded transition-colors', soundtrackDucking ? 'bg-[#91b9a9]/20 text-[#b3d2c4]' : 'bg-black/40 text-white/50 hover:text-white')}>
+                  <AudioLines className="size-3" />
+                </button>
+                <button type="button" onClick={(event) => { event.stopPropagation(); onSoundtrackMutedChange?.(!soundtrackMuted) }} aria-label={soundtrackMuted ? 'Unmute music' : 'Mute music'} title={soundtrackMuted ? 'Unmute music' : 'Mute music'} className="grid size-6 place-items-center rounded bg-black/40 text-white/70 transition-colors hover:bg-black/60 hover:text-white">
+                  {soundtrackMuted ? <VolumeX className="size-3" /> : <Volume2 className="size-3" />}
+                </button>
+                <button type="button" onClick={(event) => { event.stopPropagation(); onRemoveSoundtrack?.() }} aria-label="Remove soundtrack from video" title="Remove soundtrack" className="grid size-6 place-items-center rounded bg-black/40 text-white/48 transition-colors hover:bg-red-400/15 hover:text-red-200">
+                  <X className="size-3" />
+                </button>
+              </div>
             </div>
           </div>
         ) : (

@@ -127,7 +127,8 @@ import { useTextareaResize } from '@/hooks/use-textarea-resize'
 import { buildCinematicAnimationPlan } from '@/lib/cinematic/animation-planner'
 import { cn } from '@/lib/utils'
 import { fetchWithTimeout } from '@/lib/fetch-with-timeout'
-import { SELECTED_EDITOR_MUSIC_EVENT, readSelectedEditorMusicRecommendation, type SelectedEditorMusicEventDetail } from '@/lib/editor-music-selection'
+import { SELECTED_EDITOR_MUSIC_EVENT, clearSelectedEditorMusicRecommendation, readSelectedEditorMusicRecommendation, type SelectedEditorMusicEventDetail } from '@/lib/editor-music-selection'
+import { useEditorialTimeline } from '@/hooks/use-editorial-timeline'
 import { upsertProject } from '@/lib/mock'
 import { projects } from '@/lib/projects'
 import {
@@ -6321,7 +6322,30 @@ function OriginalEditorPage() {
   const [selectedEditorMusicTrackId, setSelectedEditorMusicTrackId] = React.useState<string | null>(null)
   const [soundtrackVolume, setSoundtrackVolume] = React.useState(0.5)
   const [isSoundtrackMuted, setIsSoundtrackMuted] = React.useState(false)
+  const [soundtrackDucking, setSoundtrackDucking] = React.useState(true)
+  const editorial = useEditorialTimeline()
   const soundtrackAudioRef = React.useRef<HTMLAudioElement | null>(null)
+  const handleSoundtrackVolumeChange = React.useCallback((volume: number) => {
+    const level = Math.max(0, Math.min(1, volume))
+    setSoundtrackVolume(level)
+    editorial.patch({ type: 'mix', volume: level })
+  }, [editorial.patch])
+  const handleSoundtrackMutedChange = React.useCallback((muted: boolean) => {
+    setIsSoundtrackMuted(muted)
+    editorial.patch({ type: 'mix', muted })
+  }, [editorial.patch])
+  const handleSoundtrackDuckingChange = React.useCallback((enabled: boolean) => {
+    setSoundtrackDucking(enabled)
+    editorial.patch({ type: 'mix', ducking: enabled })
+  }, [editorial.patch])
+
+  React.useEffect(() => {
+    const music = editorial.timeline?.music
+    if (!music) return
+    setSoundtrackVolume(music.volume)
+    setIsSoundtrackMuted(music.muted)
+    setSoundtrackDucking(music.ducking)
+  }, [editorial.timeline?.music])
   const [viralClipTargetPlatform, setViralClipTargetPlatform] =
     React.useState<ViralClipTargetPlatform>(VIRAL_CLIP_PLATFORM_DEFAULT)
   const [viralClipClipPresetIndex, setViralClipClipPresetIndex] = React.useState(1)
@@ -6511,7 +6535,7 @@ function OriginalEditorPage() {
     const handleSelectedMusicTrack = (event: Event) => {
       const detail = (event as CustomEvent<SelectedEditorMusicEventDetail>).detail
       if (detail?.projectId !== projectId || typeof detail.trackId !== 'string') return
-      setSelectedEditorMusicTrackId(detail.trackId)
+      setSelectedEditorMusicTrackId(detail.trackId || null)
     }
 
     window.addEventListener(SELECTED_EDITOR_MUSIC_EVENT, handleSelectedMusicTrack)
@@ -7645,6 +7669,17 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
     setSelectedEditorMusicTrackId(track.id)
   }, [])
 
+  const handleRemoveEditorMusicTrack = React.useCallback(() => {
+    clearSelectedEditorMusicRecommendation(projectId)
+    setSelectedEditorMusicTrackId(null)
+    const audio = soundtrackAudioRef.current
+    if (audio) {
+      audio.pause()
+      audio.currentTime = 0
+      audio.removeAttribute('src')
+    }
+  }, [projectId])
+
   React.useEffect(() => {
     if (!cinematicRegistry || !previewOverlayPlan || !job?.input.prompt) return
     if (previewOverlayPlan.registrySignature === cinematicRegistry.signature) return
@@ -8485,6 +8520,10 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
         else if (draft.command === 'pause') pausePreviewPlayback()
         else if (draft.command === 'mute') setIsPreviewMuted(true)
         else if (draft.command === 'unmute') setIsPreviewMuted(false)
+      } else if (draft.kind === 'soundtrack_control') {
+        if (draft.command === 'set_volume' && typeof draft.volume === 'number') handleSoundtrackVolumeChange(draft.volume)
+        else if (draft.command === 'set_ducking' && typeof draft.enabled === 'boolean') handleSoundtrackDuckingChange(draft.enabled)
+        else if (draft.command === 'remove') handleRemoveEditorMusicTrack()
       } else if (draft.kind === 'seek' && typeof draft.timeSec === 'number') {
         handlePreviewSeekSeconds(Math.max(0, Math.min(transportDurationSec, draft.timeSec)))
       } else if (draft.kind === 'switch_tab') {
@@ -8517,11 +8556,14 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
 
     // The workflow above already applies silence spans. Do not dispatch the
     // same timeline mutation a second time through the generic executor.
-    applyEditorActionDrafts(drafts.filter((draft) => draft.kind !== 'cut_silence'), chatEditorActionContext)
+    applyEditorActionDrafts(drafts.filter((draft) => draft.kind !== 'cut_silence' && draft.kind !== 'soundtrack_control'), chatEditorActionContext)
   }, [
     chatEditorActionContext,
     startPreviewPlayback,
     pausePreviewPlayback,
+    handleSoundtrackVolumeChange,
+    handleSoundtrackDuckingChange,
+    handleRemoveEditorMusicTrack,
     handlePreviewSeekSeconds,
     transportDurationSec,
     handlePrepareExport,
@@ -9095,6 +9137,7 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
                     videoContext={videoContext}
                     selectedTrackId={selectedEditorMusicTrackId}
                     onSelectTrack={handleEditorMusicTrackSelect}
+                    onRemoveTrack={handleRemoveEditorMusicTrack}
                   />
                 ) : null}
 
@@ -9156,9 +9199,12 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
                       setBottomMode('Music')
                     }}
                     soundtrackVolume={soundtrackVolume}
-                    onSoundtrackVolumeChange={setSoundtrackVolume}
+                    onSoundtrackVolumeChange={handleSoundtrackVolumeChange}
                     soundtrackMuted={isSoundtrackMuted}
-                    onSoundtrackMutedChange={setIsSoundtrackMuted}
+                    onSoundtrackMutedChange={handleSoundtrackMutedChange}
+                    soundtrackDucking={soundtrackDucking}
+                    onSoundtrackDuckingChange={setSoundtrackDucking}
+                    onRemoveMusicTrack={handleRemoveEditorMusicTrack}
                   />
                 ) : null}
 

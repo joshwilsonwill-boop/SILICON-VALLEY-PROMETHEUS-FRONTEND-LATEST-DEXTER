@@ -67,11 +67,19 @@ export class EditorialTimelineController {
     const onSelection = (event: Event) => {
       const detail = (event as CustomEvent<SelectedEditorMusicEventDetail>).detail
       if (detail?.projectId !== this.projectId || detail.origin === 'timeline') return
+      if (!detail.trackId) {
+        this.patch({ type: 'music', track: null })
+        return
+      }
       void this.select(detail.trackId, detail.track)
     }
     const onFocus = () => { if (document.visibilityState === 'visible') void this.refresh() }
     const onStorage = (event: StorageEvent) => {
-      if (event.key !== selectedEditorMusicStorageKey(this.projectId) || !event.newValue) return
+      if (event.key !== selectedEditorMusicStorageKey(this.projectId)) return
+      if (!event.newValue) {
+        this.patch({ type: 'music', track: null })
+        return
+      }
       try { const id = JSON.parse(event.newValue); if (typeof id === 'string') void this.select(id) } catch { /* Ignore malformed cache. */ }
     }
     window.addEventListener(SELECTED_EDITOR_MUSIC_EVENT, onSelection)

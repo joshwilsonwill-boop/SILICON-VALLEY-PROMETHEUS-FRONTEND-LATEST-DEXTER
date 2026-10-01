@@ -152,6 +152,9 @@ export interface MotionEditWorkspaceProps {
   onSoundtrackVolumeChange?: (volume: number) => void
   soundtrackMuted?: boolean
   onSoundtrackMutedChange?: (muted: boolean) => void
+  soundtrackDucking?: boolean
+  onSoundtrackDuckingChange?: (enabled: boolean) => void
+  onRemoveMusicTrack?: () => void
 }
 
 const DEFAULT_TRANSCRIPT: MotionTranscriptSegment[] = [
@@ -275,12 +278,13 @@ export function MotionEditWorkspace({
   onTogglePlayback, onPickSource, onSourceDrop, onSourceDragOver, onSourceDragLeave, isSourceDragOver = false,
   textPlacements, onSeek, onVideoLoadedMetadata, onVideoLoadedData, onVideoCanPlay,
   onVideoTimeUpdate, onVideoEnded, onVideoPlay, onVideoPause, onVideoError, onImageLoaded, onApplyPrompt,
-  selectedMusicTrack: parentSelectedMusicTrack = null, onSelectMusicTrack, onOpenMusicCatalog, soundtrackVolume: parentSoundtrackVolume = 0.5, onSoundtrackVolumeChange: parentVolumeChange, soundtrackMuted: parentSoundtrackMuted = false, onSoundtrackMutedChange: parentMutedChange,
+  selectedMusicTrack: parentSelectedMusicTrack = null, onSelectMusicTrack, onOpenMusicCatalog, soundtrackVolume: parentSoundtrackVolume = 0.5, onSoundtrackVolumeChange: parentVolumeChange, soundtrackMuted: parentSoundtrackMuted = false, onSoundtrackMutedChange: parentMutedChange, soundtrackDucking: parentSoundtrackDucking = true, onSoundtrackDuckingChange: parentDuckingChange, onRemoveMusicTrack,
 }: MotionEditWorkspaceProps) {
   const editorial = useEditorialTimeline()
   const selectedMusicTrack = editorial.timeline?.music?.track ?? parentSelectedMusicTrack
   const soundtrackVolume = editorial.timeline?.music?.volume ?? parentSoundtrackVolume
   const soundtrackMuted = editorial.timeline?.music?.muted ?? parentSoundtrackMuted
+  const soundtrackDucking = editorial.timeline?.music?.ducking ?? parentSoundtrackDucking
   const [audioError, setAudioError] = React.useState<string | null>(null)
   const onSoundtrackVolumeChange = React.useCallback((volume: number) => {
     parentVolumeChange?.(volume)
@@ -290,12 +294,17 @@ export function MotionEditWorkspace({
     parentMutedChange?.(muted)
     editorial.patch({ type: 'mix', muted })
   }, [editorial.patch, parentMutedChange])
+  const onSoundtrackDuckingChange = React.useCallback((enabled: boolean) => {
+    parentDuckingChange?.(enabled)
+    editorial.patch({ type: 'mix', ducking: enabled })
+  }, [editorial.patch, parentDuckingChange])
   React.useEffect(() => {
     if (editorial.timeline?.music) {
       if (parentSoundtrackVolume !== soundtrackVolume) parentVolumeChange?.(soundtrackVolume)
       if (parentSoundtrackMuted !== soundtrackMuted) parentMutedChange?.(soundtrackMuted)
+      if (parentSoundtrackDucking !== soundtrackDucking) parentDuckingChange?.(soundtrackDucking)
     }
-  }, [editorial.timeline?.music, parentSoundtrackVolume, parentSoundtrackMuted, soundtrackVolume, soundtrackMuted, parentVolumeChange, parentMutedChange])
+  }, [editorial.timeline?.music, parentSoundtrackVolume, parentSoundtrackMuted, parentSoundtrackDucking, soundtrackVolume, soundtrackMuted, soundtrackDucking, parentVolumeChange, parentMutedChange, parentDuckingChange])
   const audioEffects = React.useMemo(() => editorial.timeline?.effects ?? [], [editorial.timeline?.effects])
   const editorialCues = editorial.timeline?.cues ?? []
   const updateEditorialCues = React.useCallback((cues: typeof editorialCues) => {
@@ -1040,7 +1049,7 @@ export function MotionEditWorkspace({
         <aside className="hidden w-[72px] shrink-0 border-l border-white/8 bg-black/28 lg:flex lg:flex-col lg:items-center lg:gap-2 lg:pt-3">{TOOLS.map(({ id, label, icon: Icon }) => <button key={id} type="button" onClick={() => selectTool(id)} className={cn('group flex min-h-12 w-full flex-col items-center gap-1 border-l-2 px-1 py-1.5 text-[9px] font-medium transition-colors', activeTool === id ? 'border-[#98f237] text-white' : 'border-transparent text-white/46 hover:text-white/82')}><span className={cn('grid size-7 place-items-center rounded-md transition-colors', activeTool === id ? 'bg-[#98f237]/12 text-[#b4fb60]' : 'text-white/65 group-hover:bg-white/[0.06]')}><Icon className="size-3.5" /></span>{label}</button>)}<div className="mt-auto mb-3 text-[8px] uppercase tracking-[0.12em] text-white/28">{activeTool}</div></aside>
       </div>
 
-      <EditorialAudioPreview track={parentSelectedMusicTrack?.id === selectedMusicTrack?.id ? null : selectedMusicTrack} volume={soundtrackVolume} muted={soundtrackMuted} effects={audioEffects} videoRef={videoRef} playing={previewPlaying} currentTime={currentTimeSec} onError={setAudioError} />
+      <EditorialAudioPreview track={parentSelectedMusicTrack?.id === selectedMusicTrack?.id ? null : selectedMusicTrack} volume={soundtrackVolume} muted={soundtrackMuted} effects={audioEffects} videoRef={videoRef} playing={previewPlaying} currentTime={currentTimeSec} ducking={soundtrackDucking} voiceActive={transcriptSegments.some((segment) => !segment.isCut && Boolean(segment.text.trim()) && currentTimeSec >= segment.start && currentTimeSec < segment.end)} onError={setAudioError} />
       {audioError ? <p role="status" className="shrink-0 border-t border-amber-200/15 bg-[#15130d] px-4 py-1 text-[10px] text-amber-100">{audioError}</p> : null}
       {showTimeline ? (
         <section
@@ -1099,8 +1108,11 @@ export function MotionEditWorkspace({
               onEditorialCuesChange={updateEditorialCues}
               soundtrackVolume={soundtrackVolume}
               soundtrackMuted={soundtrackMuted}
+              soundtrackDucking={soundtrackDucking}
               onSoundtrackVolumeChange={onSoundtrackVolumeChange}
               onSoundtrackMutedChange={onSoundtrackMutedChange}
+              onSoundtrackDuckingChange={onSoundtrackDuckingChange}
+              onRemoveSoundtrack={() => { editorial.patch({ type: 'music', track: null }); onRemoveMusicTrack?.() }}
               onOpenMusicCatalog={onOpenMusicCatalog}
               onSeek={onSeek}
               onSplitClip={() => {
