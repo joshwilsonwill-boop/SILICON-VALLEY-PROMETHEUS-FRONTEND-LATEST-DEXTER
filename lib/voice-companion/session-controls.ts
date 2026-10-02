@@ -36,7 +36,8 @@ export async function switchVoiceWorkspace(
   const deadline = Date.now() + confirmationTimeoutMs
   let activeTab: string | undefined
   do {
-    activeTab = getHandlers().contextProvider?.()?.workspaceTab
+    const current = getHandlers()
+    activeTab = current.contextProvider?.()?.workspaceTab ?? current.getActiveWorkspaceTab?.()
     if (activeTab === tab) return { success: true, activeTab }
     if (Date.now() >= deadline) break
     await delay(25)

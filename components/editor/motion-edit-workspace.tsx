@@ -47,6 +47,7 @@ import { cn } from '@/lib/utils'
 import { StyleCloneCard } from '@/components/editor/style-clone-card'
 import { ReferenceCaptionOverlay } from '@/components/editor/reference-caption-overlay'
 import { referencePreviewAt, type AppliedReferenceStyle } from '@/lib/editor/reference-style'
+import { editorialMovementScaleAt } from '@/lib/editor/editorial-timeline-state'
 import { applyReferenceStyleToController } from '@/lib/voice-companion/reference-controls'
 import { getEditorialTimelineController } from '@/lib/editor/editorial-timeline-client'
 import { useAutonomousStore } from '@/lib/autonomous-ui/autonomous-store'
@@ -364,11 +365,15 @@ export function MotionEditWorkspace({
     return matchesQuery && (!activeOnly || isActiveSegment(segment, currentTimeSec))
   })
   const activeTreatment = TREATMENTS.find((item) => item.id === (referenceStyle?.treatment ?? treatment)) ?? TREATMENTS[0]
-  const effectiveCaptionsVisible = referenceStyle ? referenceStyle.captionStyle !== 'none' : captionsOverride ?? (captionsVisible || Boolean(captionStyle))
-  const effectiveCaptionStyle = referenceStyle?.captionStyle === 'none' ? undefined : referenceStyle?.captionStyle ?? captionStyle ?? 'clean_bold'
+  const timelineCaptionStyle = editorial.timeline?.captionStyle
+  const effectiveCaptionsVisible = referenceStyle ? referenceStyle.captionStyle !== 'none' : captionsOverride ?? (captionsVisible || Boolean(timelineCaptionStyle ?? captionStyle))
+  const effectiveCaptionStyle = referenceStyle?.captionStyle === 'none' ? undefined : referenceStyle?.captionStyle ?? timelineCaptionStyle ?? captionStyle ?? 'clean_bold'
+  const planMovementScale = editorialMovementScaleAt(editorial.timeline?.cues, currentTimeSec)
+  const previewScale = referencePreview.scale * planMovementScale
   const referenceMediaStyle = {
     ...mediaTransformStyle,
-    ...(referenceStyle ? { transform: `${mediaTransformStyle?.transform ?? ''} scale(${referencePreview.scale})`.trim(), filter: referencePreview.filter } : { filter: activeTreatment.filter }),
+    ...(referenceStyle || planMovementScale !== 1 ? { transform: `${mediaTransformStyle?.transform ?? ''} scale(${previewScale})`.trim() } : {}),
+    filter: referenceStyle ? referencePreview.filter : activeTreatment.filter,
     objectFit: fitMode === 'fill' ? 'cover' as const : objectFit,
   }
   const applyReference = React.useCallback(async (style: AppliedReferenceStyle) => {
@@ -381,19 +386,21 @@ export function MotionEditWorkspace({
     return result
   }, [editorial.projectId])
   React.useEffect(() => {
-    if (!referenceStyle?.zooms.length || !previewPlaying) return
+    const hasPlanMovement = editorial.timeline?.cues.some((cue) => cue.type === 'movement' && cue.context?.source === 'jarvis_editorial_plan')
+    if ((!referenceStyle?.zooms.length && !hasPlanMovement) || !previewPlaying) return
     let frame = 0
     const update = () => {
       const video = (videoRef as React.RefObject<HTMLVideoElement>)?.current
       if (video) {
-        const pose = referencePreviewAt(referenceStyle, video.currentTime)
-        video.style.transform = `${mediaTransformStyle?.transform ?? ''} scale(${pose.scale})`.trim()
+        const referenceScale = referencePreviewAt(referenceStyle, video.currentTime).scale
+        const movementScale = editorialMovementScaleAt(editorial.timeline?.cues, video.currentTime)
+        video.style.transform = `${mediaTransformStyle?.transform ?? ''} scale(${referenceScale * movementScale})`.trim()
       }
       frame = requestAnimationFrame(update)
     }
     frame = requestAnimationFrame(update)
     return () => cancelAnimationFrame(frame)
-  }, [referenceStyle, previewPlaying, videoRef, mediaTransformStyle?.transform])
+  }, [editorial.timeline?.cues, referenceStyle, previewPlaying, videoRef, mediaTransformStyle?.transform])
 
   const effectiveCutRanges = React.useMemo(() => {
     const ranges: { start: number; end: number }[] = [...(cutRanges ?? [])]

@@ -37,7 +37,7 @@ export function MasterVideoReviewModal({
   renderedVideoUrl,
   projectTitle,
   cutSecondsSaved = 0,
-  treatmentName = 'Prometheus Cinematic Master',
+  treatmentName = 'Current preview',
   onOpenThumbnailStudio,
   onPublishSocial,
 }: MasterVideoReviewModalProps) {
@@ -66,7 +66,7 @@ export function MasterVideoReviewModal({
     if (!effectiveRenderedUrl) return
     const a = document.createElement('a')
     a.href = effectiveRenderedUrl
-    a.download = `${projectTitle.toLowerCase().replace(/\s+/g, '_')}_master.mp4`
+    a.download = `${projectTitle.toLowerCase().replace(/\s+/g, '_')}_preview.mp4`
     a.click()
   }
 
@@ -100,10 +100,10 @@ export function MasterVideoReviewModal({
                 <div className="flex items-center gap-2">
                   <h2 className="text-base font-medium tracking-tight text-white/90">Master Video Review</h2>
                   <span className="rounded-full bg-[#7ff2d4]/15 px-2 py-0.5 text-[10px] font-semibold text-[#7ff2d4]">
-                    Render Complete
+                    Preview only
                   </span>
                 </div>
-                <p className="text-xs text-white/40">{projectTitle} — Final Master Quality Check</p>
+                <p className="text-xs text-white/40">{projectTitle} — review the current preview; no edited render is confirmed</p>
               </div>
             </div>
 
@@ -118,7 +118,7 @@ export function MasterVideoReviewModal({
                     activeView === 'rendered' ? 'bg-[#7ff2d4] text-black font-semibold' : 'hover:text-white',
                   )}
                 >
-                  Prometheus Master
+                  Current Preview
                 </button>
                 {originalVideoUrl ? (
                   <>
@@ -176,7 +176,7 @@ export function MasterVideoReviewModal({
                   </div>
                   <div className="relative flex flex-col items-center justify-center overflow-hidden rounded-xl border border-[#7ff2d4]/30 bg-black">
                     <span className="absolute left-3 top-3 z-10 rounded bg-[#7ff2d4] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-black">
-                      Prometheus Master
+                      Current Preview
                     </span>
                     <video
                       ref={renderedVideoRef}
@@ -189,7 +189,7 @@ export function MasterVideoReviewModal({
               ) : (
                 <div className="relative flex size-full items-center justify-center p-2">
                   <span className="absolute left-4 top-4 z-10 rounded-full border border-white/15 bg-black/80 px-3 py-1 text-xs text-white/80 backdrop-blur-md">
-                    {activeView === 'rendered' ? '✨ Prometheus Master Render' : '📹 Raw Unedited Source'}
+                    {activeView === 'rendered' ? (renderedVideoUrl ? 'Current Preview' : 'Source Preview') : 'Raw Unedited Source'}
                   </span>
                   <video
                     ref={renderedVideoRef}
@@ -232,7 +232,7 @@ export function MasterVideoReviewModal({
                       <Volume2 className="size-3.5 text-blue-400" />
                       Audio Processing
                     </span>
-                    <span className="font-medium text-white/90">Mastered & Ducked</span>
+                    <span className="font-medium text-white/90">Current mix settings</span>
                   </div>
                 </div>
               </div>
@@ -254,7 +254,7 @@ export function MasterVideoReviewModal({
                   className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/[0.05] px-4 py-3 text-xs font-semibold text-white transition-all hover:bg-white/[0.1]"
                 >
                   <Download className="size-4" />
-                  Download Master MP4
+                  Download Current File
                 </button>
 
                 <button

@@ -58,6 +58,7 @@ export interface EditorialTimelineState {
   revision: number
   sourceAssetId: string | null
   music: { track: MusicRecommendation; volume: number; muted: boolean; ducking: boolean } | null
+  captionStyle: 'clean_bold' | 'karaoke_pop' | 'typewriter' | 'lower_third' | null
   effects: EditorialSoundEffect[]
   cues: EditorialCue[]
   transcript?: EditorialTranscript[]
@@ -66,6 +67,7 @@ export interface EditorialTimelineState {
 
 export const editorialTimelinePatchSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('music'), track: editorialMusicSchema.nullable() }),
+  z.object({ type: z.literal('caption_style'), style: z.enum(['clean_bold', 'karaoke_pop', 'typewriter', 'lower_third']).nullable() }),
   z.object({ type: z.literal('mix'), volume: gain.optional(), muted: z.boolean().optional(), ducking: z.boolean().optional() }),
   z.object({ type: z.literal('effects'), effects: z.array(editorialSoundEffectSchema).max(200) }),
   z.object({ type: z.literal('effect'), id: z.string().min(1), volume: gain.optional(), muted: z.boolean().optional() }),
@@ -76,7 +78,7 @@ export const editorialTimelinePatchSchema = z.discriminatedUnion('type', [
 export type EditorialTimelinePatch = z.infer<typeof editorialTimelinePatchSchema>
 
 export function emptyEditorialTimeline(sourceAssetId: string | null): EditorialTimelineState {
-  return { version: 1, revision: 0, sourceAssetId, music: null, effects: [], cues: [] }
+  return { version: 1, revision: 0, sourceAssetId, music: null, captionStyle: null, effects: [], cues: [] }
 }
 
 /** Saved cues and transcript edits belong to one source, never its replacement. */
@@ -98,6 +100,7 @@ export function readEditorialTimeline(editorState: unknown, sourceAssetId: strin
       muted: raw.music?.muted === true,
       ducking: raw.music?.ducking !== false,
     } : null,
+    captionStyle: raw.captionStyle === 'clean_bold' || raw.captionStyle === 'karaoke_pop' || raw.captionStyle === 'typewriter' || raw.captionStyle === 'lower_third' ? raw.captionStyle : null,
     effects: effects.success ? effects.data : [],
     cues: cues.success ? cues.data : [],
     ...(transcript.success ? { transcript: transcript.data } : {}),
@@ -109,6 +112,7 @@ export function applyEditorialTimelinePatch(state: EditorialTimelineState, patch
   const next = { ...state, revision: state.revision + 1 }
   switch (patch.type) {
     case 'music': return { ...next, music: patch.track ? { track: patch.track as unknown as MusicRecommendation, volume: state.music?.volume ?? 0.5, muted: state.music?.muted ?? false, ducking: state.music?.ducking ?? true } : null }
+    case 'caption_style': return { ...next, captionStyle: patch.style }
     case 'mix': return { ...next, music: state.music ? { ...state.music, ...(patch.volume !== undefined ? { volume: patch.volume } : {}), ...(patch.muted !== undefined ? { muted: patch.muted } : {}), ...(patch.ducking !== undefined ? { ducking: patch.ducking } : {}) } : null }
     case 'effects': return { ...next, effects: patch.effects }
     case 'effect': return { ...next, effects: state.effects.map((cue) => cue.id === patch.id ? { ...cue, ...(patch.volume !== undefined ? { volume: patch.volume } : {}), ...(patch.muted !== undefined ? { muted: patch.muted } : {}) } : cue) }
@@ -116,6 +120,20 @@ export function applyEditorialTimelinePatch(state: EditorialTimelineState, patch
     case 'transcript': return { ...next, transcript: patch.segments }
     case 'reference_style': return { ...next, referenceStyle: patch.style }
   }
+}
+
+/** Evaluate Jarvis generated movement cues for the Motion preview only. */
+export function editorialMovementScaleAt(cues: EditorialCue[] | undefined, timeSec: number) {
+  const cue = cues?.find((item) => item.type === 'movement'
+    && item.context?.source === 'jarvis_editorial_plan'
+    && timeSec >= item.start && timeSec < item.end)
+  const scale = cue?.context?.scale
+  if (!cue || typeof scale !== 'number' || !Number.isFinite(scale)) return 1
+  const kind = cue?.context?.motionKind
+  if (kind === 'punch') return Math.max(1, Math.min(1.4, scale))
+  const fraction = Math.max(0, Math.min(1, (timeSec - cue.start) / (cue.end - cue.start)))
+  const eased = fraction * fraction * (3 - 2 * fraction)
+  return 1 + (Math.max(1, Math.min(1.4, scale)) - 1) * eased
 }
 
 export function editorialAudioTime(cue: { start: number; end: number; offset: number }, timeSec: number) {

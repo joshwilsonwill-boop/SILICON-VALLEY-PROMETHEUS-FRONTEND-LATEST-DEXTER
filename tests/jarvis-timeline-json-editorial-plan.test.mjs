@@ -24,16 +24,29 @@ assert.ok(initialDoc.tracks.music, 'Must have music track')
 assert.ok(initialDoc.tracks.captions, 'Must have captions track')
 assert.ok(Array.isArray(initialDoc.tracks.zooms), 'Must have zooms track')
 
-// 4. Test plan generation from generic cinematic prompt
-const plan = buildEditorialPlan('Make this video look cinematic and high-tier documentary style', {
+// 4. Plans must use timestamped transcript evidence instead of inventing beats.
+const noEvidencePlan = buildEditorialPlan('Make this video look cinematic and high-tier documentary style', {
   durationSec: 45,
   transcriptText: 'We started in a garage and built a revolutionary product.',
 })
+assert.ok(noEvidencePlan.captionStyle, 'Plan must recommend a caption stylization')
+assert.ok(noEvidencePlan.musicDirection, 'Plan must state soundtrack direction without selecting a track')
+assert.equal(noEvidencePlan.zooms.length, 0, 'Plan must not invent movement when timed transcript evidence is unavailable')
+assert.deepEqual(noEvidencePlan.brollSuggestions, [], 'Plan must not fabricate unsourced B-roll')
+
+const plan = buildEditorialPlan('Make this video look cinematic and high-tier documentary style', {
+  durationSec: 45,
+  transcriptSegments: [
+    { startSec: 10, endSec: 12, text: 'The most important result changed everything.' },
+    { startSec: 30, endSec: 32, text: 'We learned why this works.' },
+  ],
+})
 assert.ok(plan.captionStyle, 'Plan must recommend a caption stylization')
-assert.ok(plan.lookPreset || plan.lightingAdjustment, 'Plan must specify color look / lighting')
-assert.ok(plan.musicDirection, 'Plan must specify music direction')
-assert.ok(Array.isArray(plan.zooms) && plan.zooms.length > 0, 'Plan must generate dynamic zooms')
-assert.ok(Array.isArray(plan.brollSuggestions), 'Plan must suggest B-rolls')
+assert.ok(plan.lookPreset, 'Plan must name its preview look')
+assert.ok(plan.musicDirection.includes('no track selected'), 'Plan must not silently select music')
+assert.ok(plan.zooms.length > 0, 'Plan may add restrained movement only at transcript-backed beats')
+assert.ok(plan.zooms.every((zoom) => [10, 30].some((start) => Math.abs(zoom.startSec - start) < 0.01)), 'Movement must align with transcript timestamps')
+assert.ok(Array.isArray(plan.brollSuggestions), 'Plan must return explicit B-roll suggestions')
 
 // 5. Apply plan to document
 const updatedDoc = applyEditorialPlanToTimeline(initialDoc, plan)

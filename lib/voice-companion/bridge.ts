@@ -5,6 +5,7 @@ import type { ChatEditorContext } from '@/lib/prometheus-assistant/editor-contex
 import type { VoiceActionResult, VoiceMusicTrack } from './music-controls'
 import type { VoiceEditResult } from './edit-results'
 import type { AppliedReferenceStyle } from '@/lib/editor/reference-style'
+import type { EditorialPlan } from '@/lib/editor/timeline-document'
 
 /**
  * Shared registry that lets the editor page expose live state + action handlers
@@ -15,6 +16,7 @@ export interface VoiceCompanionBridgeHandlers {
   projectId?: string
   sourceAssetId?: string | null
   onApplyReferenceStyle?: (style: AppliedReferenceStyle) => Promise<VoiceActionResult>
+  onApplyEditorialPlan?: (plan: EditorialPlan) => Promise<VoiceActionResult>
   contextProvider?: () => ChatEditorContext | null
   onApplyActions?: (drafts: EditorActionDraft[]) => Promise<void> | void
   onSeek?: (timeSec: number) => Promise<void> | void

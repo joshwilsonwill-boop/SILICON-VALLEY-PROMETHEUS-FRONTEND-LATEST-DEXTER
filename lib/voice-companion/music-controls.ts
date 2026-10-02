@@ -1,8 +1,10 @@
 import type { VoiceCompanionBridgeHandlers } from './bridge'
+import { switchVoiceWorkspace } from './session-controls'
 
 export type VoiceActionResult = {
   success: boolean
   summary: string
+  staged?: boolean
   count?: number
   totalRemovedSec?: number
   trackId?: string
@@ -70,10 +72,14 @@ export async function performVoiceMusicAction(
     if (!handlers.onTabChange) return result(false, 'The music workspace is unavailable. Open the editor first.')
     if ((action === 'select' || action === 'select_and_preview') && !handlers.onSelectMusicTrack) return result(false, 'The editor cannot stage this soundtrack.')
     if ((action === 'preview' || action === 'select_and_preview') && !handlers.onPlayMusicPreview) return result(false, 'The editor has no music preview playback control.')
-    await handlers.onTabChange('Music')
+    const openedMusic = await switchVoiceWorkspace('Music', getHandlers)
+    if (!openedMusic.success) return result(false, 'The editor did not confirm that Music is open. No soundtrack action was started.')
     if (action === 'select' || action === 'select_and_preview') {
       const outcome = await getHandlers().onSelectMusicTrack?.(track.id)
-      if (!outcome?.success) return result(false, outcome?.summary || 'The editor did not confirm soundtrack staging.')
+      if (!outcome?.success) {
+        staged = outcome?.staged === true
+        return result(false, outcome?.summary || 'The editor did not confirm soundtrack staging.')
+      }
       staged = true
     }
     if (action === 'preview' || action === 'select_and_preview') {
@@ -84,10 +90,8 @@ export async function performVoiceMusicAction(
     if (staged) {
       const latest = getHandlers()
       if (!latest.onTabChange) return result(false, `"${track.title}" is staged, but Motion could not be opened.`)
-      await latest.onTabChange('Motion')
-      if (!getHandlers().getActiveWorkspaceTab || getHandlers().getActiveWorkspaceTab?.() !== 'Motion') {
-        return result(false, `"${track.title}" is staged, but the editor did not confirm Motion is open.`)
-      }
+      const openedMotion = await switchVoiceWorkspace('Motion', getHandlers)
+      if (!openedMotion.success) return result(false, `"${track.title}" is staged, but the editor did not confirm Motion is open.`)
       return { ...result(true, `"${track.title}" is staged as the soundtrack in Motion${previewStarted ? '; preview playback started' : ''}.`), tab: 'Motion' }
     }
     return { ...result(true, `Preview playback started for "${track.title}" in Music.`), tab: 'Music' }

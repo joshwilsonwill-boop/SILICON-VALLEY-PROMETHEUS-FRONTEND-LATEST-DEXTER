@@ -40,8 +40,8 @@ export function DownloadDialog({
           </div>
           <DialogTitle className="text-2xl font-medium tracking-tight">Prepare final download?</DialogTitle>
           <DialogDescription className="text-[15px] leading-relaxed text-white/60">
-            Your export is ready. This prototype download uses the current source-backed export proof. Real rendered
-            edits will replace this in the render worker phase.
+            The editor cannot create an edited MP4 yet. A download from this screen is only the original source video;
+            saved timeline edits are not included.
           </DialogDescription>
         </DialogHeader>
 
@@ -54,7 +54,7 @@ export function DownloadDialog({
             <span className="text-white/40">Status</span>
             <span className="inline-flex items-center gap-1.5 text-emerald-400">
               <CheckCircle2 className="size-3.5" />
-              Completed
+              Source copy
             </span>
           </div>
           <div className="flex items-center justify-between text-sm">

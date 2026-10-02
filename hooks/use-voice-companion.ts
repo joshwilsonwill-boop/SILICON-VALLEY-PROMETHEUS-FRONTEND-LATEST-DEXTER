@@ -18,6 +18,7 @@ import { searchTranscriptText } from '@/lib/voice-companion/transcript-search'
 import { inspectVoiceVideo, switchVoiceWorkspace } from '@/lib/voice-companion/session-controls'
 import { performVoiceMusicAction, type VoiceMusicActionArgs } from '@/lib/voice-companion/music-controls'
 import { performVoiceReferenceStyleAction } from '@/lib/voice-companion/reference-controls'
+import { ensureVoiceEditingAccess } from '@/lib/voice-companion/editing-access'
 import { ResponseRecovery, type ResponseStatus } from '@/lib/voice-companion/response-recovery'
 import { useAutonomousStore } from '@/lib/autonomous-ui/autonomous-store'
 
@@ -149,6 +150,7 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
   const executeToolCall = useCallback(
     async (name: string, args: Record<string, unknown>, isSessionActive: () => boolean) => {
       const getCurrentHandlers = () => isSessionActive() ? handlersRef.current : {}
+      const requireEditingAccess = async () => ensureVoiceEditingAccess(getCurrentHandlers)
       const {
         contextProvider,
         onApplyActions,
@@ -159,8 +161,6 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
         onUnmute,
         onTabChange,
         onFitModeChange,
-        isTakeoverEnabled,
-        onToggleTakeover,
       } = handlersRef.current
 
       switch (name) {
@@ -252,8 +252,9 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
           const phrase = String(args.phrase ?? '')
           if (!handlersRef.current.hasVideo) return { success: false, error: 'There is no playable source video in this project yet.' }
           if (!Array.isArray(handlersRef.current.transcriptSegments) || handlersRef.current.transcriptSegments.length === 0) return { success: false, error: 'There is no timed transcript to cut from yet.' }
-          if (!isTakeoverEnabled) return { success: false, error: 'Editing access is off. Enable Jarvis editing to apply transcript cuts.' }
           if (!handlersRef.current.onCutTranscriptPhrase) return { success: false, error: 'Confirmed phrase editing is unavailable in this editor.' }
+          const access = await requireEditingAccess()
+          if (!access.success) return access
           const switched = await switchVoiceWorkspace('Motion', () => handlersRef.current)
           if (!switched.success) return switched
           const outcome = await handlersRef.current.onCutTranscriptPhrase(phrase)
@@ -262,8 +263,9 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
 
         case 'autonomous_music_action': {
           const action = args.action as VoiceMusicActionArgs['action']
-          if ((action === 'select' || action === 'select_and_preview') && !isTakeoverEnabled) {
-            return { success: false, error: 'Editing access is off. Begin the delegated editing session before staging a soundtrack.' }
+          if (action === 'select' || action === 'select_and_preview') {
+            const access = await requireEditingAccess()
+            if (!access.success) return access
           }
           return performVoiceMusicAction({
             action,
@@ -275,7 +277,10 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
         }
 
         case 'reference_video_style': {
-          if (args.apply && !isTakeoverEnabled) return { success: false, error: 'Begin the delegated editing session before applying the reference look.' }
+          if (args.apply === true) {
+            const access = await requireEditingAccess()
+            if (!access.success) return access
+          }
           return performVoiceReferenceStyleAction({
             url: typeof args.url === 'string' ? args.url : '',
             styleHint: typeof args.styleHint === 'string' ? args.styleHint : undefined,
@@ -284,9 +289,9 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
         }
 
         case 'toggle_agent_takeover': {
-          if (!onToggleTakeover) return { success: false, error: 'Editor not linked — cannot toggle takeover.' }
-          if (!isTakeoverEnabled) onToggleTakeover()
-          return { success: true, takeoverEnabled: true, status: 'Persistent editing access is active for this task.' }
+          const access = await requireEditingAccess()
+          if (!access.success) return { ...access, takeoverEnabled: false }
+          return { success: true, takeoverEnabled: true, status: 'Persistent editing access is already active for this task.' }
         }
 
         case 'end_agent_takeover': {
@@ -298,7 +303,8 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
           const rate = typeof args.rate === 'number' ? args.rate : Number(args.rate)
           if (!Number.isFinite(rate) || rate <= 0) return { success: false, error: 'Invalid playback rate.' }
           if (!handlersRef.current.hasVideo) return { success: false, error: 'There is no playable source video in this project yet.' }
-          if (!isTakeoverEnabled) return { success: false, error: 'Editing access is off. Enable Jarvis editing to change playback speed.' }
+          const access = await requireEditingAccess()
+          if (!access.success) return access
           if (!onApplyActions) return { success: false, error: 'The editor is not linked, so I cannot change playback speed.' }
           await onApplyActions([{ kind: 'set_playback_rate', rate: Math.min(4, Math.max(0.25, rate)), summary: `Playback speed ${rate}x` }])
           return { success: true, rate }
@@ -315,18 +321,20 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
 
         case 'set_caption_style': {
           const style = String(args.style ?? '')
-          if (!isTakeoverEnabled) return { success: false, error: 'Takeover mode is off — ask the user to enable it first.' }
           if (!handlersRef.current.hasVideo) return { success: false, error: 'There is no playable source video in this project yet.' }
           if (!onApplyActions) return { success: false, error: 'The editor is not linked, so I cannot change caption styling.' }
+          const access = await requireEditingAccess()
+          if (!access.success) return access
           await onApplyActions([{ kind: 'set_caption_style', style: style as 'clean_bold' | 'karaoke_pop' | 'typewriter' | 'lower_third', summary: `Caption style: ${style}` }])
           return { success: true, style }
         }
 
         case 'start_render': {
           const mode = args.mode === 'final' ? 'final' : 'preview'
-          if (!isTakeoverEnabled) return { success: false, error: 'Editing access is off. Ask the user to enable Jarvis editing first.' }
           if (!handlersRef.current.hasVideo) return { success: false, error: 'There is no playable source video to render.' }
           if (!onApplyActions) return { success: false, error: 'The editor is not linked, so I cannot start a render.' }
+          const access = await requireEditingAccess()
+          if (!access.success) return access
           await onApplyActions([{ kind: 'start_render', mode, summary: mode === 'final' ? 'Opening Master Review for final export' : 'Opening export workflow' }])
           return { success: true, mode, status: mode === 'final' ? 'Master Video Review opened.' : 'Export workflow opened. No render has been confirmed yet.' }
         }
@@ -339,8 +347,9 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
           const shouldApply = Boolean(args.applyCuts)
 
           if (shouldApply) {
-            if (!isTakeoverEnabled) return { success: false, error: 'Begin the delegated editing session before applying filler-word cuts.' }
             if (!handlersRef.current.onRemoveFillerWords) return { success: false, error: 'Confirmed filler-word editing is unavailable in this editor.' }
+            const access = await requireEditingAccess()
+            if (!access.success) return access
             const outcome = await handlersRef.current.onRemoveFillerWords()
             return { ...outcome, appliedCuts: outcome.success && outcome.count > 0 }
           }
@@ -359,53 +368,50 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
           const minDurationSec = typeof args.minDurationSec === 'number' ? args.minDurationSec : 0.4
           if (!handlersRef.current.hasVideo) return { success: false, error: 'There is no playable source video in this project yet.' }
           if (!Array.isArray(handlersRef.current.transcriptSegments) || handlersRef.current.transcriptSegments.length === 0) return { success: false, error: 'There is no timed transcript to find silences in yet.' }
-          if (!isTakeoverEnabled) return { success: false, error: 'Editing access is off. Enable Jarvis editing to remove silences.' }
           if (!Number.isFinite(minDurationSec) || minDurationSec <= 0) return { success: false, error: 'Choose a positive silence duration.' }
           if (!handlersRef.current.onCutSilence) return { success: false, error: 'Confirmed silence editing is unavailable in this editor.' }
+          const access = await requireEditingAccess()
+          if (!access.success) return access
           const outcome = await handlersRef.current.onCutSilence(minDurationSec)
           return { ...outcome, minDurationSec, precision: 'Transcript timestamps; not sample-accurate waveform analysis.' }
         }
 
         case 'apply_editorial_plan':
         case 'execute_timeline_plan': {
-          const prompt = String(args.prompt || 'Cinematic documentary pass')
+          const prompt = String(args.prompt || 'Balanced talking-head edit')
           const liveContext = contextProvider?.()
           const durationSec = liveContext?.durationSec ?? handlersRef.current.timelineDurationSec ?? 0
           if (!handlersRef.current.hasVideo) return { success: false, error: 'There is no playable source video in this project yet.' }
           if (durationSec <= 0) return { success: false, error: 'The source video duration is not available yet.' }
-          if (!isTakeoverEnabled) return { success: false, error: 'Editing access is off. Enable Jarvis editing to apply a caption preset.' }
-          if (!onApplyActions) return { success: false, error: 'The editor is not linked, so I cannot apply an editorial plan.' }
-          const transcriptText = handlersRef.current.transcriptText || ''
-          const brandProfile = handlersRef.current.brandProfile
-
+          const applyPlan = getCurrentHandlers().onApplyEditorialPlan
+          if (!applyPlan) return { success: false, error: 'The editor does not have a complete editorial-plan path connected.' }
+          const access = await requireEditingAccess()
+          if (!access.success) return access
           const plan = buildEditorialPlan(prompt, {
             durationSec,
-            transcriptText,
-            brandProfile: brandProfile as any,
+            transcriptSegments: (Array.isArray(handlersRef.current.transcriptSegments) ? handlersRef.current.transcriptSegments : []).flatMap((item) => {
+              if (!item || typeof item !== 'object') return []
+              const segment = item as Record<string, unknown>
+              const startSec = typeof segment.startMs === 'number' ? segment.startMs / 1000 : segment.start
+              const endSec = typeof segment.endMs === 'number' ? segment.endMs / 1000 : segment.end
+              return typeof startSec === 'number' && typeof endSec === 'number' && typeof segment.text === 'string'
+                ? [{ startSec, endSec, text: segment.text, isCut: segment.isCut === true }]
+                : []
+            }),
           })
 
           if (args.captionStyle && typeof args.captionStyle === 'string') {
             plan.captionStyle = args.captionStyle as any
           }
 
-          // Visually scrub timeline to first dynamic zoom/event to show user active execution
-          if (plan.zooms.length > 0 && onSeek) {
-            await onSeek(plan.zooms[0].startSec)
-          }
-
-          // Apply caption style and modifications via editor actions
-          await onApplyActions([
-            {
-              kind: 'set_caption_style',
-              style: plan.captionStyle,
-              summary: `Editorial Plan: Restyle captions to ${plan.captionStyle}`,
-            },
-          ])
-
+          const switched = await switchVoiceWorkspace('Motion', getCurrentHandlers)
+          if (!switched.success) return switched
+          const outcome = await applyPlan(plan)
           return {
-            success: true,
-            plan,
-            summary: `${plan.summary} Caption styling was applied; proposed zoom and music cues remain a plan until their timeline actions are connected.`,
+            ...outcome,
+            summary: outcome.summary,
+            applied: { captionStyle: plan.captionStyle, movementCueCount: outcome.success ? plan.zooms.length : 0 },
+            musicSelected: false,
           }
         }
 

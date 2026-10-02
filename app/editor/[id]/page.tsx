@@ -100,6 +100,7 @@ import type { VoiceActionResult } from '@/lib/voice-companion/music-controls'
 import { applyReferenceStyleToController } from '@/lib/voice-companion/reference-controls'
 import { getEditorialTimelineController } from '@/lib/editor/editorial-timeline-client'
 import type { AppliedReferenceStyle } from '@/lib/editor/reference-style'
+import type { EditorialPlan } from '@/lib/editor/timeline-document'
 import {
   consumePendingEditorialChatOpen,
   EDITORIAL_CHAT_OPEN_EVENT,
@@ -7731,11 +7732,21 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
     if (!track || !project?.sourceAssetId) return { success: false, summary: 'The selected song or source timeline is unavailable.' }
     const controller = getEditorialTimelineController(projectId)
     await controller.select(trackId, track)
-    const snapshot = controller.getSnapshot()
-    if (snapshot.timeline?.music?.track.id !== trackId) return { success: false, summary: snapshot.error || 'The timeline did not confirm soundtrack staging.' }
+    const deadline = Date.now() + 15000
+    let snapshot = controller.getSnapshot()
+    while (Date.now() < deadline) {
+      snapshot = controller.getSnapshot()
+      if (snapshot.timeline?.sourceAssetId !== project.sourceAssetId) return { success: false, summary: 'The source video changed while saving the soundtrack. Review the current timeline.' }
+      if (snapshot.status === 'error') return { success: false, staged: snapshot.timeline?.music?.track.id === trackId, summary: `The song may be visible locally, but timeline save failed: ${snapshot.error || 'connection unavailable'}. Retry timeline sync.` }
+      if (snapshot.status === 'saved' && snapshot.timeline?.music?.track.id === trackId) break
+      await new Promise((resolve) => setTimeout(resolve, 50))
+    }
+    if (snapshot.status !== 'saved' || snapshot.timeline?.music?.track.id !== trackId) {
+      return { success: false, staged: snapshot.timeline?.music?.track.id === trackId, summary: 'The song is visible locally, but the backend save was not confirmed. Retry timeline sync before leaving Music.' }
+    }
     writeSelectedEditorMusicRecommendation(projectId, track, 'timeline')
     setSelectedEditorMusicTrackId(track.id)
-    return { success: true, summary: `"${track.title}" is staged on the soundtrack lane${snapshot.status === 'saved' ? '.' : '; timeline sync is pending.'}`, trackId }
+    return { success: true, summary: `"${track.title}" is saved on the soundtrack lane.`, trackId }
   }, [projectId, project?.sourceAssetId])
 
   const handleVoiceMusicPreview = React.useCallback(async (trackId: string): Promise<VoiceActionResult> => {
@@ -7763,6 +7774,53 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
   const handleVoiceReferenceStyle = React.useCallback(async (style: AppliedReferenceStyle) => {
     if (!hasPlayableVideo || !project?.sourceAssetId) return { success: false, summary: 'Open a ready source video before applying a reference look.' }
     return applyReferenceStyleToController(getEditorialTimelineController(projectId), style)
+  }, [hasPlayableVideo, projectId, project?.sourceAssetId])
+
+  const handleVoiceEditorialPlan = React.useCallback(async (plan: EditorialPlan): Promise<VoiceActionResult> => {
+    if (!hasPlayableVideo || !project?.sourceAssetId) return { success: false, summary: 'Open a ready source video before applying an editorial pass.' }
+    const controller = getEditorialTimelineController(projectId)
+    const deadline = Date.now() + 15000
+    let before = controller.getSnapshot()
+    while (before.status !== 'saved' || !before.timeline) {
+      if (before.status === 'error') return { success: false, summary: `The project timeline could not be loaded: ${before.error || 'connection unavailable'}. No editorial changes were applied.` }
+      if (before.timeline && before.timeline.sourceAssetId !== project.sourceAssetId) return { success: false, summary: 'The timeline belongs to a different source video. No editorial changes were applied.' }
+      if (Date.now() >= deadline) return { success: false, summary: 'The project timeline did not finish loading. No editorial changes were applied.' }
+      await new Promise((resolve) => setTimeout(resolve, 50))
+      before = controller.getSnapshot()
+    }
+    if (before.timeline.sourceAssetId !== project.sourceAssetId) return { success: false, summary: 'The timeline belongs to a different source video. No editorial changes were applied.' }
+
+    const planId = `jarvis-plan-${Date.now()}`
+    const planCues = plan.zooms.map((zoom) => ({
+      id: `${planId}-${zoom.id}`,
+      type: 'movement' as const,
+      start: zoom.startSec,
+      end: zoom.endSec,
+      title: `Jarvis ${zoom.kind.replaceAll('_', ' ')} (${zoom.scale.toFixed(2)}x)`,
+      origin: 'editor' as const,
+      context: { source: 'jarvis_editorial_plan', planId, scale: zoom.scale, motionKind: zoom.kind === 'punch_zoom' ? 'punch' : 'smooth' },
+    }))
+    const retainedCues = before.timeline.cues.filter((cue) => cue.context?.source !== 'jarvis_editorial_plan')
+    setEditorCaptionStyle(plan.captionStyle)
+    controller.patch({ type: 'caption_style', style: plan.captionStyle })
+    controller.patch({ type: 'cues', cues: [...retainedCues, ...planCues] })
+
+    const saveDeadline = Date.now() + 15000
+    while (Date.now() < saveDeadline) {
+      const current = controller.getSnapshot()
+      if (current.timeline?.sourceAssetId !== project.sourceAssetId) return { success: false, summary: 'The source changed while saving the editorial pass. Review the current timeline.' }
+      if (current.status === 'error') return { success: false, summary: `The caption preset may be visible locally, but timeline save failed: ${current.error || 'connection unavailable'}. Retry timeline sync.` }
+      const cuesSaved = planCues.every((cue) => current.timeline?.cues.some((saved) => saved.id === cue.id))
+      if (current.status === 'saved' && current.timeline?.captionStyle === plan.captionStyle && cuesSaved) {
+        return {
+          success: true,
+          count: planCues.length + 1,
+          summary: `Saved ${plan.captionStyle.replaceAll('_', ' ')} captions and ${planCues.length} transcript-timed camera move${planCues.length === 1 ? '' : 's'} to the project timeline. The restrained, spaced movement is meant to add visual variation without keeping the frame in motion. They are visible in the Motion preview; no soundtrack was selected and no final render was started.`,
+        }
+      }
+      await new Promise((resolve) => setTimeout(resolve, 50))
+    }
+    return { success: false, summary: 'The editorial pass is visible locally, but saving was not confirmed. Check timeline sync before export.' }
   }, [hasPlayableVideo, projectId, project?.sourceAssetId])
 
   const handleRemoveEditorMusicTrack = React.useCallback(() => {
@@ -8149,7 +8207,7 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
       document.body.removeChild(link)
 
       toast.success('Download started', {
-        description: 'Your cinematic export is being delivered to your browser.',
+        description: 'The source video copy is being delivered. It does not include the editor timeline changes.',
       })
     } catch (err: any) {
       console.error('Download error:', err)
@@ -8727,6 +8785,7 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
       projectId,
       sourceAssetId: project?.sourceAssetId ?? null,
       onApplyReferenceStyle: handleVoiceReferenceStyle,
+      onApplyEditorialPlan: handleVoiceEditorialPlan,
       contextProvider: chatContextProvider,
       onApplyActions: handleApplyChatActions,
       onSeek: (timeSec) => handleApplyChatActions([{ kind: 'seek', timeSec, summary: `Seek to ${timeSec.toFixed(1)}s` }]),
@@ -8799,6 +8858,7 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
     handleVoiceMusicSelect,
     handleVoiceMusicPreview,
     handleVoiceReferenceStyle,
+    handleVoiceEditorialPlan,
     projectId,
     project?.title,
     project?.sourceAssetId,
@@ -9466,7 +9526,7 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
             </div>
             <DialogTitle className="text-2xl font-medium tracking-tight">Prepare final download?</DialogTitle>
             <DialogDescription className="text-[15px] leading-relaxed text-white/60">
-              Your export is ready. This prototype download uses the current source-backed export proof. Real rendered edits will replace this in the render worker phase.
+              The editor cannot create an edited MP4 yet. This download is only the original source video; saved timeline edits are not included.
             </DialogDescription>
           </DialogHeader>
 
@@ -9479,7 +9539,7 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
               <span className="text-white/40">Status</span>
               <span className="inline-flex items-center gap-1.5 text-emerald-400">
                 <CheckCircle2 className="size-3.5" />
-                Completed
+                Source copy
               </span>
             </div>
             <div className="flex items-center justify-between text-sm">
