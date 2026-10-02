@@ -14,6 +14,7 @@ import {
 import { EditorialTimelineToolbar } from './editorial-timeline-toolbar'
 import { EditorialTimelineTracks, type EditorialTimelineTracksProps } from './editorial-timeline-tracks'
 import { cn } from '@/lib/utils'
+import { useTimelineTools } from '@/hooks/use-timeline-tools'
 
 export interface EditorialTimelineViewportProps extends EditorialTimelineTracksProps {
   playing: boolean
@@ -52,7 +53,9 @@ export function EditorialTimelineViewport({
   const [isMusicHidden, setIsMusicHidden] = React.useState(false)
 
   // Selected clip state
-  const [selectedClipId, setSelectedClipId] = React.useState<string | null>('source-video')
+  const tools = useTimelineTools({ source: props.previewUrl, duration: props.effectiveDuration, title: props.sourceLabel, time: props.currentTime, cuts: props.cutRanges ?? [], cues: props.editorialCues ?? [], onCuts: props.onCutRangesChange, onCues: props.onEditorialCuesChange })
+  const selectedClipId = tools.selected
+  const setSelectedClipId = tools.select
 
   const contentWidth = Math.max(1, viewportWidth - 110) * Math.max(1, props.zoom)
   const time = Math.max(0, Math.min(props.effectiveDuration, props.currentTime))
@@ -75,27 +78,6 @@ export function EditorialTimelineViewport({
       element.scrollLeft = Math.max(0, position - 110 - (element.clientWidth - 110) * 0.2)
     }
   }, [time, contentWidth, props.effectiveDuration, playing])
-
-  // Handle Split Clip (Razor tool)
-  const handleSplitClip = React.useCallback(() => {
-    if (props.onSplitClip) {
-      props.onSplitClip()
-    }
-  }, [props])
-
-  // Handle Delete Clip
-  const handleDeleteClip = React.useCallback(() => {
-    if (props.onDeleteClip) {
-      props.onDeleteClip()
-    }
-  }, [props])
-
-  // Handle Duplicate Clip
-  const handleDuplicateClip = React.useCallback(() => {
-    if (props.onDuplicateClip) {
-      props.onDuplicateClip()
-    }
-  }, [props])
 
   const handleSeekInternal = React.useCallback(
     (timeSec: number) => {
@@ -129,16 +111,19 @@ export function EditorialTimelineViewport({
           onZoomChange={(newZoom) => onZoomChange?.(newZoom)}
           activeTool={activeTool}
           onSelectTool={setActiveTool}
-          onSplitClip={handleSplitClip}
-          onUndo={onUndo}
-          onRedo={onRedo}
-          onDeleteClip={handleDeleteClip}
-          onDuplicateClip={handleDuplicateClip}
+          onSplitClip={tools.split}
+          onUndo={onUndo ?? tools.undo}
+          onRedo={onRedo ?? tools.redo}
+          canUndo={tools.canUndo}
+          canRedo={tools.canRedo}
+          onDeleteClip={tools.canDelete ? tools.remove : undefined}
+          onDuplicateClip={tools.canDuplicate ? tools.duplicate : undefined}
+          onAddMarker={props.onEditorialCuesChange ? tools.marker : undefined}
           onToggleSnapping={() => setSnapping((v) => !v)}
           snapping={snapping}
           isFullscreen={isFullscreen}
           onToggleFullscreen={onToggleFullscreen}
-          onToggleLayout={onToggleLayout}
+          onToggleLayout={onToggleLayout ?? onToggleFullscreen}
           playing={playing}
           onTogglePlayback={onTogglePlayback}
         />
@@ -316,6 +301,7 @@ export function EditorialTimelineViewport({
               {...props}
               zoom={1}
               selectedClipId={selectedClipId}
+              videoClips={tools.clips}
               onSelectClip={setSelectedClipId}
               isVideoHidden={isVideoHidden}
               isMusicHidden={isMusicHidden}
@@ -358,13 +344,13 @@ export function EditorialTimelineViewport({
                 event.stopPropagation()
                 handleSeekInternal(next)
               }}
-              className="absolute bottom-0 top-0 z-30 w-6 -translate-x-1/2 cursor-ew-resize touch-none outline-none before:absolute before:inset-y-0 before:left-1/2 before:border-l-[1.5px] before:border-white before:shadow-[0_0_8px_rgba(255,255,255,0.7)] before:content-[''] focus-visible:bg-white/[0.04]"
+              className="pointer-events-none absolute bottom-0 top-0 z-30 w-6 -translate-x-1/2 cursor-ew-resize touch-none outline-none before:absolute before:inset-y-0 before:left-1/2 before:border-l-[1.5px] before:border-white before:shadow-[0_0_8px_rgba(255,255,255,0.7)] before:content-[''] focus-visible:bg-white/[0.04]"
               style={{
                 left: (time / Math.max(props.effectiveDuration, 0.01)) * (contentWidth - 12),
               }}
             >
               {/* White flag pin marker with rounded top */}
-              <div className="absolute left-1/2 top-0 flex -translate-x-1/2 flex-col items-center">
+              <div className="pointer-events-auto absolute left-0 top-0 flex h-[22px] w-6 flex-col items-center">
                 <div className="h-2.5 w-2.5 rounded-[2px] bg-white shadow-md rotate-45" />
                 <div className="-mt-1 h-1.5 w-1 bg-white" />
               </div>

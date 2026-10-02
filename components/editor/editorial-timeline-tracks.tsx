@@ -52,6 +52,9 @@ export interface EditorialTimelineTracksProps {
   onSplitClip?: () => void
   onDeleteClip?: () => void
   onDuplicateClip?: () => void
+  // Optional controlled source divisions supplied by the timeline tools.
+  videoClips?: EditorialVideoClip[]
+  onCutRangesChange?: (ranges: { start: number; end: number }[]) => void
   isVideoHidden?: boolean
   isMusicHidden?: boolean
 }
@@ -104,6 +107,7 @@ export function EditorialTimelineTracks({
   onSelectClip,
   isVideoHidden = false,
   isMusicHidden = false,
+  videoClips,
 }: EditorialTimelineTracksProps) {
   const thumbnails = useEditorialTimelineThumbnails(previewUrl, 12)
   const width = `${zoom * 100}%`
@@ -186,7 +190,7 @@ export function EditorialTimelineTracks({
         aria-label="Separable Video Clips Track"
       >
         <div className="absolute inset-0 flex">
-          {internalClips.map((clip) => {
+          {(videoClips ?? internalClips).map((clip) => {
             const isSelected = clip.id === activeClipId
             const leftPct = percent(clip.start, effectiveDuration)
             const widthPct = percent(clip.end - clip.start, effectiveDuration)
@@ -281,12 +285,12 @@ export function EditorialTimelineTracks({
       {/* 4. Text clips are independently placed and stacked when their times overlap. */}
       <div data-timeline-track="text" className="relative mt-1.5 overflow-hidden rounded-[4px] border border-white/10 bg-[#11131b]" style={{ height: Math.max(30, textLanes.length * 30) }} aria-label="Text placements track">
         {!textLanes.length ? <span className="flex h-[30px] items-center px-2 text-[10px] text-white/35">Text placements from the edit will appear here</span> : null}
-        {textLanes.map((lane, laneIndex) => lane.map((cue) => <DraggableEditorialCue key={cue.id} cue={cue} laneIndex={laneIndex} duration={effectiveDuration} currentTime={currentTime} onSeek={onSeek} onCommit={(updated) => onEditorialCuesChange?.(replaceCue(editorialCues, cue, updated))} />))}
+        {textLanes.map((lane, laneIndex) => lane.map((cue) => <DraggableEditorialCue key={cue.id} cue={cue} laneIndex={laneIndex} duration={effectiveDuration} currentTime={currentTime} onSelect={onSelectClip} onSeek={onSeek} onCommit={(updated) => onEditorialCuesChange?.(replaceCue(editorialCues, cue, updated))} />))}
       </div>
 
       {/* 5. Backend visual cues keep their type, source timing and context on the timeline. */}
       {visualCues.length ? <div data-timeline-track="visual-cues" className="relative mt-1.5 overflow-hidden rounded-[4px] border border-[#38bdf8]/15 bg-[#0d1720]" style={{ height: Math.max(30, visualLanes.length * 30) }} aria-label="Backend visual cues track">
-        {visualLanes.map((lane, laneIndex) => lane.map((cue) => <DraggableEditorialCue key={cue.id} cue={cue} laneIndex={laneIndex} duration={effectiveDuration} currentTime={currentTime} onSeek={onSeek} onCommit={(updated) => onEditorialCuesChange?.(replaceCue(editorialCues, cue, updated))} />))}
+        {visualLanes.map((lane, laneIndex) => lane.map((cue) => <DraggableEditorialCue key={cue.id} cue={cue} laneIndex={laneIndex} duration={effectiveDuration} currentTime={currentTime} onSelect={onSelectClip} onSeek={onSeek} onCommit={(updated) => onEditorialCuesChange?.(replaceCue(editorialCues, cue, updated))} />))}
       </div> : null}
 
       {/* 6. MUSIC TRACK: Selected soundtrack with a clear waveform and mute control */}
@@ -386,12 +390,13 @@ function replaceCue(cues: EditorialCue[], previous: EditorialCue, updated: Edito
   return cues.map((cue, cueIndex) => cueIndex === index ? updated : cue)
 }
 
-function DraggableEditorialCue({ cue, laneIndex, duration, currentTime, onSeek, onCommit }: {
+function DraggableEditorialCue({ cue, laneIndex, duration, currentTime, onSelect, onSeek, onCommit }: {
   cue: EditorialCue
   laneIndex: number
   duration: number
   currentTime: number
   onSeek?: (time: number) => void
+  onSelect?: (id: string) => void
   onCommit: (cue: EditorialCue) => void
 }) {
   const [preview, setPreview] = React.useState<{ start: number; end: number } | null>(null)
@@ -409,6 +414,7 @@ function DraggableEditorialCue({ cue, laneIndex, duration, currentTime, onSeek, 
       data-editorial-cue-id={cue.id}
       onClick={() => {
         if (suppressClick.current) { suppressClick.current = false; return }
+        onSelect?.(cue.id)
         onSeek?.(start)
       }}
       onPointerDown={(event) => {

@@ -19,6 +19,7 @@ import { buildStudioArtDirection, parseStudioDesign, resolveStudioImageModel, re
 import { getStudioReference, STUDIO_REFERENCES } from '@/lib/thumbnails/studio-references'
 import { compactGeneratedThumbnail } from '@/lib/thumbnails/thumbnail-output'
 import { THUMBNAIL_PROVIDER_TIMEOUT_MS } from '@/lib/thumbnails/thumbnail-runtime'
+import { applyThumbnailCreativeDirection } from '@/lib/thumbnails/creative-direction'
 import { buildThumbnailPromptPlannerText, extractPlannedArtDirection, THUMBNAIL_PROMPT_PLANNER_INSTRUCTIONS } from '@/lib/thumbnails/retention-prompt'
 
 export const runtime = 'nodejs'
@@ -123,7 +124,7 @@ export async function POST(
     const subtitle = body?.subtitle || ''
     const styleId = body?.styleId || 'behind_subject_blueprint'
     const brandColor = body?.brandColor || '#3E5C76'
-    const userPrompt = body?.userPrompt || ''
+    const userPrompt = typeof body?.userPrompt === 'string' ? body.userPrompt.trim().slice(0, 500) : ''
     const aspectRatio = body?.aspectRatio || '9:16'
     const referenceImages = Array.isArray(body?.referenceImages)
       ? body.referenceImages.filter((reference): reference is string => typeof reference === 'string').slice(0, 4)
@@ -290,6 +291,7 @@ Extract the exact Channel Style DNA (lighting ratios, color contrast, proof card
         }
       }
     }
+    synthesizedPrompt = applyThumbnailCreativeDirection(synthesizedPrompt, userPrompt)
     const imageModel = useOpenAICompatibleImageApi
       ? process.env.THUMBNAIL_IMAGE_MODEL?.trim() || DEFAULT_THUMBNAIL_IMAGE_MODEL
       : studioDesign ? resolveStudioImageModel(studioDesign.quality) : 'gemini-2.5-flash-image'

@@ -44,6 +44,7 @@ import {
 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
+import { motionCropTransform } from '@/lib/editor/motion-framing'
 import { StyleCloneCard } from '@/components/editor/style-clone-card'
 import { ReferenceCaptionOverlay } from '@/components/editor/reference-caption-overlay'
 import { referencePreviewAt, type AppliedReferenceStyle } from '@/lib/editor/reference-style'
@@ -341,12 +342,18 @@ export function MotionEditWorkspace({
   const [timelineHeight, setTimelineHeight] = React.useState(DEFAULT_TIMELINE_HEIGHT)
   const [cropEnabled, setCropEnabled] = React.useState(true)
   const [cropRect, setCropRect] = React.useState<CropRect>(DEFAULT_CROP_RECT)
+  const [frameAspectRatio, setFrameAspectRatio] = React.useState<number | null>(null)
+  React.useEffect(() => {
+    setFrameAspectRatio(null)
+    setCropRect(DEFAULT_CROP_RECT)
+  }, [previewUrl])
   const [captionsVisible, setCaptionsVisible] = React.useState(false)
   const [captionsOverride, setCaptionsOverride] = React.useState<boolean | null>(null)
   const [treatment, setTreatment] = React.useState<PreviewTreatment>('clean')
   const [transcriptQuery, setTranscriptQuery] = React.useState('')
   const [activeOnly, setActiveOnly] = React.useState(false)
   const [showMetadata, setShowMetadata] = React.useState(false)
+  const [transcriptActionMessage, setTranscriptActionMessage] = React.useState<string | null>(null)
   const workspaceRef = React.useRef<HTMLElement>(null)
   const transcriptRef = React.useRef<HTMLDivElement>(null)
   const timelineRef = React.useRef<HTMLDivElement>(null)
@@ -358,7 +365,7 @@ export function MotionEditWorkspace({
   const effectiveDuration = durationSec > 0 ? durationSec : Math.max(60, ...resolvedSegments.map((segment) => segment.end))
   const playheadPercent = Math.min(100, Math.max(0, (currentTimeSec / effectiveDuration) * 100))
   const activeSegment = resolvedSegments.find((segment) => isActiveSegment(segment, currentTimeSec))
-  const safeAspectRatio = Number.isFinite(previewAspectRatio) && previewAspectRatio > 0 ? previewAspectRatio : 16 / 9
+  const safeAspectRatio = frameAspectRatio ?? (Number.isFinite(previewAspectRatio) && previewAspectRatio > 0 ? previewAspectRatio : 16 / 9)
   const visibleSegments = resolvedSegments.filter((segment) => {
     const query = transcriptQuery.trim().toLowerCase()
     const matchesQuery = query === '' || segment.text.toLowerCase().includes(query)
@@ -374,7 +381,7 @@ export function MotionEditWorkspace({
     ...mediaTransformStyle,
     ...(referenceStyle || planMovementScale !== 1 ? { transform: `${mediaTransformStyle?.transform ?? ''} scale(${previewScale})`.trim() } : {}),
     filter: referenceStyle ? referencePreview.filter : activeTreatment.filter,
-    objectFit: fitMode === 'fill' ? 'cover' as const : objectFit,
+    objectFit: fitMode === 'fill' ? 'cover' as const : 'contain' as const,
   }
   const applyReference = React.useCallback(async (style: AppliedReferenceStyle) => {
     const store = useAutonomousStore.getState()
@@ -596,9 +603,9 @@ export function MotionEditWorkspace({
 
   const renderMedia = () => hasPreviewMedia ? (
     previewKind === 'image' ? (
-      <img src={previewUrl} alt={projectTitle} onLoad={onImageLoaded} className="h-full w-full bg-black object-center" style={referenceMediaStyle} />
+      <div className="h-full w-full" style={{ transform: motionCropTransform(cropRect) }}><img src={previewUrl} alt={projectTitle} onLoad={onImageLoaded} className="h-full w-full bg-black object-center" style={referenceMediaStyle} /></div>
     ) : (
-      <video key={previewUrl} ref={videoRef} src={previewUrl} className="h-full w-full bg-black object-center" muted={previewMuted} playsInline controls={false} preload="metadata" onLoadedMetadata={onVideoLoadedMetadata} onLoadedData={onVideoLoadedData} onCanPlay={onVideoCanPlay} onTimeUpdate={onVideoTimeUpdate} onEnded={onVideoEnded} onPlay={onVideoPlay} onPause={onVideoPause} onError={onVideoError} style={referenceMediaStyle} />
+      <div className="h-full w-full" style={{ transform: motionCropTransform(cropRect) }}><video key={previewUrl} ref={videoRef} src={previewUrl} className="h-full w-full bg-black object-center" muted={previewMuted} playsInline controls={false} preload="metadata" onLoadedMetadata={onVideoLoadedMetadata} onLoadedData={onVideoLoadedData} onCanPlay={onVideoCanPlay} onTimeUpdate={onVideoTimeUpdate} onEnded={onVideoEnded} onPlay={onVideoPlay} onPause={onVideoPause} onError={onVideoError} style={referenceMediaStyle} /></div>
     )
   ) : (
     <button type="button" onClick={onPickSource} className="absolute inset-0 grid place-items-center bg-[radial-gradient(circle_at_center,rgba(152,242,55,0.1),transparent_38%)] text-sm text-white/66 transition-colors hover:text-white"><span className="inline-flex items-center gap-2 rounded-md border border-white/12 bg-black/45 px-4 py-2.5"><Upload className="size-4" /> Choose source media</span></button>
@@ -833,9 +840,10 @@ export function MotionEditWorkspace({
               <button
                 type="button"
                 onClick={() => {
-                  const targetSegment = visibleSegments.find((s) => !s.isCut) ?? visibleSegments[0]
+                  const targetSegment = activeSegment ?? visibleSegments.find((s) => !s.isCut) ?? visibleSegments[0]
                   if (targetSegment) onToggleCutSegment?.(targetSegment.id)
                 }}
+                disabled={!onToggleCutSegment || visibleSegments.length === 0}
                 className="flex min-h-[4.25rem] flex-col items-center justify-center gap-1.5 rounded-md border border-white/[0.07] bg-white/[0.035] px-2 py-2 text-[10px] font-medium text-white/58 transition-colors hover:border-white/[0.13] hover:bg-white/[0.075] hover:text-white/82 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/35"
                 title="Remove the next visible transcript segment"
               >
@@ -857,12 +865,15 @@ export function MotionEditWorkspace({
                     }
                   }
                   const resolvedSpans = editorialReadiness?.silenceCuts ?? spans
-                  if (editorialReadiness) {
-                    onApplySuggestedSilenceCuts?.(editorialReadiness.silenceCuts)
+                  if (resolvedSpans.length === 0) {
+                    setTranscriptActionMessage('No transcript-aligned pauses meet the silence cut threshold.')
+                  } else if (onApplySuggestedSilenceCuts) {
+                    onApplySuggestedSilenceCuts(resolvedSpans)
                   } else if (onCutRangesChange && resolvedSpans.length > 0) {
                     onCutRangesChange([...(cutRanges ?? []), ...resolvedSpans])
                   }
                 }}
+                disabled={resolvedSegments.length === 0 || (!onApplySuggestedSilenceCuts && !onCutRangesChange)}
                 className="flex min-h-[4.25rem] flex-col items-center justify-center gap-1.5 rounded-md border border-white/[0.07] bg-white/[0.035] px-2 py-2 text-[10px] font-medium text-white/58 transition-colors hover:border-white/[0.13] hover:bg-white/[0.075] hover:text-white/82 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/35"
                 title="Apply transcript-aligned silence cuts directly to the editable timeline"
               >
@@ -872,6 +883,7 @@ export function MotionEditWorkspace({
               <button
                 type="button"
                 onClick={() => onApplyPrompt?.('Clean up the selected speech in the current edit.')}
+                disabled={!onApplyPrompt || resolvedSegments.length === 0}
                 className="flex min-h-[4.25rem] flex-col items-center justify-center gap-1.5 rounded-md border border-white/[0.07] bg-white/[0.035] px-2 py-2 text-[10px] font-medium text-white/58 transition-colors hover:border-white/[0.13] hover:bg-white/[0.075] hover:text-white/82 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/35"
               >
                 <Wand2 aria-hidden="true" className="size-4 text-white/72" /> <span>Speech cleanup</span>
@@ -888,6 +900,8 @@ export function MotionEditWorkspace({
                 </button>
               ) : null}
             </div>
+
+            {transcriptActionMessage ? <p role="status" className="mb-3 text-xs text-white/60">{transcriptActionMessage}</p> : null}
 
             {isTranscribing && visibleSegments.length === 0 ? (
               <div className="space-y-3 py-2">
@@ -1071,7 +1085,7 @@ export function MotionEditWorkspace({
               <div className="flex items-center gap-1.5"><button type="button" onClick={() => onApplyPrompt?.(`Add a motion marker at ${formatTime(currentTimeSec)} in ${projectTitle}.`)} className="grid size-9 place-items-center rounded-md border border-white/10 bg-white/[0.045] text-white/72 transition-colors hover:bg-white/[0.1] hover:text-white" aria-label="Add motion marker"><Plus className="size-4" /></button><button type="button" onClick={() => onApplyPrompt?.('Prepare the current motion edit for export.')} className="inline-flex min-h-9 items-center gap-2 rounded-md bg-white px-3 py-2 text-xs font-semibold text-black transition-colors hover:bg-white/85"><Download className="size-3.5" /> <span className="hidden sm:inline">Export</span></button></div>
             </div>
             <div className="mt-1.5 flex gap-1 overflow-x-auto pb-0.5 lg:hidden" aria-label="Motion tools">{TOOLS.map(({ id, label, icon: Icon }) => <button key={id} type="button" onClick={() => selectTool(id)} className={cn('inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-md border px-2.5 text-xs transition-colors', activeTool === id ? 'border-[#98f237]/35 bg-[#98f237]/10 text-[#c9ff7d]' : 'border-white/10 text-white/58 hover:text-white')}><Icon className="size-3.5" />{label}</button>)}</div>
-            <ToolPanel activeTool={activeTool} treatment={referenceStyle?.treatment ?? treatment} captionsVisible={effectiveCaptionsVisible} cropEnabled={cropEnabled} fitMode={fitMode} onTreatment={applyTreatment} onToggleCaptions={() => {
+            <ToolPanel aspectRatio={safeAspectRatio} onAspectRatioChange={(ratio) => { setFrameAspectRatio(ratio); setCropRect(DEFAULT_CROP_RECT) }} onResetCrop={() => setCropRect(DEFAULT_CROP_RECT)} activeTool={activeTool} treatment={referenceStyle?.treatment ?? treatment} captionsVisible={effectiveCaptionsVisible} cropEnabled={cropEnabled} fitMode={fitMode} onTreatment={applyTreatment} onToggleCaptions={() => {
               if (referenceStyle) editorial.patch({ type: 'reference_style', style: { ...referenceStyle, captionStyle: effectiveCaptionsVisible ? 'none' : captionStyle ?? 'clean_bold' } })
               else setCaptionsOverride(!effectiveCaptionsVisible)
             }} onToggleCrop={() => setCropEnabled((value) => !value)} onToggleFit={() => onFitModeChange(fitMode === 'fill' ? 'fit' : 'fill')} onPickSource={onPickSource} />
@@ -1170,6 +1184,7 @@ export function MotionEditWorkspace({
               currentTime={currentTimeSec}
               textPlacements={textPlacements}
               cutRanges={effectiveCutRanges}
+              onCutRangesChange={onCutRangesChange}
               selectedMusicTrack={selectedMusicTrack}
               editorialCues={editorialCues}
               onEditorialCuesChange={updateEditorialCues}
@@ -1182,19 +1197,6 @@ export function MotionEditWorkspace({
               onRemoveSoundtrack={() => { editorial.patch({ type: 'music', track: null }); onRemoveMusicTrack?.() }}
               onOpenMusicCatalog={onOpenMusicCatalog}
               onSeek={onSeek}
-              onSplitClip={() => {
-                if (onCutRangesChange) {
-                  onCutRangesChange([
-                    ...(cutRanges ?? []),
-                    { start: currentTimeSec, end: Math.min(effectiveDuration, currentTimeSec + 0.5) },
-                  ])
-                }
-              }}
-              onDeleteClip={() => {
-                if (activeSegment && onToggleCutSegment) {
-                  onToggleCutSegment(activeSegment.id)
-                }
-              }}
               isFullscreen={timelineHeight > 320}
               onToggleFullscreen={() =>
                 setTimelineHeight((h) => (h > 320 ? DEFAULT_TIMELINE_HEIGHT : 420))
@@ -1278,7 +1280,7 @@ function CropFrame({ rect, onChange }: { rect: CropRect; onChange: (rect: CropRe
   </div>
 }
 
-function ToolPanel({ activeTool, treatment, captionsVisible, cropEnabled, fitMode, onTreatment, onToggleCaptions, onToggleCrop, onToggleFit, onPickSource }: { activeTool: MotionToolId; treatment: PreviewTreatment; captionsVisible: boolean; cropEnabled: boolean; fitMode: 'fill' | 'fit'; onTreatment: (value: PreviewTreatment) => void; onToggleCaptions: () => void; onToggleCrop: () => void; onToggleFit: () => void; onPickSource: () => void }) {
+function ToolPanel({ aspectRatio, onAspectRatioChange, onResetCrop, activeTool, treatment, captionsVisible, cropEnabled, fitMode, onTreatment, onToggleCaptions, onToggleCrop, onToggleFit, onPickSource }: { aspectRatio: number; onAspectRatioChange: (ratio: number) => void; onResetCrop: () => void; activeTool: MotionToolId; treatment: PreviewTreatment; captionsVisible: boolean; cropEnabled: boolean; fitMode: 'fill' | 'fit'; onTreatment: (value: PreviewTreatment) => void; onToggleCaptions: () => void; onToggleCrop: () => void; onToggleFit: () => void; onPickSource: () => void }) {
   const content = activeTool === 'enhance' ? (
     <div className="flex flex-wrap items-center gap-2">
       <span className="text-[10px] uppercase tracking-wider text-white/40 mr-1">Look & Grade:</span>
@@ -1361,6 +1363,8 @@ function ToolPanel({ activeTool, treatment, captionsVisible, cropEnabled, fitMod
         type="button"
         className="inline-flex min-h-8 items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1 text-xs text-white/70 hover:border-white/20 hover:text-white transition-all"
         title="16:9 Landscape"
+        onClick={() => onAspectRatioChange(16 / 9)}
+        aria-pressed={Math.abs(aspectRatio - 16 / 9) < 0.001}
       >
         <Monitor className="size-3.5 text-blue-400" />
         <span>16:9</span>
@@ -1369,6 +1373,8 @@ function ToolPanel({ activeTool, treatment, captionsVisible, cropEnabled, fitMod
         type="button"
         className="inline-flex min-h-8 items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1 text-xs text-white/70 hover:border-white/20 hover:text-white transition-all"
         title="9:16 Portrait"
+        onClick={() => onAspectRatioChange(9 / 16)}
+        aria-pressed={Math.abs(aspectRatio - 9 / 16) < 0.001}
       >
         <Smartphone className="size-3.5 text-emerald-400" />
         <span>9:16</span>
@@ -1377,10 +1383,13 @@ function ToolPanel({ activeTool, treatment, captionsVisible, cropEnabled, fitMod
         type="button"
         className="inline-flex min-h-8 items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1 text-xs text-white/70 hover:border-white/20 hover:text-white transition-all"
         title="1:1 Square"
+        onClick={() => onAspectRatioChange(1)}
+        aria-pressed={Math.abs(aspectRatio - 1) < 0.001}
       >
         <Square className="size-3.5 text-purple-400" />
         <span>1:1</span>
       </button>
+      <button type="button" onClick={onResetCrop} className="inline-flex min-h-8 items-center gap-1.5 rounded-lg border border-white/10 px-2.5 text-xs text-white/70" aria-label="Reset crop"><RotateCcw className="size-3.5" /> Reset crop</button>
     </div>
   )
   return <div className="mt-2.5 border-t border-white/[0.08] pt-2.5">{content}</div>

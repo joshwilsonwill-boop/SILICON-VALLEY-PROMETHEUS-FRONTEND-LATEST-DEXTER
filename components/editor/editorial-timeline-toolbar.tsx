@@ -32,6 +32,7 @@ export interface EditorialTimelineToolbarProps {
   onRedo?: () => void
   onDeleteClip?: () => void
   onDuplicateClip?: () => void
+  onAddMarker?: () => void
   onToggleSnapping?: () => void
   snapping?: boolean
   isFullscreen?: boolean
@@ -63,6 +64,7 @@ export function EditorialTimelineToolbar({
   onRedo,
   onDeleteClip,
   onDuplicateClip,
+  onAddMarker,
   onToggleSnapping,
   snapping = true,
   isFullscreen = false,
@@ -126,6 +128,7 @@ export function EditorialTimelineToolbar({
         <button
           type="button"
           onClick={onUndo}
+          disabled={!onUndo || !canUndo}
           data-action="undo"
           aria-label="Undo"
           title="Undo (Ctrl+Z)"
@@ -138,6 +141,7 @@ export function EditorialTimelineToolbar({
         <button
           type="button"
           onClick={onRedo}
+          disabled={!onRedo || !canRedo}
           data-action="redo"
           aria-label="Redo"
           title="Redo (Ctrl+Y)"
@@ -150,6 +154,7 @@ export function EditorialTimelineToolbar({
         <button
           type="button"
           onClick={onDeleteClip}
+          disabled={!onDeleteClip}
           data-action="delete-clip"
           aria-label="Delete selected clip"
           title="Delete selected clip (Backspace / Delete)"
@@ -162,6 +167,7 @@ export function EditorialTimelineToolbar({
         <button
           type="button"
           onClick={onDuplicateClip}
+          disabled={!onDuplicateClip}
           data-action="duplicate-clip"
           aria-label="Duplicate selected clip"
           title="Duplicate selected clip (Ctrl+D)"
@@ -174,6 +180,8 @@ export function EditorialTimelineToolbar({
         <button
           type="button"
           data-action="add-marker"
+          onClick={onAddMarker}
+          disabled={!onAddMarker}
           aria-label="Add Timeline Marker"
           title="Add Timeline Marker (M)"
           className="grid size-8 place-items-center rounded-md border border-transparent text-white/55 transition-all hover:border-white/10 hover:bg-white/[0.04] hover:text-white"
