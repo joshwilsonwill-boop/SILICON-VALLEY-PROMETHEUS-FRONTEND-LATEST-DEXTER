@@ -1,6 +1,8 @@
 import {NextResponse} from 'next/server'
 
+import {fetchMiniRunMedia} from '@/lib/server/mini-run-delivery'
 import {resolveMiniRunConfig} from '@/lib/server/mini-run-proxy'
+import {createClient} from '@/lib/supabase/server'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -30,13 +32,19 @@ function outputUrlFromPayload(payload: unknown): string | null {
   return outputUrlFromPayload(record.returnvalue ?? record.response ?? null)
 }
 
-export async function GET(_request: Request, {params}: {params: Promise<{id: string}>}) {
+export async function GET(request: Request, {params}: {params: Promise<{id: string}>}) {
   const {id} = await params
-  if (!safeIdentifierPattern.test(id)) {
+  if (!safeIdentifierPattern.test(id) || id === '.' || id === '..') {
     return NextResponse.json({error: 'Invalid Mini-Run job id.'}, {status: 400})
   }
 
   try {
+    const supabase = await createClient()
+    const {data: {user}, error: authError} = await supabase.auth.getUser()
+    if (authError || !user) {
+      return NextResponse.json({error: 'Unauthorized'}, {status: 401})
+    }
+
     const config = resolveMiniRunConfig({
       MINI_RUN_BACKEND_URL: process.env.MINI_RUN_BACKEND_URL,
       MODAL_PROXY_KEY: process.env.MODAL_PROXY_KEY,
@@ -58,10 +66,12 @@ export async function GET(_request: Request, {params}: {params: Promise<{id: str
     }
 
     const handoffUrl = new URL(location, statusUrl)
-    let mediaResponse = await fetch(handoffUrl, {
-      headers: handoffUrl.origin === config.baseUrl ? upstreamHeaders(config) : undefined,
-      redirect: 'follow',
-      cache: 'no-store',
+    let mediaResponse = await fetchMiniRunMedia({
+      url: handoffUrl.toString(),
+      backendBaseUrl: config.baseUrl,
+      proxyHeaders: upstreamHeaders(config),
+      range: request.headers.get('range'),
+      allowedHosts: process.env.MINI_RUN_OUTPUT_ALLOWED_HOSTS,
     })
     if (!mediaResponse.ok || !mediaResponse.body) {
       return NextResponse.json(
@@ -76,11 +86,12 @@ export async function GET(_request: Request, {params}: {params: Promise<{id: str
       if (!outputUrl) {
         return NextResponse.json({error: 'Mini-Run handoff returned no MP4 URL.'}, {status: 502})
       }
-      const mediaUrl = new URL(outputUrl, handoffUrl)
-      mediaResponse = await fetch(mediaUrl, {
-        headers: mediaUrl.origin === config.baseUrl ? upstreamHeaders(config) : undefined,
-        redirect: 'follow',
-        cache: 'no-store',
+      mediaResponse = await fetchMiniRunMedia({
+        url: outputUrl,
+        backendBaseUrl: config.baseUrl,
+        proxyHeaders: upstreamHeaders(config),
+        range: request.headers.get('range'),
+        allowedHosts: process.env.MINI_RUN_OUTPUT_ALLOWED_HOSTS,
       })
       if (!mediaResponse.ok || !mediaResponse.body) {
         return NextResponse.json(
@@ -95,6 +106,7 @@ export async function GET(_request: Request, {params}: {params: Promise<{id: str
       const value = mediaResponse.headers.get(name)
       if (value) headers.set(name, value)
     }
+    headers.set('Cache-Control', 'private, no-store')
     if (!headers.has('content-type')) headers.set('content-type', 'video/mp4')
 
     return new Response(mediaResponse.body, {

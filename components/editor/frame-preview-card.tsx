@@ -57,12 +57,22 @@ export function FramePreviewCard({
     >
       <div className="flex items-start gap-3">
         <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-[14px] border border-white/8 bg-white/[0.03]">
-          {resolvedThumbnailUrl ? (
+          {isQueueing || isQueued ? (
+            <video
+              src="/loaders/cinematic-loader.webm"
+              autoPlay
+              loop
+              muted
+              playsInline
+              preload="auto"
+              className="h-full w-full object-cover"
+            />
+          ) : resolvedThumbnailUrl ? (
             <Image src={resolvedThumbnailUrl} alt="" fill className="object-cover" sizes="56px" />
           ) : (
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_28%,rgba(127,242,212,0.18)_0%,rgba(127,242,212,0)_34%),linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.02)_100%)]" />
           )}
-          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0)_0%,rgba(0,0,0,0.42)_100%)]" />
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0)_0%,rgba(0,0,0,0.42)_100%)] pointer-events-none" />
           <div className="absolute inset-x-0 bottom-0 h-px bg-[linear-gradient(90deg,rgba(255,255,255,0)_0%,rgba(127,242,212,0.74)_50%,rgba(255,255,255,0)_100%)]" />
         </div>
 

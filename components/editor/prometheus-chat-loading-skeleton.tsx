@@ -2,17 +2,32 @@
 
 import { motion, useReducedMotion } from "framer-motion"
 import { ThinkingOrb } from "thinking-orbs"
+import { CinematicSkeletalLoader } from "@/components/loading-animation"
 
 import { cn } from "@/lib/utils"
 
 export function PrometheusChatLoadingSkeleton({
-  label = "Prometheus is preparing a response",
+  label = "Jarvis is preparing a response...",
   className,
+  showCinematicVideo = true,
 }: {
   label?: string
   className?: string
+  showCinematicVideo?: boolean
 }) {
   const reduceMotion = useReducedMotion()
+
+  if (showCinematicVideo) {
+    return (
+      <div className={cn("w-full py-1", className)}>
+        <CinematicSkeletalLoader
+          variant="chat"
+          label={label}
+          sublabel="Processing directive with Modal..."
+        />
+      </div>
+    )
+  }
 
   return (
     <div

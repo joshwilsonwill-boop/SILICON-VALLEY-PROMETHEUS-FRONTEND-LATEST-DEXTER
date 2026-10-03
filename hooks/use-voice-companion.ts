@@ -97,6 +97,7 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
   const [lastResponseText, setLastResponseText] = useState('')
   const recoveryRef = useRef(new ResponseRecovery())
   const connectionGenerationRef = useRef(0)
+  const inspectedMusicVideoRef = useRef<string | null>(null)
   const fetchAbortRef = useRef<AbortController | null>(null)
   const capturedAudioRef = useRef<Blob | null>(null)
   const localInterruptRef = useRef(false)
@@ -226,11 +227,16 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
           const inspectingClient = clientRef.current
           autonomousCoordinator.setPillMode('waiting', 'Inspecting source video')
           try {
-            return await inspectVoiceVideo(
+            const result = await inspectVoiceVideo(
               () => handlersRef.current,
               (frame) => inspectingClient?.sendVisualFrame(frame),
               { isSessionActive: () => clientRef.current === inspectingClient && (inspectingClient?.isConnected() ?? false) },
             )
+            const inspectedBridge = handlersRef.current
+            if (result.success && inspectedBridge.hasVideo && inspectedBridge.sourceAssetId) {
+              inspectedMusicVideoRef.current = `${inspectedBridge.projectId ?? ''}:${inspectedBridge.sourceAssetId}`
+            }
+            return result
           } finally {
             // Inspection does not own a persistent cursor badge or moving scrim.
             if (clientRef.current === inspectingClient) autonomousCoordinator.abortAction('cancelled')
@@ -263,6 +269,18 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
 
         case 'autonomous_music_action': {
           const action = args.action as VoiceMusicActionArgs['action']
+          const exactSong = typeof args.trackName === 'string' && args.trackName.trim() || typeof args.trackTitle === 'string' && args.trackTitle.trim() || typeof args.trackId === 'string' && args.trackId.trim()
+          const needsVideoUnderstanding = ['search', 'select', 'select_and_preview'].includes(action ?? '') && !exactSong
+          const musicBridge = handlersRef.current
+          if (needsVideoUnderstanding) {
+            if (!musicBridge.hasVideo || !musicBridge.sourceAssetId) {
+              return { success: false, error: 'Add a playable source video before I choose music to fit the footage.' }
+            }
+            const sourceKey = `${musicBridge.projectId ?? ''}:${musicBridge.sourceAssetId}`
+            if (inspectedMusicVideoRef.current !== sourceKey) {
+              return { success: false, error: 'Inspect the current video first, then search for music using what the footage shows.' }
+            }
+          }
           if (action === 'select' || action === 'select_and_preview') {
             const access = await requireEditingAccess()
             if (!access.success) return access
@@ -271,9 +289,27 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
             action,
             trackId: typeof args.trackId === 'string' ? args.trackId : undefined,
             trackName: typeof args.trackName === 'string' ? args.trackName : typeof args.trackTitle === 'string' ? args.trackTitle : undefined,
+            recommendation: args.recommendation === true,
             query: typeof args.query === 'string' ? args.query : typeof args.genreOrMood === 'string' ? args.genreOrMood : undefined,
             context: handlersRef.current.videoMusicContext,
           }, getCurrentHandlers)
+        }
+
+        case 'create_video_thumbnail': {
+          const handlers = handlersRef.current
+          if (!handlers.hasVideo) return { success: false, error: 'There is no playable source video in this project yet.' }
+          if (!onApplyActions) return { success: false, error: 'Thumbnail Studio is not connected to this editor.' }
+          const headline = typeof args.headline === 'string' ? args.headline.trim().slice(0, 64) : ''
+          const creativeDirection = typeof args.creativeDirection === 'string' ? args.creativeDirection.trim().slice(0, 500) : ''
+          if (!headline || !creativeDirection) return { success: false, error: 'I need a grounded headline and creative direction before starting thumbnail generation.' }
+          await onApplyActions([{
+            kind: 'open_thumbnail_studio',
+            headline,
+            creativeDirection,
+            generateNow: true,
+            summary: 'Generate a thumbnail for this video',
+          }])
+          return { success: true, generationStarted: true, headline, message: 'Thumbnail Studio opened and image generation was started. Report the image as ready only after the studio confirms completion.' }
         }
 
         case 'reference_video_style': {

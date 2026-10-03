@@ -49,6 +49,8 @@ export interface VoiceCompanionBridgeHandlers {
   getActiveWorkspaceTab?: () => 'Editor' | 'Music' | 'Motion'
   onSelectMusicTrack?: (trackId: string) => Promise<VoiceActionResult> | VoiceActionResult | void
   onPlayMusicPreview?: (trackId: string) => Promise<VoiceActionResult> | VoiceActionResult | void
+  onStopMusicPlayback?: () => Promise<VoiceActionResult> | VoiceActionResult
+  onSetMusicMuted?: (muted: boolean) => Promise<VoiceActionResult> | VoiceActionResult
   /** Capture the current decoded source frame as a JPEG data URL for live visual analysis. */
   captureVideoFrame?: (timeSec: number) => Promise<string | null>
   /** Inferred video mood, tempo, and audio energy context */

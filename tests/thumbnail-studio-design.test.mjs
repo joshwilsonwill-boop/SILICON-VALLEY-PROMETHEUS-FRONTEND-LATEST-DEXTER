@@ -4,6 +4,8 @@ import test from 'node:test'
 import { DEFAULT_STUDIO_DESIGN, STUDIO_BACKGROUNDS, parseStudioDesign, buildStudioArtDirection, resolveStudioImageModel, resolveStudioImageSize } from '../lib/thumbnails/studio-art-direction.ts'
 import { buildNanoBananaImageRequest, extractGeneratedImage } from '../lib/thumbnails/nano-banana-image.ts'
 import { readThumbnailGenerationResponse } from '../lib/thumbnails/thumbnail-response.ts'
+import { applyThumbnailCreativeDirection } from '../lib/thumbnails/creative-direction.ts'
+import { buildThumbnailPromptPlannerText, THUMBNAIL_PROMPT_PLANNER_INSTRUCTIONS } from '../lib/thumbnails/retention-prompt.ts'
 import { compactGeneratedThumbnail, MAX_THUMBNAIL_DATA_URL_BYTES } from '../lib/thumbnails/thumbnail-output.ts'
 import { getThumbnailRequestByteLength, isThumbnailRequestWithinBudget, MAX_THUMBNAIL_REQUEST_BYTES } from '../lib/thumbnails/thumbnail-request.ts'
 import { THUMBNAIL_CLIENT_TIMEOUT_MS, THUMBNAIL_PROVIDER_TIMEOUT_MS, THUMBNAIL_ROUTE_MAX_DURATION_SECONDS } from '../lib/thumbnails/thumbnail-runtime.ts'
@@ -86,7 +88,7 @@ test('thinking images are skipped and only finished artwork is exported', () => 
 })
 
 test('HTML gateway pages produce a recoverable message and valid JSON artwork survives parsing', async () => {
-  await assert.rejects(readThumbnailGenerationResponse(new Response('<!DOCTYPE html><title>Gateway</title>', { status: 502, headers: { 'Content-Type': 'text/html', 'x-vercel-error': 'NO_RESPONSE_FROM_FUNCTION', 'x-vercel-id': 'sfo1::abc-123' } })), /HTTP 502, text\/html.*Vercel details: NO_RESPONSE_FROM_FUNCTION, request sfo1::abc-123.*Check the Vercel function logs/)
+  await assert.rejects(readThumbnailGenerationResponse(new Response('<!DOCTYPE html><title>Gateway</title>', { status: 502, headers: { 'Content-Type': 'text/html', 'x-vercel-error': 'NO_RESPONSE_FROM_FUNCTION', 'x-vercel-id': 'sfo1::abc-123' } })), /HTTP 502, text\/html.*Request reference: NO_RESPONSE_FROM_FUNCTION, request sfo1::abc-123.*Check the matching Vercel function logs/)
   await assert.rejects(readThumbnailGenerationResponse(new Response('<!DOCTYPE html><title>Payload too large</title>', { status: 413, headers: { 'Content-Type': 'text/html' } })), /request as too large \(HTTP 413\)/)
   assert.deepEqual(await readThumbnailGenerationResponse(Response.json({ dataUrl: 'data:image/png;base64,YQ==' })), { dataUrl: 'data:image/png;base64,YQ==' })
 })
@@ -100,4 +102,17 @@ test('user headline, color, and no-emphasis choices stay authoritative', () => {
   assert.ok(prompt.includes('selected visual reference as the primary composition'))
   assert.ok(prompt.includes('Never add a sample slogan'))
   assert.ok(buildStudioArtDirection(DEFAULT_STUDIO_DESIGN, 'My hook', '', 'warm film portrait with hand-drawn notes').includes('warm film portrait with hand-drawn notes'))
+})
+
+test('creator brief wording and sequence are carried into planning and final provider prompt', () => {
+  const brief = 'Put the host on the right, then place the cracked phone on the left, and keep the headline at the top.'
+  const plannerText = buildThumbnailPromptPlannerText({ projectTitle: 'Repair story', transcriptSnippet: '', headline: 'FIX IT', creativeDirection: brief, aspectRatio: '16:9', referenceCue: '' })
+  const finalPrompt = applyThumbnailCreativeDirection('Preset direction', brief)
+
+  assert.ok(plannerText.includes(`Creator brief (follow each request in this written order): ${brief}`))
+  assert.ok(THUMBNAIL_PROMPT_PLANNER_INSTRUCTIONS.includes('Preserve every explicit creator request in the order written'))
+  assert.ok(finalPrompt.includes(JSON.stringify(brief)))
+  assert.ok(finalPrompt.includes('follow each explicit request in the order written'))
+  assert.ok(finalPrompt.indexOf('Preset direction') < finalPrompt.indexOf('Put the host on the right'))
+  assert.ok(finalPrompt.includes('represent them together in the requested order and composition'))
 })

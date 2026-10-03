@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Mic, MicOff, Sparkles, X, ArrowUp, Power, Download } from 'lucide-react'
+import { Mic, MicOff, MousePointer2, Sparkles, X, ArrowUp, Power, Download } from 'lucide-react'
 import { Dock, DockItem, DockLabel, DockIcon } from '@/components/ui/dock'
 
 import { cn } from '@/lib/utils'
@@ -431,25 +431,28 @@ export function JarvisTopNavFilament({ className }: JarvisTopNavFilamentProps) {
                       }
                     }
                   }}
-                  title={isEditorLinked ? (bridge.isTakeoverEnabled ? 'Stop Jarvis editing' : 'Allow Jarvis to edit') : 'Open a project to enable Jarvis editing'}
-                  aria-label={isEditorLinked ? (bridge.isTakeoverEnabled ? 'Stop Jarvis editing' : 'Allow Jarvis to edit') : 'Jarvis editing unavailable'}
+                  title={isEditorLinked ? (bridge.isTakeoverEnabled ? 'Stop Jarvis editing' : 'Let Jarvis edit') : 'Open a project to enable Jarvis editing'}
+                  aria-label={isEditorLinked ? (bridge.isTakeoverEnabled ? 'Stop Jarvis editing' : 'Let Jarvis edit') : 'Jarvis editing unavailable'}
                   data-state={isTakeoverEnabled ? 'on' : 'off'}
                   className={cn(
                     "cursor-pointer border transition-colors duration-200",
                     !isEditorLinked
                       ? "cursor-not-allowed border-white/10 bg-white/[0.025] text-white/35"
                       : isTakeoverEnabled
-                      ? "border-emerald-300/80 bg-emerald-300/20 text-emerald-100 shadow-[0_0_14px_rgba(52,211,153,0.35)]"
-                      : "border-white/25 bg-white/[0.08] text-white/85 hover:border-white/50 hover:bg-white/[0.14]"
+                      ? "border-emerald-200/55 bg-emerald-200/[0.12] text-emerald-100"
+                      : "border-white/20 bg-white/[0.045] text-white/75 hover:border-white/35 hover:bg-white/[0.09]"
                   )}
                 >
-                  <DockLabel>{isEditorLinked ? (isTakeoverEnabled ? 'Editing access ON — stop Jarvis' : 'Editing access OFF — allow Jarvis') : 'Open a project to enable editing'}</DockLabel>
+                  <DockLabel>{isEditorLinked ? (isTakeoverEnabled ? 'Jarvis is editing · stop' : 'Let Jarvis edit') : 'Open a project to enable editing'}</DockLabel>
                   <DockIcon className="relative">
-                    <Sparkles className="size-4" />
-                    <span className={cn(
-                      'absolute -bottom-2 hidden rounded px-1.5 text-[9px] font-extrabold leading-[12px] tracking-wide shadow-sm',
-                      !isEditorLinked ? 'bg-zinc-500 text-black' : isTakeoverEnabled ? 'bg-emerald-200 text-emerald-950' : 'bg-zinc-200 text-zinc-950',
-                    )}>{isTakeoverEnabled ? 'EDIT ON' : 'EDIT OFF'}</span>
+                    <MousePointer2 className="size-4" strokeWidth={1.7} />
+                    <span
+                      aria-hidden="true"
+                      className={cn(
+                        'absolute -bottom-0.5 -right-0.5 size-1.5 rounded-full border border-[#080a0d]',
+                        !isEditorLinked ? 'bg-zinc-500' : isTakeoverEnabled ? 'bg-emerald-300' : 'bg-white/35',
+                      )}
+                    />
                   </DockIcon>
                 </DockItem>
 

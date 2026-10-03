@@ -10,7 +10,6 @@ import { CookieConsentBanner } from '@/components/cookie-consent/banner'
 import { ConsentGatedAnalytics } from '@/components/cookie-consent/consent-gated-analytics'
 import { CookieConsentProvider } from '@/components/cookie-consent/consent-context'
 import { JarvisTopNavFilament } from '@/components/navigation/jarvis-top-nav-filament'
-import { AgenticCursorLayer } from '@/components/editor/autonomous/agentic-cursor-layer'
 import './globals.css'
 import './premium-vignette.css'
 
@@ -144,7 +143,6 @@ export default async function RootLayout({
           <LoadingProvider>
             <AuthProvider>
               <JarvisTopNavFilament />
-              <AgenticCursorLayer />
               <div className="relative z-10">
                 <RootLayoutFrame>{children}</RootLayoutFrame>
               </div>

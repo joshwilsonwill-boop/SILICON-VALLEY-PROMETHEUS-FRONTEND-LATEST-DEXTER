@@ -13,3 +13,8 @@ Scope: Make the selected fast/pro quality match the requested render resolution 
   CHECK: npm.cmd run typecheck
   EXPECT: typecheck passed
   EVIDENCE: automatic-evidence=v1; definition-sha256=56b8397f882f4f2eadc0c80ea6715604685447378d3170601b74e5c567ac8ef1; exit=0; EXPECT=matched; output-sha256=2c4af01fb1a5f9597841244575659986624ce8ada13bbc89dce9491fd48c4a46; output-bytes=93; shell=C:\Windows\system32\cmd.exe; cwd=C:\Users\HomePC\Documents\THE FRONT END, PROMETHEUS; path=daf53fd1173d/38 entries
+
+- [x] G3: Creator instructions and their written order survive planner and image-prompt assembly
+  CHECK: node --test tests/thumbnail-studio-design.test.mjs
+  EXPECT: pass 11
+  EVIDENCE: automatic-evidence=v1; definition-sha256=843e9d572569fcf3aaf811b8cc68d83da164eedcd6108596b26c1158543033ca; exit=0; EXPECT=matched; output-sha256=8c540016192ce0223f3023430155644b32c829997b07f89eb85152929bc58ce9; output-bytes=1616; shell=C:\Windows\system32\cmd.exe; cwd=C:\Users\HomePC\Documents\THE FRONT END, PROMETHEUS; path=106950682d34/38 entries

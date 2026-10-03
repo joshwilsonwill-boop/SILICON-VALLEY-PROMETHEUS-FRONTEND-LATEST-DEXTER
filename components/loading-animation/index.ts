@@ -13,3 +13,7 @@ export type {
   RingParams,
   RingRendererOptions,
 } from './types'
+export {
+  CinematicSkeletalLoader,
+  type CinematicSkeletalLoaderProps,
+} from './cinematic-skeletal-loader'

@@ -221,7 +221,11 @@ export function createMiniRunClient(fetchImpl: FetchLike = fetch) {
       const envelope = await jsonRequest<MiniRunJobEnvelope>(
         `/api/pipeline/job/${identifier(jobId, 'job ID')}`,
       )
-      return normalizeEnvelope(envelope)
+      const status = normalizeEnvelope(envelope)
+      if (status.outputUrl && safeIdentifierPattern.test(jobId) && jobId !== '.' && jobId !== '..') {
+        status.outputUrl = `/api/mini-run/job/${encodeURIComponent(jobId)}/output`
+      }
+      return status
     },
 
     dispatchLongform: async (request: MiniRunLongformRequest) => {
@@ -258,7 +262,14 @@ export function createMiniRunClient(fetchImpl: FetchLike = fetch) {
       const state = envelope.state ?? envelope.status ?? 'unknown'
       const status = envelope.status ?? envelope.state ?? 'unknown'
       const ret = envelope.returnvalue ?? null
-      const clips = ret?.clips ?? []
+      const clips = (ret?.clips ?? []).map((clip) => ({
+        ...clip,
+        // Keep Modal/R2 handoff URLs on the server. The authenticated output
+        // route resolves the clip's final media URL when the browser requests it.
+        outputUrl: clip.success && safeIdentifierPattern.test(clip.jobId) && clip.jobId !== '.' && clip.jobId !== '..'
+          ? `/api/mini-run/job/${encodeURIComponent(clip.jobId)}/output`
+          : undefined,
+      }))
 
       return {
         batchJobId: envelope.batchJobId ?? batchJobId,

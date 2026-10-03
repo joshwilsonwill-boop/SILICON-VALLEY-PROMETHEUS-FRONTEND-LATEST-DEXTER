@@ -10,11 +10,11 @@ type ImageEditSize = {
 }
 
 const IMAGE_EDIT_SIZES: Record<ThumbnailAspectRatio, ImageEditSize> = {
-  '9:16': { fast: '576x1024', pro: '864x1536' },
-  '2:3': { fast: '672x1024', pro: '1024x1536' },
-  '1:1': { fast: '1024x1024', pro: '1536x1536' },
-  '3:2': { fast: '960x640', pro: '1536x1024' },
-  '16:9': { fast: '1024x576', pro: '1536x864' },
+  '9:16': { fast: '648x1152', pro: '864x1536' },
+  '2:3': { fast: '704x1056', pro: '1024x1536' },
+  '1:1': { fast: '816x816', pro: '1536x1536' },
+  '3:2': { fast: '1056x704', pro: '1536x1024' },
+  '16:9': { fast: '1152x648', pro: '1536x864' },
 }
 
 const IMAGE_DATA_URL_PATTERN = /^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/
@@ -26,18 +26,21 @@ export type OpenAIImageEditRequest = {
   size: string
   quality: 'medium' | 'high'
   output_format: 'png'
+  /** Retained in the internal descriptor for compatibility; GPT Image 2 FormData omits it. */
   input_fidelity: 'high'
   n: 1
 }
 
-export function buildOpenAIImageEditRequest(input: {
+export type OpenAIImageEditInput = {
   model?: string
   prompt: string
   frameDataUrl: string
   referenceImages?: string[]
   aspectRatio: ThumbnailAspectRatio
   quality: ThumbnailQuality
-}): OpenAIImageEditRequest {
+}
+
+export function buildOpenAIImageEditRequest(input: OpenAIImageEditInput): OpenAIImageEditRequest {
   if (!IMAGE_DATA_URL_PATTERN.test(input.frameDataUrl)) {
     throw new Error('A valid video frame is required to generate a thumbnail.')
   }
@@ -57,6 +60,33 @@ export function buildOpenAIImageEditRequest(input: {
     input_fidelity: 'high',
     n: 1,
   }
+}
+
+/** Build the multipart transport required by OpenAI-compatible image edit APIs. */
+export function buildOpenAIImageEditFormData(input: OpenAIImageEditInput): FormData {
+  const request = buildOpenAIImageEditRequest(input)
+  const form = new FormData()
+  form.append('model', request.model)
+  form.append('prompt', request.prompt)
+  form.append('size', request.size)
+  form.append('quality', request.quality)
+  form.append('output_format', request.output_format)
+  form.append('n', String(request.n))
+
+  request.images.forEach((image, index) => {
+    const parsed = parseImageDataUrl(image.image_url)!
+    const bytes = Uint8Array.from(Buffer.from(parsed.data, 'base64'))
+    const extension = parsed.mimeType === 'image/jpeg' ? 'jpg' : parsed.mimeType.split('/')[1]
+    form.append('image[]', new Blob([bytes], { type: parsed.mimeType }), `${index === 0 ? 'video-frame' : `style-reference-${index}`}.${extension}`)
+  })
+
+  return form
+}
+
+function parseImageDataUrl(value: string): { mimeType: string; data: string } {
+  const match = /^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/=]+)$/.exec(value)
+  if (!match) throw new Error('A valid image is required to generate a thumbnail.')
+  return { mimeType: match[1], data: match[2] }
 }
 
 export function resolveOpenAIImageEditEndpoint(baseUrl?: string) {

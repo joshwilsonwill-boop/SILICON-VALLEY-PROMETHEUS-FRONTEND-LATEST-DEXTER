@@ -4036,12 +4036,12 @@ const ChatWorkspacePanel = React.memo(function ChatWorkspacePanel({
   }, [musicPreviewVolume, musicStorageReady, projectId])
 
   React.useEffect(() => {
-    if (!queuedPreviewRevision) return
+    if (!queuedPreviewRevision || queuedPreviewRevision.status !== 'completed') return
 
     const timeoutId = window.setTimeout(() => {
       queuedPreviewRequestTokenRef.current = null
       setQueuedPreviewRevision(null)
-    }, 8500)
+    }, 12000)
 
     return () => window.clearTimeout(timeoutId)
   }, [queuedPreviewRevision])
@@ -5485,7 +5485,12 @@ const ChatWorkspacePanel = React.memo(function ChatWorkspacePanel({
           status: 'queueing',
         })
 
-        void queuePreviewRevisionRequest(enrichedRevisionRequest)
+        void queuePreviewRevisionRequest(enrichedRevisionRequest, {
+          projectId,
+          sourceUrl: previewUrl || undefined,
+          startFrame: enrichedRevisionRequest.frameTarget.startFrame,
+          endFrame: enrichedRevisionRequest.frameTarget.endFrame,
+        })
           .then((queuedState) => {
             if (queuedPreviewRequestTokenRef.current !== previewRequestToken) return
             setQueuedPreviewRevision(queuedState)
@@ -5510,7 +5515,7 @@ const ChatWorkspacePanel = React.memo(function ChatWorkspacePanel({
       setPendingChatAttachments([])
       setDraft('')
     },
-    [pendingChatAttachments, submitMessage],
+    [pendingChatAttachments, previewUrl, projectId, submitMessage],
   )
 
   const clearQueuedPreviewRevision = React.useCallback(() => {
@@ -7771,6 +7776,20 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
     }
   }, [])
 
+  const handleVoiceMusicStop = React.useCallback((): VoiceActionResult => {
+    const previewAudio = voiceMusicPreviewRef.current
+    previewAudio?.pause()
+    if (previewAudio) previewAudio.currentTime = 0
+    const soundtrackAudio = soundtrackAudioRef.current
+    soundtrackAudio?.pause()
+    return { success: true, summary: 'Music playback stopped.' }
+  }, [])
+
+  const handleVoiceMusicMutedChange = React.useCallback((muted: boolean): VoiceActionResult => {
+    handleSoundtrackMutedChange(muted)
+    return { success: true, summary: muted ? 'The soundtrack was muted.' : 'The soundtrack was unmuted.' }
+  }, [handleSoundtrackMutedChange])
+
   const handleVoiceReferenceStyle = React.useCallback(async (style: AppliedReferenceStyle) => {
     if (!hasPlayableVideo || !project?.sourceAssetId) return { success: false, summary: 'Open a ready source video before applying a reference look.' }
     return applyReferenceStyleToController(getEditorialTimelineController(projectId), style)
@@ -8837,6 +8856,8 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
       searchMusicTracks: handleVoiceMusicSearch,
       onSelectMusicTrack: handleVoiceMusicSelect,
       onPlayMusicPreview: handleVoiceMusicPreview,
+      onStopMusicPlayback: handleVoiceMusicStop,
+      onSetMusicMuted: handleVoiceMusicMutedChange,
     })
     return () => {
       unregisterVoiceCompanionBridge()
@@ -8857,6 +8878,8 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
     handleVoiceMusicSearch,
     handleVoiceMusicSelect,
     handleVoiceMusicPreview,
+    handleVoiceMusicStop,
+    handleVoiceMusicMutedChange,
     handleVoiceReferenceStyle,
     handleVoiceEditorialPlan,
     projectId,

@@ -1,6 +1,5 @@
 'use client'
 
-import { useEffect } from 'react'
 import dynamic from 'next/dynamic'
 import { usePathname } from 'next/navigation'
 import { useActivityDetector } from '@/hooks/useActivityDetector'
@@ -8,7 +7,6 @@ import { usePasteDetector } from '@/hooks/usePasteDetector'
 import { useUserPreferencesHydrator } from '@/hooks/use-user-preferences'
 import { useDeferredEnhancementsReady } from '@/hooks/use-deferred-enhancements-ready'
 import { ThemeInjector } from '@/components/theme/theme-injector'
-import { autonomousCoordinator } from '@/lib/autonomous-ui/coordinator'
 
 const AppToaster = dynamic(() => import('@/components/ui/app-toaster').then((mod) => mod.AppToaster), {
   ssr: false,
@@ -43,6 +41,13 @@ const CinematicOnboarding = dynamic(
   { ssr: false },
 )
 
+// Autonomous editor controls are only used inside the editor. Keep their
+// coordinator and session UI out of every other route's client bundle.
+const AgenticCursorLayer = dynamic(
+  () => import('@/components/editor/autonomous/agentic-cursor-layer').then((mod) => mod.AgenticCursorLayer),
+  { ssr: false },
+)
+
 const AUTH_ROUTE_REGEX = /^\/(?:login|signup|verify|forgot-password|reset-password|terms|privacy|refund|cookie-policy)(?:\/|$)/
 
 function UserPreferencesHydrator() {
@@ -61,16 +66,10 @@ export function RootClientEffects() {
   useActivityDetector()
   usePasteDetector()
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      ;(window as unknown as { autonomousCoordinator?: typeof autonomousCoordinator }).autonomousCoordinator =
-        autonomousCoordinator
-    }
-  }, [])
-
   return (
     <>
       <ThemeInjector />
+      {isEditorRoute ? <AgenticCursorLayer /> : null}
       {enhancementsReady && (
         <>
           {isEditorRoute ? null : <LuxuryMotionController />}

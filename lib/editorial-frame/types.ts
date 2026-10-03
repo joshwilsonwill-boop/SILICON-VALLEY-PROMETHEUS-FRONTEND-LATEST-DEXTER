@@ -138,7 +138,9 @@ export interface QueuedPreviewRevisionState {
   request: EditorialRevisionRequest
   queuedAt: string
   etaMs: number
-  status: 'queueing' | 'queued'
+  status: 'queueing' | 'queued' | 'processing' | 'completed' | 'failed'
+  previewUrl?: string
+  error?: string
 }
 
 export interface FrameAssistSubmission {

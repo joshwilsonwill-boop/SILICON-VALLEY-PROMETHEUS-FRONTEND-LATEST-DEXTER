@@ -373,7 +373,9 @@ export function MotionEditWorkspace({
   })
   const activeTreatment = TREATMENTS.find((item) => item.id === (referenceStyle?.treatment ?? treatment)) ?? TREATMENTS[0]
   const timelineCaptionStyle = editorial.timeline?.captionStyle
-  const effectiveCaptionsVisible = referenceStyle ? referenceStyle.captionStyle !== 'none' : captionsOverride ?? (captionsVisible || Boolean(timelineCaptionStyle ?? captionStyle))
+  const effectiveCaptionsVisible = referenceStyle
+    ? referenceStyle.captionStyle !== 'none'
+    : captionsOverride ?? (captionsVisible || Boolean(timelineCaptionStyle))
   const effectiveCaptionStyle = referenceStyle?.captionStyle === 'none' ? undefined : referenceStyle?.captionStyle ?? timelineCaptionStyle ?? captionStyle ?? 'clean_bold'
   const planMovementScale = editorialMovementScaleAt(editorial.timeline?.cues, currentTimeSec)
   const previewScale = referencePreview.scale * planMovementScale

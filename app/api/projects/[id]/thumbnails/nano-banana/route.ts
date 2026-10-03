@@ -9,7 +9,7 @@ import {
 } from '@/lib/thumbnails/nano-banana-rulebook'
 import { buildNanoBananaImageRequest, extractGeneratedImage, parseImageDataUrl } from '@/lib/thumbnails/nano-banana-image'
 import {
-  buildOpenAIImageEditRequest,
+  buildOpenAIImageEditFormData,
   DEFAULT_THUMBNAIL_IMAGE_MODEL,
   extractOpenAIImageEditResult,
   resolveOpenAIImageEditEndpoint,
@@ -259,6 +259,18 @@ Extract the exact Channel Style DNA (lighting ratios, color contrast, proof card
       const referenceCue = referenceId ? getStudioReference(referenceId).cue : ''
       synthesizedPrompt += '\n\n' + buildStudioArtDirection(studioDesign, headline, body?.highlightWord || '', referenceCue)
 
+      // Keep semantic project context available to image-only deployments too.
+      // The Gemini planner below adds a visual concept when its key is present;
+      // this grounded brief still reaches the image model when it is not.
+      const transcriptContext = typeof body?.transcriptSnippet === 'string' ? body.transcriptSnippet.trim().slice(0, 5000) : ''
+      const projectContext = typeof body?.projectTitle === 'string' ? body.projectTitle.trim().slice(0, 120) : ''
+      synthesizedPrompt += [
+        '\n\nVIDEO CONTEXT FOR ACCURATE CREATIVE DIRECTION:',
+        projectContext ? `Project title: ${projectContext}` : '',
+        transcriptContext ? `Transcript excerpt: ${transcriptContext}` : 'No transcript excerpt is available; use only the supplied frame and creator brief.',
+        'Represent the actual subject and theme. Do not turn transcript lines into extra on-image text, and do not invent claims, results, props, or scenes.',
+      ].filter(Boolean).join('\n')
+
       if (geminiApiKey) {
         try {
           const source = parseImageDataUrl(frameDataUrl)
@@ -295,8 +307,8 @@ Extract the exact Channel Style DNA (lighting ratios, color contrast, proof card
     const imageModel = useOpenAICompatibleImageApi
       ? process.env.THUMBNAIL_IMAGE_MODEL?.trim() || DEFAULT_THUMBNAIL_IMAGE_MODEL
       : studioDesign ? resolveStudioImageModel(studioDesign.quality) : 'gemini-2.5-flash-image'
-    const imageRequest = useOpenAICompatibleImageApi
-      ? buildOpenAIImageEditRequest({
+    const imageBody: BodyInit = useOpenAICompatibleImageApi
+      ? buildOpenAIImageEditFormData({
           model: imageModel,
           prompt: synthesizedPrompt,
           frameDataUrl,
@@ -304,13 +316,13 @@ Extract the exact Channel Style DNA (lighting ratios, color contrast, proof card
           aspectRatio: effectiveAspect,
           quality: studioDesign?.quality ?? 'fast',
         })
-      : buildNanoBananaImageRequest({
+      : JSON.stringify(buildNanoBananaImageRequest({
           prompt: synthesizedPrompt,
           frameDataUrl,
           referenceImages,
           aspectRatio: effectiveAspect,
           ...(studioDesign ? { imageSize: resolveStudioImageSize(studioDesign.quality) } : {}),
-        })
+        }))
     stage = 'image generation'
     const providerStartedAt = Date.now()
     const provider = useOpenAICompatibleImageApi ? 'openai-compatible image group' : 'Google Gemini'
@@ -321,9 +333,9 @@ Extract the exact Channel Style DNA (lighting ratios, color contrast, proof card
     const imageResponse = await fetch(endpoint, {
       method: 'POST',
       headers: useOpenAICompatibleImageApi
-        ? { 'Content-Type': 'application/json', Authorization: `Bearer ${imageApiKey}` }
+        ? { Authorization: `Bearer ${imageApiKey}` }
         : { 'Content-Type': 'application/json', 'x-goog-api-key': geminiApiKey! },
-      body: JSON.stringify(imageRequest),
+      body: imageBody,
       signal: AbortSignal.any([request.signal, AbortSignal.timeout(THUMBNAIL_PROVIDER_TIMEOUT_MS)]),
     })
     const responseContentType = imageResponse.headers.get('content-type') || ''

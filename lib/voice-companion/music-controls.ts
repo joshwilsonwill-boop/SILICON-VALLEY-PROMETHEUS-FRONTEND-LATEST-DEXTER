@@ -12,10 +12,11 @@ export type VoiceActionResult = {
 
 export type VoiceMusicTrack = { id: string; title: string; artist?: string; previewUrl?: string }
 export type VoiceMusicActionArgs = {
-  action?: 'search' | 'preview' | 'select' | 'select_and_preview'
+  action?: 'search' | 'preview' | 'select' | 'select_and_preview' | 'stop' | 'mute' | 'unmute'
   query?: string
   trackName?: string
   trackId?: string
+  recommendation?: boolean
   context?: unknown
 }
 export type VoiceMusicActionResult = VoiceActionResult & {
@@ -45,7 +46,24 @@ export async function performVoiceMusicAction(
     ...(track ? { trackId: track.id, title: track.title } : {}),
   })
   try {
-    if (!['search', 'preview', 'select', 'select_and_preview'].includes(action)) return result(false, 'Unsupported music action.')
+    if (!['search', 'preview', 'select', 'select_and_preview', 'stop', 'mute', 'unmute'].includes(action)) return result(false, 'Unsupported music action.')
+    if (action === 'stop') {
+      const handlers = getHandlers()
+      const setMuted = handlers.onSetMusicMuted
+      if (!handlers.onStopMusicPlayback || !setMuted) return result(false, 'The editor has no music stop control.')
+      const stopped = await handlers.onStopMusicPlayback()
+      if (!stopped?.success) return result(false, stopped?.summary || 'Music playback did not stop.')
+      const muted = await setMuted(true)
+      if (!muted?.success) return result(false, `Music playback stopped, but the soundtrack could not be muted: ${muted?.summary || 'editor did not confirm the change'}`)
+      return result(true, 'Music playback stopped and the soundtrack was muted.')
+    }
+    if (action === 'mute' || action === 'unmute') {
+      const setMuted = getHandlers().onSetMusicMuted
+      if (!setMuted) return result(false, 'The editor has no soundtrack mute control.')
+      const muted = await setMuted(action === 'mute')
+      if (!muted?.success) return result(false, muted?.summary || 'The soundtrack mute state did not change.')
+      return result(true, action === 'mute' ? 'The soundtrack was muted.' : 'The soundtrack was unmuted.')
+    }
     const requestedTitle = (args.trackName || args.query || '').trim()
     if (!args.trackId && !requestedTitle) return result(false, 'Provide a song title or a music search query.')
     let handlers = getHandlers()
@@ -54,16 +72,25 @@ export async function performVoiceMusicAction(
       ? catalog.find((candidate) => candidate.id === args.trackId)
       : catalog.find((candidate) => normalizeTitle(candidate.title) === normalizeTitle(requestedTitle))
     track = findExact()
-    if (handlers.searchMusicTracks && (action === 'search' || !track)) {
-      const searched = await handlers.searchMusicTracks(requestedTitle || args.trackId!)
+    let searched: VoiceMusicTrack[] = []
+    if (handlers.searchMusicTracks && (action === 'search' || !track || args.recommendation)) {
+      searched = await handlers.searchMusicTracks(requestedTitle || args.trackId!)
       catalog = [...catalog, ...searched]
       track = findExact()
     }
+    if (args.recommendation && !args.trackName && !args.trackId && searched.length > 0) {
+      // The search endpoint returns ranked, video-aware recommendations. When
+      // asked to choose the best fit, stage its first result instead of demanding
+      // a literal song-title match against the visual description.
+      track = searched[0]
+    }
     if (action === 'search') {
       const query = normalizeTitle(requestedTitle)
-      const results = [...new Map(catalog.filter((candidate) => normalizeTitle(`${candidate.title} ${candidate.artist ?? ''}`).includes(query)).map((candidate) => [candidate.id, candidate])).values()]
-      // Remote recommendations may be semantic matches. Return them as search results,
-      // but never substitute one for a specifically requested title during selection.
+      const literalMatches = catalog.filter((candidate) => normalizeTitle(`${candidate.title} ${candidate.artist ?? ''}`).includes(query))
+      // Keep the recommendation service's ranked semantic results when their titles
+      // do not repeat the visual/mood description. Exact user title searches remain literal.
+      const matches = literalMatches.length ? literalMatches : searched
+      const results = [...new Map(matches.map((candidate) => [candidate.id, candidate])).values()]
       if (!results.length) return { ...result(false, `No catalog tracks matched "${requestedTitle}".`), results: [] }
       return { ...result(true, `Found ${results.length} matching track${results.length === 1 ? '' : 's'}.`), results }
     }
