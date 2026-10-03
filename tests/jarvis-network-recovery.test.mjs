@@ -185,6 +185,7 @@ function hookHarness() {
     '@/lib/voice-companion/music-controls': { performVoiceMusicAction: async args => { toolCalls.push(args); return { success: true, staged: args.action === 'select', previewStarted: false, summary: 'Track staged.' } } },
     '@/lib/voice-companion/reference-controls': { performVoiceReferenceStyleAction: async args => ({ success: true, summary: 'Reference analyzed.', args }) },
     '@/lib/voice-companion/editing-access': { ensureVoiceEditingAccess: async getHandlers => getHandlers().isTakeoverEnabled ? { success: true } : { success: false, error: 'Editing access unavailable in this harness.' } },
+    '@/lib/media/feedback': { getMediaFailureMessage: err => (err && err.message) || 'Media failure' },
   }
   const source = readFileSync(new URL('../hooks/use-voice-companion.ts', import.meta.url), 'utf8')
   const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText

@@ -4,6 +4,7 @@ import { getAssemblyAITranscriptionStatus } from '@/lib/api/assemblyai'
 import { uploadTranscriptToR2 } from '@/lib/r2/upload-transcript'
 import { R2Keys } from '@/lib/r2/keys'
 import { assemblyTranscriptToSegments } from '@/lib/r2/assembly-transcript'
+import { settleCompute } from '@/lib/compute/credits'
 
 export async function POST(
   req: Request,
@@ -41,6 +42,7 @@ export async function POST(
 
     // If already completed, return current state
     if (asset.transcript_status === 'completed') {
+      if (asset.transcript_credit_request_id) await settleCompute(user.id, asset.transcript_credit_request_id, 'completed')
       return NextResponse.json({ status: 'completed', r2Key: asset.transcript_r2_key })
     }
 
@@ -67,6 +69,7 @@ export async function POST(
     } catch (pollErr) {
       const errMsg = pollErr instanceof Error ? pollErr.message : String(pollErr)
       if (errMsg.includes('404') || errMsg.toLowerCase().includes('not found')) {
+        if (asset.transcript_credit_request_id) await settleCompute(user.id, asset.transcript_credit_request_id, 'refunded')
         console.warn(`[api/assets/[id]/transcript/sync] AssemblyAI job ${asset.transcript_job_id} not found. Resetting asset to idle to dispatch a fresh job.`)
         await supabase
           .from('source_assets')
@@ -97,6 +100,7 @@ export async function POST(
     if (assemblyResponse.status === 'completed') {
       const segments = assemblyTranscriptToSegments(assemblyResponse as unknown as Record<string, unknown>)
       if (segments.length === 0) {
+        if (asset.transcript_credit_request_id) await settleCompute(user.id, asset.transcript_credit_request_id, 'refunded')
         const providerText = typeof assemblyResponse.text === 'string' ? assemblyResponse.text.trim() : ''
         const errorMessage = providerText
           ? 'AssemblyAI completed without timed transcript data. Please retry transcription.'
@@ -146,10 +150,12 @@ export async function POST(
           .eq('id', assetId)
       }
 
+      if (asset.transcript_credit_request_id) await settleCompute(user.id, asset.transcript_credit_request_id, 'completed')
       return NextResponse.json({ status: 'completed', r2Key, segments })
     }
 
     if (assemblyResponse.status === 'error') {
+      if (asset.transcript_credit_request_id) await settleCompute(user.id, asset.transcript_credit_request_id, 'refunded')
       stage = 'persist_provider_error'
       await supabase
         .from('source_assets')

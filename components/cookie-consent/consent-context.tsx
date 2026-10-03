@@ -32,17 +32,33 @@ export function CookieConsentProvider({ children }: { children: React.ReactNode 
   const [isPreferencesOpen, setIsPreferencesOpen] = React.useState(false)
 
   React.useEffect(() => {
-    setStoredConsent(parseCookieConsent(window.localStorage.getItem(COOKIE_CONSENT_STORAGE_KEY)))
+    const readStoredConsent = () => {
+      try {
+        setStoredConsent(parseCookieConsent(window.localStorage.getItem(COOKIE_CONSENT_STORAGE_KEY)))
+      } catch { setStoredConsent(null) }
+    }
+    readStoredConsent()
     setIsHydrated(true)
 
     const openSettings = () => setIsPreferencesOpen(true)
     window.addEventListener(COOKIE_SETTINGS_EVENT, openSettings)
-    return () => window.removeEventListener(COOKIE_SETTINGS_EVENT, openSettings)
+    const syncConsent = (event: StorageEvent) => {
+      if (event.key === COOKIE_CONSENT_STORAGE_KEY || event.key === null) readStoredConsent()
+    }
+    window.addEventListener('storage', syncConsent)
+    return () => {
+      window.removeEventListener(COOKIE_SETTINGS_EVENT, openSettings)
+      window.removeEventListener('storage', syncConsent)
+    }
   }, [])
 
   const saveConsent = React.useCallback((input: Partial<Record<CookieCategory, boolean>>) => {
     const nextConsent = createConsent(input)
-    window.localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, JSON.stringify(nextConsent))
+    // A denied storage write must not prevent the choice from applying to this visit.
+    try {
+      window.localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, JSON.stringify(nextConsent))
+      if (!nextConsent.preferences) window.localStorage.removeItem('prometheus.theme.preferences.v1')
+    } catch { /* Retain the in-memory choice when persistence is unavailable. */ }
     setStoredConsent(nextConsent)
     setIsPreferencesOpen(false)
     window.dispatchEvent(new CustomEvent('prometheus:cookie-consent-updated', { detail: nextConsent }))

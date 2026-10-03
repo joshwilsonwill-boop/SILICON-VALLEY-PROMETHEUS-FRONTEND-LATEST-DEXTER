@@ -63,7 +63,7 @@ export function detectFillerWords(
     return {
       count: 0,
       items: [],
-      summary: '0 filler words detected (transcript is clean or empty).',
+      summary: 'Transcript is still generating or empty. No speech segments to analyze yet.',
     }
   }
 

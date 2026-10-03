@@ -5,7 +5,9 @@ import {
   ArrowLeft,
   Brain,
   Clapperboard,
-  Database,
+  CreditCard,
+  LogOut,
+  UserRound,
   History,
   LineChart,
   Plus,
@@ -16,6 +18,10 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState, type FocusEvent } from "react";
 
 import { useDeviceTier } from "@/hooks/useDeviceTier";
+import { useAuth } from '@/components/auth/auth-provider';
+import { useProfile } from '@/hooks/use-profile';
+import { useAccountSummary } from '@/lib/user/use-account-summary';
+import { toast } from 'sonner';
 import { cn } from "@/lib/utils";
 
 // Keep the collapsed footprint in sync with the Tailwind `w-[72px]` on the aside below.
@@ -87,6 +93,10 @@ export function AwwwardsSidebar({
   onOpenSettings?: () => void;
   onExpandedChange?: (expanded: boolean) => void;
 } = {}) {
+  const { session } = useAuth();
+  const { displayName, profile } = useProfile();
+  const account = useAccountSummary();
+  const [signingOut, setSigningOut] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
   const shouldReduceMotion = useReducedMotion();
@@ -223,50 +233,31 @@ export function AwwwardsSidebar({
         </nav>
 
         <div className="border-t border-border-subtle px-[18px] py-3">
-          <div className="flex h-11 items-center" aria-label="Storage used 60 percent">
-            <span
-              className={cn(
-                iconTile,
-                "border-white/8 bg-white/[0.03] text-text-tertiary",
-              )}
-            >
-              <Database className="h-[16px] w-[16px]" strokeWidth={1.75} aria-hidden="true" />
-            </span>
-            <motion.div
-              initial={false}
-              animate={{ opacity: expanded ? 1 : 0, x: expanded ? 0 : -6 }}
-              transition={animated ? { duration: 0.18, delay: expanded ? 0.15 : 0 } : { duration: 0 }}
-              className="ml-3 min-w-0 flex-1 whitespace-nowrap"
-            >
-              <div className="flex items-baseline justify-between text-[11px]">
-                <span className="uppercase tracking-[0.14em] text-text-tertiary">
-                  Storage
-                </span>
-                <span className="text-text-secondary">60%</span>
-              </div>
-              <div
-                role="progressbar"
-                aria-valuenow={60}
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-label="Storage used"
-                className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-surface-floating"
-              >
-                <motion.div
-                  initial={animated ? { width: 0 } : false}
-                  animate={{ width: "60%" }}
-                  transition={{ duration: animated ? 1 : 0, ease: "easeOut" }}
-                  className="h-full rounded-full bg-gradient-to-r from-accent-cyan to-accent-cyan-dim"
-                />
-              </div>
-            </motion.div>
-          </div>
+          <Link href="/settings/profile" className={rowBase} aria-label={`Account: ${displayName}`}>
+            <span className={iconTile}><UserRound className="size-4" /></span>
+            <span className="ml-3 min-w-0 truncate text-xs" style={{ opacity: expanded ? 1 : 0 }}>{profile?.display_name || session?.user.user_metadata?.full_name || session?.user.email || displayName}</span>
+          </Link>
+          <Link href="/settings/billing" className={rowBase} aria-label="Plan and credits">
+            <span className={iconTile}><CreditCard className="size-4" /></span>
+            <span className="ml-3 text-xs" style={{ opacity: expanded ? 1 : 0 }}>{account.loading ? 'Loading plan?' : account.error ? 'Plan unavailable' : `${account.plan} ? ${account.credits} credits`}</span>
+          </Link>
+          <button type="button" className={rowBase} aria-label="Sign out" disabled={signingOut} onClick={async () => {
+            setSigningOut(true);
+            try {
+              const response = await fetch('/api/auth/logout', { method: 'POST' });
+              if (!response.ok) throw new Error('Sign out failed. Please try again.');
+              const { createClient } = await import('@/lib/supabase/client');
+              const { error } = await createClient().auth.signOut({ scope: 'local' });
+              if (error) throw error;
+              window.location.assign('/login');
+            } catch (error) { toast.error(error instanceof Error ? error.message : 'Sign out failed.'); setSigningOut(false); }
+          }}><span className={iconTile}><LogOut className="size-4" /></span><RailLabel expanded={expanded} animated={animated}>{signingOut ? 'Signing out?' : 'Sign out'}</RailLabel></button>
         </div>
 
         <div className="border-t border-border-subtle px-[18px] py-2">
           <button
             type="button"
-            onClick={onOpenSettings}
+            onClick={() => { if (onOpenSettings) onOpenSettings(); else router.push('/settings'); }}
             className={cn(rowBase, "text-text-secondary hover:text-text-primary")}
             aria-label="Settings"
           >

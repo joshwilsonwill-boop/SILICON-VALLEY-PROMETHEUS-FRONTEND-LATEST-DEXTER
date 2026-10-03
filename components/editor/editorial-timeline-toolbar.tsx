@@ -277,8 +277,8 @@ export function EditorialTimelineToolbar({
         <button
           type="button"
           onClick={onToggleFullscreen}
-          aria-label={isFullscreen ? 'Collapse timeline' : 'Expand timeline'}
-          title={isFullscreen ? 'Collapse timeline' : 'Expand timeline'}
+          aria-label={isFullscreen ? 'Exit fullscreen timeline' : 'Fullscreen timeline'}
+          title={isFullscreen ? 'Exit fullscreen timeline' : 'Fullscreen timeline'}
           className="grid size-8 place-items-center rounded-md border border-transparent text-white/55 transition-all hover:border-white/10 hover:bg-white/[0.04] hover:text-white"
         >
           {isFullscreen ? <Minimize2 className="size-3.5" /> : <Maximize2 className="size-3.5" />}

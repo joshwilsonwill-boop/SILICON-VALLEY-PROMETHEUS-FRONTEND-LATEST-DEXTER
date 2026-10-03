@@ -31,6 +31,12 @@ export function useProfile() {
   const { session, isLoading: isAuthLoading } = useAuth()
   const userId = session?.user.id
   const userEmail = session?.user.email
+  const [revision, setRevision] = React.useState(0)
+  React.useEffect(() => {
+    const reload = () => setRevision((value) => value + 1)
+    window.addEventListener('prometheus:profile-updated', reload)
+    return () => window.removeEventListener('prometheus:profile-updated', reload)
+  }, [])
   const [profile, setProfile] = React.useState<ProfileV2 | null>(null)
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState<string | null>(null)
@@ -85,7 +91,7 @@ export function useProfile() {
     return () => {
       disposed = true
     }
-  }, [isAuthLoading, userEmail, userId])
+  }, [isAuthLoading, userEmail, userId, revision, session?.user])
 
   const refresh = React.useCallback(async () => {
     setLoading(true)
@@ -115,15 +121,16 @@ export function useProfile() {
     } finally {
       setLoading(false)
     }
-  }, [userEmail, userId])
+  }, [userEmail, userId, session?.user])
 
   const updateProfile = React.useCallback(async (path: string, init: RequestInit) => {
     const response = await fetch(path, init)
     const payload = (await response.json().catch(() => null)) as { error?: string; profile?: ProfileV2 } | null
     if (!response.ok) throw new Error(payload?.error || 'Unable to update profile.')
-    await refresh()
+    if (payload?.profile) setProfile((current) => ({ ...current, ...payload.profile } as ProfileV2))
+    window.dispatchEvent(new Event('prometheus:profile-updated'))
     return payload?.profile ?? null
-  }, [refresh])
+  }, [])
 
   const updateUsername = React.useCallback(
     (username: string) => updateProfile('/api/profile/username', {

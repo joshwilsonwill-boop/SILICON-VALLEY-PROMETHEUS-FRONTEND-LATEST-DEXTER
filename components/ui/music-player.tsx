@@ -121,6 +121,7 @@ export function MusicPlayer({
     }
 
     const setAudioTime = () => {
+      setBufferingState(false)
       setCurrentTime(audio.currentTime)
       syncProgressVisual(audio.currentTime, audio.duration)
       onProgressChange?.({ currentTime: audio.currentTime, duration: Number.isFinite(audio.duration) ? audio.duration : 0 })

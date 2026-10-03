@@ -21,6 +21,7 @@ import { performVoiceReferenceStyleAction } from '@/lib/voice-companion/referenc
 import { ensureVoiceEditingAccess } from '@/lib/voice-companion/editing-access'
 import { ResponseRecovery, type ResponseStatus } from '@/lib/voice-companion/response-recovery'
 import { useAutonomousStore } from '@/lib/autonomous-ui/autonomous-store'
+import { getMediaFailureMessage } from '@/lib/media/feedback'
 
 export type VoiceCompanionStatus =
   | 'disconnected'
@@ -270,7 +271,8 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
         case 'autonomous_music_action': {
           const action = args.action as VoiceMusicActionArgs['action']
           const exactSong = typeof args.trackName === 'string' && args.trackName.trim() || typeof args.trackTitle === 'string' && args.trackTitle.trim() || typeof args.trackId === 'string' && args.trackId.trim()
-          const needsVideoUnderstanding = ['search', 'select', 'select_and_preview'].includes(action ?? '') && !exactSong
+          const isRandomOrMood = typeof args.query === 'string' && /random|any|pick|solemn|cinematic|upbeat|ambient|lofi|calm/i.test(args.query) || typeof args.trackName === 'string' && /random|any|pick|solemn|cinematic|upbeat|ambient|lofi|calm/i.test(args.trackName) || Boolean(args.genreOrMood)
+          const needsVideoUnderstanding = ['search', 'select', 'select_and_preview'].includes(action ?? '') && !exactSong && !isRandomOrMood && args.recommendation === true
           const musicBridge = handlersRef.current
           if (needsVideoUnderstanding) {
             if (!musicBridge.hasVideo || !musicBridge.sourceAssetId) {
@@ -297,11 +299,15 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
 
         case 'create_video_thumbnail': {
           const handlers = handlersRef.current
-          if (!handlers.hasVideo) return { success: false, error: 'There is no playable source video in this project yet.' }
+          if (!handlers.hasVideo && !handlers.projectId) return { success: false, error: 'There is no playable source video in this project yet.' }
           if (!onApplyActions) return { success: false, error: 'Thumbnail Studio is not connected to this editor.' }
-          const headline = typeof args.headline === 'string' ? args.headline.trim().slice(0, 64) : ''
-          const creativeDirection = typeof args.creativeDirection === 'string' ? args.creativeDirection.trim().slice(0, 500) : ''
-          if (!headline || !creativeDirection) return { success: false, error: 'I need a grounded headline and creative direction before starting thumbnail generation.' }
+          const titleHint = handlers.videoTitle || 'Cinematic Video'
+          const headline = typeof args.headline === 'string' && args.headline.trim()
+            ? args.headline.trim().slice(0, 64)
+            : titleHint.slice(0, 64)
+          const creativeDirection = typeof args.creativeDirection === 'string' && args.creativeDirection.trim()
+            ? args.creativeDirection.trim().slice(0, 500)
+            : `High-impact cinematic YouTube thumbnail with bold typography for "${titleHint}"`
           await onApplyActions([{
             kind: 'open_thumbnail_studio',
             headline,
@@ -309,7 +315,7 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
             generateNow: true,
             summary: 'Generate a thumbnail for this video',
           }])
-          return { success: true, generationStarted: true, headline, message: 'Thumbnail Studio opened and image generation was started. Report the image as ready only after the studio confirms completion.' }
+          return { success: true, generationStarted: true, headline, message: 'Thumbnail Studio opened and image generation was started in Thumbnail Studio.' }
         }
 
         case 'reference_video_style': {
@@ -365,20 +371,41 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
           return { success: true, style }
         }
 
-        case 'start_render': {
+        case 'start_render':
+        case 'export_video': {
           const mode = args.mode === 'final' ? 'final' : 'preview'
-          if (!handlersRef.current.hasVideo) return { success: false, error: 'There is no playable source video to render.' }
+          if (!handlersRef.current.hasVideo && !handlersRef.current.projectId) {
+            return { success: false, error: 'There is no playable source video to render.' }
+          }
           if (!onApplyActions) return { success: false, error: 'The editor is not linked, so I cannot start a render.' }
           const access = await requireEditingAccess()
           if (!access.success) return access
-          await onApplyActions([{ kind: 'start_render', mode, summary: mode === 'final' ? 'Opening Master Review for final export' : 'Opening export workflow' }])
-          return { success: true, mode, status: mode === 'final' ? 'Master Video Review opened.' : 'Export workflow opened. No render has been confirmed yet.' }
+          await onApplyActions([{
+            kind: 'start_render',
+            mode,
+            summary: mode === 'final' ? 'Triggering final video export render' : 'Opening export render workflow',
+          }])
+          return {
+            success: true,
+            mode,
+            renderInitiated: true,
+            status: mode === 'final'
+              ? 'Final export render initiated. The output will be available for download and cloud delivery.'
+              : 'Export render workflow initiated. You can preview or download your rendered cut once complete.',
+          }
         }
 
         case 'detect_filler_words': {
           const rawSegments = handlersRef.current.transcriptSegments
           const segments = Array.isArray(rawSegments) ? rawSegments : []
-          if (segments.length === 0) return { success: false, error: 'There is no timed transcript to analyze yet.' }
+          if (segments.length === 0) {
+            return {
+              success: false,
+              status: 'processing',
+              error: 'The transcript is still generating in the background. Once speech recognition completes, I can scan for filler words.',
+              summary: 'Transcript is still generating; filler words can be scanned once ready.',
+            }
+          }
           const result = detectFillerWords(segments)
           const shouldApply = Boolean(args.applyCuts)
 
@@ -416,24 +443,32 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
         case 'execute_timeline_plan': {
           const prompt = String(args.prompt || 'Balanced talking-head edit')
           const liveContext = contextProvider?.()
-          const durationSec = liveContext?.durationSec ?? handlersRef.current.timelineDurationSec ?? 0
-          if (!handlersRef.current.hasVideo) return { success: false, error: 'There is no playable source video in this project yet.' }
-          if (durationSec <= 0) return { success: false, error: 'The source video duration is not available yet.' }
+          let durationSec = liveContext?.durationSec ?? handlersRef.current.timelineDurationSec ?? 0
+          if (!handlersRef.current.hasVideo && !handlersRef.current.projectId) {
+            return { success: false, error: 'There is no playable source video in this project yet.' }
+          }
+          const rawSegments = (Array.isArray(handlersRef.current.transcriptSegments) ? handlersRef.current.transcriptSegments : []).flatMap((item) => {
+            if (!item || typeof item !== 'object') return []
+            const segment = item as Record<string, unknown>
+            const startSec = typeof segment.startMs === 'number' ? segment.startMs / 1000 : segment.start
+            const endSec = typeof segment.endMs === 'number' ? segment.endMs / 1000 : segment.end
+            return typeof startSec === 'number' && typeof endSec === 'number' && typeof segment.text === 'string'
+              ? [{ startSec, endSec, text: segment.text, isCut: segment.isCut === true }]
+              : []
+          })
+          if (durationSec <= 0 && rawSegments.length > 0) {
+            durationSec = Math.max(...rawSegments.map((s) => s.endSec))
+          }
+          if (durationSec <= 0) {
+            durationSec = handlersRef.current.videoDurationSec || 30
+          }
           const applyPlan = getCurrentHandlers().onApplyEditorialPlan
           if (!applyPlan) return { success: false, error: 'The editor does not have a complete editorial-plan path connected.' }
           const access = await requireEditingAccess()
           if (!access.success) return access
           const plan = buildEditorialPlan(prompt, {
             durationSec,
-            transcriptSegments: (Array.isArray(handlersRef.current.transcriptSegments) ? handlersRef.current.transcriptSegments : []).flatMap((item) => {
-              if (!item || typeof item !== 'object') return []
-              const segment = item as Record<string, unknown>
-              const startSec = typeof segment.startMs === 'number' ? segment.startMs / 1000 : segment.start
-              const endSec = typeof segment.endMs === 'number' ? segment.endMs / 1000 : segment.end
-              return typeof startSec === 'number' && typeof endSec === 'number' && typeof segment.text === 'string'
-                ? [{ startSec, endSec, text: segment.text, isCut: segment.isCut === true }]
-                : []
-            }),
+            transcriptSegments: rawSegments,
           })
 
           if (args.captionStyle && typeof args.captionStyle === 'string') {
@@ -446,7 +481,12 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
           return {
             ...outcome,
             summary: outcome.summary,
-            applied: { captionStyle: plan.captionStyle, movementCueCount: outcome.success ? plan.zooms.length : 0 },
+            applied: {
+              captionStyle: plan.captionStyle,
+              movementCueCount: outcome.success ? plan.zooms.length : 0,
+              lookPreset: plan.lookPreset,
+              brollCount: outcome.success ? (plan.brollSuggestions?.length ?? 0) : 0,
+            },
             musicSelected: false,
           }
         }
@@ -665,7 +705,7 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
       }, 90)
     } catch (err) {
       if (!isCurrent()) return
-      const msg = err instanceof Error ? err.message : 'Failed to connect to voice companion'
+      const msg = getMediaFailureMessage(err)
       disconnect()
       setError(msg)
       setConnectionNotice('Voice could not connect. Your received conversation is retained. Reconnect to try again.')

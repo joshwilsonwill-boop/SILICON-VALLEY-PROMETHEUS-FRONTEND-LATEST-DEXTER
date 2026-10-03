@@ -8,12 +8,17 @@ import { cn } from '@/lib/utils'
 interface BackButtonProps {
   className?: string
   fallbackHref?: string
+  onClick?: () => void
 }
 
-export function BackButton({ className, fallbackHref = '/studio' }: BackButtonProps) {
+export function BackButton({ className, fallbackHref = '/studio', onClick }: BackButtonProps) {
   const router = useRouter()
 
   const handleBack = () => {
+    if (onClick) {
+      onClick()
+      return
+    }
     const historyIndex = (window.history.state as { idx?: unknown } | null)?.idx
     if (typeof historyIndex === 'number' && historyIndex > 0) {
       router.back()

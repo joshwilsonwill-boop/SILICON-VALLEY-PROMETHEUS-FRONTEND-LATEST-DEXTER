@@ -5,8 +5,8 @@
 
 :root {
   --font-primary: var(--font-inter);
-  --font-display: var(--font-elegist);
-  --font-subtext: var(--font-black-delights);
+  --font-display: var(--font-playfair-display);
+  --font-subtext: var(--font-inter);
   --theme-background: #0A0A0F;
   --theme-foreground: #E8E8ED;
   --theme-accent: #38BDF8;
@@ -14,8 +14,8 @@
   --theme-surface: #111118;
   --theme-surface-elevated: #1A1A24;
   --theme-border: rgba(255, 255, 255, 0.08);
-  --font-newsreader: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
-  --font-ui: "SF Pro Text", "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --font-newsreader: var(--font-playfair-display), Georgia, serif;
+  --font-ui: var(--font-inter), system-ui, sans-serif;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -70,9 +70,9 @@
   --glass-shadow: rgba(0, 0, 0, 0.4);
   --chrome: #e8e8e8;
   --chrome-dim: #6b6b78;
-  --accent-cyan: #00f0ff;
-  --accent-cyan-dim: #00b8c4;
-  --accent-cyan-glow: rgba(0, 240, 255, 0.15);
+  --accent-cyan: #38BDF8;
+  --accent-cyan-dim: #38BDF8;
+  --accent-cyan-glow: rgba(56, 189, 248, 0.15);
   --accent-gold: #ffd700;
   --accent-gold-dim: #b8860b;
   --accent-gold-glow: rgba(255, 215, 0, 0.12);
@@ -92,10 +92,10 @@
   --prometheus-bg-secondary: #111118;
   --prometheus-bg-tertiary: #1a1a24;
   --prometheus-bg-overlay: rgba(0,0,0,0.6);
-  --prometheus-accent-purple: #7c3aed;
-  --prometheus-accent-indigo: #4f46e5;
-  --prometheus-accent-cyan: #06b6d4;
-  --prometheus-accent-glow: rgba(124,58,237,0.15);
+  --prometheus-accent-purple: var(--theme-accent);
+  --prometheus-accent-indigo: var(--theme-accent);
+  --prometheus-accent-cyan: var(--theme-accent);
+  --prometheus-accent-glow: rgba(56,189,248,0.15);
   --prometheus-text-primary: #f8fafc;
   --prometheus-text-secondary: #94a3b8;
   --prometheus-text-tertiary: #64748b;
@@ -242,16 +242,16 @@ body {
 }
 
 @layer utilities {
-  .font-elegist {
-    font-family: var(--font-elegist);
+  .font-display {
+    font-family: var(--font-playfair-display);
   }
 
   .font-subtext {
     font-family: var(--font-subtext), var(--font-primary), sans-serif;
   }
 
-  .font-vogue {
-    font-family: var(--font-vogue-display), var(--font-primary), sans-serif;
+  .font-heading {
+    font-family: var(--font-playfair-display), var(--font-primary), sans-serif;
   }
 }
 
@@ -460,7 +460,7 @@ body {
   display: flex;
   align-items: center;
   padding-left: 72px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-jetbrains-mono), monospace;
   font-size: 10px;
   color: var(--chrome-dim);
   letter-spacing: 0.05em;
@@ -519,7 +519,7 @@ body {
 
 .track-clip.selected {
   border-color: var(--accent-cyan);
-  box-shadow: 0 0 0 1px var(--accent-cyan), 0 4px 16px rgba(0,240,255,0.15);
+  box-shadow: 0 0 0 1px var(--accent-cyan), 0 4px 16px rgba(56,189,248,0.15);
 }
 
 .track-video .track-clip {
@@ -617,7 +617,7 @@ body {
 
 .motion-node.active {
   border-color: var(--accent-cyan);
-  box-shadow: 0 0 20px rgba(0,240,255,0.1);
+  box-shadow: 0 0 20px rgba(56,189,248,0.1);
 }
 
 .iteration-modal {
@@ -701,7 +701,7 @@ body {
 
 @theme inline {
   --font-sans: var(--font-ui);
-  --font-mono: 'Geist Mono', 'Geist Mono Fallback';
+  --font-mono: var(--font-jetbrains-mono), monospace;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -853,9 +853,9 @@ body {
   }
 
   .glass-button:hover {
-    border-color: rgba(0, 240, 255, 0.3);
+    border-color: rgba(56, 189, 248, 0.3);
     background-color: rgba(255, 255, 255, 0.1);
-    box-shadow: 0 0 20px rgba(0, 240, 255, 0.1);
+    box-shadow: 0 0 20px rgba(56, 189, 248, 0.1);
   }
 
   .chrome-text {
@@ -866,7 +866,7 @@ body {
   }
 
   .accent-glow {
-    text-shadow: 0 0 20px rgba(0, 240, 255, 0.3);
+    text-shadow: 0 0 20px rgba(56, 189, 248, 0.3);
   }
 
   .focus-ring-glow {
@@ -1103,7 +1103,7 @@ body {
 
   .command-zone-backdrop {
     background:
-      radial-gradient(circle at 50% 82%, rgba(0, 240, 255, 0.13) 0%, rgba(0, 240, 255, 0.04) 22%, transparent 48%),
+      radial-gradient(circle at 50% 82%, rgba(56, 189, 248, 0.13) 0%, rgba(56, 189, 248, 0.04) 22%, transparent 48%),
       linear-gradient(180deg, rgba(3, 4, 8, 0.18) 0%, rgba(3, 4, 8, 0.58) 100%);
     backdrop-filter: blur(5px) saturate(1.16);
     -webkit-backdrop-filter: blur(5px) saturate(1.16);
@@ -1115,7 +1115,7 @@ body {
       inset 0 1px 0 rgba(255, 255, 255, 0.08),
       inset 0 -1px 0 rgba(255, 255, 255, 0.035),
       0 28px 70px -44px rgba(0, 0, 0, 0.9),
-      0 0 52px -44px rgba(0, 240, 255, 0.82);
+      0 0 52px -44px rgba(56, 189, 248, 0.82);
   }
 
   .command-zone-action {
@@ -1989,4 +1989,17 @@ html[data-prometheus-reduce-motion='true'] *::after {
   100% {
     stroke-dashoffset: -12;
   }
+}
+
+/* Shared typography, controls, and keyboard navigation. */
+h1, h2, h3, h4, .font-heading, .font-display {
+  font-family: var(--font-playfair-display), Georgia, serif;
+}
+:focus-visible {
+  outline: 2px solid var(--theme-accent);
+  outline-offset: 4px;
+}
+input, textarea, select, button { font-family: inherit; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; }
 }

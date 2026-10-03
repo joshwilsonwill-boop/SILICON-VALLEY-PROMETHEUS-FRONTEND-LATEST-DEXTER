@@ -2,10 +2,8 @@
 
 import Link from 'next/link';
 import React, { Suspense } from 'react';
-import Image from 'next/image';
+import { BrandWordmark } from '@/components/brand-wordmark';
 import { InlineLoadingAnimation } from '@/components/loading-animation';
-import { Button } from '@/components/ui/button';
-import { ChevronLeftIcon } from 'lucide-react';
 import { FloatingPaths, AuthSeparator } from './auth-visuals';
 import { SocialAuthButtons } from './SocialAuthButtons';
 import { PrometheusAuthCharacters } from './animated-auth-characters';
@@ -32,10 +30,10 @@ export function AuthShell({
 }: AuthShellProps) {
   return (
     <AuthInteractionProvider>
-      <main className="relative min-h-dvh overflow-hidden bg-[#050505] text-white lg:grid lg:grid-cols-[minmax(0,1.03fr)_minmax(420px,0.97fr)]">
+      <main className="relative min-h-[calc(100dvh-5rem)] overflow-hidden bg-[#050505] text-white lg:grid lg:grid-cols-[minmax(0,1.03fr)_minmax(420px,0.97fr)]">
         <div
           className={[
-            "relative hidden h-full min-h-dvh flex-col overflow-hidden border-r border-white/8 bg-[radial-gradient(circle_at_22%_8%,rgba(112,72,255,0.16),transparent_36%),linear-gradient(135deg,rgba(13,13,16,1)_0%,rgba(5,5,5,1)_100%)] lg:flex",
+            "relative hidden h-full min-h-[calc(100dvh-5rem)] flex-col overflow-hidden border-r border-white/8 bg-[radial-gradient(circle_at_22%_8%,rgba(56,189,248,0.16),transparent_36%),linear-gradient(135deg,rgba(13,13,16,1)_0%,rgba(5,5,5,1)_100%)] lg:flex",
             compact ? 'auth-shell-art-compact p-6' : 'p-10',
           ].join(' ')}
         >
@@ -45,20 +43,9 @@ export function AuthShell({
           </div>
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_58%,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.03)_28%,transparent_58%),linear-gradient(180deg,transparent_0%,rgba(5,5,5,0.66)_100%)]" />
 
-          <div className="relative z-10 flex items-center">
-            <Image
-              src="/branding/prometheus-logo-no-bg.png"
-              alt="Prometheus"
-              width={28}
-              height={28}
-              className="size-7 object-contain"
-            />
-            <p className="ml-0.5 text-xl font-bold tracking-tight text-white" style={{ fontFamily: 'var(--font-mono), ui-sans-serif, system-ui, sans-serif' }}>
-              rometheus
-            </p>
-          </div>
+          <BrandWordmark className="relative z-10" />
 
-          <div className={compact ? 'relative z-10 flex min-h-0 flex-1 items-end justify-center py-4' : 'relative z-10 flex min-h-0 flex-1 items-end justify-center py-8'}>
+          <div className={compact ? 'relative z-10 flex min-h-0 flex-1 items-center justify-center py-4' : 'relative z-10 flex min-h-0 flex-1 items-center justify-center py-8'}>
             <PrometheusAuthCharacters />
           </div>
 
@@ -77,45 +64,24 @@ export function AuthShell({
 
         <div
           className={[
-            'pointer-events-auto relative z-[100] flex min-h-dvh flex-col justify-center bg-[#050505] px-5 md:px-8',
+            'pointer-events-auto relative z-[100] flex min-h-[calc(100dvh-5rem)] flex-col justify-center bg-[#050505] px-5 md:px-8',
             compact ? 'auth-shell-panel-compact py-4' : 'py-8',
           ].join(' ')}
         >
           <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 opacity-70">
             <div className="absolute right-0 top-0 h-[46rem] w-[18rem] -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.055)_0%,rgba(255,255,255,0.015)_62%,transparent_100%)] blur-sm" />
-            <div className="absolute bottom-[-20%] left-[18%] h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(112,72,255,0.12)_0%,transparent_66%)]" />
+            <div className="absolute bottom-[-20%] left-[18%] h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(56,189,248,0.12)_0%,transparent_66%)]" />
           </div>
 
-          <Button
-            variant="ghost"
-            className="absolute left-5 top-7 z-[110] text-white/60 hover:bg-white/[0.06] hover:text-white"
-            asChild
-            title="Return home"
-          >
-            <Link href="/">
-              <ChevronLeftIcon className="me-2 size-4" />
-              Home
-            </Link>
-          </Button>
+
 
           <div className={compact ? 'auth-shell-stack-compact pointer-events-auto z-[110] mx-auto w-full max-w-[390px] space-y-3' : 'pointer-events-auto z-[110] mx-auto w-full max-w-[390px] space-y-4'}>
             {showMobileBrandRow ? (
-              <div className="flex items-center lg:hidden">
-                <Image
-                  src="/branding/prometheus-logo-no-bg.png"
-                  alt="Prometheus"
-                  width={28}
-                  height={28}
-                  className="size-7 object-contain"
-                />
-                <p className="ml-0.5 text-xl font-bold tracking-tight" style={{ fontFamily: 'var(--font-mono), ui-sans-serif, system-ui, sans-serif' }}>
-                  rometheus
-                </p>
-              </div>
+              <div className="lg:hidden"><BrandWordmark /></div>
             ) : null}
 
             <div className={compact ? 'flex flex-col space-y-0.5 text-center sm:text-left' : 'flex flex-col space-y-1 text-center sm:text-left'}>
-              <h1 className="font-heading text-2xl font-semibold tracking-tight text-white">{title}</h1>
+              <h1 className="[font-family:var(--font-playfair-display)] text-2xl font-semibold tracking-tight text-white">{title}</h1>
               <p className={compact ? 'text-sm leading-5 text-white/46' : 'text-sm leading-6 text-white/46'}>{subtitle}</p>
             </div>
 

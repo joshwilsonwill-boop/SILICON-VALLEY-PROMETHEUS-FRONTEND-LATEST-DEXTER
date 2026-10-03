@@ -5,6 +5,7 @@ import { storeState } from "@/lib/oauth/state-store";
 import { OAuthProvider } from "@/lib/oauth/types";
 import { oauthRateLimit } from "@/lib/rate-limit";
 import crypto from "crypto";
+import { configuredOAuthProviders, providerCredentials, trustedOAuthOrigin } from '@/lib/oauth/capabilities';
 
 async function initiateOAuth(request: NextRequest, { params }: any, responseMode: "json" | "redirect") {
   try {
@@ -16,13 +17,19 @@ async function initiateOAuth(request: NextRequest, { params }: any, responseMode
 
     // P0 Fix: Robust Environment Variable Mapping
     const envVarName = config.clientIdEnvVar || `${provider.toUpperCase()}_CLIENT_ID`;
-    const clientId = process.env[envVarName];
+    const clientId = providerCredentials(provider)?.clientId;
 
     // Server-side guard: Throw error if env var is missing
-    if (!clientId) {
+    if (!clientId || !configuredOAuthProviders().includes(provider)) {
       console.error(`[OAuth Initiate] Missing environment variable: ${envVarName}`);
       const message = `${config.name} integration is temporarily unavailable`;
-      return NextResponse.json({ error: message }, { status: 500 });
+      if (responseMode === 'redirect') {
+        const destination = new URL('/settings/social-accounts', trustedOAuthOrigin());
+        destination.searchParams.set('error', 'integration_unavailable');
+        destination.searchParams.set('provider', provider);
+        return NextResponse.redirect(destination);
+      }
+      return NextResponse.json({ error: message }, { status: 503 });
     }
 
     const supabase = await createClient();
@@ -39,7 +46,7 @@ async function initiateOAuth(request: NextRequest, { params }: any, responseMode
     const codeVerifier = crypto.randomBytes(128).toString("base64url");
     const codeChallenge = crypto.createHash("sha256").update(codeVerifier).digest("base64url");
     const state = crypto.randomBytes(32).toString("hex");
-    const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/oauth/${provider}/callback`;
+    const redirectUri = `${trustedOAuthOrigin()}/api/oauth/${provider}/callback`;
 
     await storeState(state, { userId: user.id, provider, codeVerifier, redirectUri, expiresAt: Date.now() + 10 * 60 * 1000 });
 

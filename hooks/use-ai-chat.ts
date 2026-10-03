@@ -542,6 +542,12 @@ export function useAIChat({
           }
           if (event.type === "done") {
             persistedByServer = event.persisted;
+            setStreamStatus(null);
+            setStreamActivity((current) =>
+              current.map((entry) =>
+                entry.state === "active" ? { ...entry, state: "complete" as const } : entry,
+              ),
+            );
             return;
           }
           if (event.type === "error") {
@@ -670,6 +676,11 @@ export function useAIChat({
           setIsSending(false);
           setIsAwaitingResponse(false);
           setStreamStatus(null);
+          setStreamActivity((current) =>
+            current.map((entry) =>
+              entry.state === "active" ? { ...entry, state: "complete" as const } : entry,
+            ),
+          );
         }
       }
     },
@@ -684,6 +695,12 @@ export function useAIChat({
     setMessages((current) => current.map((message) => message.id === messageId ? { ...message, isComplete: true } : message));
     setIsSending(false);
     setIsAwaitingResponse(false);
+    setStreamStatus(null);
+    setStreamActivity((current) =>
+      current.map((entry) =>
+        entry.state === "active" ? { ...entry, state: "complete" as const } : entry,
+      ),
+    );
 
     if (pending?.sessionId) {
       void insertChatMessage(pending.sessionId, {

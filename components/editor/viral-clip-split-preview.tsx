@@ -234,7 +234,7 @@ export function ViralClipSplitPreview({
     >
       <div
         aria-hidden
-        className="absolute inset-0 opacity-70"
+        className="pointer-events-none absolute inset-0 opacity-70"
         style={{
           background:
             'radial-gradient(circle at 50% 16%, rgba(44,86,120,0.16) 0%, rgba(44,86,120,0.02) 32%, rgba(0,0,0,0) 58%), linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0) 24%, rgba(0,0,0,0.5) 100%)',
@@ -250,7 +250,7 @@ export function ViralClipSplitPreview({
         aria-label="Return to landscape preview"
         title="Return to landscape preview"
         className={cn(
-          'absolute right-3 top-3 z-50 inline-flex h-9 w-9 items-center justify-center rounded-full border backdrop-blur-md transition-colors',
+          'pointer-events-auto absolute right-3 top-3 z-[100] inline-flex h-11 w-11 items-center justify-center rounded-full border backdrop-blur-md transition-colors',
           highlightRestore
             ? 'border-[#ff9d8a]/44 bg-[linear-gradient(135deg,rgba(255,146,122,0.28)_0%,rgba(255,111,92,0.18)_34%,rgba(18,10,12,0.92)_100%)] text-[#fff1ed]'
             : 'border-white/12 bg-black/72 text-white/82 hover:bg-black/86 hover:text-white',

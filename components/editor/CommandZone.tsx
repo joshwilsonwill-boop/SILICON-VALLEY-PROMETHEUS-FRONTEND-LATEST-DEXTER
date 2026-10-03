@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Command, Download, Music, Scissors, Sparkles, Wand2 } from 'lucide-react'
-import { autonomousCoordinator } from '@/lib/autonomous-ui/coordinator'
 
 const quickActions = [
   { id: 'auto-cut', label: 'Jarvis Auto-Cut', icon: Scissors, command: 'auto-cut' },
@@ -14,14 +13,6 @@ const quickActions = [
 ]
 
 function dispatchEditorCommand(command: string) {
-  if (command === 'auto-cut') {
-    autonomousCoordinator.executeTranscriptCut('at the same part')
-    return
-  }
-  if (command === 'auto-music') {
-    autonomousCoordinator.executeMusicSelection({ genreOrMood: 'atmospheric' })
-    return
-  }
   window.dispatchEvent(new CustomEvent('prometheus:editor-command', { detail: { command } }))
 }
 
@@ -50,7 +41,8 @@ export function CommandZone() {
         {open && (
           <motion.button
             type="button"
-            aria-label="Close command zone"
+            aria-hidden="true"
+            tabIndex={-1}
             className="command-zone-backdrop fixed inset-0 z-40 cursor-default"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -78,7 +70,7 @@ export function CommandZone() {
                 <button
                   key={action.id}
                   type="button"
-                  onClick={() => dispatchEditorCommand(action.command)}
+                  onClick={() => { dispatchEditorCommand(action.command); setOpen(false) }}
                   aria-label={action.label}
                   className="premium-liquid-pill command-zone-action flex h-11 items-center gap-2 rounded-[12px] border border-white/8 bg-white/[0.035] px-4 text-[13px] font-medium text-text-secondary transition-all hover:bg-white/[0.07] hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-cyan"
                 >

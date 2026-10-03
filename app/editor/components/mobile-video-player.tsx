@@ -29,11 +29,13 @@ type MobileVideoPlayerProps = {
   className?: string
   poster?: string
   src?: string | null
+  onLoadedMetadata?: (e: React.SyntheticEvent<HTMLVideoElement>) => void
+  externalVideoRef?: React.Ref<HTMLVideoElement>
 }
 
 type SeekFeedbackDirection = 'forward' | 'backward' | null
 
-export function MobileVideoPlayer({ className, poster, src }: MobileVideoPlayerProps) {
+export function MobileVideoPlayer({ className, poster, src, onLoadedMetadata, externalVideoRef }: MobileVideoPlayerProps) {
   const reduceMotion = useReducedMotion()
   const {
     adjustBrightness,
@@ -233,7 +235,13 @@ export function MobileVideoPlayer({ className, poster, src }: MobileVideoPlayerP
       {src ? (
         <div className="absolute inset-0" style={{ filter: `brightness(${brightnessLevel})` }}>
           <video
-            ref={videoRef}
+            ref={(node) => {
+              (videoRef as React.MutableRefObject<HTMLVideoElement | null>).current = node
+              if (typeof externalVideoRef === 'function') externalVideoRef(node)
+              else if (externalVideoRef && 'current' in externalVideoRef) {
+                (externalVideoRef as React.MutableRefObject<HTMLVideoElement | null>).current = node
+              }
+            }}
             className="absolute inset-0 h-full w-full object-cover"
             controls={false}
             loop={autoplayEnabled}
@@ -242,6 +250,10 @@ export function MobileVideoPlayer({ className, poster, src }: MobileVideoPlayerP
             preload="metadata"
             src={src}
             {...bindVideoEvents}
+            onLoadedMetadata={(e) => {
+              bindVideoEvents.onLoadedMetadata?.()
+              onLoadedMetadata?.(e)
+            }}
           />
         </div>
       ) : (

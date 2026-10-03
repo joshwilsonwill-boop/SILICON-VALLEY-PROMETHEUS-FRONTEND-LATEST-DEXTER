@@ -124,6 +124,14 @@ function getPupilPosition(
   }
 }
 
+function usePupilPosition(ref: React.RefObject<HTMLDivElement | null>, pointer: { x: number; y: number }, maxDistance: number, reduceMotion: boolean, forceLookX?: number, forceLookY?: number) {
+  const [position, setPosition] = React.useState({ x: 0, y: 0 })
+  React.useEffect(() => {
+    setPosition(reduceMotion ? { x: 0, y: 0 } : getPupilPosition(ref, pointer, maxDistance, forceLookX, forceLookY))
+  }, [ref, pointer, maxDistance, reduceMotion, forceLookX, forceLookY])
+  return position
+}
+
 function EyeBall({
   eyeColor = 'white',
   forceLookX,
@@ -137,7 +145,7 @@ function EyeBall({
   size = 18,
 }: EyeBallProps) {
   const eyeRef = React.useRef<HTMLDivElement | null>(null)
-  const pupilPosition = reduceMotion ? { x: 0, y: 0 } : getPupilPosition(eyeRef, pointer, maxDistance, forceLookX, forceLookY)
+  const pupilPosition = usePupilPosition(eyeRef, pointer, maxDistance, reduceMotion, forceLookX, forceLookY)
 
   return (
     <div
@@ -176,7 +184,7 @@ function Pupil({
   size = 12,
 }: PupilProps) {
   const pupilRef = React.useRef<HTMLDivElement | null>(null)
-  const pupilPosition = reduceMotion ? { x: 0, y: 0 } : getPupilPosition(pupilRef, pointer, maxDistance, forceLookX, forceLookY)
+  const pupilPosition = usePupilPosition(pupilRef, pointer, maxDistance, reduceMotion, forceLookX, forceLookY)
 
   return (
     <span
@@ -271,10 +279,11 @@ export function PrometheusAuthCharacters() {
     [pointer.x, pointer.y, motionReduced],
   )
 
-  const purplePos = calculatePosition(purpleRef)
-  const blackPos = calculatePosition(blackRef)
-  const orangePos = calculatePosition(orangeRef)
-  const yellowPos = calculatePosition(yellowRef)
+  const [positions, setPositions] = React.useState<FacePosition[]>(Array.from({ length: 4 }, () => ({ bodySkew: 0, faceX: 0, faceY: 0 })))
+  React.useEffect(() => {
+    setPositions([calculatePosition(purpleRef), calculatePosition(blackRef), calculatePosition(orangeRef), calculatePosition(yellowRef)])
+  }, [calculatePosition])
+  const [purplePos, blackPos, orangePos, yellowPos] = positions
   const purpleTransform = visiblePasswordSignal
     ? 'skewX(0deg) translateX(0px)'
     : hiddenPasswordSignal || typingSignal

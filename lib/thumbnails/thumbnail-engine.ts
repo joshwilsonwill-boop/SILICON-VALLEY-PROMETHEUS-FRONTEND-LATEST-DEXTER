@@ -265,8 +265,16 @@ export class ThumbnailEngine {
     const ctx = canvas.getContext('2d')
     if (!ctx) return null
 
-    ctx.drawImage(video, 0, 0, width, height)
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.82)
+    let dataUrl: string
+    try {
+      ctx.drawImage(video, 0, 0, width, height)
+      dataUrl = canvas.toDataURL('image/jpeg', 0.82)
+    } catch (error) {
+      if (error instanceof Error && error.name === 'SecurityError') {
+        throw new Error('This video does not allow frame capture. Upload a source image or use the original video file to create a thumbnail.')
+      }
+      throw new Error('Could not capture this frame. Try uploading a source image.')
+    }
 
     return {
       timeSec: video.currentTime,

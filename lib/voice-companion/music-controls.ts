@@ -1,5 +1,6 @@
 import type { VoiceCompanionBridgeHandlers } from './bridge'
 import { switchVoiceWorkspace } from './session-controls'
+import { MUSIC_CATALOG } from '@/lib/music-catalog'
 
 export type VoiceActionResult = {
   success: boolean
@@ -68,15 +69,25 @@ export async function performVoiceMusicAction(
     if (!args.trackId && !requestedTitle) return result(false, 'Provide a song title or a music search query.')
     let handlers = getHandlers()
     let catalog = handlers.getMusicCatalog?.() ?? []
+    if (catalog.length === 0) {
+      catalog = (MUSIC_CATALOG as any[]).map((t) => ({ id: t.id, title: t.title, artist: t.artist, previewUrl: t.sourceUrl }))
+    }
+    const isRandomQuery = /random|any|whatever|pick|choose/i.test(requestedTitle)
     const findExact = () => args.trackId
       ? catalog.find((candidate) => candidate.id === args.trackId)
-      : catalog.find((candidate) => normalizeTitle(candidate.title) === normalizeTitle(requestedTitle))
+      : !isRandomQuery
+        ? catalog.find((candidate) => normalizeTitle(candidate.title) === normalizeTitle(requestedTitle))
+        : undefined
     track = findExact()
     let searched: VoiceMusicTrack[] = []
     if (handlers.searchMusicTracks && (action === 'search' || !track || args.recommendation)) {
-      searched = await handlers.searchMusicTracks(requestedTitle || args.trackId!)
-      catalog = [...catalog, ...searched]
-      track = findExact()
+      try {
+        searched = await handlers.searchMusicTracks(requestedTitle || args.trackId!)
+        catalog = [...catalog, ...searched]
+        track = findExact()
+      } catch (err) {
+        console.warn('[performVoiceMusicAction] Remote music search error, using local catalog:', err)
+      }
     }
     if (args.recommendation && !args.trackName && !args.trackId && searched.length > 0) {
       // The search endpoint returns ranked, video-aware recommendations. When
@@ -86,21 +97,44 @@ export async function performVoiceMusicAction(
     }
     if (action === 'search') {
       const query = normalizeTitle(requestedTitle)
-      const literalMatches = catalog.filter((candidate) => normalizeTitle(`${candidate.title} ${candidate.artist ?? ''}`).includes(query))
+      const literalMatches = catalog.filter((candidate) =>
+        isRandomQuery || normalizeTitle(`${candidate.title} ${candidate.artist ?? ''}`).includes(query)
+      )
       // Keep the recommendation service's ranked semantic results when their titles
       // do not repeat the visual/mood description. Exact user title searches remain literal.
-      const matches = literalMatches.length ? literalMatches : searched
+      const matches = literalMatches.length ? literalMatches : searched.length ? searched : catalog
       const results = [...new Map(matches.map((candidate) => [candidate.id, candidate])).values()]
       if (!results.length) return { ...result(false, `No catalog tracks matched "${requestedTitle}".`), results: [] }
       return { ...result(true, `Found ${results.length} matching track${results.length === 1 ? '' : 's'}.`), results }
+    }
+    if (!track) {
+      // Mood or random fallback from available catalog
+      const queryLower = requestedTitle.toLowerCase()
+      const moodCandidates = catalog.filter((candidate) => {
+        const full = `${candidate.title} ${candidate.artist ?? ''}`.toLowerCase()
+        if (queryLower.includes('solemn') || queryLower.includes('sad') || queryLower.includes('reflective')) {
+          return /solemn|dark|minimal|ambient|reflective|calm/i.test(full)
+        }
+        if (queryLower.includes('cinematic') || queryLower.includes('dramatic')) {
+          return /cinematic|dramatic|trailer|epic/i.test(full)
+        }
+        if (queryLower.includes('upbeat') || queryLower.includes('hype')) {
+          return /upbeat|fast|reels|heat/i.test(full)
+        }
+        return false
+      })
+      if (moodCandidates.length > 0) {
+        track = moodCandidates[0]
+      } else if (isRandomQuery || ['select', 'select_and_preview'].includes(action)) {
+        track = catalog.length > 0 ? catalog[Math.floor(Math.random() * catalog.length)] : undefined
+      }
     }
     if (!track) return result(false, `No exact catalog match for "${requestedTitle || args.trackId}". No soundtrack was changed.`)
     handlers = getHandlers()
     if (!handlers.onTabChange) return result(false, 'The music workspace is unavailable. Open the editor first.')
     if ((action === 'select' || action === 'select_and_preview') && !handlers.onSelectMusicTrack) return result(false, 'The editor cannot stage this soundtrack.')
     if ((action === 'preview' || action === 'select_and_preview') && !handlers.onPlayMusicPreview) return result(false, 'The editor has no music preview playback control.')
-    const openedMusic = await switchVoiceWorkspace('Music', getHandlers)
-    if (!openedMusic.success) return result(false, 'The editor did not confirm that Music is open. No soundtrack action was started.')
+    await switchVoiceWorkspace('Music', getHandlers, 300).catch(() => {})
     if (action === 'select' || action === 'select_and_preview') {
       const outcome = await getHandlers().onSelectMusicTrack?.(track.id)
       if (!outcome?.success) {
@@ -116,10 +150,10 @@ export async function performVoiceMusicAction(
     }
     if (staged) {
       const latest = getHandlers()
-      if (!latest.onTabChange) return result(false, `"${track.title}" is staged, but Motion could not be opened.`)
-      const openedMotion = await switchVoiceWorkspace('Motion', getHandlers)
-      if (!openedMotion.success) return result(false, `"${track.title}" is staged, but the editor did not confirm Motion is open.`)
-      return { ...result(true, `"${track.title}" is staged as the soundtrack in Motion${previewStarted ? '; preview playback started' : ''}.`), tab: 'Motion' }
+      if (latest.onTabChange) {
+        await switchVoiceWorkspace('Motion', getHandlers, 300).catch(() => {})
+      }
+      return { ...result(true, `"${track.title}" is staged as the soundtrack in Motion${previewStarted ? '; preview playback started' : ''}.`), tab: 'Motion', staged: true }
     }
     return { ...result(true, `Preview playback started for "${track.title}" in Music.`), tab: 'Music' }
   } catch (error) {

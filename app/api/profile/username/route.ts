@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
+import { usernameSchema as fieldSchema } from '@/lib/auth/validation'
 
 import { createClient } from '@/lib/supabase/server'
 
-const usernameSchema = z.object({
-  username: z.string().trim().min(2, 'Username must be at least 2 characters').max(32).regex(/^[a-zA-Z0-9_.-]+$/, 'Use letters, numbers, dots, dashes, or underscores'),
-})
+const usernameSchema = z.object({ username: fieldSchema })
 
 export async function PATCH(request: Request) {
   const supabase = await createClient()

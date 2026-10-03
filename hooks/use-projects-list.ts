@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import type { ProjectListItem } from '@/lib/projects/types'
+import { requestProjectDeletion } from '@/components/projects/project-actions'
 
 const PROJECTS_QUERY_KEY = ['projects']
 
@@ -34,14 +35,9 @@ export function useProjectsList() {
   })
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const response = await fetch(`/api/projects/${id}`, { method: 'DELETE' })
-      const payload = await parseJson<{ success?: boolean; error?: { message?: string } }>(response)
-      if (!response.ok || !payload?.success) {
-        throw new Error(payload?.error?.message || 'Failed to delete project')
-      }
-    },
-    onSuccess: async () => {
+    mutationFn: (id: string) => requestProjectDeletion(id),
+    onSuccess: async (_data, id) => {
+      queryClient.setQueryData<ProjectListItem[]>(PROJECTS_QUERY_KEY, (current) => current?.filter((project) => project.id !== id))
       await queryClient.invalidateQueries({ queryKey: PROJECTS_QUERY_KEY })
     },
   })

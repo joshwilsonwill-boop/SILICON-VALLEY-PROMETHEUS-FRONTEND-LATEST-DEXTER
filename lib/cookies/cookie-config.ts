@@ -1,5 +1,5 @@
 export const COOKIE_CONSENT_STORAGE_KEY = 'prometheus_cookie_consent'
-export const COOKIE_CONSENT_VERSION = '1.0'
+export const COOKIE_CONSENT_VERSION = '2.0'
 export const COOKIE_SETTINGS_EVENT = 'prometheus:open-cookie-settings'
 
 export type CookieCategory = 'essential' | 'analytics' | 'preferences' | 'marketing'
@@ -155,8 +155,11 @@ export function parseCookieConsent(value: string | null): CookieConsent | null {
   if (!value) return null
 
   try {
-    const parsed = JSON.parse(value) as Partial<CookieConsent>
-    if (parsed.version !== COOKIE_CONSENT_VERSION || typeof parsed.timestamp !== 'string') return null
+    const parsed = JSON.parse(value) as Partial<CookieConsent> | null
+    if (!parsed || Array.isArray(parsed) || parsed.version !== COOKIE_CONSENT_VERSION ||
+      typeof parsed.timestamp !== 'string' || !Number.isFinite(Date.parse(parsed.timestamp)) ||
+      parsed.essential !== true ||
+      !['analytics', 'preferences', 'marketing'].every((category) => typeof parsed[category as CookieCategory] === 'boolean')) return null
 
     return {
       essential: true,
@@ -173,5 +176,9 @@ export function parseCookieConsent(value: string | null): CookieConsent | null {
 
 export function hasPreferenceConsent() {
   if (typeof window === 'undefined') return false
-  return parseCookieConsent(window.localStorage.getItem(COOKIE_CONSENT_STORAGE_KEY))?.preferences === true
+  try {
+    return parseCookieConsent(window.localStorage.getItem(COOKIE_CONSENT_STORAGE_KEY))?.preferences === true
+  } catch {
+    return false
+  }
 }

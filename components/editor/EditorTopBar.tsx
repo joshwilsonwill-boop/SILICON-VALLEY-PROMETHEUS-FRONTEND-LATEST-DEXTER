@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Menu, Share2 } from "lucide-react";
+import { Menu } from "lucide-react";
 
 export function EditorTopBar({
   mobileNavControl,
@@ -28,16 +28,6 @@ export function EditorTopBar({
         </button>
       </div>
 
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          className="glass-button flex h-8 items-center gap-2 rounded-lg px-3 text-xs text-text-secondary hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-cyan"
-          aria-label="Share project"
-        >
-          <Share2 className="h-3.5 w-3.5" />
-          <span className="hidden sm:inline">Share</span>
-        </button>
-      </div>
     </header>
   );
 }

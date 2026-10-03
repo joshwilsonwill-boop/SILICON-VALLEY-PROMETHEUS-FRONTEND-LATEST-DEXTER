@@ -6,6 +6,7 @@ import { LegalLayout, LegalSection, LegalSubsection } from '@/components/legal/L
 const LAST_UPDATED = '14 July 2026'
 
 export const metadata: Metadata = {
+  alternates: { canonical: '/privacy' },
   title: 'Privacy Policy | Prometheus Studio',
   description: 'Privacy Policy for Prometheus Studio.',
 }
@@ -27,8 +28,7 @@ export default function PrivacyPage() {
         <p>
           We seek to comply with applicable privacy laws, including GDPR, UK GDPR, and the
           CCPA/CPRA where they apply. Contact us about privacy at support@prometheusstudio.tech.
-          Our registered address is Lagos, Nigeria. Our Data Protection Officer is [TBD] and will
-          be appointed when the GDPR threshold is met or the first EU user is onboarded.
+          Our registered address is Lagos, Nigeria.
         </p>
         <p>
           Dodo Payments is our Merchant of Record and an independent controller for its payment,
@@ -164,7 +164,7 @@ export default function PrivacyPage() {
           non-discriminatory treatment for exercising privacy rights. We do not sell personal information.
         </p>
         <p>
-          To exercise a right, email support@prometheusstudio.tech with the subject Privacy Request,
+          To exercise a right, email support@prometheusstudio.tech with the subject line &quot;Privacy Request&quot;,
           your location, and the request. We may verify identity before acting. Payment data requests
           controlled by Dodo Payments can also be sent to privacy@dodopayments.com.
         </p>

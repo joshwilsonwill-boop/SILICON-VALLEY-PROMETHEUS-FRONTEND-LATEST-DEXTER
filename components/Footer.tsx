@@ -1,10 +1,13 @@
 import Link from 'next/link'
 
+import { BrandWordmark } from '@/components/brand-wordmark'
+
 import { CookieSettingsButton } from '@/components/cookie-consent/cookie-settings-button'
 
 const FOOTER_LINKS = [
   { href: '/pricing', label: 'Pricing' },
-  { href: '/terms', label: 'Terms & Conditions' },
+  { href: '/docs', label: 'Docs' },
+  { href: '/terms', label: 'Terms of Service' },
   { href: '/privacy', label: 'Privacy Policy' },
   { href: '/refund', label: 'Refund Policy' },
   { href: '/cookie-policy', label: 'Cookie Policy' },
@@ -16,12 +19,7 @@ export function Footer() {
     <footer className="prometheus-footer w-full border-t border-white/[0.07] bg-[#05060a] px-5 py-10 text-white sm:px-8">
       <div className="mx-auto grid max-w-7xl gap-8 md:grid-cols-[1fr_auto] md:items-end">
         <div className="max-w-md">
-          <Link
-            href="/"
-            className="text-xs font-semibold uppercase tracking-[0.28em] text-white transition-colors hover:text-white/72"
-          >
-            Prometheus Studio
-          </Link>
+          <BrandWordmark />
           <p className="mt-3 text-sm leading-6 text-white/50">
             Professional video editing and production workspace for filmmakers, motion designers,
             and modern production teams.

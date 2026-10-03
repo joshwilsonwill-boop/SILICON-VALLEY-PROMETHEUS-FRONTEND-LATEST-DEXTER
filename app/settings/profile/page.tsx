@@ -7,24 +7,19 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
   Check,
-  Copy,
   Database,
-  Eye,
-  EyeOff,
   KeyRound,
-  Laptop,
   Lock,
   Monitor,
   Moon,
-  RefreshCw,
   ShieldAlert,
   ShieldCheck,
-  Smartphone,
   Upload,
 } from 'lucide-react'
 import { useForm, useWatch, type FieldPath, type FieldPathValue } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
+import { displayNameSchema, usernameSchema } from '@/lib/auth/validation'
 
 import { useAuth } from '@/components/auth/auth-provider'
 import { InlineLoadingAnimation } from '@/components/loading-animation'
@@ -59,7 +54,7 @@ import { cn } from '@/lib/utils'
 const SAVE_DELAY_MS = 800
 
 const THEME_IDS = ['obsidian', 'midnight', 'ember', 'forest', 'aurora', 'glacier', 'rose-gold', 'solar'] as const
-const FONT_IDS = ['inter', 'sf-pro-display', 'geist', 'jetbrains-mono', 'playfair-display', 'space-grotesk'] as const
+const FONT_IDS = ['inter', 'jetbrains-mono', 'playfair-display'] as const
 
 const themeSchema = z.enum(THEME_IDS)
 const fontSchema = z.enum(FONT_IDS)
@@ -85,18 +80,8 @@ const notificationPreferencesSchema = z.object({
 })
 
 const profileSettingsSchema = z.object({
-  username: z
-    .string()
-    .trim()
-    .min(2, 'Use at least 2 characters')
-    .max(32, 'Keep username under 32 characters')
-    .regex(/^[a-zA-Z0-9_.-]+$/, 'Use letters, numbers, dots, dashes, or underscores'),
-  displayName: z
-    .string()
-    .trim()
-    .min(2, 'Use at least 2 characters')
-    .max(50, 'Keep display name under 50 characters')
-    .regex(/^[A-Za-z]+(?:[A-Za-z -]*[A-Za-z])?$/, 'Use letters, spaces, or hyphens only'),
+  username: usernameSchema,
+  displayName: displayNameSchema,
   avatarUrl: z.string().optional(),
   bio: z.string().trim().max(500, 'Keep bio under 500 characters'),
   pronouns: z.string().trim().max(64),
@@ -111,7 +96,7 @@ const profileSettingsSchema = z.object({
   defaultExportQuality: exportQualitySchema,
   defaultFormat: exportFormatSchema,
   twoFactorEnabled: z.boolean(),
-  apiKey: z.string().min(10),
+  apiKey: z.string(),
   usageAnalytics: z.boolean(),
 })
 
@@ -145,14 +130,14 @@ const DEFAULT_VALUES: ProfileSettingsFormValues = {
   location: '',
   theme: 'obsidian',
   fontPreference: 'inter',
-  accent: 'indigo',
+  accent: 'cyan',
   density: 'comfortable',
   sidebar: 'left',
   notificationPreferences: DEFAULT_NOTIFICATION_PREFERENCES,
   defaultExportQuality: 'standard',
   defaultFormat: 'mp4',
   twoFactorEnabled: false,
-  apiKey: 'pk_live_demo_cinema_access_key',
+  apiKey: '',
   usageAnalytics: false,
 }
 
@@ -174,8 +159,8 @@ const THEME_OPTIONS: Array<{
   })),
 ]
 
-const FONT_OPTIONS: Array<{ value: FontValue; label: string; stack: string }> = FONT_PRESETS.map((preset) => ({
-  value: preset.id,
+const FONT_OPTIONS: Array<{ value: FontValue; label: string; stack: string }> = FONT_PRESETS.filter((preset) => FONT_IDS.includes(preset.id as FontValue)).map((preset) => ({
+  value: preset.id as FontValue,
   label: preset.name,
   stack: preset.stack,
 }))
@@ -194,9 +179,9 @@ const ACCENT_OPTIONS: Array<{
   className: string
   hex: string
 }> = [
-  { value: 'indigo', label: 'Indigo', className: 'bg-[#6366f1]', hex: '#6366f1' },
+  { value: 'indigo', label: 'Indigo', className: 'bg-[#38BDF8]', hex: '#38BDF8' },
   { value: 'violet', label: 'Violet', className: 'bg-violet-500', hex: '#8b5cf6' },
-  { value: 'cyan', label: 'Cyan', className: 'bg-cyan-400', hex: '#22d3ee' },
+  { value: 'cyan', label: 'Cyan', className: 'bg-cyan-400', hex: '#38BDF8' },
   { value: 'emerald', label: 'Emerald', className: 'bg-emerald-400', hex: '#34d399' },
   { value: 'amber', label: 'Amber', className: 'bg-amber-400', hex: '#fbbf24' },
   { value: 'rose', label: 'Rose', className: 'bg-rose-400', hex: '#fb7185' },
@@ -226,32 +211,6 @@ const EXPORT_FORMAT_OPTIONS: Array<{ value: ExportFormatValue; label: string }> 
   { value: 'prores', label: 'ProRes' },
 ]
 
-const MOCK_SESSIONS = [
-  {
-    id: 'current',
-    icon: Monitor,
-    device: 'Chrome on macOS',
-    location: 'San Francisco, CA',
-    updatedAt: 'Current session',
-    current: true,
-  },
-  {
-    id: 'ios',
-    icon: Smartphone,
-    device: 'Safari on iPhone',
-    location: 'Los Angeles, CA',
-    updatedAt: '2 hours ago',
-    current: false,
-  },
-  {
-    id: 'laptop',
-    icon: Laptop,
-    device: 'Edge on Windows',
-    location: 'New York, NY',
-    updatedAt: 'Yesterday',
-    current: false,
-  },
-]
 
 function delay(ms = SAVE_DELAY_MS) {
   return new Promise((resolve) => window.setTimeout(resolve, ms))
@@ -389,11 +348,6 @@ function applyUiPreferences(theme: ThemeValue, accent: AccentValue, density: Den
   document.body.dataset.density = density
 }
 
-function getMaskedApiKey(apiKey: string, revealed: boolean) {
-  if (revealed) return apiKey
-  return 'pk_live_••••••••••••••••'
-}
-
 export default function ProfileSettingsPage() {
   const router = useRouter()
   const { session, isLoading: authLoading } = useAuth()
@@ -433,7 +387,6 @@ export default function ProfileSettingsPage() {
   const notificationPreferences = normalizeNotificationPreferences(watchedValues.notificationPreferences)
   const defaultExportQuality = watchedValues.defaultExportQuality ?? DEFAULT_VALUES.defaultExportQuality
   const defaultFormat = watchedValues.defaultFormat ?? DEFAULT_VALUES.defaultFormat
-  const apiKey = watchedValues.apiKey ?? DEFAULT_VALUES.apiKey
   const usageAnalytics = watchedValues.usageAnalytics ?? DEFAULT_VALUES.usageAnalytics
 
   const [settingsReady, setSettingsReady] = React.useState(false)
@@ -443,8 +396,7 @@ export default function ProfileSettingsPage() {
   const [savingTarget, setSavingTarget] = React.useState<SaveTarget>(null)
   const [savedTarget, setSavedTarget] = React.useState<SaveTarget>(null)
   const [savingPreference, setSavingPreference] = React.useState<PreferenceTarget>(null)
-  const [apiRevealed, setApiRevealed] = React.useState(false)
-  const [sessions, setSessions] = React.useState(MOCK_SESSIONS)
+  const sessions = session ? [{ id: 'current', icon: Monitor, device: 'This browser', location: 'Signed in', updatedAt: session.user.last_sign_in_at ? new Date(session.user.last_sign_in_at).toLocaleString() : 'Current session', current: true }] : []
   const [dangerRevealed, setDangerRevealed] = React.useState(false)
   const [dangerChecked, setDangerChecked] = React.useState(false)
   const [deactivateOpen, setDeactivateOpen] = React.useState(false)
@@ -517,12 +469,12 @@ export default function ProfileSettingsPage() {
   }
 
   async function saveTextField(target: 'username' | 'displayName' | 'bio' | 'pronouns' | 'location') {
+    if (savingTarget) return
     const isValid = await trigger(target)
     if (!isValid) return
 
     setSavingTarget(target)
     try {
-      await delay()
       if (target === 'username') {
         await updateUsername(getValues('username'))
       } else if (target === 'displayName') {
@@ -544,7 +496,9 @@ export default function ProfileSettingsPage() {
       )
       window.setTimeout(() => setSavedTarget(null), 1400)
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Unable to save field.')
+      const message = error instanceof Error ? error.message : 'Unable to save field.'
+      form.setError(target, { type: 'server', message })
+      toast.error(message)
     } finally {
       setSavingTarget(null)
     }
@@ -697,29 +651,6 @@ export default function ProfileSettingsPage() {
     }
   }
 
-  async function copyApiKey() {
-    await navigator.clipboard.writeText(apiKey)
-    toast.success('API key copied')
-  }
-
-  async function regenerateApiKey() {
-    setSavingTarget('apiKey')
-    await delay()
-    const nextKey = `pk_live_mock_${crypto.randomUUID().replaceAll('-', '').slice(0, 22)}`
-    setValue('apiKey', nextKey, { shouldDirty: true, shouldValidate: true })
-    window.setTimeout(persistCurrentSettings, 0)
-    setSavingTarget(null)
-    toast.success('API key regenerated')
-  }
-
-  async function revokeSession(sessionId: string) {
-    setSavingTarget('session')
-    await delay()
-    setSessions((current) => current.filter((item) => item.id !== sessionId))
-    setSavingTarget(null)
-    toast.success('Session revoked.')
-  }
-
   const currentAccent = ACCENT_OPTIONS.find((option) => option.value === selectedAccent) ?? ACCENT_OPTIONS[0]
   const initials = getInitial(email, username)
   const avatarImage = avatarPreview || watchedValues.avatarUrl || ''
@@ -741,8 +672,8 @@ export default function ProfileSettingsPage() {
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={savingTarget === 'avatar'}
-                    className="group relative flex size-20 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-[#6366f1] text-2xl font-bold text-white shadow-[0_18px_54px_-24px_rgba(99,102,241,0.95)]"
-                    style={{ background: avatarImage ? undefined : 'var(--accent, #6366f1)' }}
+                    className="group relative flex size-20 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-[#38BDF8] text-2xl font-bold text-white shadow-[0_18px_54px_-24px_rgba(56,189,248,0.95)]"
+                    style={{ background: avatarImage ? undefined : 'var(--accent, #38BDF8)' }}
                     aria-label="Upload avatar"
                     aria-describedby="avatar-upload-status"
                   >
@@ -777,18 +708,18 @@ export default function ProfileSettingsPage() {
                 </div>
 
                 <div className="min-w-0 flex-1 space-y-5">
-                  <FieldRow label="Username" error={errors.username?.message}>
+                  <FieldRow label="Username" description="Use letters, numbers, dots, dashes, or underscores." error={errors.username?.message}>
                     <div className="flex flex-col gap-2 sm:flex-row">
                       <Input
                         {...register('username')}
-                        className="h-10 rounded-[14px] border-white/16 bg-white/[0.06] text-white/90 focus:border-[#6366f1]/70 focus:ring-[#6366f1]/20"
+                        className="h-10 rounded-[14px] border-white/16 bg-white/[0.06] text-white/90 focus:border-[#38BDF8]/70 focus:ring-[#38BDF8]/20"
                       />
                       <Button
                         type="button"
                         size="sm"
                         disabled={savingTarget === 'username'}
                         onClick={() => void saveTextField('username')}
-                        className="h-10 rounded-[16px] border-[#6366f1]/80 bg-[#6366f1] px-4 text-white shadow-[0_18px_54px_-24px_rgba(99,102,241,0.95)] hover:border-[#818cf8] hover:bg-[#5558e8]"
+                        className="h-10 rounded-[16px] border-[#38BDF8]/80 bg-[#38BDF8] px-4 text-white shadow-[0_18px_54px_-24px_rgba(56,189,248,0.95)] hover:border-[#38BDF8] hover:bg-[#38BDF8]"
                       >
                         {savingTarget === 'username' ? (
                           <InlineLoadingAnimation size={16} label="Saving username" />
@@ -811,14 +742,13 @@ export default function ProfileSettingsPage() {
 
                   <FieldRow
                     label="Display Name"
-                    description="How you appear to team members and clients. Separate from username."
+                    description="Use letters, numbers, spaces, dots, apostrophes, or hyphens. Separate from username."
                     error={errors.displayName?.message}
                   >
                     <div className="flex flex-col gap-2 sm:flex-row">
                       <Input
                         {...register('displayName')}
-                        onBlur={() => void saveTextField('displayName')}
-                        className="h-10 rounded-[14px] border-white/16 bg-white/[0.06] text-white/90 focus:border-[#6366f1]/70 focus:ring-[#6366f1]/20"
+                                        className="h-10 rounded-[14px] border-white/16 bg-white/[0.06] text-white/90 focus:border-[#38BDF8]/70 focus:ring-[#38BDF8]/20"
                       />
                       <LiquidChromeButton
                         type="button"
@@ -846,7 +776,7 @@ export default function ProfileSettingsPage() {
                         {...register('bio')}
                         onBlur={() => void saveTextField('bio')}
                         className={cn(
-                          'min-h-28 rounded-[14px] border-white/16 bg-white/[0.06] text-white/90 focus:border-[#6366f1]/70 focus:ring-[#6366f1]/20',
+                          'min-h-28 rounded-[14px] border-white/16 bg-white/[0.06] text-white/90 focus:border-[#38BDF8]/70 focus:ring-[#38BDF8]/20',
                           bio.length >= 450 && 'border-amber-400/60',
                         )}
                       />
@@ -877,7 +807,7 @@ export default function ProfileSettingsPage() {
                             {...register('pronouns')}
                             onBlur={() => void saveTextField('pronouns')}
                             placeholder="Add your pronouns"
-                            className="h-10 rounded-[14px] border-white/16 bg-white/[0.06] text-white/90 focus:border-[#6366f1]/70 focus:ring-[#6366f1]/20"
+                            className="h-10 rounded-[14px] border-white/16 bg-white/[0.06] text-white/90 focus:border-[#38BDF8]/70 focus:ring-[#38BDF8]/20"
                           />
                         ) : null}
                       </div>
@@ -888,7 +818,7 @@ export default function ProfileSettingsPage() {
                         {...register('location')}
                         onBlur={() => void saveTextField('location')}
                         placeholder="City, country"
-                        className="h-10 rounded-[14px] border-white/16 bg-white/[0.06] text-white/90 focus:border-[#6366f1]/70 focus:ring-[#6366f1]/20"
+                        className="h-10 rounded-[14px] border-white/16 bg-white/[0.06] text-white/90 focus:border-[#38BDF8]/70 focus:ring-[#38BDF8]/20"
                       />
                     </FieldRow>
                   </div>
@@ -1026,26 +956,19 @@ export default function ProfileSettingsPage() {
                   label="Multi-Factor Authentication"
                   value="Add an extra layer of security to your account"
                   action={
-                    <Button asChild size="sm" className="border-[#6366f1]/80 bg-[#6366f1] text-white hover:border-[#818cf8] hover:bg-[#5558e8]">
+                    <Button asChild size="sm" className="border-[#38BDF8]/80 bg-[#38BDF8] text-white hover:border-[#38BDF8] hover:bg-[#38BDF8]">
                       <Link href="/settings/profile/mfa">Manage MFA</Link>
                     </Button>
                   }
                 />
 
-                <ApiKeyField
-                  apiKey={apiKey}
-                  revealed={apiRevealed}
-                  saving={savingTarget === 'apiKey'}
-                  onCopy={() => void copyApiKey()}
-                  onRegenerate={() => void regenerateApiKey()}
-                  onRevealChange={setApiRevealed}
-                />
+
 
                 <div className="rounded-[18px] border border-white/10 bg-white/[0.03] p-4">
                   <div className="mb-3 flex items-center justify-between gap-3">
                     <div>
                       <div className="text-sm font-medium text-white">Active Sessions</div>
-                      <div className="mt-1 text-xs text-white/42">Current browser and recent mock sign-ins.</div>
+                      <div className="mt-1 text-xs text-white/42">Your authenticated session in this browser.</div>
                     </div>
                   </div>
                   <div className="space-y-2">
@@ -1061,7 +984,7 @@ export default function ProfileSettingsPage() {
                               <div className="flex items-center gap-2 text-sm font-medium text-white/82">
                                 <span className="truncate">{item.device}</span>
                                 {item.current ? (
-                                  <span className="rounded-full border border-[#6366f1]/36 bg-[#6366f1]/14 px-2 py-0.5 text-[10px] text-[#c7d2fe]">
+                                  <span className="rounded-full border border-[#38BDF8]/36 bg-[#38BDF8]/14 px-2 py-0.5 text-[10px] text-[#38BDF8]">
                                     Current
                                   </span>
                                 ) : null}
@@ -1071,11 +994,7 @@ export default function ProfileSettingsPage() {
                               </div>
                             </div>
                           </div>
-                          {!item.current ? (
-                            <Button type="button" size="sm" variant="ghost" disabled={savingTarget === 'session'} onClick={() => void revokeSession(item.id)}>
-                              Revoke
-                            </Button>
-                          ) : null}
+
                         </div>
                       )
                     })}
@@ -1218,7 +1137,7 @@ function ThemeSelector({ onChange, value }: { onChange: (value: ThemeValue) => v
             onClick={() => onChange(option.value)}
             className={cn(
               'group relative overflow-visible rounded-[18px] border bg-white/[0.03] p-3 text-left transition-all duration-150 ease-out hover:-translate-y-1 hover:border-white/[0.12]',
-              selected ? 'border-[#6366f1]/36 shadow-[0_0_30px_rgba(99,102,241,0.24)]' : 'border-white/10',
+              selected ? 'border-[#38BDF8]/36 shadow-[0_0_30px_rgba(56,189,248,0.24)]' : 'border-white/10',
             )}
           >
             <div
@@ -1233,7 +1152,7 @@ function ThemeSelector({ onChange, value }: { onChange: (value: ThemeValue) => v
                 <div className="mt-1 text-xs text-white/42">{option.description}</div>
               </div>
               {selected ? (
-                <span className="flex size-6 items-center justify-center rounded-full bg-[#6366f1] text-white">
+                <span className="flex size-6 items-center justify-center rounded-full bg-[#38BDF8] text-white">
                   <Check className="size-3.5" />
                 </span>
               ) : null}
@@ -1283,7 +1202,7 @@ function FontSelector({ onChange, value }: { onChange: (value: FontValue) => voi
             onClick={() => onChange(option.value)}
             className={cn(
               'group relative overflow-visible rounded-[18px] border bg-white/[0.03] p-4 text-left transition-all duration-150 ease-out hover:-translate-y-1 hover:border-white/[0.12]',
-              selected ? 'border-[#6366f1]/36 shadow-[0_0_30px_rgba(99,102,241,0.24)]' : 'border-white/10',
+              selected ? 'border-[#38BDF8]/36 shadow-[0_0_30px_rgba(56,189,248,0.24)]' : 'border-white/10',
             )}
           >
             <div className="flex items-center justify-between gap-3">
@@ -1292,7 +1211,7 @@ function FontSelector({ onChange, value }: { onChange: (value: FontValue) => voi
                 <div className="mt-1 text-xs text-white/42">Global UI font</div>
               </div>
               {selected ? (
-                <span className="flex size-6 items-center justify-center rounded-full bg-[#6366f1] text-white">
+                <span className="flex size-6 items-center justify-center rounded-full bg-[#38BDF8] text-white">
                   <Check className="size-3.5" />
                 </span>
               ) : null}
@@ -1353,7 +1272,7 @@ function SegmentedControl<T extends string>({
           onClick={() => onChange(option.value)}
           className={cn(
             'min-h-8 flex-1 rounded-[14px] px-3 text-sm transition-all duration-150 ease-out',
-            value === option.value ? 'bg-[#6366f1] text-white shadow-[0_0_30px_rgba(99,102,241,0.24)]' : 'text-white/52 hover:bg-white/[0.06] hover:text-white',
+            value === option.value ? 'bg-[#38BDF8] text-white shadow-[0_0_30px_rgba(56,189,248,0.24)]' : 'text-white/52 hover:bg-white/[0.06] hover:text-white',
           )}
         >
           {option.label}
@@ -1388,7 +1307,7 @@ function NotificationToggle({
           onClick={() => onChange(!checked)}
           className={cn(
             'relative h-6 w-12 rounded-full border transition-all duration-150 ease-out',
-            checked ? 'border-[#6366f1]/36 bg-[#6366f1]' : 'border-white/10 bg-white/[0.06]',
+            checked ? 'border-[#38BDF8]/36 bg-[#38BDF8]' : 'border-white/10 bg-white/[0.06]',
           )}
         >
           <span
@@ -1416,7 +1335,7 @@ function SelectField<T extends string>({
     <select
       value={value}
       onChange={(event) => onChange(event.target.value as T)}
-      className="h-10 w-full rounded-[14px] border border-white/16 bg-[#0a0a0d] px-3 text-sm text-white/90 outline-none transition-colors focus:border-[#6366f1]/70 focus:ring-2 focus:ring-[#6366f1]/20"
+      className="h-10 w-full rounded-[14px] border border-white/16 bg-[#0a0a0d] px-3 text-sm text-white/90 outline-none transition-colors focus:border-[#38BDF8]/70 focus:ring-2 focus:ring-[#38BDF8]/20"
     >
       {options.map((option) => (
         <option key={option.value} value={option.value}>
@@ -1454,58 +1373,6 @@ function SecurityRow({
   )
 }
 
-function ApiKeyField({
-  apiKey,
-  onCopy,
-  onRegenerate,
-  onRevealChange,
-  revealed,
-  saving,
-}: {
-  apiKey: string
-  onCopy: () => void
-  onRegenerate: () => void
-  onRevealChange: (revealed: boolean) => void
-  revealed: boolean
-  saving: boolean
-}) {
-  return (
-    <div className="rounded-[18px] border border-white/10 bg-white/[0.03] p-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2 text-sm font-medium text-white">
-            <KeyRound className="size-4 text-white/54" />
-            API Key
-          </div>
-          <div className="mt-2 break-all rounded-[14px] border border-white/10 bg-black/30 px-3 py-2 font-mono text-xs text-white/62">
-            {getMaskedApiKey(apiKey, revealed)}
-          </div>
-          <Link href="/pricing" className="mt-2 inline-flex text-xs text-[#c7d2fe] hover:text-white">
-            Upgrade to Cinema for API access
-          </Link>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button type="button" size="sm" variant="ghost" onClick={() => onRevealChange(!revealed)}>
-            {revealed ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-            {revealed ? 'Hide' : 'Reveal'}
-          </Button>
-          <Button type="button" size="sm" variant="ghost" onClick={onCopy}>
-            <Copy className="size-4" />
-            Copy
-          </Button>
-          <Button type="button" size="sm" variant="secondary" disabled={saving} onClick={onRegenerate}>
-            {saving ? (
-              <InlineLoadingAnimation size={16} label="Regenerating API key" />
-            ) : (
-              <RefreshCw className="size-4" />
-            )}
-            Regenerate
-          </Button>
-        </div>
-      </div>
-    </div>
-  )
-}
 
 function DangerZone({
   checked,

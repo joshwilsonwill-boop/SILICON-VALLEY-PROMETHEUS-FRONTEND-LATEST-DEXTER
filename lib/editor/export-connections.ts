@@ -1,6 +1,8 @@
 export type ExportConnection = {
   provider: string
   connected?: boolean | null
+  expiresAt?: string | null
+  status?: string | null
 }
 
 function isExportConnection(value: unknown): value is ExportConnection {
@@ -26,6 +28,6 @@ export function isExportProviderConnected(
   provider: string,
 ): boolean {
   return connections.some(
-    (connection) => connection.provider === provider && connection.connected === true,
+    (connection) => connection.provider === provider && connection.connected === true && connection.status !== 'disconnected' && connection.status !== 'expired' && (!connection.expiresAt || Date.parse(connection.expiresAt) > Date.now()),
   )
 }

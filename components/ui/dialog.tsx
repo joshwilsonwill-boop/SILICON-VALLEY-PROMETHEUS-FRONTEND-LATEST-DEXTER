@@ -46,7 +46,7 @@ function DialogContent({
         {children}
         {showCloseButton ? (
           <DialogPrimitive.Close
-            className="absolute right-4 top-4 rounded-md p-1 text-white/60 hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/20"
+            className="absolute right-4 top-4 z-[100] flex h-11 w-11 items-center justify-center rounded-md bg-black/60 text-white/80 hover:bg-white/10 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--theme-accent)]"
             aria-label="Close"
           >
             <X className="size-4" />

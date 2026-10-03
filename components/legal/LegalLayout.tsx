@@ -1,15 +1,6 @@
-import Link from 'next/link'
 import type { ReactNode } from 'react'
 
-export const LEGAL_LAST_UPDATED = 'May 28, 2026'
-
-const LEGAL_LINKS = [
-  { href: '/pricing', label: 'Pricing' },
-  { href: '/terms', label: 'Terms' },
-  { href: '/privacy', label: 'Privacy' },
-  { href: '/refund', label: 'Refund' },
-  { href: '/contact', label: 'Contact' },
-]
+export const LEGAL_LAST_UPDATED = '28 May 2026'
 
 type LegalLayoutProps = {
   title: string
@@ -32,7 +23,6 @@ type LegalSubsectionProps = {
 export function LegalLayout({
   title,
   description,
-  currentPath,
   lastUpdated = LEGAL_LAST_UPDATED,
   children,
 }: LegalLayoutProps) {
@@ -44,30 +34,7 @@ export function LegalLayout({
       />
 
       <div className="relative mx-auto max-w-3xl px-6 py-24 md:py-32 md:pb-24">
-        <nav
-          aria-label="Legal pages"
-          className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[0.68rem] uppercase tracking-[0.32em] text-neutral-500"
-        >
-          <Link href="/" className="transition-colors hover:text-white">
-            Prometheus
-          </Link>
-          {LEGAL_LINKS.map((link) => {
-            const isActive = currentPath === link.href
-
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                aria-current={isActive ? 'page' : undefined}
-                className={isActive ? 'text-white' : 'transition-colors hover:text-white'}
-              >
-                {link.label}
-              </Link>
-            )
-          })}
-        </nav>
-
-        <header className="mt-16 space-y-6 sm:mt-20">
+        <header className="space-y-6">
           <p className="text-xs uppercase tracking-[0.32em] text-neutral-500">Legal</p>
           <div className="space-y-5">
             <h1 className="max-w-2xl text-5xl font-medium leading-none tracking-[-0.06em] text-white sm:text-6xl">
@@ -76,7 +43,7 @@ export function LegalLayout({
             <p className="max-w-2xl text-base leading-8 text-neutral-400 sm:text-lg">{description}</p>
           </div>
           <p className="text-sm uppercase tracking-[0.22em] text-neutral-500">
-            Last updated {lastUpdated}
+            Last updated{' '}{lastUpdated}
           </p>
         </header>
 

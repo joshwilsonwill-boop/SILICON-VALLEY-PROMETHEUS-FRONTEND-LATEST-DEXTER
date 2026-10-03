@@ -20,6 +20,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 
+import { DeleteProjectDialog } from '@/components/projects/delete-project-dialog'
 import { CreateProjectModal } from '@/components/projects/create-project-modal'
 import { InlineLoadingAnimation, LoadingAnimation } from '@/components/loading-animation'
 import { useProjectsList } from '@/hooks/use-projects-list'
@@ -209,6 +210,9 @@ function ProjectTile({
 export function ProjectsPageEditorial() {
   const router = useRouter()
   const prefersReducedMotion = useReducedMotion()
+  const [deleteTarget, setDeleteTarget] = React.useState<ProjectListItem | null>(null)
+  const [deleteError, setDeleteError] = React.useState<string | null>(null)
+  const openingRef = React.useRef(false)
   const [query, setQuery] = React.useState('')
   const [filter, setFilter] = React.useState<FilterKey>('all')
   const [sortKey, setSortKey] = React.useState<SortKey>('updated')
@@ -219,7 +223,8 @@ export function ProjectsPageEditorial() {
   const openingProjectTitle = projects.find((project) => project.id === openingProjectId)?.title ?? 'project'
 
   const openProject = React.useCallback((project: ProjectListItem) => {
-    if (openingProjectId) return
+    if (openingRef.current) return
+    openingRef.current = true
     setOpeningProjectId(project.id)
     rememberCurrentPathForEditorReturn()
     const now = new Date().toISOString()
@@ -247,7 +252,7 @@ export function ProjectsPageEditorial() {
     window.requestAnimationFrame(() => {
       router.push(`/editor/${project.id}`)
     })
-  }, [openingProjectId, router])
+  }, [router])
 
   const visibleProjects = React.useMemo(() => {
     const cleanedQuery = query.trim().toLocaleLowerCase()
@@ -265,16 +270,20 @@ export function ProjectsPageEditorial() {
   )
 
   const handleDelete = React.useCallback(async (project: ProjectListItem) => {
-    if (!window.confirm(`Delete “${project.title}”? This cannot be undone.`)) return false
+    if (isDeleting) return false
+    setDeleteError(null)
     try {
       await deleteProject(project.id)
+      setDeleteTarget(null)
       toast.success('Project deleted')
       return true
     } catch (deleteError) {
-      toast.error(deleteError instanceof Error ? deleteError.message : 'Could not delete project')
+      const message = deleteError instanceof Error ? deleteError.message : 'Could not delete project'
+      setDeleteError(message)
+      toast.error(message)
       return false
     }
-  }, [deleteProject])
+  }, [deleteProject, isDeleting])
 
   const handleDuplicate = React.useCallback(async (project: ProjectListItem) => {
     try {
@@ -288,7 +297,7 @@ export function ProjectsPageEditorial() {
   }, [duplicateProject])
 
   return (
-    <main className="min-h-dvh overflow-hidden bg-[#09090b] text-white">
+    <main aria-busy={isLoading || Boolean(openingProjectId)} className="min-h-dvh overflow-hidden bg-[#09090b] text-white">
       <section className="relative isolate overflow-hidden border-b border-white/10 px-4 pb-8 pt-5 sm:px-7 lg:px-10">
         <div aria-hidden="true" className="absolute inset-0 -z-10 overflow-hidden bg-[#09090b]">
           <div className="absolute -right-20 -top-24 size-[28rem] rounded-full bg-white/10 blur-[100px]" />
@@ -299,13 +308,13 @@ export function ProjectsPageEditorial() {
         <div className="mx-auto max-w-[1540px]">
           <div className="flex items-center justify-between gap-4 border-b border-white/15 pb-4 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/70">
             <span className="flex items-center gap-2"><Sparkles className="size-3.5" /> Prometheus studio</span>
-            <span>{projects.length.toString().padStart(2, '0')} pieces in motion</span>
+            <span>{isLoading ? 'Loading your projects?' : `${projects.length} pieces in motion`}</span>
           </div>
 
           <div className="flex flex-col justify-between gap-7 pt-8 lg:flex-row lg:items-end lg:pt-12">
             <div>
               <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-white/65">Your creative room</p>
-              <h1 className="max-w-3xl text-balance text-[clamp(3.25rem,9vw,8.5rem)] font-semibold leading-[0.78] tracking-[-0.09em]">
+              <h1 className="max-w-3xl [font-family:var(--font-playfair-display)] text-balance text-[clamp(3.25rem,9vw,8.5rem)] font-semibold leading-[0.78] tracking-[-0.09em]">
                 <motion.span
                   initial={prefersReducedMotion ? false : { opacity: 0, y: 22 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -387,7 +396,7 @@ export function ProjectsPageEditorial() {
                   onClick={() => setFilter(item.key)}
                   className={`shrink-0 border px-3 py-2 text-xs font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${active ? 'border-white bg-white text-black' : 'border-white/15 bg-white/[0.03] text-white/68 hover:border-white/45 hover:text-white'}`}
                 >
-                  {item.label} <span className="ml-1.5 font-mono text-[10px] opacity-60">{countFor(item.key).toString().padStart(2, '0')}</span>
+                  {item.label} <span className="ml-1.5 font-mono text-[10px] opacity-60">{isLoading ? 'Loading' : `(${countFor(item.key)})`}</span>
                 </button>
               )
             })}
@@ -453,7 +462,7 @@ export function ProjectsPageEditorial() {
                 index={index}
                 onOpen={() => openProject(project)}
                 onDuplicate={() => void handleDuplicate(project)}
-                onDelete={() => void handleDelete(project)}
+                onDelete={() => { setDeleteError(null); setDeleteTarget(project) }}
                 isDuplicating={isDuplicating}
                 isDeleting={isDeleting}
                 isOpening={openingProjectId === project.id}
@@ -462,6 +471,7 @@ export function ProjectsPageEditorial() {
           </div>
         )}
       </section>
+      <DeleteProjectDialog title={deleteTarget?.title ?? null} busy={isDeleting} error={deleteError} onCancel={() => setDeleteTarget(null)} onConfirm={() => { if (deleteTarget) void handleDelete(deleteTarget) }} />
       <CreateProjectModal open={isCreateOpen} onClose={() => setIsCreateOpen(false)} />
       {openingProjectId ? <LoadingAnimation message={`Opening ${openingProjectTitle}...`} /> : null}
     </main>

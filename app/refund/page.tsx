@@ -5,6 +5,7 @@ import { LegalLayout, LegalSection } from '@/components/legal/LegalLayout'
 const LAST_UPDATED = '14 July 2026'
 
 export const metadata: Metadata = {
+  alternates: { canonical: '/refund' },
   title: 'Refund Policy | Prometheus Studio',
   description: 'Refund Policy for Prometheus Studio purchases processed by Dodo Payments.',
 }

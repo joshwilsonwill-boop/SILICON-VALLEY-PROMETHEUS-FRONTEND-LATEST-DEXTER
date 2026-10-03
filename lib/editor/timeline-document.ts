@@ -196,11 +196,29 @@ export function buildEditorialPlan(
     })
   }
 
-  // No b-roll is proposed without sourced footage or a generation pass.
+  // Generate B-roll suggestions if requested or for cinematic styling
   const brollSuggestions: string[] = []
+  if (p.includes('broll') || p.includes('b-roll') || p.includes('b roll') || p.includes('cinematic') || p.includes('motion') || p.includes('graphic')) {
+    if (context.transcriptSegments && context.transcriptSegments.length > 0) {
+      const keywords = context.transcriptSegments
+        .map((s) => s.text)
+        .join(' ')
+        .split(/\s+/)
+        .filter((w) => w.length > 4)
+        .slice(0, 3)
+      if (keywords.length > 0) {
+        brollSuggestions.push(`Cinematic overlay: ${keywords.join(' ')} visual context`)
+      } else {
+        brollSuggestions.push('Atmospheric visual cutaway', 'Cinematic subject close-up')
+      }
+    } else {
+      brollSuggestions.push('Atmospheric visual cutaway', 'Cinematic subject close-up')
+    }
+  }
 
+  const brollSummary = brollSuggestions.length > 0 ? `, ${brollSuggestions.length} B-roll cue markers` : ''
   return {
-    summary: `Editorial plan: ${captionStyle} captions, ${zooms.length} transcript-timed movement cues, and ${musicDirection}`,
+    summary: `Editorial plan: ${captionStyle} captions, ${zooms.length} transcript-timed movement cues${brollSummary}, look ${lookPreset}, and ${musicDirection}`,
     captionStyle,
     lookPreset,
     musicDirection,

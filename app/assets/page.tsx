@@ -176,6 +176,7 @@ export default function AssetsPage() {
               onTogglePreference={togglePreference}
               onActiveItemChange={setActiveShowcaseItem}
               initialShowcaseId={selectedCreatorId}
+              onClose={closeCreatorLibrary}
             />
           </div>
         </DialogContent>

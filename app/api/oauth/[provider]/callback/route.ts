@@ -4,6 +4,7 @@ import { PROVIDER_CONFIGS } from "@/lib/oauth/providers";
 import { getAndDeleteState } from "@/lib/oauth/state-store";
 import { sealToken } from "@/lib/crypto/token-vault";
 import { OAuthProvider } from "@/lib/oauth/types";
+import { providerCredentials, trustedOAuthOrigin } from '@/lib/oauth/capabilities';
 
 export async function GET(request: NextRequest, { params }: any) {
   const provider = (await params).provider as OAuthProvider;
@@ -12,7 +13,7 @@ export async function GET(request: NextRequest, { params }: any) {
   const code = searchParams.get("code");
   const state = searchParams.get("state");
   const error = searchParams.get("error");
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim() || request.nextUrl.origin
+  const appUrl = trustedOAuthOrigin()
   const settingsUrl = new URL(
     provider === 'google_drive' || provider === 'dropbox' ? '/settings' : '/settings/social-accounts',
     appUrl,
@@ -30,28 +31,26 @@ export async function GET(request: NextRequest, { params }: any) {
   }
 
   const stateData = await getAndDeleteState(state);
-  if (!stateData || stateData.provider !== provider) {
+  if (!config || !stateData || stateData.provider !== provider || stateData.redirectUri !== `${appUrl}/api/oauth/${provider}/callback`) {
     settingsUrl.searchParams.set('error', 'invalid_state')
     settingsUrl.searchParams.set('provider', provider)
     return NextResponse.redirect(settingsUrl)
   }
 
   // Surgical Fix: Dynamic Env Var Mapping and detailed logging
-  const clientIdEnv = config.clientIdEnvVar || `${provider.toUpperCase()}_CLIENT_ID`;
-  const clientSecretEnv = `${provider.toUpperCase()}_CLIENT_SECRET`;
-  
-  const clientId = process.env[clientIdEnv];
-  const clientSecret = process.env[clientSecretEnv];
+  const credentials = providerCredentials(provider);
+  const clientId = credentials?.clientId;
+  const clientSecret = credentials?.clientSecret;
 
   if (!clientId || !clientSecret) {
-    console.error(`[OAuth Callback] Missing credentials for ${provider}. Checked: ${clientIdEnv}, ${clientSecretEnv}`);
+    console.error(`[OAuth Callback] Missing credentials for ${provider}.`);
     settingsUrl.searchParams.set('error', 'oauth_failed')
     settingsUrl.searchParams.set('provider', provider)
     return NextResponse.redirect(settingsUrl)
   }
 
   const paramsBody = new URLSearchParams({
-    client_id: clientId,
+    [config.clientIdParam ?? 'client_id']: clientId,
     client_secret: clientSecret,
     code,
     redirect_uri: stateData.redirectUri,
@@ -84,6 +83,11 @@ export async function GET(request: NextRequest, { params }: any) {
     const providerUsername = tokenData.username || tokenData.screen_name || tokenData.user_name || null
 
     const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user || user.id !== stateData.userId) {
+      settingsUrl.searchParams.set('error', 'session_changed');
+      return NextResponse.redirect(settingsUrl);
+    }
     const { error: dbError } = await supabase.from("user_connections").upsert({
       user_id: stateData.userId,
       provider,

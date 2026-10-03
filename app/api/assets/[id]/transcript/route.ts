@@ -4,12 +4,29 @@ import { assemblyTranscriptToSegments } from '@/lib/r2/assembly-transcript'
 import { downloadTextFromR2 } from '@/lib/r2/download-text'
 import { startSourceAssetTranscription } from '@/lib/server/source-transcript'
 import { createClient } from '@/lib/supabase/server'
+import { computeErrorResponse, settleCompute } from '@/lib/compute/credits'
+import { parseComputeConfirmation } from '@/lib/compute/policy'
 
 type TranscriptWord = {
   text: string
   startMs: number
   endMs: number
   isCut?: boolean
+}
+
+/** Provider does not guarantee cancellation of submitted asynchronous jobs. */
+export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const { data: asset } = await supabase.from('source_assets').select('transcript_status, transcript_credit_request_id').eq('id', id).eq('user_id', user.id).maybeSingle()
+  if (!asset) return NextResponse.json({ error: 'Asset not found' }, { status: 404 })
+  if (asset.transcript_status === 'queued' || asset.transcript_status === 'transcribing') {
+    return NextResponse.json({ error: 'This transcription has already been submitted and cannot be canceled. You can close the panel; failed jobs are refunded.', code: 'CANCELLATION_UNAVAILABLE' }, { status: 409 })
+  }
+  if (asset.transcript_status === 'failed' && asset.transcript_credit_request_id) await settleCompute(user.id, asset.transcript_credit_request_id, 'refunded')
+  return NextResponse.json({ status: asset.transcript_status, canceled: false })
 }
 
 type TranscriptSegment = {
@@ -260,7 +277,9 @@ export async function POST(
       return NextResponse.json({ error: 'Only video assets can be transcribed' }, { status: 400 })
     }
 
-    const started = await startSourceAssetTranscription({ assetId, supabase, force: restart })
+    const confirmation = parseComputeConfirmation(await req.json().catch(() => null))
+    if (!confirmation) return NextResponse.json({ error: 'Review the credit cost and confirm first.', code: 'CONFIRMATION_REQUIRED' }, { status: 428 })
+    const started = await startSourceAssetTranscription({ assetId, supabase, force: restart, confirmation })
 
     if (!started) {
       const tooLong =
@@ -279,6 +298,8 @@ export async function POST(
     return NextResponse.json(started)
   } catch (err) {
     console.error('[api/assets/[id]/transcript] POST error:', err)
+    const creditError = computeErrorResponse(err)
+    if (creditError) return creditError
     return NextResponse.json(
       { error: err instanceof Error ? err.message : 'Failed to start transcript' },
       { status: 500 },

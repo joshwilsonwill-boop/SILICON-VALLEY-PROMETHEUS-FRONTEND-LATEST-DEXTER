@@ -1,4 +1,4 @@
-const FOOTER_ROUTES = new Set(['/signup', '/signin', '/terms', '/privacy', '/refund', '/cookie-policy', '/contact'])
+const FOOTER_ROUTES = new Set(['/', '/pricing', '/docs', '/login', '/signup', '/signin', '/verify', '/forgot-password', '/reset-password', '/terms', '/privacy', '/refund', '/cookie-policy', '/contact'])
 
 export function shouldShowGlobalFooter(pathname: string | null | undefined) {
   if (!pathname) return false

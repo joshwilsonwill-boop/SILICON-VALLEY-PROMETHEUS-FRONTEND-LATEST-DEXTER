@@ -12,9 +12,10 @@ import { normalizeUxError } from '@/lib/ux/errors'
 import { markOnboardingPending } from '@/lib/onboarding'
 import { toast } from 'sonner'
 
-import { GoogleIcon, AppleIcon } from './auth-visuals'
+import { ENABLED_OAUTH_PROVIDERS } from '@/lib/auth/validation'
+import { GoogleIcon } from './auth-visuals'
 
-type SocialProvider = 'google' | 'apple' | 'github'
+type SocialProvider = 'google' | 'github'
 
 const SOCIAL_OPTIONS: Array<{
   provider: SocialProvider
@@ -22,7 +23,6 @@ const SOCIAL_OPTIONS: Array<{
   Icon: React.ComponentType<{ className?: string }>
 }> = [
   { provider: 'google', label: 'Continue with Google', Icon: GoogleIcon },
-  { provider: 'apple', label: 'Continue with Apple', Icon: AppleIcon },
   { provider: 'github', label: 'Continue with GitHub', Icon: GithubIcon },
 ]
 
@@ -42,7 +42,7 @@ export function SocialAuthButtons({ providers }: SocialAuthButtonsProps) {
 
   const nextPath = normalizeNextPath(searchParams.get('next'))
   const enabledProviders = React.useMemo(
-    () => SOCIAL_OPTIONS.filter(({ provider }) => !providers || providers.includes(provider)),
+    () => SOCIAL_OPTIONS.filter(({ provider }) => ENABLED_OAUTH_PROVIDERS.includes(provider) && (!providers || providers.includes(provider))),
     [providers],
   )
 
@@ -124,8 +124,6 @@ export function SocialAuthButtons({ providers }: SocialAuthButtonsProps) {
           className="w-full"
           disabled={busyProvider !== null}
           onClick={() => {
-            if (provider === 'google') console.log("google clicked")
-            console.log('oauth clicked', { provider })
             void handleOAuth(provider)
           }}
         >

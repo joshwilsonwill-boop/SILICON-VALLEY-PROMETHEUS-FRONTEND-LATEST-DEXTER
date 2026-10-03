@@ -15,6 +15,7 @@ const AUTH_PAGE_PREFIXES = ['/login', '/signup', '/verify', '/forgot-password', 
 const PUBLIC_ROUTES = ['/', '/pricing', '/terms', '/privacy', '/refund']
 const PROTECTED_PREFIXES = [
   '/',
+  '/analytics',
   '/dashboard',
   '/projects',
   '/editor',
@@ -86,6 +87,12 @@ export async function proxy(request: NextRequest) {
   }
   const secure = (response: NextResponse) => applySecurityHeaders(response, nonce)
   const { pathname } = request.nextUrl
+
+  if (pathname === '/studio') {
+    const canonical = request.nextUrl.clone()
+    canonical.pathname = '/'
+    return secure(NextResponse.redirect(canonical, 308))
+  }
 
   if (isPublicPath(pathname)) {
     return secure(nextResponse())

@@ -1619,8 +1619,6 @@ export function VideoUploadInterface() {
         setSelectedEditActions((current) =>
             current.some((entry) => entry.id === action.id) ? current : [...current, action],
         );
-        setActiveStyleId(action.styleId);
-        persistActiveStyleId(action.styleId);
         setComposerFocusRequestKey((current) => current + 1);
     }, []);
 
@@ -1638,8 +1636,6 @@ export function VideoUploadInterface() {
             return selected ? current.filter((entry) => entry.id !== action.id) : [...current, action];
         });
         if (!selectedEditActions.some((entry) => entry.id === action.id)) {
-            setActiveStyleId(action.styleId);
-            persistActiveStyleId(action.styleId);
             setComposerFocusRequestKey((current) => current + 1);
         }
     }, [selectedEditActions]);
@@ -2373,7 +2369,7 @@ export function VideoUploadInterface() {
                                 setShowFileUploadModal(false);
                                 closeSourceModal();
                             }}
-                            className="absolute right-3 top-3 z-20 grid h-10 w-10 place-items-center rounded-lg border border-white/12 bg-black/55 text-white/70 shadow-[0_18px_42px_-26px_rgba(0,0,0,0.92)] backdrop-blur-xl transition-colors hover:bg-black/72 hover:text-white sm:right-5 sm:top-5"
+                            className="pointer-events-auto absolute right-3 top-3 z-[100] grid h-11 w-11 place-items-center rounded-lg border border-white/12 bg-black/55 text-white/70 shadow-[0_18px_42px_-26px_rgba(0,0,0,0.92)] backdrop-blur-xl transition-colors hover:bg-black/72 hover:text-white sm:right-5 sm:top-5"
                             aria-label="Close source popup"
                         >
                             <XIcon className="h-5 w-5" />

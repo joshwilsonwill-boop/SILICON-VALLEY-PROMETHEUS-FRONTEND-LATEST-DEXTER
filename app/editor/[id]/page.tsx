@@ -5875,7 +5875,16 @@ function MobileEditorView({
   onApplyChatActions,
   onChatSeekToSec,
 }: MobileEditorViewProps) {
-  const activeTab = 'status' as MobileEditorTabKey
+  const [activeTab, setActiveTab] = React.useState<MobileEditorTabKey>(() => {
+    if (workspaceTab === 'Music') return 'music'
+    if (workspaceTab === 'Motion' || workspaceTab === 'Editor') return 'motion'
+    return hasPreviewMedia ? 'motion' : 'status'
+  })
+
+  React.useEffect(() => {
+    if (workspaceTab === 'Music') setActiveTab('music')
+    else if (workspaceTab === 'Motion' || workspaceTab === 'Editor') setActiveTab('motion')
+  }, [workspaceTab])
   const [chatComposerPortal, setChatComposerPortal] = React.useState<HTMLDivElement | null>(null)
   const [exportQuality, setExportQuality] = React.useState<MobileExportQuality>('standard')
   const [exportFormat, setExportFormat] = React.useState<MobileExportFormat>('mp4')
@@ -6164,6 +6173,8 @@ function MobileEditorView({
                   src={previewUrl}
                   poster={project?.thumbnailUrl ?? undefined}
                   className="h-full w-full"
+                  onLoadedMetadata={onVideoLoadedMetadata}
+                  externalVideoRef={motionVideoRef}
                 />
               ) : hasPreviewMedia ? (
                 <div
@@ -6188,6 +6199,33 @@ function MobileEditorView({
             </div>
           </section>
 
+          <div className="flex shrink-0 items-center gap-1.5 overflow-x-auto border-b border-white/8 px-4 py-2">
+            {[
+              { key: 'motion', label: 'Motion' },
+              { key: 'music', label: 'Music' },
+              { key: 'chat', label: 'Chat' },
+              { key: 'status', label: 'Status' },
+              { key: 'export', label: 'Export' },
+            ].map((tab) => (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setActiveTab(tab.key as MobileEditorTabKey)}
+                className={cn(
+                  'rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors',
+                  activeTab === tab.key
+                    ? 'bg-white/15 text-white shadow-sm'
+                    : 'text-white/50 hover:bg-white/5 hover:text-white/80'
+                )}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="min-h-0 flex-1 p-3">
+            {renderTabContent()}
+          </div>
         </main>
 
         <ContinueBanner />
@@ -6279,7 +6317,24 @@ function OriginalEditorPage() {
         return
       }
 
-      if (command === 'ai' || command === 'enhance') {
+      if (command === 'auto-cut') {
+        autonomousCoordinator.executeTranscriptCut('silences')
+        return
+      }
+
+      if (command === 'auto-music') {
+        setActiveWorkspaceTab('Music')
+        setBottomMode('Music')
+        return
+      }
+
+      if (command === 'ai' || command === 'interrogate') {
+        window.dispatchEvent(new CustomEvent(EDITORIAL_CHAT_OPEN_EVENT))
+        return
+      }
+
+      if (command === 'enhance') {
+        setActiveWorkspaceTab('Motion')
         return
       }
 
@@ -6290,7 +6345,7 @@ function OriginalEditorPage() {
 
     window.addEventListener('prometheus:editor-command', handleEditorCommand)
     return () => window.removeEventListener('prometheus:editor-command', handleEditorCommand)
-  }, [setShowExport])
+  }, [setActiveWorkspaceTab, setShowExport])
 
   const handleTitleStartEdit = () => {
     setTempTitle(project?.title || '')
@@ -6945,10 +7000,34 @@ function OriginalEditorPage() {
     return () => window.removeEventListener('keydown', handleEditorHistoryKeyDown)
   }, [handleEditorHistoryKeyDown])
 
+  const transcriptDurationMs = React.useMemo(() => {
+    const rawSegments = job?.artifacts.transcript ?? []
+    if (!Array.isArray(rawSegments) || rawSegments.length === 0) return 0
+    let maxMs = 0
+    for (const seg of rawSegments) {
+      if (!seg || typeof seg !== 'object') continue
+      const s = seg as unknown as Record<string, unknown>
+      const endMs = typeof s.endMs === 'number' ? s.endMs : (typeof s.end === 'number' ? (s.end as number) * 1000 : 0)
+      if (endMs > maxMs) maxMs = endMs
+    }
+    return maxMs
+  }, [job])
+
+  const sourceMetricsDurationSec = React.useMemo(() => {
+    const inspectionDuration = project?.sourceProfile?.inspection?.durationSec
+    if (typeof inspectionDuration === 'number' && inspectionDuration > 0) {
+      return inspectionDuration
+    }
+    return 0
+  }, [project?.sourceProfile])
+
   const totalDurationMs = React.useMemo(() => {
     const scenes = job?.artifacts.scenes ?? []
-    return scenes.length > 0 ? scenes[scenes.length - 1]!.endMs : 0
-  }, [job])
+    if (scenes.length > 0 && scenes[scenes.length - 1]?.endMs) return scenes[scenes.length - 1]!.endMs
+    if (transcriptDurationMs > 0) return transcriptDurationMs
+    if (sourceMetricsDurationSec > 0) return sourceMetricsDurationSec * 1000
+    return 0
+  }, [job, transcriptDurationMs, sourceMetricsDurationSec])
 
   const progressPercent = React.useMemo(() => {
     if (!job?.steps.length) return 0
@@ -6972,7 +7051,13 @@ function OriginalEditorPage() {
     })
   }, [handoffPreviewForCurrentSource, project?.sourceAssetId, projectId, previewSourceKey, sourceStagePhase, sourceStageVisiblePreviewUrl, stableProjectPreviewUrl, stagedPreviewKind])
 
-  const transportDurationSec = previewDurationSec > 0 ? previewDurationSec : totalDurationMs / 1000
+  const transportDurationSec = previewDurationSec > 0
+    ? previewDurationSec
+    : totalDurationMs > 0
+      ? totalDurationMs / 1000
+      : sourceMetricsDurationSec > 0
+        ? sourceMetricsDurationSec
+        : 0
   const transportProgress = transportDurationSec > 0 ? (previewCurrentTimeSec / transportDurationSec) * 100 : 0
   const transportCurrentTime = msToTime(previewCurrentTimeSec * 1000)
   const transportTime = msToTime(transportDurationSec * 1000)
@@ -8854,7 +8939,7 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
       captureVideoFrame: captureVoiceVideoFrame,
       getMusicCatalog: () => [...voiceMusicCatalogRef.current.values()],
       searchMusicTracks: handleVoiceMusicSearch,
-      onSelectMusicTrack: handleVoiceMusicSelect,
+      onSelectMusicTrack: (trackId: string) => handleVoiceMusicSelect(trackId),
       onPlayMusicPreview: handleVoiceMusicPreview,
       onStopMusicPlayback: handleVoiceMusicStop,
       onSetMusicMuted: handleVoiceMusicMutedChange,

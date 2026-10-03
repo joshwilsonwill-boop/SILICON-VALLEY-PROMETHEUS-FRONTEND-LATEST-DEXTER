@@ -78,6 +78,16 @@ export type SavedCharacterPreference = {
 
 export const CHARACTER_PREFERENCES_KEY = 'prometheus.character-preferences.v1'
 
+function decodeHtmlEntities(text?: string | null): string {
+  if (!text) return ''
+  return text
+    .replace(/&#39;/g, "'")
+    .replace(/&quot;/g, '"')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+}
+
 export function CinematicLibrary({
   tab,
   filteredAssets,
@@ -86,6 +96,7 @@ export function CinematicLibrary({
   onTogglePreference,
   onActiveItemChange,
   initialShowcaseId,
+  onClose,
 }: {
   tab: LibraryTab
   filteredAssets: AssetItem[]
@@ -94,6 +105,7 @@ export function CinematicLibrary({
   onTogglePreference: (item: ShowcaseItem, tab: LibraryTab) => void
   onActiveItemChange?: (item: ShowcaseItem | null) => void
   initialShowcaseId?: string
+  onClose?: () => void
 }) {
   const reduceMotion = useReducedMotion() ?? false
   const showcaseItems = React.useMemo(() => buildShowcaseItems(tab, filteredAssets), [filteredAssets, tab])
@@ -146,9 +158,9 @@ export function CinematicLibrary({
       return videos.slice(0, 6).map((vid, idx) => ({
         id: `${active.id}_video_${idx}`,
         parentId: active.id,
-        title: vid.title,
-        subtitle: vid.subtitle,
-        description: vid.description,
+        title: decodeHtmlEntities(vid.title),
+        subtitle: decodeHtmlEntities(vid.subtitle),
+        description: decodeHtmlEntities(vid.description),
         year: vid.year,
         runtime: vid.runtime,
         genre: vid.genre,
@@ -317,7 +329,7 @@ export function CinematicLibrary({
                 <div className="relative z-10 flex min-h-[640px] flex-col p-5 sm:p-7 lg:p-8">
                   <div className="flex flex-wrap items-start justify-between gap-4">
                     <motion.div className="flex min-w-0 items-start gap-3" {...reveal(0.06, 18)}>
-                      <BackButton className="border border-white/12 bg-black/20" />
+                      <BackButton onClick={onClose} className="border border-white/12 bg-black/20" />
                       <div className="min-w-0 space-y-4 pt-1">
                         <div className="text-[11px] uppercase tracking-[0.34em] text-white/42">Prometheus Library</div>
                         <motion.div {...reveal(0.12, 18)}>
@@ -438,7 +450,7 @@ export function CinematicLibrary({
                         type="button"
                         onClick={() => item.videoId ? setSelectedVideo(item) : setActiveId(item.parentId ?? item.id)}
                         className="group block w-full text-left outline-none focus-visible:ring-2 focus-visible:ring-[#55ff9b] focus-visible:ring-offset-2 focus-visible:ring-offset-[#06070b]"
-                        aria-label={item.videoId ? `Watch ${item.title}` : `Focus ${item.title}`}
+                        aria-label={item.videoId ? `Watch ${decodeHtmlEntities(item.title)}` : `Focus ${decodeHtmlEntities(item.title)}`}
                       >
                         <HoverTiltMediaCard
                           item={item}

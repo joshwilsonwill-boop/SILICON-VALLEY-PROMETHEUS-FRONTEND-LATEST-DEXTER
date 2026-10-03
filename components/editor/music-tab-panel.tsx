@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import { AnimatePresence, motion, useMotionValue, useSpring, useTransform } from 'framer-motion'
-import { Check, ChevronDown, FileUp, Folder, Heart, MoreHorizontal, Music, Pause, Play, Plus, Repeat, Search, Shuffle, SkipBack, SkipForward, SlidersHorizontal, Sparkles, Volume2, VolumeX, X } from 'lucide-react'
+import { Check, ChevronDown, FileUp, Folder, Heart, MoreHorizontal, Music, Pause, Play, Plus, Repeat, Search, Shuffle, SkipBack, SkipForward, SlidersHorizontal, Sparkles, Trash2, Volume2, VolumeX, X } from 'lucide-react'
 import Image from 'next/image'
 import { toast } from 'sonner'
 
@@ -22,7 +22,7 @@ import type { MusicRecommendation, MusicVideoContext } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { useStableReducedMotion } from '@/hooks/use-stable-reduced-motion'
 import { useEditorialTimeline } from '@/hooks/use-editorial-timeline'
-import { writeSelectedEditorMusicRecommendation } from '@/lib/editor-music-selection'
+import { clearSelectedEditorMusicRecommendation, writeSelectedEditorMusicRecommendation } from '@/lib/editor-music-selection'
 
 const rowHoverSpring = {
   stiffness: 240,
@@ -288,7 +288,7 @@ function MyMusicShelf({
   files: PersonalMusicFile[]
   folders: string[]
   query: string
-  onCreateFolder: () => void
+  onCreateFolder?: () => void
   onFilesSelected: React.ChangeEventHandler<HTMLInputElement>
   onSelectTrack: (file: PersonalMusicFile) => void
   onPreviewTrack: (file: PersonalMusicFile) => void
@@ -315,20 +315,13 @@ function MyMusicShelf({
         </div>
         <span className="rounded-full border border-white/10 bg-black/20 px-2.5 py-1 font-mono text-[10px] text-white/48">{files.length} tracks</span>
       </div>
-      <div className="grid grid-cols-2 gap-2">
+      <div>
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
-          className="inline-flex min-h-28 items-center justify-center gap-2 rounded-[12px] border border-dashed border-white/24 bg-white/[0.025] px-3 text-sm font-medium text-white/78 transition hover:border-[#4d9dff]/70 hover:bg-[#4d9dff]/[0.09] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4d9dff]/50"
+          className="inline-flex min-h-24 w-full items-center justify-center gap-2 rounded-[12px] border border-dashed border-white/24 bg-white/[0.025] px-3 text-sm font-medium text-white/78 transition hover:border-[#4d9dff]/70 hover:bg-[#4d9dff]/[0.09] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4d9dff]/50"
         >
           <FileUp className="size-5" /> Tap to upload
-        </button>
-        <button
-          type="button"
-          onClick={onCreateFolder}
-          className="inline-flex min-h-28 items-center justify-center gap-2 rounded-[12px] border border-white/16 bg-white/[0.025] px-3 text-sm font-medium text-white/72 transition hover:border-white/35 hover:bg-white/[0.07] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/35"
-        >
-          <Folder className="size-5" /> New folder
         </button>
       </div>
 
@@ -1001,6 +994,7 @@ function NowPlayingBar({
   onVolumeChange,
   onReplaceCurrent,
   onAddToTimeline,
+  onRemoveFromTimeline,
   onPlayFromStart,
   compact = false,
 }: {
@@ -1017,6 +1011,7 @@ function NowPlayingBar({
   onVolumeChange?: (v: number) => void
   onReplaceCurrent?: () => void
   onAddToTimeline?: () => void
+  onRemoveFromTimeline?: () => void
   onPlayFromStart?: () => void
   compact?: boolean
 }) {
@@ -1132,6 +1127,9 @@ function NowPlayingBar({
               <div className="absolute bottom-10 right-0 z-50 grid min-w-40 gap-1 rounded-lg border border-white/12 bg-[#171a22] p-1.5 shadow-xl">
                 <button type="button" onClick={() => { onReplaceCurrent?.(); setShowActions(false) }} className="rounded-md px-2.5 py-2 text-left text-[11px] text-white/75 hover:bg-white/[0.07]">Replace current</button>
                 <button type="button" onClick={() => { onAddToTimeline?.(); setShowActions(false) }} className="rounded-md px-2.5 py-2 text-left text-[11px] text-white/75 hover:bg-white/[0.07]">Add to timeline</button>
+                {onRemoveFromTimeline ? (
+                  <button type="button" onClick={() => { onRemoveFromTimeline?.(); setShowActions(false) }} className="rounded-md px-2.5 py-2 text-left text-[11px] text-red-400 hover:bg-red-500/10">Remove from timeline</button>
+                ) : null}
                 <button type="button" onClick={() => { onPlayFromStart?.(); setShowActions(false) }} className="rounded-md px-2.5 py-2 text-left text-[11px] text-white/75 hover:bg-white/[0.07]">Play from start</button>
                 <button type="button" onClick={() => { onMuteToggle(); setShowActions(false) }} className="rounded-md px-2.5 py-2 text-left text-[11px] text-white/75 hover:bg-white/[0.07]">{isMuted ? 'Unmute preview' : 'Mute preview'}</button>
                 <label className="flex items-center gap-2 border-t border-white/[0.08] px-2.5 pt-2 text-[10px] text-white/55">
@@ -1162,6 +1160,17 @@ function NowPlayingBar({
           <Plus className="size-3.5" />
           <span>Add to Timeline</span>
         </button>
+        {onRemoveFromTimeline ? (
+          <button
+            type="button"
+            onClick={onRemoveFromTimeline}
+            className="inline-flex items-center gap-1.5 rounded-full border border-red-500/20 bg-red-500/10 px-3.5 py-2 text-xs font-medium text-red-300 transition-all hover:bg-red-500/20 hover:text-red-200 active:scale-95"
+            aria-label="Remove soundtrack from timeline"
+          >
+            <Trash2 className="size-3.5" />
+            <span>Remove</span>
+          </button>
+        ) : null}
       </div>}
 
       {/* Progress track seeker */}
@@ -1315,6 +1324,20 @@ export function MusicTabPanel({
       // Safe fallback if schema difference occurs
     }
   }, [editorial.patch, editorial.projectId, onSelectTrackProp])
+
+  const handleRemoveSoundtrack = React.useCallback(() => {
+    onRemoveTrackProp?.()
+    clearSelectedEditorMusicRecommendation(editorial.projectId)
+    try {
+      editorial.patch({ type: 'music', track: null as any })
+    } catch {
+      // Safe fallback if schema difference occurs
+    }
+    setLocalSelectedTrackId(null)
+    setFocusedTrackId(null)
+    setPlayingTrackId(null)
+    toast.success('Soundtrack removed from timeline')
+  }, [editorial.patch, editorial.projectId, onRemoveTrackProp])
   const reduceMotion = useStableReducedMotion()
   const [catalogTracks, setCatalogTracks] = React.useState<MusicRecommendation[]>(() => cachedCatalogTracks ?? [])
   const [catalogLoading, setCatalogLoading] = React.useState(() => cachedCatalogTracks === null)
@@ -1344,7 +1367,7 @@ export function MusicTabPanel({
   const audioRef = React.useRef<HTMLAudioElement | null>(null)
   const [moodFilter, setMoodFilter] = React.useState('')
   const [durationFilter, setDurationFilter] = React.useState('')
-  const [volume, setVolume] = React.useState(0.8)
+  const [volume, setVolume] = React.useState(80)
   const [isShuffle, setIsShuffle] = React.useState(false)
   const [isRepeat, setIsRepeat] = React.useState(false)
   const [favoriteTrackIds, setFavoriteTrackIds] = React.useState<Set<string>>(() => new Set(['amelie-adventures']))
@@ -2523,6 +2546,7 @@ export function MusicTabPanel({
           onSelectTrack(t)
           toast.success(`Added ${t.title} to timeline`)
         }}
+        onRemoveFromTimeline={handleRemoveSoundtrack}
         onPlayFromStart={() => {
           const t = currentPlayerTrack || currentCardTrack
           if (!t) return

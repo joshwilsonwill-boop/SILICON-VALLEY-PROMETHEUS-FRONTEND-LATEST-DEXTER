@@ -43,6 +43,10 @@ export function AgentSessionHud() {
   const latest = actions.at(-1)
   const displayed = expanded ? [...actions].reverse() : currentAction ? [currentAction] : latest ? [latest] : []
 
+  // Dismissed per user request: bottom corner box containing history covers a large chunk of the screen and blocks the enter button
+  const isHidden = true
+  if (isHidden) return null
+
   return (
     <aside
       aria-label="Jarvis editing session"

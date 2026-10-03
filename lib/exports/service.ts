@@ -9,50 +9,8 @@ export interface ExportOptions {
 }
 
 export const ExportService = {
-  async createProjectExport(projectId: string, options: ExportOptions = {}): Promise<ProjectExport> {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) throw new Error('Unauthorized')
-
-    // 1. Verify project ownership and get source asset ID
-    const { data: project, error: projectError } = await supabase
-      .from('projects')
-      .select('id, user_id, source_asset_id')
-      .eq('id', projectId)
-      .eq('user_id', user.id)
-      .single()
-
-    if (projectError || !project) {
-      throw new Error('Project not found or access denied')
-    }
-
-    if (!project.source_asset_id) {
-      throw new Error('Project has no source asset to export')
-    }
-
-    // 2. Insert the export job in "pending" status
-    const { data, error } = await supabase
-      .from('project_exports')
-      .insert({
-        project_id: projectId,
-        user_id: user.id,
-        status: 'pending' as ProjectExportStatus,
-        preset: options.preset || 'default',
-        metadata: {
-          source: 'editor_prepare_export',
-          ...options.metadata,
-        },
-      })
-      .select()
-      .single()
-
-    if (error) throw error
-
-    const projectExport = mapProjectExportFromDb(data)
-
-    // 3. Phase 3C: Minimal Real Export Proof - Copy source to exports bucket
-    return await this.completeExportFromSourceCopy(projectExport, project.source_asset_id)
+  async createProjectExport(_projectId: string, _options: ExportOptions = {}): Promise<ProjectExport> {
+    throw new Error('Edited video rendering is unavailable in this export flow.')
   },
 
   async completeExportFromSourceCopy(projectExport: ProjectExport, sourceAssetId: string): Promise<ProjectExport> {

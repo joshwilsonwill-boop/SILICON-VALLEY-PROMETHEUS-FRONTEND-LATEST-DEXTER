@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { sealToken, unsealToken } from "@/lib/crypto/token-vault";
 import { PROVIDER_CONFIGS } from "./providers";
 import { OAuthProvider } from "./types";
+import { providerCredentials } from './capabilities';
 
 export async function getValidAccessToken(userId: string, provider: OAuthProvider): Promise<string | null> {
   const supabase = await createClient();
@@ -13,13 +14,13 @@ export async function getValidAccessToken(userId: string, provider: OAuthProvide
     .eq("provider", provider)
     .single();
 
-  if (!connection) return null;
+  if (!connection || connection.is_active !== true) return null;
 
   const now = new Date();
   const expiresAt = connection.expires_at ? new Date(connection.expires_at) : null;
 
   // If token is still valid (with 5-min buffer), return it
-  if (expiresAt && expiresAt.getTime() > now.getTime() + 5 * 60 * 1000) {
+  if (!expiresAt || expiresAt.getTime() > now.getTime() + 5 * 60 * 1000) {
     return unsealToken({
       ciphertext: connection.encrypted_access_token,
       iv: connection.iv,
@@ -37,12 +38,14 @@ export async function getValidAccessToken(userId: string, provider: OAuthProvide
   });
 
   const config = PROVIDER_CONFIGS[provider];
+  const credentials = providerCredentials(provider);
+  if (!config || !credentials) return null;
   const response = await fetch(config.tokenUrl, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
-      client_id: process.env[config.clientIdEnvVar ?? `${provider.toUpperCase()}_CLIENT_ID`]!,
-      client_secret: process.env[`${provider.toUpperCase()}_CLIENT_SECRET`]!,
+      [config.clientIdParam ?? 'client_id']: credentials.clientId,
+      client_secret: credentials.clientSecret,
       grant_type: "refresh_token",
       refresh_token: refreshToken,
     }),

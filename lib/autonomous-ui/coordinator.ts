@@ -601,8 +601,10 @@ class AutonomousUICoordinator {
     if (this.isHumanInteracting) return false
     const generation = this.actionGeneration
     this.beginTakeover('Jarvis: Opening Music')
-    const query = options?.query || options?.genreOrMood
-    const actionId = useAutonomousStore.getState().beginAction({ label: options?.action === 'preview' ? 'Preview song' : options?.action === 'select' || options?.trackId ? 'Stage soundtrack' : 'Search music', targetLabel: query || options?.trackId || 'Music' })
+    const isPreviewOnly = options?.action === 'preview'
+    const searchPhrase = (options?.query || options?.genreOrMood || '').trim()
+    const query = searchPhrase
+    const actionId = useAutonomousStore.getState().beginAction({ label: isPreviewOnly ? 'Preview song' : options?.action === 'select' || options?.trackId ? 'Stage soundtrack' : 'Search music', targetLabel: query || options?.trackId || 'Music' })
     let success = false
     let summary = 'Music action could not complete.'
     try {

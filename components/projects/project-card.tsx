@@ -112,7 +112,7 @@ export function ProjectCard({ project, featured = false, onEdit, onDuplicate, on
               aria-label={`Open ${project.title}`}
               onClick={() => onEdit(project.id)}
               className={cn(
-                'block max-w-full truncate text-left [font-family:var(--font-migra)] font-extrabold leading-[0.9] text-[#f2f0eb] transition-colors hover:text-[#d3ad75] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d3ad75]',
+                'block max-w-full truncate text-left [font-family:var(--font-playfair-display)] font-extrabold leading-[0.9] text-[#f2f0eb] transition-colors hover:text-[#d3ad75] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d3ad75]',
                 featured ? 'text-3xl md:text-5xl' : 'text-2xl md:text-3xl',
               )}
             >

@@ -3,7 +3,7 @@ import type { Metadata } from 'next'
 import { LegalLayout, LegalSection, LegalSubsection } from '@/components/legal/LegalLayout'
 import { COOKIE_CATALOG, type CookieCategory } from '@/lib/cookies/cookie-config'
 
-const LAST_UPDATED = 'July 14, 2026'
+const LAST_UPDATED = '14 July 2026'
 const CATEGORIES: Array<{ id: CookieCategory; title: string; consent: string }> = [
   { id: 'essential', title: 'Essential Cookies', consent: 'Always active' },
   { id: 'analytics', title: 'Analytics Cookies', consent: 'Active with consent' },
@@ -12,6 +12,7 @@ const CATEGORIES: Array<{ id: CookieCategory; title: string; consent: string }> 
 ]
 
 export const metadata: Metadata = {
+  alternates: { canonical: '/cookie-policy' },
   title: 'Cookie Policy | Prometheus Studio',
   description: 'Cookie Policy for Prometheus Studio.',
 }

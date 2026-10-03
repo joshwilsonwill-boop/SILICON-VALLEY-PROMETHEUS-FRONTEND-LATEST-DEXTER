@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { signupSchema } from '@/lib/auth/validation'
 
 import { buildAuthConfirmUrl } from '@/lib/auth/redirect'
 import { ensureProfile } from '@/lib/supabase/profile'
@@ -6,18 +7,12 @@ import { createClient } from '@/lib/supabase/server'
 
 import { getErrorMessage } from '../_utils'
 
-type SignupBody = {
-  fullName: string
-  email: string
-  password: string
-  next?: string
-  captchaToken?: string | null
-}
-
 export async function POST(req: Request) {
   const startedAt = Date.now()
   try {
-    const body = (await req.json()) as Partial<SignupBody>
+    const parsed = signupSchema.safeParse(await req.json().catch(() => null))
+    if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message ?? 'Check your signup details.' }, { status: 400 })
+    const body = parsed.data
 
     const { captchaToken, next } = body
     const email = body.email ?? ''

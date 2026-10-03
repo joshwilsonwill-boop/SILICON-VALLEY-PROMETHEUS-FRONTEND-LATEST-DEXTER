@@ -5,6 +5,7 @@ import { LegalLayout, LegalSection, LegalSubsection } from '@/components/legal/L
 const LAST_UPDATED = '14 July 2026'
 
 export const metadata: Metadata = {
+  alternates: { canonical: '/terms' },
   title: 'Terms of Service | Prometheus Studio',
   description: 'Terms of Service for Prometheus Studio.',
 }

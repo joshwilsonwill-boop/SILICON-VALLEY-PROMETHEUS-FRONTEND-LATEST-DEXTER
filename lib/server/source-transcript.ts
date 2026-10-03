@@ -3,6 +3,8 @@ import { randomUUID } from 'node:crypto'
 
 import { startAssemblyAITranscription } from '@/lib/api/assemblyai'
 import { getPresignedGetUrl } from '@/lib/r2/presigned-url'
+import { reserveCompute, settleCompute } from '@/lib/compute/credits'
+import type { ComputeConfirmation } from '@/lib/compute/policy'
 
 /**
  * Source videos longer than this are treated as too long to auto-transcribe
@@ -21,10 +23,12 @@ export async function startSourceAssetTranscription({
   assetId,
   supabase,
   force = false,
+  confirmation,
 }: {
   assetId: string
   supabase: SupabaseClient
   force?: boolean
+  confirmation?: ComputeConfirmation
 }) {
   const { data: asset, error } = await supabase
     .from('source_assets')
@@ -40,7 +44,7 @@ export async function startSourceAssetTranscription({
     return { status: 'completed', transcriptJobId: asset.transcript_job_id }
   }
 
-  if (!force && (asset.transcript_status === 'queued' || asset.transcript_status === 'transcribing') && asset.transcript_job_id) {
+  if ((asset.transcript_status === 'queued' || asset.transcript_status === 'transcribing') && asset.transcript_job_id) {
     return { status: asset.transcript_status, transcriptJobId: asset.transcript_job_id }
   }
 
@@ -49,6 +53,8 @@ export async function startSourceAssetTranscription({
   }
 
   if (!asset.storage_bucket || !asset.storage_path) return null
+  // Upload persistence never authorizes paid transcription automatically.
+  if (!confirmation) return null
 
   // Claim the row before contacting AssemblyAI. Upload completion and the
   // editor can both request transcription; only one caller may win this
@@ -80,27 +86,18 @@ export async function startSourceAssetTranscription({
     console.warn('[source-transcript] RPC invocation exception, falling back to direct update:', err)
   }
 
-  // Fallback to direct compare-and-set if RPC function is not installed in database
+  // A missing atomic claim must fail closed; direct updates permit duplicate jobs.
   if (!wonClaim) {
-    const { error: directClaimError } = await supabase
-      .from('source_assets')
-      .update({
-        transcript_job_id: claimToken,
-        transcript_provider: 'assemblyai',
-        transcript_status: 'queued',
-        transcript_started_at: new Date().toISOString(),
-        transcript_error: null,
-      })
-      .eq('id', assetId)
-
-    if (directClaimError) {
-      console.error('[source-transcript] Direct claim failed:', directClaimError)
-      return null
-    }
+    throw new Error('Transcription is temporarily unavailable. No job was started.')
   }
 
   let started: Awaited<ReturnType<typeof startAssemblyAITranscription>>
+  let reservation: string | null = null
   try {
+    reservation = await reserveCompute(asset.user_id, 'transcribe', confirmation, assetId)
+    const { error: reservationError } = await supabase.from('source_assets')
+      .update({ transcript_credit_request_id: reservation }).eq('id', assetId).eq('transcript_job_id', claimToken)
+    if (reservationError) throw new Error('Unable to record transcription reservation.')
     const sourceUrl = await getPresignedGetUrl(asset.storage_bucket, asset.storage_path)
     started = await startAssemblyAITranscription({
       audio_url: sourceUrl,
@@ -110,6 +107,7 @@ export async function startSourceAssetTranscription({
       speech_models: ['universal-3-5-pro'],
     })
   } catch (error) {
+    if (reservation) await settleCompute(asset.user_id, reservation, 'refunded')
     await supabase
       .from('source_assets')
       .update({
@@ -122,6 +120,7 @@ export async function startSourceAssetTranscription({
   }
 
   if (!started.id) {
+    if (reservation) await settleCompute(asset.user_id, reservation, 'refunded')
     await supabase.from('source_assets').update({ transcript_status: 'failed', transcript_error: 'AssemblyAI did not return a job ID.' }).eq('id', assetId).eq('transcript_job_id', claimToken)
     return null
   }
@@ -147,7 +146,9 @@ export async function startSourceAssetTranscription({
       })
       .eq('id', assetId)
       .eq('transcript_job_id', claimToken)
-    return null
+    // Provider accepted this job. Keep reservation for reconciliation; do not
+    // refund a running provider job merely because a persistence retry failed.
+    throw new Error('Transcription started, but status could not be saved. Contact support with your request ID.')
   }
 
   return { status: 'queued', transcriptJobId: started.id }

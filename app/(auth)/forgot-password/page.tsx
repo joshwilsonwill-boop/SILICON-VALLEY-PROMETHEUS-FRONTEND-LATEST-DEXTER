@@ -5,7 +5,7 @@ import { Suspense } from 'react'
 
 export default function ForgotPasswordPage() {
   return (
-    <AuthShell title="Reset password" subtitle="We will email you a secure recovery link.">
+    <AuthShell title="Reset password" subtitle="We will email you a secure recovery link." showSocialAuth={false} showLegalCopy={false} compact>
       <Suspense fallback={<LoadingAnimation message="Loading password recovery..." />}>
         <ForgotPasswordForm />
       </Suspense>

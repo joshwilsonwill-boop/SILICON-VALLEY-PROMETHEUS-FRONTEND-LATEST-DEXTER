@@ -148,7 +148,7 @@ export function ProjectsPageV2() {
             <div className="grid gap-7 pt-9 md:grid-cols-[minmax(0,1fr)_auto] md:items-end md:pt-14">
               <div className="min-w-0">
                 <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#d3ad75]">Selected works</p>
-                <h1 className="max-w-5xl [font-family:var(--font-migra)] text-[clamp(3.6rem,8vw,8.5rem)] font-extrabold leading-[0.77] text-[#f2f0eb]">
+                <h1 className="max-w-5xl [font-family:var(--font-playfair-display)] text-[clamp(3.6rem,8vw,8.5rem)] font-extrabold leading-[0.77] text-[#f2f0eb]">
                   PROJECTS<span className="text-[#d3ad75]">.</span>
                 </h1>
                 <p className="mt-6 max-w-md [font-family:var(--font-playfair-display)] text-xl italic leading-relaxed text-white/58 md:mt-8 md:text-2xl">
@@ -228,7 +228,7 @@ export function ProjectsPageV2() {
             ) : projects.length === 0 ? (
               <div className="flex min-h-[28rem] flex-col items-center justify-center border border-white/10 bg-white/[0.025] px-6 text-center">
                 <Clapperboard className="h-20 w-20 text-white/20" />
-                <h2 className="mt-5 [font-family:var(--font-migra)] text-4xl font-extrabold text-white">No projects yet</h2>
+                <h2 className="mt-5 [font-family:var(--font-playfair-display)] text-4xl font-extrabold text-white">No projects yet</h2>
                 <p className="mt-2 [font-family:var(--font-playfair-display)] text-base italic text-white/52">
                   Create your first project to start producing premium content.
                 </p>
@@ -239,7 +239,7 @@ export function ProjectsPageV2() {
             ) : filteredProjects.length === 0 ? (
               <div className="flex min-h-[20rem] flex-col items-center justify-center border border-white/10 bg-white/[0.025] px-6 text-center">
                 <FolderOpen className="h-16 w-16 text-white/20" />
-                <h2 className="mt-4 [font-family:var(--font-migra)] text-3xl font-extrabold text-white">No projects match &quot;{query}&quot;</h2>
+                <h2 className="mt-4 [font-family:var(--font-playfair-display)] text-3xl font-extrabold text-white">No projects match &quot;{query}&quot;</h2>
                 <p className="mt-2 [font-family:var(--font-playfair-display)] text-base italic text-white/52">Try another name or clear the active filters.</p>
                 <Button
                   type="button"

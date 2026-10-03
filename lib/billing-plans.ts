@@ -115,3 +115,8 @@ export function isBillingPlanId(value: unknown): value is BillingPlanId {
 export function getBillingPlanDefinition(planId: BillingPlanId) {
   return BILLING_PLAN_DEFINITIONS[planId]
 }
+
+export function getBillingPlanPriceDisplay(planId: BillingPlanId) {
+  const plan = getBillingPlanDefinition(planId)
+  return `${plan.priceWhole}${plan.priceFraction} USD`
+}

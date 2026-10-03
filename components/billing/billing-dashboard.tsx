@@ -98,7 +98,7 @@ export function BillingDashboard() {
     : currentPlan
       ? `${currentPlan.priceWhole}${currentPlan.priceFraction}`
       : '$0.00'
-  const checkoutPriceDisplay = checkoutPlan?.priceWhole ?? '$0'
+  const checkoutPriceDisplay = checkoutPlan ? `${checkoutPlan.priceWhole}${checkoutPlan.priceFraction} USD` : '$0.00 USD'
   const checkoutPrice = checkoutPlan
     ? Math.round(Number.parseFloat(`${checkoutPlan.priceWhole}${checkoutPlan.priceFraction}`.replace(/[$,]/g, '')) * 100)
     : 0

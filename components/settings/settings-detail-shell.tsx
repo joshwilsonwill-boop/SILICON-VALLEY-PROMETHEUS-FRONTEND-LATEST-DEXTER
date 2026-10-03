@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import {
   ChevronLeft,
   CreditCard,
@@ -50,12 +50,13 @@ export function SettingsDetailShell({
   title,
 }: SettingsDetailShellProps) {
   const pathname = usePathname()
-  const router = useRouter()
+  const [pendingHref, setPendingHref] = React.useState<string | null>(null)
   const activeItemRef = React.useRef<HTMLAnchorElement | null>(null)
   const currentIndex = Math.max(0, SETTINGS_NAV.findIndex((item) => isActivePath(pathname, item.href)))
 
   React.useEffect(() => {
     activeItemRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
+    setPendingHref(null)
   }, [pathname])
 
   return (
@@ -72,14 +73,14 @@ export function SettingsDetailShell({
         >
           <aside className="border-b border-white/[0.08] bg-[#070707] lg:border-b-0 lg:border-r">
             <div className="flex min-h-16 items-center gap-3 border-b border-white/[0.08] px-4 py-3 lg:px-5">
-              <button
-                type="button"
-                onClick={() => router.push('/settings')}
+              <Link
+                href="/settings"
+                onClick={() => setPendingHref('/settings')}
                 className="grid size-10 shrink-0 place-items-center border border-white/[0.1] text-white/62 transition-colors hover:border-white/25 hover:bg-white/[0.06] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
                 aria-label="Back to settings overview"
               >
                 <ChevronLeft className="size-4" aria-hidden="true" />
-              </button>
+              </Link>
               <div className="min-w-0">
                 <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.16em] text-white/38">
                   <Settings2 className="size-3" aria-hidden="true" />
@@ -101,6 +102,7 @@ export function SettingsDetailShell({
                     key={href}
                     ref={active ? activeItemRef : undefined}
                     href={href}
+                    onClick={() => setPendingHref(href)}
                     aria-current={active ? 'page' : undefined}
                     className={cn(
                       'group flex min-h-11 shrink-0 items-center gap-3 border px-3 text-sm font-medium whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 lg:w-full',
@@ -113,7 +115,7 @@ export function SettingsDetailShell({
                       {String(index + 1).padStart(2, '0')}
                     </span>
                     <Icon className="size-4 shrink-0" aria-hidden="true" />
-                    {label}
+                    {pendingHref === href ? 'Opening?' : label}
                   </Link>
                 )
               })}
@@ -125,7 +127,7 @@ export function SettingsDetailShell({
             </div>
           </aside>
 
-          <section className="min-w-0 bg-[radial-gradient(circle_at_78%_0%,rgba(73,116,255,0.065),transparent_30%),#090909]">
+          <section className="min-w-0 bg-[radial-gradient(circle_at_78%_0%,rgba(56,189,248,0.065),transparent_30%),#090909]">
             <header className="relative overflow-hidden border-b border-white/[0.08] px-5 py-6 sm:px-7 sm:py-7 lg:px-10 lg:py-9">
               <div className="pointer-events-none absolute -right-3 -top-8 select-none text-[116px] font-semibold leading-none tracking-[-0.08em] text-white/[0.018] sm:text-[148px]" aria-hidden="true">
                 {String(currentIndex + 1).padStart(2, '0')}
@@ -133,7 +135,7 @@ export function SettingsDetailShell({
               <div className="relative flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
                 <div className="min-w-0">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/36">{eyebrow}</p>
-                  <h1 className="mt-3 text-2xl font-semibold tracking-[-0.035em] text-white/96 sm:text-3xl lg:text-[34px]">
+                  <h1 className="mt-3 [font-family:var(--font-playfair-display)] text-2xl font-semibold tracking-[-0.035em] text-white/96 sm:text-3xl lg:text-[34px]">
                     {title}
                   </h1>
                   <p className="mt-2 max-w-2xl text-sm leading-6 text-white/48">{description}</p>

@@ -13,13 +13,14 @@ import { Input } from '@/components/ui/input'
 import { SocialAuthButtons } from '@/components/auth/SocialAuthButtons'
 import { useAuthInteraction, type AuthActiveField } from '@/components/auth/auth-interaction'
 import { markPendingVerificationEmailSent, writePendingVerificationEmail } from '@/lib/auth/pending-verification'
-import { getPasswordPolicyError } from '@/lib/auth/password'
+import { emailSchema, displayNameSchema } from '@/lib/auth/validation'
+import { getPasswordPolicyError, PASSWORD_POLICY_HINT } from '@/lib/auth/password'
 import { normalizeNextPath } from '@/lib/auth/redirect'
 import { normalizeUxError } from '@/lib/ux/errors'
 import { markOnboardingPending } from '@/lib/onboarding'
 
 function isValidEmail(email: string) {
-  return email.includes('@')
+  return emailSchema.safeParse(email).success
 }
 
 function deriveSignupName(name: string, email: string) {
@@ -48,6 +49,8 @@ export function SignupForm({ compact = false }: SignupFormProps) {
   const [showPassword, setShowPassword] = React.useState(false)
   const [submitting, setSubmitting] = React.useState(false)
   const [captchaToken, setCaptchaToken] = React.useState<string | null>(null)
+  const [captchaError, setCaptchaError] = React.useState<string | null>(null)
+  const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
   const turnstileRef = React.useRef<TurnstileInstance>(null)
   const [serverError, setServerError] = React.useState<string | null>(
     searchParams.get('error') ? normalizeUxError(searchParams.get('error'), 'signup') : null,
@@ -64,7 +67,10 @@ export function SignupForm({ compact = false }: SignupFormProps) {
 
   const validate = () => {
     const next: typeof errors = {}
-    if (!compact && !name.trim()) next.name = 'Full name is required.'
+    if (!compact) {
+      const parsed = displayNameSchema.safeParse(name)
+      if (!parsed.success) next.name = parsed.error.issues[0]?.message
+    }
     if (!email.trim() || !isValidEmail(email)) next.email = 'Enter a valid email.'
     const passwordError = getPasswordPolicyError(password)
     if (passwordError) next.password = passwordError
@@ -94,10 +100,12 @@ export function SignupForm({ compact = false }: SignupFormProps) {
 
   return (
     <form
+      noValidate
       onSubmit={(e) => {
         e.preventDefault()
         setServerError(null)
-        if (!validate()) return
+        if (submitting || !validate()) return
+        if (!captchaToken) { setCaptchaError('Complete the security verification below to continue.'); return }
         setSubmitting(true)
         window.setTimeout(() => {
           ;(async () => {
@@ -113,7 +121,6 @@ export function SignupForm({ compact = false }: SignupFormProps) {
                 error?: string
               }
               if (!res.ok) throw new ServerSignupError(data.error || 'Signup failed')
-              console.log('signup', { email })
               markOnboardingPending(email)
               if (data.requiresVerification) {
                 writePendingVerificationEmail(email)
@@ -141,7 +148,7 @@ export function SignupForm({ compact = false }: SignupFormProps) {
               setSubmitting(false)
             }
           })()
-        }, 800)
+        }, 0)
       }}
       className={compact ? 'auth-signup-form-compact space-y-3' : 'space-y-4'}
     >
@@ -219,6 +226,8 @@ export function SignupForm({ compact = false }: SignupFormProps) {
             {showPassword ? <EyeOffIcon className="size-4" /> : <EyeIcon className="size-4" />}
           </button>
         </div>
+        <p className="mt-2 text-xs text-white/60">At least 8 characters. {PASSWORD_POLICY_HINT}</p>
+        {password && getPasswordPolicyError(password) ? <p className="mt-1 text-xs text-red-400" role="status">{getPasswordPolicyError(password)}</p> : null}
         {errors.password ? (
           <div className="mt-1 text-xs text-red-500/80">{errors.password}</div>
         ) : null}
@@ -250,19 +259,24 @@ export function SignupForm({ compact = false }: SignupFormProps) {
             {showPassword ? <EyeOffIcon className="size-4" /> : <EyeIcon className="size-4" />}
           </button>
         </div>
+        {confirmPassword && confirmPassword !== password ? <p className="mt-1 text-xs text-red-400" role="status">Passwords must match.</p> : null}
         {errors.confirmPassword ? (
           <div className="mt-1 text-xs text-red-500/80">{errors.confirmPassword}</div>
         ) : null}
       </div>
 
-      <div className={compact ? 'h-11 overflow-hidden rounded-[10px]' : undefined}>
-        <div className={compact ? 'origin-top-left scale-[0.78]' : undefined}>
-          <Turnstile
+      <div>
+        <div>
+          {siteKey ? <Turnstile
             ref={turnstileRef}
-            siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
-            onSuccess={(token) => setCaptchaToken(token)}
-          />
+            siteKey={siteKey}
+            onSuccess={(token) => { setCaptchaToken(token); setCaptchaError(null) }}
+            onExpire={() => { setCaptchaToken(null); setCaptchaError('Verification expired. Complete it again.') }}
+            onError={() => { setCaptchaToken(null); setCaptchaError('Verification could not load. Check your connection, then retry.') }}
+          /> : <p role="alert" className="text-xs text-red-400">Security verification is unavailable. Please try again later or use a sign-in provider.</p>}
         </div>
+        {!captchaToken ? <p role="status" className="mt-2 text-xs text-white/60">{captchaError || 'Complete the verification above to create your account.'}</p> : null}
+        {captchaError && siteKey ? <button type="button" className="mt-2 text-xs underline" onClick={() => { turnstileRef.current?.reset(); setCaptchaError(null) }}>Retry verification</button> : null}
       </div>
 
       <Button
@@ -277,7 +291,7 @@ export function SignupForm({ compact = false }: SignupFormProps) {
 
       {serverError ? <div className="text-xs text-red-500/80">{serverError}</div> : null}
 
-      {compact ? <SocialAuthButtons providers={['google']} /> : null}
+      {compact ? <SocialAuthButtons /> : null}
 
       <div className={compact ? 'text-center text-xs text-white/42' : 'text-sm text-white/42'}>
         Already have an account?{' '}

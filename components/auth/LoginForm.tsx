@@ -3,23 +3,25 @@
 import * as React from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { AtSignIcon, LockIcon } from 'lucide-react'
+import { AtSignIcon, LockIcon, EyeIcon, EyeOffIcon } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { writePendingVerificationEmail } from '@/lib/auth/pending-verification'
+import { emailSchema } from '@/lib/auth/validation'
 import { normalizeNextPath } from '@/lib/auth/redirect'
 import { normalizeUxError } from '@/lib/ux/errors'
 
 function isValidEmail(email: string) {
-  return email.includes('@')
+  return emailSchema.safeParse(email).success
 }
 
 export function LoginForm() {
   const searchParams = useSearchParams()
   const [email, setEmail] = React.useState('')
+  const [showPassword, setShowPassword] = React.useState(false)
   const [password, setPassword] = React.useState('')
   const [submitting, setSubmitting] = React.useState(false)
   const [serverError, setServerError] = React.useState<string | null>(
@@ -40,11 +42,9 @@ export function LoginForm() {
   return (
     <form
       onSubmit={async (e) => {
-        console.log("email submit")
-        console.log('auth form submitted', { email })
         e.preventDefault()
         setServerError(null)
-        if (!validate()) return
+        if (submitting || !validate()) return
         setSubmitting(true)
         window.setTimeout(async () => {
           try {
@@ -68,7 +68,6 @@ export function LoginForm() {
 
               throw new Error(data.error || 'Login failed')
             }
-            console.log('login', { email })
             if (data.requiresVerification) {
               writePendingVerificationEmail(email)
               const verifyUrl = new URL('/verify', window.location.origin)
@@ -88,7 +87,7 @@ export function LoginForm() {
           } finally {
             setSubmitting(false)
           }
-        }, 800)
+        }, 0)
       }}
       className="space-y-4"
     >
@@ -121,13 +120,14 @@ export function LoginForm() {
           <LockIcon className="text-muted-foreground absolute start-3 top-1/2 size-4 -translate-y-1/2" />
           <Input
             id="login-password"
-            type="password"
+            type={showPassword ? 'text' : 'password'}
             placeholder="Your password"
-            className="peer ps-9"
+            className="peer ps-9 pe-10"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             autoComplete="current-password"
           />
+          <button type="button" aria-label={showPassword ? 'Hide password' : 'Show password'} aria-pressed={showPassword} onClick={() => setShowPassword((value) => !value)} className="absolute end-3 top-1/2 -translate-y-1/2 text-muted-foreground">{showPassword ? <EyeOffIcon className="size-4" /> : <EyeIcon className="size-4" />}</button>
         </div>
         {errors.password ? (
           <div className="mt-1 text-xs text-red-500/80">{errors.password}</div>

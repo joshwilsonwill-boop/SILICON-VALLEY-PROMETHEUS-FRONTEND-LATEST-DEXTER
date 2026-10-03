@@ -9,10 +9,11 @@ import { toast } from 'sonner'
 import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { emailSchema } from '@/lib/auth/validation'
 import { normalizeUxError } from '@/lib/ux/errors'
 
 function isValidEmail(email: string) {
-  return email.includes('@')
+  return emailSchema.safeParse(email).success
 }
 
 export function ForgotPasswordForm() {
@@ -28,6 +29,7 @@ export function ForgotPasswordForm() {
     <form
       onSubmit={async (event) => {
         event.preventDefault()
+        if (submitting) return
         setSuccess(false)
         setServerError(null)
 
@@ -86,7 +88,7 @@ export function ForgotPasswordForm() {
       {serverError ? <div className="text-xs text-red-500/80">{serverError}</div> : null}
       {success ? (
         <div className="text-xs text-emerald-500/90">
-          Recovery link sent. Check your email, then open the link on this device.
+          If an account exists for this email, a recovery link is on its way. Check your inbox and spam folder.
         </div>
       ) : null}
 
