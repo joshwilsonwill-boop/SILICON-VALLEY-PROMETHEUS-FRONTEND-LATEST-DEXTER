@@ -18,6 +18,7 @@ export function AgentBoundingReticle() {
     if (previousTarget.current !== nextTarget) setTargetStale(false)
     previousTarget.current = nextTarget
   }), [])
+  useEffect(() => { setTargetStale(false) }, [activeAction?.targetRect])
   useEffect(() => {
     const resize = () => {
       setViewport({ width: window.innerWidth, height: window.innerHeight })
@@ -29,6 +30,7 @@ export function AgentBoundingReticle() {
       setTargetStale(true)
     }
     resize()
+    setTargetStale(false)
     window.addEventListener('resize', resize)
     window.addEventListener('scroll', onScroll, true)
     return () => {

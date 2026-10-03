@@ -105,6 +105,7 @@ export async function POST(req: Request) {
           embedding,
         })
         .select('id, video_url, style_reference')
+        .abortSignal(AbortSignal.timeout(4000))
         .single()
 
       if (error || !data) {

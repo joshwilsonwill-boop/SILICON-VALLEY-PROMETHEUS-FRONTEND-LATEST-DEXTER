@@ -9,14 +9,14 @@ export type StyleTemplate = {
 export const STYLE_TEMPLATES: StyleTemplate[] = [
   {
     id: 'style_iman_punchy',
-    name: 'Iman Punchy',
+    name: 'Alex Punchy',
     description: 'Aggressive pacing, strong captions, momentum-focused cut rhythm.',
     tags: ['Captions: High', 'Pacing: Aggressive', 'B-roll: Balanced'],
     previewImages: ['/style-previews/iman-punchy-card.jpg'],
   },
   {
     id: 'style_iman_clean',
-    name: 'Iman Clean',
+    name: 'Alex Clean',
     description: 'Minimalist captions, crisp jump cuts, premium sound design slots.',
     tags: ['Captions: Medium', 'Pacing: Snappy', 'B-roll: Rare'],
     previewImages: ['/style-previews/iman-clean-card.jpg'],

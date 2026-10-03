@@ -13,7 +13,7 @@ const streamRoute = readFileSync('app/api/prometheus-chat/stream/route.ts', 'utf
 assert.equal((jarvis.match(/<DockItem/g) ?? []).length, 3)
 assert.doesNotMatch(jarvis, /<Radio|Editor Linked|Hotspots Takeover/)
 assert.match(jarvis, /onClick={companion\.toggleMute}/)
-assert.match(jarvis, /Allow Jarvis to edit/)
+assert.match(jarvis, /Let Jarvis edit/)
 assert.match(jarvis, /companion\.disconnect/)
 assert.match(jarvis, /<DockLabel>/)
 assert.doesNotMatch(hud, /toggleVision|Vision Synchronized|<Eye/)
