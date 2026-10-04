@@ -7,6 +7,7 @@ import { chamberEase } from '@/lib/chamber-motion'
 import { FALLBACK_ALBUM_ART } from '@/lib/music-art'
 import { cn } from '@/lib/utils'
 import { useStableReducedMotion } from '@/hooks/use-stable-reduced-motion'
+import { playMusicElement, registerMusicPlayer } from '@/lib/voice-companion/music-playback'
 
 const formatTime = (timeInSeconds: number): string => {
   if (Number.isNaN(timeInSeconds)) return '00:00'
@@ -90,6 +91,17 @@ export function MusicPlayer({
     [onBufferingChange],
   )
 
+  const stopMusicPlayerRef = React.useRef(() => {})
+  stopMusicPlayerRef.current = () => {
+    setPlayingState(false)
+    setBufferingState(false)
+  }
+  React.useEffect(() => {
+    const audio = audioRef.current
+    if (!audio) return
+    return registerMusicPlayer(audio, () => stopMusicPlayerRef.current())
+  }, [])
+
   const syncProgressVisual = React.useCallback((time: number, totalDuration: number) => {
     if (!progressBarRef.current) return
     const progress = totalDuration > 0 ? (time / totalDuration) * 100 : 0
@@ -149,9 +161,11 @@ export function MusicPlayer({
     audio.addEventListener('error', handleAudioError)
     if (isPlaying) {
       setBufferingState(true)
-      void audio.play().catch(() => {
-        setBufferingState(false)
-        setPlayingState(false)
+      void playMusicElement(audio).then((result) => {
+        if (!result.success) {
+          setBufferingState(false)
+          setPlayingState(false)
+        }
       })
     } else {
       audio.pause()

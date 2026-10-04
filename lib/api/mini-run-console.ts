@@ -33,6 +33,14 @@ export type MiniRunDispatchFromProjectInput = {
   projectId: string
   sourceAssetId: string
   shot?: Partial<MiniRunShotSpec>
+  draftManifest?: Record<string, unknown>
+}
+
+export type MiniRunPlanFromProjectResult = {
+  ok: boolean
+  jobId: string
+  manifest: Record<string, unknown>
+  source?: Record<string, unknown>
 }
 
 export type MiniRunDispatchFromProjectResult = {
@@ -40,6 +48,46 @@ export type MiniRunDispatchFromProjectResult = {
   pipelineJobId: string
   status: string
   statusUrl: string
+}
+
+export async function planMiniRunFromProject(
+  input: MiniRunDispatchFromProjectInput,
+  fetchImpl: typeof fetch = fetch,
+): Promise<MiniRunPlanFromProjectResult> {
+  const response = await fetchImpl('/api/mini-run/plan', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    cache: 'no-store',
+    body: JSON.stringify(input),
+  })
+
+  const body = (await response.json().catch(() => ({}))) as {
+    ok?: unknown
+    jobId?: unknown
+    manifest?: unknown
+    source?: unknown
+    error?: unknown
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      typeof body.error === 'string'
+        ? body.error
+        : `Could not synthesize short plan (HTTP ${response.status}).`,
+    )
+  }
+
+  if (typeof body.jobId !== 'string' || !body.jobId || !body.manifest || typeof body.manifest !== 'object') {
+    throw new Error('Mini-Run plan synthesis response omitted job ID or manifest.')
+  }
+
+  return {
+    ok: true,
+    jobId: body.jobId,
+    manifest: body.manifest as Record<string, unknown>,
+    source: (body.source as Record<string, unknown>) ?? undefined,
+  }
 }
 
 function identifier(value: string, label: string) {

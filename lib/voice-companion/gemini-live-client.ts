@@ -234,6 +234,9 @@ For workspace changes, only name the workspace confirmed by the tool, never the 
 You cannot measure the user's network latency or see their screen. Acknowledge reported lag; never claim that there is no lag on your end. Microphone transcription may be inaccurate, and audio from a playing video can be picked up by the microphone. Treat sudden unrelated language or content as uncertain and ask a short clarification before acting on it.
 
 ### MUSIC AUDITIONING & PLAYBACK TRUTHFULNESS:
+For "list/show the music you have", call autonomous_music_action with action 'browse' and no query. Browsing and ordinary artist/genre searches need no video inspection and do not depend on the recommendation service. Return actual titles from results; use offset for the next page. No match is different from a catalog outage: mention available alternatives when returned. Preserve artist names such as Big Nuz and Heavy K as search queries, not invented song titles. When replacing music, first read get_editor_state.music and pass its trackId as excludeTrackId so a recommendation does not reselect the same song.
+For "pause/stop the music", use autonomous_music_action action 'stop', including during a Music Studio audition. preview_control pauses the video and is not the music stop control. For "what music is this?", read get_editor_state.music and report its confirmed title; do not interpret that question as a pause command. For music that is too loud, call soundtrack_control command 'set_volume' with a percentage (0-100); for background music, set a quiet level such as 20 percent and enable dialogue ducking with set_ducking. Apply requested volume adjustments now and await the saved result; do not defer them to a final render or ask repeatedly for approval.
+For a combined request (pauses, captions, transcription, B-roll, music), call apply_video_edit with every requested flag after the necessary inspection. Account for every returned outcome: partial success is not full completion. If transcription is pending, captions and cuts remain pending; check state and continue those steps when the timed transcript arrives. Call transcribe_video for an explicit transcript request. B-roll insertion is currently unavailable; state this clearly and still complete the supported steps. Never silently omit it or invent inserted footage. Do not redirect a repeated music request into unrelated caption changes.
 Preserve the exact requested song title in trackName. Search with action: 'search' when discovery is requested; preview with action: 'preview' when auditioning is requested. A request to choose, add or use a named song requires action: 'select'; use 'select_and_preview' when the user also asks to hear it. Selection and audible preview are different outcomes. Report only the title, staged flag and previewStarted flag confirmed by the tool result. NEVER falsely claim that a song is already playing on the video timeline when it has only been staged or auditioned. If no exact title matches, explain that before proposing another track. When the user asks for any random track, solemn music, or background music, call autonomous_music_action with action: 'select' and query: mood or 'random'; the editor has a rich studio catalog available locally, so never claim the music library is down or unreachable.
 For a video-led soundtrack recommendation or a request to choose music that fits the current footage, first call get_editor_state, then inspect_video and wait for the sampled frames. Base the music search query on what those frames actually show (and any relevant transcript evidence); do not recommend from the project title or prompt alone. For discovery, call autonomous_music_action with action 'search' and a concise visual/music direction in query. When asked to choose the best fitting song, use action 'select', set recommendation=true, and give the same kind of query; this stages the top-ranked semantic match. Preserve semantic recommendations even when their titles do not repeat the direction. A specifically named song may be searched or selected without video analysis. For "stop/turn off the music", call autonomous_music_action with action 'stop'; use 'mute' or 'unmute' when the user asks only to change soundtrack audibility.
 
@@ -377,6 +380,24 @@ The user's microphone commands are expected in English. Interpret English speech
                 },
               },
               {
+                name: 'autonomous_transcript_replace',
+                description: 'Change, correct, or replace a spoken phrase or word in the transcript and live video caption overlay (e.g. correcting misspelled names, changing words).',
+                parameters: {
+                  type: 'object',
+                  properties: {
+                    targetPhrase: {
+                      type: 'string',
+                      description: 'The current phrase or word in the transcript to replace.',
+                    },
+                    replacementPhrase: {
+                      type: 'string',
+                      description: 'The new wording to replace it with.',
+                    },
+                  },
+                  required: ['targetPhrase', 'replacementPhrase'],
+                },
+              },
+              {
                 name: 'autonomous_music_action',
                 description: 'Search or audition catalog tracks, stage an exact song, or stop/mute/unmute soundtrack playback. For a recommendation that should fit the current video, first call get_editor_state and inspect_video, then use query for a concise direction grounded in the observed footage.',
                 parameters: {
@@ -384,7 +405,7 @@ The user's microphone commands are expected in English. Interpret English speech
                   properties: {
                     action: {
                       type: 'string',
-                      enum: ['search', 'select', 'preview', 'select_and_preview', 'stop', 'mute', 'unmute'],
+                      enum: ['browse', 'search', 'select', 'preview', 'select_and_preview', 'stop', 'mute', 'unmute'],
                       description: 'Search candidates, audition audio, stage a soundtrack, stop playback and mute the soundtrack, or mute/unmute soundtrack audibility.',
                     },
                     genreOrMood: {
@@ -394,6 +415,9 @@ The user's microphone commands are expected in English. Interpret English speech
                     trackName: { type: 'string', description: 'Exact song title requested by the user. Preserve spelling.' },
                     query: { type: 'string', description: 'Catalog search phrase or requested genre/mood.' },
                     recommendation: { type: 'boolean', description: 'For an unnamed best-fit request, stage the top-ranked video-aware recommendation returned for query. Do not use for an exact song title.' },
+                    excludeTrackId: { type: 'string', description: 'Current soundtrack ID to exclude when replacing it with different music.' },
+                    limit: { type: 'number', description: 'Number of titles to list when browsing (1-50).' },
+                    offset: { type: 'number', description: 'Browse offset for the next page of tracks.' },
                     trackId: {
                       type: 'string',
                       description: 'Optional specific track ID.',
@@ -401,6 +425,32 @@ The user's microphone commands are expected in English. Interpret English speech
                   },
                   required: ['action'],
                 },
+              },
+              {
+                name: 'soundtrack_control',
+                description: 'Change and save soundtrack volume or dialogue ducking, or remove the soundtrack. Volume uses percent, not normalized gain.',
+                parameters: { type: 'object', properties: {
+                  command: { type: 'string', enum: ['set_volume', 'set_ducking', 'remove'] },
+                  volume: { type: 'number', description: 'Soundtrack volume in percent from 0 to 100.' },
+                  enabled: { type: 'boolean', description: 'Enable or disable dialogue ducking.' },
+                }, required: ['command'] },
+              },
+              {
+                name: 'transcribe_video',
+                description: 'Check or start transcription of the source video. Pending provider work is not a completed transcript.',
+                parameters: { type: 'object', properties: {} },
+              },
+              {
+                name: 'apply_video_edit',
+                description: 'Apply a combined edit request and return a separate actual outcome for every requested step. Reports unavailable B-roll and pending transcription explicitly; background music defaults to 20 percent with dialogue ducking.',
+                parameters: { type: 'object', properties: {
+                  removePauses: { type: 'boolean' }, captions: { type: 'boolean' }, transcription: { type: 'boolean' },
+                  broll: { type: 'boolean' }, music: { type: 'boolean' },
+                  captionStyle: { type: 'string', enum: ['clean_bold', 'karaoke_pop', 'typewriter', 'lower_third'] },
+                  musicQuery: { type: 'string', description: 'Music direction based on inspected footage and the user request.' },
+                  musicVolumePercent: { type: 'number', description: 'Background music level from 0 to 100 percent; defaults to 20.' },
+                  minDurationSec: { type: 'number', description: 'Minimum pause length to cut; defaults to 0.4 seconds.' },
+                } },
               },
               {
                 name: 'create_video_thumbnail',

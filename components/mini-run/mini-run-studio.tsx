@@ -41,8 +41,11 @@ import type { ProjectListItem } from '@/lib/projects/types'
 import {
   dispatchMiniRunFromProject,
   dispatchLongformFromProject,
+  planMiniRunFromProject,
   type MiniRunShotSpec,
 } from '@/lib/api/mini-run-console'
+import { useMiniRunDraftStore } from '@/lib/editor/mini-run-draft-store'
+import { MiniRunLiveOverlay } from '@/components/editor/mini-run-live-overlay'
 import { useMiniRunJob } from '@/lib/hooks/use-mini-run-job'
 import { useMiniRunLongformJob } from '@/lib/hooks/use-mini-run-longform-job'
 
@@ -270,6 +273,31 @@ export function MiniRunStudio() {
     }
   })()
 
+  const [planningDraft, setPlanningDraft] = React.useState(false)
+  const sourceVideoRef = React.useRef<HTMLVideoElement | null>(null)
+  const draftChunks = useMiniRunDraftStore((s) => s.chunks)
+  const isDraftDirty = useMiniRunDraftStore((s) => s.isDirty)
+  const setPlan = useMiniRunDraftStore((s) => s.setPlan)
+  const getDraftManifest = useMiniRunDraftStore((s) => s.getDraftManifest)
+
+  async function handlePlanSingle() {
+    if (!selectedProjectId || !asset?.id) return
+    setPlanningDraft(true)
+    setSingleDispatchError(null)
+    try {
+      const result = await planMiniRunFromProject({
+        projectId: selectedProjectId,
+        sourceAssetId: asset.id,
+        shot: shotSpec,
+      })
+      setPlan(result.manifest, sourceUrl ?? undefined)
+    } catch (err) {
+      setSingleDispatchError(err instanceof Error ? err.message : 'Could not synthesize short plan.')
+    } finally {
+      setPlanningDraft(false)
+    }
+  }
+
   async function handleGenerateSingle() {
     if (!selectedProjectId || !asset?.id) return
     setSingleDispatching(true)
@@ -277,10 +305,12 @@ export function MiniRunStudio() {
     setSingleJob(null)
     setDeliveredDurationSec(null)
     try {
+      const draftManifest = draftChunks.length > 0 ? getDraftManifest() : undefined
       const result = await dispatchMiniRunFromProject({
         projectId: selectedProjectId,
         sourceAssetId: asset.id,
         shot: shotSpec,
+        draftManifest,
       })
       setSingleJob({ jobId: result.jobId })
     } catch (err) {
@@ -414,8 +444,13 @@ export function MiniRunStudio() {
                   {assetError}
                 </div>
               ) : asset && sourceUrl ? (
-                <div className="overflow-hidden rounded-[18px] border border-white/10 bg-black">
-                  <video src={sourceUrl} controls className="aspect-video w-full bg-black object-contain" />
+                <div className="overflow-hidden rounded-[18px] border border-white/10 bg-black relative">
+                  <video ref={sourceVideoRef} src={sourceUrl} controls className="aspect-video w-full bg-black object-contain" />
+                  <MiniRunLiveOverlay
+                    videoRef={sourceVideoRef}
+                    projectId={selectedProjectId ?? undefined}
+                    sourceAssetId={asset.id}
+                  />
                 </div>
               ) : (
                 <div className="flex aspect-video flex-col items-center justify-center gap-2 rounded-[18px] bg-white/[0.03] text-sm text-white/45">
@@ -673,26 +708,88 @@ export function MiniRunStudio() {
                     </div>
                   )}
 
-                  <Button
-                    size="lg"
-                    disabled={!asset || singleDispatching || singleLifecycle === 'polling'}
-                    onClick={handleGenerateSingle}
-                    className="w-full"
-                  >
-                    {singleDispatching ? (
-                      <>
-                        <Loader2 className="size-4 animate-spin" /> Dispatching…
-                      </>
-                    ) : singleLifecycle === 'polling' ? (
-                      <>
-                        <Loader2 className="size-4 animate-spin" /> Rendering single short…
-                      </>
-                    ) : (
-                      <>
-                        <Wand2 className="size-4" /> Generate short
-                      </>
+                  <div className="flex flex-col gap-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button
+                        size="lg"
+                        variant="outline"
+                        disabled={!asset || planningDraft || singleDispatching}
+                        onClick={handlePlanSingle}
+                        className="border-white/20 bg-white/5 hover:bg-white/10 text-white"
+                      >
+                        {planningDraft ? (
+                          <>
+                            <Loader2 className="size-4 animate-spin mr-1.5" /> Synthesizing Plan…
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="size-4 text-emerald-400 mr-1.5" /> Plan & Live Edit
+                          </>
+                        )}
+                      </Button>
+
+                      <Button
+                        size="lg"
+                        disabled={!asset || singleDispatching || singleLifecycle === 'polling'}
+                        onClick={handleGenerateSingle}
+                        className="bg-gradient-to-r from-emerald-500 to-cyan-500 text-black font-semibold hover:brightness-110"
+                      >
+                        {singleDispatching ? (
+                          <>
+                            <Loader2 className="size-4 animate-spin mr-1.5" /> Dispatching…
+                          </>
+                        ) : singleLifecycle === 'polling' ? (
+                          <>
+                            <Loader2 className="size-4 animate-spin mr-1.5" /> Rendering short…
+                          </>
+                        ) : (
+                          <>
+                            <Wand2 className="size-4 mr-1.5" /> {draftChunks.length > 0 ? 'Bake Edited Short' : 'Generate Short'}
+                          </>
+                        )}
+                      </Button>
+                    </div>
+
+                    {draftChunks.length > 0 && (
+                      <div className="mt-2 rounded-xl border border-white/10 bg-white/[0.02] p-3 text-xs text-white/80">
+                        <div className="flex items-center justify-between font-semibold text-white mb-2">
+                          <span className="flex items-center gap-1.5">
+                            <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />
+                            Live Draft Loaded ({draftChunks.length} chunks)
+                          </span>
+                          {isDraftDirty && (
+                            <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] text-amber-300">
+                              User Modified
+                            </span>
+                          )}
+                        </div>
+                        <div className="max-h-36 overflow-y-auto space-y-1.5 pr-1">
+                          {draftChunks.map((chunk, cIdx) => (
+                            <div key={cIdx} className="rounded bg-black/40 p-2 border border-white/5 flex items-start justify-between gap-2">
+                              <span className="font-mono text-[10px] text-white/40 shrink-0">
+                                {chunk.startSec.toFixed(1)}s - {chunk.endSec.toFixed(1)}s
+                              </span>
+                              <div className="flex-1 flex flex-wrap gap-1">
+                                {chunk.words.map((w, wIdx) => (
+                                  <span
+                                    key={wIdx}
+                                    onClick={() => useMiniRunDraftStore.getState().toggleWordCut(cIdx, wIdx)}
+                                    className={cn(
+                                      'cursor-pointer px-1 rounded transition-colors',
+                                      w.cut ? 'line-through text-rose-400 bg-rose-500/10' : 'hover:bg-white/10 text-white/90'
+                                    )}
+                                    title="Click to toggle cut/restore"
+                                  >
+                                    {w.text}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     )}
-                  </Button>
+                  </div>
                 </>
               )}
             </CardContent>

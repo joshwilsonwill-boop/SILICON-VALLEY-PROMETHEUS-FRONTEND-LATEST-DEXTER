@@ -62,6 +62,7 @@ export function isAllowedMiniRunRequest(method: string, pathSegments: string[]) 
   const normalizedMethod = method.toUpperCase()
   const path = pathSegments.join('/')
   if (normalizedMethod === 'GET' && path === 'health') return true
+  if (normalizedMethod === 'POST' && path === 'api/pipeline/plan') return true
   if (normalizedMethod === 'POST' && path === 'api/pipeline/transcribe') return true
   if (normalizedMethod === 'POST' && path === 'api/pipeline/chunk') return true
   if (normalizedMethod === 'POST' && path === 'api/pipeline/video_chunker') return true

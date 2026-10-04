@@ -11,14 +11,17 @@ export type VoiceActionResult = {
   trackId?: string
 }
 
-export type VoiceMusicTrack = { id: string; title: string; artist?: string; previewUrl?: string }
+export type VoiceMusicTrack = { id: string; title: string; artist?: string; previewUrl?: string; genre?: string; vibeTags?: string[]; mood?: string }
 export type VoiceMusicActionArgs = {
-  action?: 'search' | 'preview' | 'select' | 'select_and_preview' | 'stop' | 'mute' | 'unmute'
+  action?: 'browse' | 'search' | 'preview' | 'select' | 'select_and_preview' | 'stop' | 'mute' | 'unmute'
   query?: string
   trackName?: string
   trackId?: string
   recommendation?: boolean
   context?: unknown
+  excludeTrackId?: string
+  limit?: number
+  offset?: number
 }
 export type VoiceMusicActionResult = VoiceActionResult & {
   action: string
@@ -27,6 +30,10 @@ export type VoiceMusicActionResult = VoiceActionResult & {
   previewStarted: boolean
   tab?: 'Music' | 'Motion'
   results?: VoiceMusicTrack[]
+  alternatives?: VoiceMusicTrack[]
+  total?: number
+  matched?: boolean
+  warning?: string
 }
 
 function normalizeTitle(value: string) {
@@ -42,18 +49,22 @@ export async function performVoiceMusicAction(
   let staged = false
   let previewStarted = false
   let track: VoiceMusicTrack | undefined
+  let warning: string | undefined
   const result = (success: boolean, summary: string): VoiceMusicActionResult => ({
     success, summary, action, staged, previewStarted,
     ...(track ? { trackId: track.id, title: track.title } : {}),
+    ...(warning ? { warning } : {}),
   })
   try {
-    if (!['search', 'preview', 'select', 'select_and_preview', 'stop', 'mute', 'unmute'].includes(action)) return result(false, 'Unsupported music action.')
+    if (!['browse', 'search', 'preview', 'select', 'select_and_preview', 'stop', 'mute', 'unmute'].includes(action)) return result(false, 'Unsupported music action.')
     if (action === 'stop') {
       const handlers = getHandlers()
       const setMuted = handlers.onSetMusicMuted
-      if (!handlers.onStopMusicPlayback || !setMuted) return result(false, 'The editor has no music stop control.')
+      if (!handlers.onStopMusicPlayback) return result(false, 'The editor has no music stop control.')
       const stopped = await handlers.onStopMusicPlayback()
       if (!stopped?.success) return result(false, stopped?.summary || 'Music playback did not stop.')
+      // Auditions can be stopped even when no soundtrack has been selected.
+      if (!setMuted || handlers.getMusicState?.().trackId === null) return result(true, stopped.summary)
       const muted = await setMuted(true)
       if (!muted?.success) return result(false, `Music playback stopped, but the soundtrack could not be muted: ${muted?.summary || 'editor did not confirm the change'}`)
       return result(true, 'Music playback stopped and the soundtrack was muted.')
@@ -66,28 +77,49 @@ export async function performVoiceMusicAction(
       return result(true, action === 'mute' ? 'The soundtrack was muted.' : 'The soundtrack was unmuted.')
     }
     const requestedTitle = (args.trackName || args.query || '').trim()
-    if (!args.trackId && !requestedTitle) return result(false, 'Provide a song title or a music search query.')
+    if (!args.trackId && !requestedTitle && !['search', 'browse'].includes(action) && !args.recommendation) return result(false, 'Provide a song title or a music search query.')
     let handlers = getHandlers()
-    let catalog = handlers.getMusicCatalog?.() ?? []
-    if (catalog.length === 0) {
-      catalog = (MUSIC_CATALOG as any[]).map((t) => ({ id: t.id, title: t.title, artist: t.artist, previewUrl: t.sourceUrl }))
+    let catalog = (handlers.getMusicCatalog?.() ?? []).filter(candidate => candidate.id !== args.excludeTrackId)
+    if (catalog.length === 0 && Array.isArray(MUSIC_CATALOG)) {
+      catalog = (MUSIC_CATALOG as any[]).map((t) => ({
+        id: t.id,
+        title: t.title,
+        artist: t.artist,
+        previewUrl: t.sourceUrl,
+        genre: t.genre,
+        mood: t.mood,
+        vibeTags: t.vibeTags ?? [],
+      })).filter(candidate => candidate.id !== args.excludeTrackId)
     }
-    const isRandomQuery = /random|any|whatever|pick|choose/i.test(requestedTitle)
+    const matchesQuery = (candidate: VoiceMusicTrack) => normalizeTitle([candidate.title, candidate.artist, candidate.genre, candidate.mood, ...(candidate.vibeTags ?? [])].filter(Boolean).join(' ')).includes(normalizeTitle(requestedTitle))
+    if (action === 'browse' || (action === 'search' && !requestedTitle)) {
+      if (handlers.searchMusicTracks) {
+        try { catalog = [...catalog, ...(await handlers.searchMusicTracks(''))] }
+        catch (error) { warning = `Catalog refresh failed: ${error instanceof Error ? error.message : 'service unavailable'}. Showing cached tracks.` }
+      }
+      catalog = [...new Map(catalog.filter(candidate => candidate.id !== args.excludeTrackId).map(candidate => [candidate.id, candidate])).values()]
+      if (!catalog.length) return { ...result(false, 'No music catalog tracks are available yet.'), results: [], total: 0 }
+      const opened = await switchVoiceWorkspace('Music', getHandlers)
+      if (!opened.success) return result(false, 'The editor did not confirm Music is open.')
+      const limit = Number.isFinite(args.limit) ? Math.max(1, Math.min(50, Math.floor(args.limit!))) : 20
+      const offset = Number.isFinite(args.offset) ? Math.max(0, Math.floor(args.offset!)) : 0
+      return { ...result(true, `${catalog.length} catalog tracks are available. Showing ${Math.min(limit, Math.max(0, catalog.length - offset))} tracks in Music.`), results: catalog.slice(offset, offset + limit), total: catalog.length, tab: 'Music' }
+    }
     const findExact = () => args.trackId
       ? catalog.find((candidate) => candidate.id === args.trackId)
-      : !isRandomQuery
-        ? catalog.find((candidate) => normalizeTitle(candidate.title) === normalizeTitle(requestedTitle))
-        : undefined
+      : catalog.find((candidate) => normalizeTitle(candidate.title) === normalizeTitle(requestedTitle))
     track = findExact()
     let searched: VoiceMusicTrack[] = []
     if (handlers.searchMusicTracks && (action === 'search' || !track || args.recommendation)) {
       try {
-        searched = await handlers.searchMusicTracks(requestedTitle || args.trackId!)
-        catalog = [...catalog, ...searched]
-        track = findExact()
-      } catch (err) {
-        console.warn('[performVoiceMusicAction] Remote music search error, using local catalog:', err)
+        searched = (await handlers.searchMusicTracks(requestedTitle || args.trackId || '', { recommendation: args.recommendation === true })).filter(candidate => candidate.id !== args.excludeTrackId)
+      } catch (error) {
+        warning = `Recommendation search failed: ${error instanceof Error ? error.message : 'service unavailable'}. Using the available catalog.`
+        searched = catalog.filter(matchesQuery)
+        if (args.recommendation && !args.trackName && !args.trackId && !searched.length) searched = catalog
       }
+      catalog = [...catalog, ...searched]
+      track = findExact()
     }
     if (args.recommendation && !args.trackName && !args.trackId && searched.length > 0) {
       // The search endpoint returns ranked, video-aware recommendations. When
@@ -96,45 +128,21 @@ export async function performVoiceMusicAction(
       track = searched[0]
     }
     if (action === 'search') {
-      const query = normalizeTitle(requestedTitle)
-      const literalMatches = catalog.filter((candidate) =>
-        isRandomQuery || normalizeTitle(`${candidate.title} ${candidate.artist ?? ''}`).includes(query)
-      )
+      const literalMatches = catalog.filter(matchesQuery)
       // Keep the recommendation service's ranked semantic results when their titles
       // do not repeat the visual/mood description. Exact user title searches remain literal.
-      const matches = literalMatches.length ? literalMatches : searched.length ? searched : catalog
+      const matches = literalMatches.length ? literalMatches : searched
       const results = [...new Map(matches.map((candidate) => [candidate.id, candidate])).values()]
-      if (!results.length) return { ...result(false, `No catalog tracks matched "${requestedTitle}".`), results: [] }
-      return { ...result(true, `Found ${results.length} matching track${results.length === 1 ? '' : 's'}.`), results }
-    }
-    if (!track) {
-      // Mood or random fallback from available catalog
-      const queryLower = requestedTitle.toLowerCase()
-      const moodCandidates = catalog.filter((candidate) => {
-        const full = `${candidate.title} ${candidate.artist ?? ''}`.toLowerCase()
-        if (queryLower.includes('solemn') || queryLower.includes('sad') || queryLower.includes('reflective')) {
-          return /solemn|dark|minimal|ambient|reflective|calm/i.test(full)
-        }
-        if (queryLower.includes('cinematic') || queryLower.includes('dramatic')) {
-          return /cinematic|dramatic|trailer|epic/i.test(full)
-        }
-        if (queryLower.includes('upbeat') || queryLower.includes('hype')) {
-          return /upbeat|fast|reels|heat/i.test(full)
-        }
-        return false
-      })
-      if (moodCandidates.length > 0) {
-        track = moodCandidates[0]
-      } else if (isRandomQuery || ['select', 'select_and_preview'].includes(action)) {
-        track = catalog.length > 0 ? catalog[Math.floor(Math.random() * catalog.length)] : undefined
-      }
+      if (!results.length) return { ...result(catalog.length > 0, `No catalog tracks matched "${requestedTitle}".${catalog.length ? ' Other catalog tracks are available; choose one of the alternatives.' : ''}`), results: [], matched: false, alternatives: catalog.slice(0, 20) }
+      return { ...result(true, `Found ${results.length} matching track${results.length === 1 ? '' : 's'}.`), results, matched: true }
     }
     if (!track) return result(false, `No exact catalog match for "${requestedTitle || args.trackId}". No soundtrack was changed.`)
     handlers = getHandlers()
     if (!handlers.onTabChange) return result(false, 'The music workspace is unavailable. Open the editor first.')
     if ((action === 'select' || action === 'select_and_preview') && !handlers.onSelectMusicTrack) return result(false, 'The editor cannot stage this soundtrack.')
     if ((action === 'preview' || action === 'select_and_preview') && !handlers.onPlayMusicPreview) return result(false, 'The editor has no music preview playback control.')
-    await switchVoiceWorkspace('Music', getHandlers, 300).catch(() => {})
+    const openedMusic = await switchVoiceWorkspace('Music', getHandlers)
+    if (!openedMusic.success) return result(false, 'The editor did not confirm that Music is open. No soundtrack action was started.')
     if (action === 'select' || action === 'select_and_preview') {
       const outcome = await getHandlers().onSelectMusicTrack?.(track.id)
       if (!outcome?.success) {
@@ -150,10 +158,10 @@ export async function performVoiceMusicAction(
     }
     if (staged) {
       const latest = getHandlers()
-      if (latest.onTabChange) {
-        await switchVoiceWorkspace('Motion', getHandlers, 300).catch(() => {})
-      }
-      return { ...result(true, `"${track.title}" is staged as the soundtrack in Motion${previewStarted ? '; preview playback started' : ''}.`), tab: 'Motion', staged: true }
+      if (!latest.onTabChange) return result(false, `"${track.title}" is staged, but Motion could not be opened.`)
+      const openedMotion = await switchVoiceWorkspace('Motion', getHandlers)
+      if (!openedMotion.success) return result(false, `"${track.title}" is staged, but the editor did not confirm Motion is open.`)
+      return { ...result(true, `"${track.title}" is staged as the soundtrack in Motion${previewStarted ? '; preview playback started' : ''}.`), tab: 'Motion' }
     }
     return { ...result(true, `Preview playback started for "${track.title}" in Music.`), tab: 'Music' }
   } catch (error) {

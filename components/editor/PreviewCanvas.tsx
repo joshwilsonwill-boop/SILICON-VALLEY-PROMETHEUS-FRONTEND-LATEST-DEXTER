@@ -8,6 +8,7 @@ import { ViralClipSplitPreview } from '@/components/editor/viral-clip-split-prev
 import { PreviewGenerationState } from '@/components/editor/preview-generation-state'
 import { PreviewFeedbackShell } from '@/components/editor/preview-feedback-shell'
 import { SourceStagePlaceholder } from '@/components/editor/source-stage-placeholder'
+import { MiniRunLiveOverlay } from '@/components/editor/mini-run-live-overlay'
 import { cn } from '@/lib/utils'
 import type {
   Project,
@@ -268,6 +269,11 @@ export function PreviewCanvas({
                               style={{
                                 objectFit: fitMode === 'fill' ? 'cover' : 'contain',
                               }}
+                            />
+                            <MiniRunLiveOverlay
+                              videoRef={previewVideoRef}
+                              projectId={projectId}
+                              sourceAssetId={project?.sourceAssetId ?? undefined}
                             />
                           </div>
                         </div>

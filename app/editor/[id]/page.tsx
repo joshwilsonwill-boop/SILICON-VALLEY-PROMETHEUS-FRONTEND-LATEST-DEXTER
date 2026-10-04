@@ -95,6 +95,10 @@ import { clearPendingEditorNavigation, getRememberedEditorReturnPath } from '@/l
 import { useFrameTargeting } from '@/hooks/use-frame-targeting'
 import { parseFrameReference } from '@/lib/editorial-frame/parse-frame-reference'
 import { registerVoiceCompanionBridge, unregisterVoiceCompanionBridge } from '@/lib/voice-companion/bridge'
+import { fetchVoiceCatalog } from '@/lib/voice-companion/catalog-search'
+import { saveVoiceMusicMix } from '@/lib/voice-companion/music-mix'
+import { saveVoiceCaptionStyle } from '@/lib/voice-companion/video-edit'
+import { playMusicElement, stopMusicElement, stopRegisteredMusicPlayers } from '@/lib/voice-companion/music-playback'
 import { cutTranscriptWord, cutTranscriptSegment, cutTranscriptPhrase, removeTimedFillerWords, mergeCutRanges, planAdditionalCuts, type VoiceEditResult } from '@/lib/voice-companion/edit-results'
 import type { VoiceActionResult } from '@/lib/voice-companion/music-controls'
 import { applyReferenceStyleToController } from '@/lib/voice-companion/reference-controls'
@@ -7222,8 +7226,9 @@ function OriginalEditorPage() {
   React.useEffect(() => {
     const audio = soundtrackAudioRef.current
     if (!audio) return
-    audio.volume = isSoundtrackMuted ? 0 : Math.max(0, Math.min(1, soundtrackVolume))
-  }, [soundtrackVolume, isSoundtrackMuted])
+    const voiceActive = job?.artifacts.transcript?.some(segment => !segment.isCut && Boolean(segment.text.trim()) && previewCurrentTimeSec >= segment.startMs / 1000 && previewCurrentTimeSec < segment.endMs / 1000)
+    audio.volume = isSoundtrackMuted ? 0 : Math.max(0, Math.min(1, soundtrackVolume)) * (soundtrackDucking && voiceActive ? 0.24 : 1)
+  }, [soundtrackVolume, isSoundtrackMuted, soundtrackDucking, job?.artifacts.transcript, previewCurrentTimeSec])
 
   React.useEffect(() => {
     return () => {
@@ -7802,11 +7807,17 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
     setSelectedEditorMusicTrackId(track.id)
   }, [projectId])
 
-  const handleVoiceMusicSearch = React.useCallback(async (query: string) => {
+  const handleVoiceMusicSearch = React.useCallback(async (query: string, options?: { recommendation?: boolean }) => {
     const expectedProjectId = projectId
+    if (!options?.recommendation) {
+      const tracks = await fetchVoiceCatalog(query)
+      if (voiceMusicCatalogProjectRef.current !== expectedProjectId) throw new Error('The project changed during the catalog search.')
+      for (const track of tracks) voiceMusicCatalogRef.current.set(track.id, track)
+      return tracks
+    }
     const response = await fetch('/api/music/recommendations', {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, cache: 'no-store',
-      signal: AbortSignal.timeout(30000),
+      signal: AbortSignal.timeout(8000),
       body: JSON.stringify({ query, projectTitle: project?.title, videoContext }),
     })
     const payload = await response.json() as MusicApiResponse
@@ -7844,36 +7855,39 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
     if (!track?.previewUrl || typeof Audio === 'undefined') return { success: false, summary: 'This song has no playable preview.' }
     if (!voiceMusicPreviewRef.current) voiceMusicPreviewRef.current = new Audio()
     const audio = voiceMusicPreviewRef.current
-    audio.pause()
+    stopRegisteredMusicPlayers()
+    stopMusicElement(audio)
+    stopEditorMedia()
     audio.src = track.previewUrl
     audio.currentTime = 0
     audio.muted = false
-    audio.volume = 0.7
+    audio.volume = 0.2
     try {
-      // play() resolves only when the browser starts playback. Rejections are
-      // reported to Jarvis instead of calling an unheard audition successful.
-      await Promise.race([audio.play(), new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Music preview did not start within 12 seconds.')), 12000))])
-      if (audio.paused || audio.muted || audio.volume === 0) throw new Error('Music preview is not playing audibly.')
+      const playback = await playMusicElement(audio)
+      if (!playback.success) throw new Error(playback.summary)
       return { success: true, summary: `Preview playback started for "${track.title}".`, trackId }
     } catch (error) {
       audio.pause()
       return { success: false, summary: `Could not play "${track.title}": ${error instanceof Error ? error.message : 'browser playback failed'}. Use the song preview button to retry.`, trackId }
     }
-  }, [])
+  }, [stopEditorMedia])
 
   const handleVoiceMusicStop = React.useCallback((): VoiceActionResult => {
     const previewAudio = voiceMusicPreviewRef.current
-    previewAudio?.pause()
+    stopRegisteredMusicPlayers()
+    stopEditorMedia()
+    stopMusicElement(previewAudio)
     if (previewAudio) previewAudio.currentTime = 0
     const soundtrackAudio = soundtrackAudioRef.current
-    soundtrackAudio?.pause()
+    stopMusicElement(soundtrackAudio)
     return { success: true, summary: 'Music playback stopped.' }
-  }, [])
+  }, [stopEditorMedia])
 
-  const handleVoiceMusicMutedChange = React.useCallback((muted: boolean): VoiceActionResult => {
+  const handleVoiceMusicMutedChange = React.useCallback(async (muted: boolean): Promise<VoiceActionResult> => {
+    if (soundtrackAudioRef.current) soundtrackAudioRef.current.volume = muted ? 0 : soundtrackVolume
     handleSoundtrackMutedChange(muted)
-    return { success: true, summary: muted ? 'The soundtrack was muted.' : 'The soundtrack was unmuted.' }
-  }, [handleSoundtrackMutedChange])
+    return saveVoiceMusicMix(getEditorialTimelineController(projectId), project?.sourceAssetId, { muted })
+  }, [handleSoundtrackMutedChange, projectId, project?.sourceAssetId, soundtrackVolume])
 
   const handleVoiceReferenceStyle = React.useCallback(async (style: AppliedReferenceStyle) => {
     if (!hasPlayableVideo || !project?.sourceAssetId) return { success: false, summary: 'Open a ready source video before applying a reference look.' }
@@ -8943,6 +8957,35 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
       onPlayMusicPreview: handleVoiceMusicPreview,
       onStopMusicPlayback: handleVoiceMusicStop,
       onSetMusicMuted: handleVoiceMusicMutedChange,
+      onSetMusicVolume: (volume) => saveVoiceMusicMix(getEditorialTimelineController(projectId), project?.sourceAssetId, { volume }),
+      onSetMusicDucking: (ducking) => saveVoiceMusicMix(getEditorialTimelineController(projectId), project?.sourceAssetId, { ducking }),
+      onRemoveMusicTrack: async () => {
+        handleVoiceMusicStop()
+        handleRemoveEditorMusicTrack()
+        const controller = getEditorialTimelineController(projectId)
+        const deadline = Date.now() + 15000
+        do {
+          const snapshot = controller.getSnapshot()
+          if (snapshot.timeline?.sourceAssetId !== project?.sourceAssetId || snapshot.status === 'error') return { success: false, summary: snapshot.error || 'The source changed before soundtrack removal was saved.' }
+          if (snapshot.status === 'saved' && !snapshot.timeline?.music) return { success: true, summary: 'The soundtrack was removed and saved.' }
+          await new Promise(resolve => setTimeout(resolve, 50))
+        } while (Date.now() < deadline)
+        return { success: false, summary: 'Soundtrack removal changed locally, but its save was not confirmed.' }
+      },
+      getMusicState: () => {
+        const music = getEditorialTimelineController(projectId).getSnapshot().timeline?.music
+        return { trackId: music?.track.id ?? null, title: music?.track.title ?? null, volume: music?.volume ?? 0, muted: music?.muted ?? false, ducking: music?.ducking ?? false }
+      },
+      onRequestTranscription: async () => {
+        if (isTranscribingVideo) return { success: true, pending: true, summary: 'Video transcription is already processing.' }
+        const started = await requestAssemblyAITranscription(true)
+        return { success: started, pending: started, summary: started ? 'Video transcription started.' : transcriptError || 'Video transcription could not be started.' }
+      },
+      onApplyCaptionStyle: async (style) => {
+        const outcome = await saveVoiceCaptionStyle(getEditorialTimelineController(projectId), project?.sourceAssetId, style)
+        if (outcome.success) setEditorCaptionStyle(style)
+        return outcome
+      },
     })
     return () => {
       unregisterVoiceCompanionBridge()
@@ -8965,6 +9008,10 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
     handleVoiceMusicPreview,
     handleVoiceMusicStop,
     handleVoiceMusicMutedChange,
+    handleRemoveEditorMusicTrack,
+    isTranscribingVideo,
+    transcriptError,
+    requestAssemblyAITranscription,
     handleVoiceReferenceStyle,
     handleVoiceEditorialPlan,
     projectId,

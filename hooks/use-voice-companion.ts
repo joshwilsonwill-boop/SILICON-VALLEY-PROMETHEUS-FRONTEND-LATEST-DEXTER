@@ -17,11 +17,14 @@ import { buildEditorialPlan } from '@/lib/editor/timeline-document'
 import { searchTranscriptText } from '@/lib/voice-companion/transcript-search'
 import { inspectVoiceVideo, switchVoiceWorkspace } from '@/lib/voice-companion/session-controls'
 import { performVoiceMusicAction, type VoiceMusicActionArgs } from '@/lib/voice-companion/music-controls'
+import { performVoiceMusicMix } from '@/lib/voice-companion/music-mix'
+import { applyVoiceCaptions, ensureVoiceTranscript, performVoiceVideoEdit, type VoiceVideoEditArgs } from '@/lib/voice-companion/video-edit'
 import { performVoiceReferenceStyleAction } from '@/lib/voice-companion/reference-controls'
 import { ensureVoiceEditingAccess } from '@/lib/voice-companion/editing-access'
 import { ResponseRecovery, type ResponseStatus } from '@/lib/voice-companion/response-recovery'
 import { useAutonomousStore } from '@/lib/autonomous-ui/autonomous-store'
 import { getMediaFailureMessage } from '@/lib/media/feedback'
+import { useMiniRunDraftStore } from '@/lib/editor/mini-run-draft-store'
 
 export type VoiceCompanionStatus =
   | 'disconnected'
@@ -221,6 +224,8 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
             videoDurationSec: hasVideo ? (bridge.videoDurationSec ?? 0) : 0,
             videoMusicContext: bridge.videoMusicContext,
             transcriptAvailable: Boolean(bridge.transcriptText || bridge.transcriptSegments),
+            music: bridge.getMusicState?.() ?? null,
+            brollInsertionAvailable: false,
           }
         }
 
@@ -262,10 +267,36 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
           if (!handlersRef.current.onCutTranscriptPhrase) return { success: false, error: 'Confirmed phrase editing is unavailable in this editor.' }
           const access = await requireEditingAccess()
           if (!access.success) return access
-          const switched = await switchVoiceWorkspace('Motion', () => handlersRef.current)
-          if (!switched.success) return switched
-          const outcome = await handlersRef.current.onCutTranscriptPhrase(phrase)
-          return { ...outcome, cutPhrase: phrase, precision: 'Transcript word timestamps; ambiguous repeated phrases require clarification.' }
+          if (handlersRef.current.onCutTranscriptPhrase) {
+            const switched = await switchVoiceWorkspace('Motion', () => handlersRef.current)
+            if (!switched.success) return switched
+            const outcome = await handlersRef.current.onCutTranscriptPhrase(phrase)
+            return { ...outcome, cutPhrase: phrase, precision: 'Transcript word timestamps; ambiguous repeated phrases require clarification.' }
+          }
+          const cutInDraft = useMiniRunDraftStore.getState().cutPhrase(phrase)
+          if (cutInDraft) {
+            return { success: true, summary: `Cut "${phrase}" from the live preview.` }
+          }
+          return { success: false, error: `Could not find "${phrase}" in transcript.` }
+        }
+
+        case 'autonomous_transcript_replace': {
+          const targetPhrase = typeof args.targetPhrase === 'string' ? args.targetPhrase.trim() : ''
+          const replacementPhrase = typeof args.replacementPhrase === 'string' ? args.replacementPhrase.trim() : ''
+          if (!targetPhrase || !replacementPhrase) {
+            return { success: false, error: 'Both the phrase to change and the replacement words are required.' }
+          }
+          const access = await requireEditingAccess()
+          if (!access.success) return access
+          if (handlersRef.current.onReplaceTranscriptPhrase) {
+            const outcome = await handlersRef.current.onReplaceTranscriptPhrase(targetPhrase, replacementPhrase)
+            return { ...outcome, targetPhrase, replacementPhrase }
+          }
+          const replacedInDraft = useMiniRunDraftStore.getState().replacePhrase(targetPhrase, replacementPhrase)
+          if (replacedInDraft) {
+            return { success: true, summary: `Updated "${targetPhrase}" to "${replacementPhrase}" in live preview.` }
+          }
+          return { success: false, error: `Could not find "${targetPhrase}" in transcript.` }
         }
 
         case 'autonomous_music_action': {
@@ -294,7 +325,38 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
             recommendation: args.recommendation === true,
             query: typeof args.query === 'string' ? args.query : typeof args.genreOrMood === 'string' ? args.genreOrMood : undefined,
             context: handlersRef.current.videoMusicContext,
+            excludeTrackId: typeof args.excludeTrackId === 'string' ? args.excludeTrackId : undefined,
+            limit: typeof args.limit === 'number' ? args.limit : undefined,
+            offset: typeof args.offset === 'number' ? args.offset : undefined,
           }, getCurrentHandlers)
+        }
+
+        case 'soundtrack_control': {
+          const access = await requireEditingAccess()
+          if (!access.success) return access
+          return performVoiceMusicMix({ command: String(args.command ?? ''), volume: typeof args.volume === 'number' ? args.volume : undefined, enabled: typeof args.enabled === 'boolean' ? args.enabled : undefined }, getCurrentHandlers)
+        }
+
+        case 'transcribe_video': {
+          return ensureVoiceTranscript(getCurrentHandlers)
+        }
+
+        case 'apply_video_edit': {
+          const access = await requireEditingAccess()
+          if (!access.success) return access
+          const editArgs: VoiceVideoEditArgs = {
+            removePauses: args.removePauses === true, captions: args.captions === true,
+            transcription: args.transcription === true, broll: args.broll === true, music: args.music === true,
+            captionStyle: typeof args.captionStyle === 'string' ? args.captionStyle : undefined,
+            musicQuery: typeof args.musicQuery === 'string' ? args.musicQuery : undefined,
+            musicVolumePercent: typeof args.musicVolumePercent === 'number' ? args.musicVolumePercent : undefined,
+            minDurationSec: typeof args.minDurationSec === 'number' ? args.minDurationSec : undefined,
+          }
+          if (editArgs.music) {
+            const bridge = getCurrentHandlers()
+            if (inspectedMusicVideoRef.current !== `${bridge.projectId ?? ''}:${bridge.sourceAssetId}`) return { success: false, error: 'Inspect the current video before choosing its soundtrack.' }
+          }
+          return performVoiceVideoEdit(editArgs, getCurrentHandlers)
         }
 
         case 'create_video_thumbnail': {
@@ -362,11 +424,14 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
         }
 
         case 'set_caption_style': {
-          const style = String(args.style ?? '')
-          if (!handlersRef.current.hasVideo) return { success: false, error: 'There is no playable source video in this project yet.' }
-          if (!onApplyActions) return { success: false, error: 'The editor is not linked, so I cannot change caption styling.' }
+          const style = String(args.style || 'clean_bold')
           const access = await requireEditingAccess()
           if (!access.success) return access
+          if (getCurrentHandlers().onApplyCaptionStyle) {
+            return { ...await applyVoiceCaptions(style, getCurrentHandlers), style }
+          }
+          if (!handlersRef.current.hasVideo) return { success: false, error: 'There is no playable source video in this project yet.' }
+          if (!onApplyActions) return { success: false, error: 'The editor is not linked, so I cannot change caption styling.' }
           await onApplyActions([{ kind: 'set_caption_style', style: style as 'clean_bold' | 'karaoke_pop' | 'typewriter' | 'lower_third', summary: `Caption style: ${style}` }])
           return { success: true, style }
         }
@@ -502,6 +567,8 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
     const generation = connectionGenerationRef.current
     const labels: Record<string, string> = {
       autonomous_music_action: 'Choosing soundtrack', autonomous_transcript_cut: 'Cutting transcript',
+      autonomous_transcript_replace: 'Updating transcript text',
+      soundtrack_control: 'Adjusting soundtrack', transcribe_video: 'Preparing transcript', apply_video_edit: 'Applying requested edits',
       detect_filler_words: args.applyCuts ? 'Removing hesitation words' : 'Checking hesitation words',
       cut_silence: 'Removing pauses', remove_silence: 'Removing pauses', inspect_video: 'Inspecting video',
       reference_video_style: args.apply ? 'Applying reference look' : 'Analyzing reference',

@@ -7,15 +7,12 @@ import { resolveMiniRunConfig } from '@/lib/server/mini-run-proxy'
 import { createClient } from '@/lib/supabase/server'
 
 /**
- * User-triggered Mini-Run dispatch.
+ * Rapid Mini-Run plan synthesis route (Phase 1).
  *
- * Where the auto-dispatch path (`app/api/projects/[id]/assets/route.ts`) fires
- * on every long-form upload, this route is the opt-in equivalent: the Studio UI
- * asks it to start a short-form render for a specific source asset the current
- * user owns, carrying a user-authored shot specification (source window, chunk
- * words, canvas, pipeline, audio). It hands the Modal gateway a day-long
- * presigned source URL and a full render payload, then returns the `jobId` the
- * UI should poll.
+ * Runs ASR transcription, silence timeline analysis, smart typography
+ * planning, orchestration, and candidate song selection on Modal without
+ * rendering video frames. Returns the editable `DraftManifest` to the frontend
+ * in 3-5 seconds for live zero-lag interactive preview and voice mutation.
  */
 
 type SourceAssetRow = {
@@ -36,17 +33,18 @@ export async function POST(req: Request) {
     const projectId = typeof body.projectId === 'string' ? body.projectId.trim() : ''
     const sourceAssetId = typeof body.sourceAssetId === 'string' ? body.sourceAssetId.trim() : ''
     const shot = (body.shot && typeof body.shot === 'object' ? body.shot : {}) as Record<string, unknown>
-    const draftManifest = (body.draftManifest && typeof body.draftManifest === 'object' ? body.draftManifest : undefined) as Record<string, unknown> | undefined
 
     if (!projectId || !sourceAssetId) {
       return NextResponse.json(
-        { error: 'projectId and sourceAssetId are required.', code: 'DISPATCH_INPUT_REQUIRED' },
+        { error: 'projectId and sourceAssetId are required.', code: 'PLAN_INPUT_REQUIRED' },
         { status: 400 },
       )
     }
 
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized', code: 'UNAUTHORIZED' }, { status: 401 })
     }
@@ -86,9 +84,6 @@ export async function POST(req: Request) {
     }
 
     const bucket = row.storage_bucket || process.env.R2_BUCKET_SOURCES || 'prometheus-sources'
-
-    // New job id is generated here so the UI can be told what to poll even if
-    // the gateway re-derives its own internal id from the same value.
     jobId = crypto.randomUUID()
 
     const env = {
@@ -107,10 +102,9 @@ export async function POST(req: Request) {
       },
       shot,
       jobId,
-      draftManifest,
     })
 
-    const response = await fetch(`${config.baseUrl}/api/pipeline/render`, {
+    const response = await fetch(`${config.baseUrl}/api/pipeline/plan`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -123,29 +117,29 @@ export async function POST(req: Request) {
 
     const upstream = (await response.json().catch(() => ({}))) as {
       jobId?: unknown
-      pipelineJobId?: unknown
-      status?: unknown
+      manifest?: unknown
+      source?: unknown
       error?: unknown
     }
 
     if (!response.ok) {
       const message =
-        typeof upstream.error === 'string' ? upstream.error : `Mini-Run render returned HTTP ${response.status}.`
-      return NextResponse.json({ error: message, code: 'RENDER_DISPATCH_FAILED' }, { status: 502 })
+        typeof upstream.error === 'string' ? upstream.error : `Mini-Run plan returned HTTP ${response.status}.`
+      return NextResponse.json({ error: message, code: 'PLAN_SYNTHESIS_FAILED' }, { status: 502 })
     }
 
-    const dispatchedJobId = typeof upstream.jobId === 'string' ? upstream.jobId : jobId
+    const plannedJobId = typeof upstream.jobId === 'string' ? upstream.jobId : jobId
     return NextResponse.json({
-      jobId: dispatchedJobId,
-      pipelineJobId: typeof upstream.pipelineJobId === 'string' ? upstream.pipelineJobId : '',
-      status: typeof upstream.status === 'string' ? upstream.status : 'queued',
+      ok: true,
+      jobId: plannedJobId,
+      manifest: upstream.manifest,
+      source: upstream.source,
     })
   } catch (err) {
-    console.error('[api/mini-run/dispatch] error:', err)
+    console.error('[api/mini-run/plan] error:', err)
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'Failed to dispatch Mini-Run render.' },
+      { error: err instanceof Error ? err.message : 'Failed to synthesize Mini-Run plan.' },
       { status: 500 },
     )
   }
 }
-

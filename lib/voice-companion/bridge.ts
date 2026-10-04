@@ -41,16 +41,24 @@ export interface VoiceCompanionBridgeHandlers {
   onCutTranscriptWord?: (segmentId: string, wordIndex: number) => VoiceEditResult
   onCutTranscriptSegment?: (segmentId: string) => VoiceEditResult
   onCutTranscriptPhrase?: (phrase: string) => VoiceEditResult
+  onReplaceTranscriptPhrase?: (targetPhrase: string, replacementPhrase: string) => VoiceEditResult | Promise<VoiceEditResult>
   onCutSilence?: (minDurationSec?: number) => Promise<VoiceEditResult> | VoiceEditResult
   onRemoveFillerWords?: () => Promise<VoiceEditResult> | VoiceEditResult
   /** Direct music track staging and audition handlers */
   getMusicCatalog?: () => VoiceMusicTrack[]
-  searchMusicTracks?: (query: string) => Promise<VoiceMusicTrack[]>
+  searchMusicTracks?: (query: string, options?: { recommendation?: boolean }) => Promise<VoiceMusicTrack[]>
   getActiveWorkspaceTab?: () => 'Editor' | 'Music' | 'Motion'
   onSelectMusicTrack?: (trackId: string) => Promise<VoiceActionResult> | VoiceActionResult | void
   onPlayMusicPreview?: (trackId: string) => Promise<VoiceActionResult> | VoiceActionResult | void
   onStopMusicPlayback?: () => Promise<VoiceActionResult> | VoiceActionResult
   onSetMusicMuted?: (muted: boolean) => Promise<VoiceActionResult> | VoiceActionResult
+  /** Confirmed soundtrack mix and caption mutations; optional for older bridge clients. */
+  onSetMusicVolume?: (volume: number) => Promise<VoiceActionResult> | VoiceActionResult
+  onSetMusicDucking?: (enabled: boolean) => Promise<VoiceActionResult> | VoiceActionResult
+  onRemoveMusicTrack?: () => Promise<VoiceActionResult> | VoiceActionResult
+  onApplyCaptionStyle?: (style: 'clean_bold' | 'karaoke_pop' | 'typewriter' | 'lower_third') => Promise<VoiceActionResult>
+  onRequestTranscription?: () => Promise<VoiceActionResult & { pending?: boolean }>
+  getMusicState?: () => { trackId: string | null; title: string | null; volume: number; muted: boolean; ducking: boolean }
   /** Capture the current decoded source frame as a JPEG data URL for live visual analysis. */
   captureVideoFrame?: (timeSec: number) => Promise<string | null>
   /** Inferred video mood, tempo, and audio energy context */
