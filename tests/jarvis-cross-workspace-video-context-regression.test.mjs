@@ -15,7 +15,7 @@ assert.match(editorPageSource, /hasVideo:\s*hasPlayableVideo/, 'Editor page must
 assert.match(editorPageSource, /videoTitle:\s*project\?\.title/, 'Editor page must register videoTitle to bridge')
 assert.match(editorPageSource, /videoDurationSec:\s*hasPlayableVideo\s*\?/, 'Editor page must report source duration only when video is playable')
 assert.match(editorPageSource, /timelineDurationSec:\s*transportDurationSec/, 'Editor page must report timeline duration separately from source duration')
-assert.match(editorPageSource, /return scenes\.length > 0 \? scenes\[scenes\.length - 1\]!\.endMs : 0/, 'An empty scene list must not invent a 48-second timeline')
+assert.match(editorPageSource, /scenes\.length > 0 && scenes\[scenes\.length - 1\]\?\.endMs/, 'An empty scene list must not invent a 48-second timeline')
 
 // 3. Verify useVoiceCompanion uses the editor bridge rather than claiming unseen visual frames
 const hookSource = readFileSync('hooks/use-voice-companion.ts', 'utf8')
@@ -29,7 +29,7 @@ assert.match(hookSource, /videoTitle:\s*hasVideo \? \(bridge\.videoTitle/, 'get_
 const liveClientSource = readFileSync('lib/voice-companion/gemini-live-client.ts', 'utf8')
 assert.match(liveClientSource, /Treat hasVideo and sourceMediaState as the authority/, 'GeminiLiveClient must ground video availability in live editor state')
 assert.match(liveClientSource, /A nonzero timelineDurationSec, transcript, project title, or remembered context does not prove a source video is loaded/, 'GeminiLiveClient must distinguish timeline length from attached video')
-assert.match(liveClientSource, /If no frames were provided, be clear that you cannot see the footage/, 'GeminiLiveClient must not claim visual access without frames')
+assert.match(liveClientSource, /If no frames are returned, be clear that the footage could not be visually read here/, 'GeminiLiveClient must not claim visual access without frames')
 assert.doesNotMatch(liveClientSource, /project video is ALWAYS loaded|NEVER tell the user "there is no video"/, 'GeminiLiveClient must not force video-presence claims')
 
 console.log('jarvis-cross-workspace-video-context-regression: all checks passed')

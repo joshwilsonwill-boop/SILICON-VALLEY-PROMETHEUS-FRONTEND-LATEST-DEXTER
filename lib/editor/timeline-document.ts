@@ -208,11 +208,7 @@ export function buildEditorialPlan(
         .slice(0, 3)
       if (keywords.length > 0) {
         brollSuggestions.push(`Cinematic overlay: ${keywords.join(' ')} visual context`)
-      } else {
-        brollSuggestions.push('Atmospheric visual cutaway', 'Cinematic subject close-up')
       }
-    } else {
-      brollSuggestions.push('Atmospheric visual cutaway', 'Cinematic subject close-up')
     }
   }
 

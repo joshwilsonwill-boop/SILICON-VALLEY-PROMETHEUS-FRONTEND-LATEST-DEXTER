@@ -3,10 +3,11 @@ import test from 'node:test'
 import { performVoiceMusicAction } from '../lib/voice-companion/music-controls'
 import { performVoiceMusicMix, saveVoiceMusicMix } from '../lib/voice-companion/music-mix'
 import { playMusicElement, stopMusicElement, registerMusicPlayer, stopRegisteredMusicPlayers } from '../lib/voice-companion/music-playback'
-import { performVoiceVideoEdit, ensureVoiceTranscript, applyVoiceCaptions } from '../lib/voice-companion/video-edit'
+import { performVoiceVideoEdit, ensureVoiceTranscript, applyVoiceCaptions, saveVoiceCaptionStyle } from '../lib/voice-companion/video-edit'
+import { fetchVoiceCatalog } from '../lib/voice-companion/catalog-search'
 import type { VoiceCompanionBridgeHandlers } from '../lib/voice-companion/bridge'
 import type { MusicRecommendation } from '../lib/types'
-import { emptyEditorialTimeline, applyEditorialTimelinePatch } from '../lib/editor/editorial-timeline-state'
+import { emptyEditorialTimeline, applyEditorialTimelinePatch, type EditorialTimelineState } from '../lib/editor/editorial-timeline-state'
 
 const tracks = [
   { id: 'pop', title: 'Pop Up', artist: 'Catalog artist', genre: 'Pop', vibeTags: ['upbeat'], previewUrl: '/pop.mp3' },
@@ -97,8 +98,6 @@ test('playback: stop reaches every registered Music player and synchronizes its 
   const a = fakeAudio(), b = fakeAudio()
   let callbacks = 0
   const releases = [registerMusicPlayer(a.audio, () => callbacks++), registerMusicPlayer(b.audio, () => callbacks++)]
-  ;(a.audio as unknown as { paused: boolean }).paused = false
-  ;(b.audio as unknown as { paused: boolean }).paused = false
   stopRegisteredMusicPlayers()
   assert.equal(a.audio.paused, true); assert.equal(b.audio.paused, true)
   assert.equal(callbacks, 2)
@@ -155,4 +154,57 @@ test('edit: one failed step does not drop later requested work; source changes c
   handlers.onCutSilence = () => { handlers.sourceAssetId = 'b'; return { success: true, count: 0, totalRemovedSec: 0, ranges: [], summary: 'none' } }
   const cancelled = await performVoiceVideoEdit({ removePauses: true, captions: true }, () => handlers)
   assert.equal(cancelled.success, false); assert.equal(captions, 1)
+})
+
+test('catalog: paginated plain catalog browsing does not call an AI recommender', async () => {
+  const requests: string[] = []
+  const request: typeof fetch = async input => {
+    requests.push(String(input))
+    const offset = Number(new URL(String(input), 'http://test').searchParams.get('offset'))
+    return Response.json({ tracks: [{ id: `track-${offset}`, title: `Title ${offset}`, artist: 'Artist', category: 'ambient', genreTags: ['instrumental'], moodTags: ['quiet'] }], limit: 1, total: 2 })
+  }
+  const catalog = await fetchVoiceCatalog('', request)
+  assert.deepEqual(catalog.map(track => track.title), ['Title 0', 'Title 1'])
+  assert.ok(requests.every(url => url.startsWith('/api/music/catalog?')))
+  assert.equal(catalog[1].previewUrl, '/api/music/preview?trackId=track-1')
+})
+test('catalog: HTTP failure and malformed responses are surfaced instead of inventing tracks', async () => {
+  await assert.rejects(fetchVoiceCatalog('Heavy K', async () => new Response('', { status: 503 })), /503/)
+  await assert.rejects(fetchVoiceCatalog('', async () => Response.json({ message: 'bad' })), /invalid/)
+})
+test('edit: saving only a caption style preserves all existing camera and visual cues', async () => {
+  let timeline: EditorialTimelineState = { ...emptyEditorialTimeline('source'), cues: [{ id: 'move', type: 'movement', title: 'Existing move', start: 0, end: 2, origin: 'editor' }] }
+  const controller = { getSnapshot: () => ({ timeline, status: 'saved' as const, error: null }),
+    patch: (patch: Parameters<typeof applyEditorialTimelinePatch>[1]) => { timeline = applyEditorialTimelinePatch(timeline, patch) } }
+  const before = structuredClone(timeline.cues)
+  assert.equal((await saveVoiceCaptionStyle(controller, 'source', 'clean_bold')).success, true)
+  assert.deepEqual(timeline.cues, before)
+  assert.equal(timeline.captionStyle, 'clean_bold')
+})
+
+test('playback: an older preview resolution does not pause a newer intentional preview', async () => {
+  const resumes: Array<() => void> = []
+  const audio = { paused: true, muted: false, volume: .5, pause() { this.paused = true },
+    play() { return new Promise<void>(resolve => resumes.push(() => { audio.paused = false; resolve() })) } }
+  const element = audio as unknown as HTMLAudioElement
+  const old = playMusicElement(element)
+  stopMusicElement(element)
+  const current = playMusicElement(element)
+  resumes[1]()
+  assert.equal((await current).success, true)
+  resumes[0]()
+  assert.equal((await old).success, false)
+  assert.equal(audio.paused, false)
+})
+
+test('edit: a source switch during transcription cannot apply captions to the replacement video', async () => {
+  let applied = false
+  const handlers = { hasVideo: true, sourceAssetId: 'old', transcriptSegments: [] as Array<{ startMs: number; endMs: number; text: string }>,
+    onRequestTranscription: async () => {
+      handlers.sourceAssetId = 'new'
+      handlers.transcriptSegments = [{ startMs: 0, endMs: 1000, text: 'Replacement' }]
+      return { success: true, summary: 'transcribed' }
+    }, onApplyCaptionStyle: async () => { applied = true; return { success: true, summary: 'saved' } } }
+  assert.equal((await applyVoiceCaptions('clean_bold', () => handlers)).success, false)
+  assert.equal(applied, false)
 })

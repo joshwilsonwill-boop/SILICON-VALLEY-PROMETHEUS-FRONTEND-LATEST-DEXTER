@@ -26,11 +26,11 @@ const cinematicMatches = scoreSongCandidates('cinematic intense trailer', {
 assert.ok(cinematicMatches.length > 0, 'Must return scored candidates')
 assert.match(cinematicMatches[0].track.title.toLowerCase(), /trailer|cinematic|intense/, 'Top match for cinematic prompt must be a cinematic track')
 
-// 4. Check coordinator.ts dispatches real input and value to search input
+// 4. Music execution uses confirmed bridge outcomes; catalog discovery is
+// covered behaviorally by jarvis-temi-session.test.ts and does not depend on
+// writing a DOM input or pretending a cursor animation completed an edit.
 const coordinatorSource = readFileSync('lib/autonomous-ui/coordinator.ts', 'utf8')
-assert.match(coordinatorSource, /searchTarget\.element\.value\s*=/, 'coordinator must assign value to search input')
-assert.match(coordinatorSource, /dispatchEvent\(new Event\('input'/, 'coordinator must dispatch input event on search element')
-assert.match(coordinatorSource, /scoreSongCandidates|getBestMatchingTrack/, 'coordinator must incorporate song scoring/recommendation')
+assert.match(coordinatorSource, /performVoiceMusicAction/, 'coordinator must await confirmed music action outcomes')
 
 // 5. Check gemini-live-client.ts tools include music recommendation intelligence
 const liveClientSource = readFileSync('lib/voice-companion/gemini-live-client.ts', 'utf8')

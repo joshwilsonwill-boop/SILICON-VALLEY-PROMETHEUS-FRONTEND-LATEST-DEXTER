@@ -74,6 +74,11 @@ export const editorialTimelinePatchSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('cues'), cues: z.array(editorialCueSchema).max(2000) }),
   z.object({ type: z.literal('transcript'), segments: z.array(editorialTranscriptSchema).max(5000) }),
   z.object({ type: z.literal('reference_style'), style: appliedReferenceStyleSchema.nullable() }),
+  z.object({
+    type: z.literal('editorial_plan'),
+    captionStyle: z.enum(['clean_bold', 'karaoke_pop', 'typewriter', 'lower_third']).nullable(),
+    cues: z.array(editorialCueSchema).max(2000),
+  }),
 ])
 export type EditorialTimelinePatch = z.infer<typeof editorialTimelinePatchSchema>
 
@@ -119,6 +124,7 @@ export function applyEditorialTimelinePatch(state: EditorialTimelineState, patch
     case 'cues': return { ...next, cues: patch.cues }
     case 'transcript': return { ...next, transcript: patch.segments }
     case 'reference_style': return { ...next, referenceStyle: patch.style }
+    case 'editorial_plan': return { ...next, captionStyle: patch.captionStyle, cues: patch.cues }
   }
 }
 

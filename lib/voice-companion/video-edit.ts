@@ -21,7 +21,9 @@ export async function ensureVoiceTranscript(getHandlers: GetHandlers): Promise<T
   if (!handlers.hasVideo) return { success: false, summary: 'No playable source video is attached.' }
   if (hasTimedTranscript(handlers)) return { success: true, summary: 'The timed video transcript is available.' }
   if (!handlers.onRequestTranscription) return { success: false, summary: 'Video transcription is not connected to this editor.' }
+  const projectId = handlers.projectId, sourceAssetId = handlers.sourceAssetId
   const result = await handlers.onRequestTranscription()
+  if (getHandlers().projectId !== projectId || getHandlers().sourceAssetId !== sourceAssetId || !getHandlers().hasVideo) return { success: false, summary: 'The source or voice session changed during transcription. Check the current video.' }
   if (hasTimedTranscript(getHandlers())) return { success: true, summary: 'The timed video transcript is available.' }
   return { ...result, success: false, pending: result.success || result.pending === true,
     summary: result.success ? 'Video transcription is processing. Captions and pause cuts are pending until word timings arrive; they have not been applied.' : result.summary }
@@ -29,8 +31,10 @@ export async function ensureVoiceTranscript(getHandlers: GetHandlers): Promise<T
 
 export async function applyVoiceCaptions(style: string, getHandlers: GetHandlers): Promise<VoiceActionResult> {
   if (!['clean_bold', 'karaoke_pop', 'typewriter', 'lower_third'].includes(style)) return { success: false, summary: 'Choose a supported caption style.' }
+  const projectId = getHandlers().projectId, sourceAssetId = getHandlers().sourceAssetId
   const transcript = await ensureVoiceTranscript(getHandlers)
   if (!transcript.success) return transcript
+  if (getHandlers().projectId !== projectId || getHandlers().sourceAssetId !== sourceAssetId) return { success: false, summary: 'The source changed before captions could be applied.' }
   const apply = getHandlers().onApplyCaptionStyle
   if (!apply) return { success: false, summary: 'Confirmed caption editing is not connected to this editor.' }
   return apply(style as CaptionStyle)

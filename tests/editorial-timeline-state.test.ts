@@ -126,3 +126,47 @@ test('stale source edits are rejected before saving', async () => {
   assert.equal(response.status, 409)
   assert.equal(harness.row().editor_state.editorialTimeline, undefined)
 })
+
+test('editorial_plan patch atomically updates captions and cues in one revision increment', () => {
+  const initial = state.emptyEditorialTimeline('source-a')
+  const movementCue = {
+    id: 'cue-1',
+    type: 'movement' as const,
+    title: 'Punch Zoom',
+    start: 2,
+    end: 4,
+    origin: 'editor' as const,
+    context: { source: 'jarvis_editorial_plan', scale: 1.15, motionKind: 'punch' },
+  }
+  const updated = state.applyEditorialTimelinePatch(initial, {
+    type: 'editorial_plan',
+    captionStyle: 'karaoke_pop',
+    cues: [movementCue],
+  })
+  assert.equal(updated.revision, 1)
+  assert.equal(updated.captionStyle, 'karaoke_pop')
+  assert.deepEqual(updated.cues, [movementCue])
+})
+
+test('saving an atomic editorial_plan updates both caption style and movement cues', async () => {
+  const harness = routeHarness()
+  const planCue = {
+    id: 'cue-move',
+    type: 'movement',
+    title: 'Zoom In',
+    start: 1,
+    end: 3,
+    origin: 'editor',
+  }
+  const response = await harness.exports.PATCH(new Request('https://app.test', {
+    method: 'PATCH',
+    body: JSON.stringify({
+      sourceAssetId: 'source-a',
+      patch: { type: 'editorial_plan', captionStyle: 'clean_bold', cues: [planCue] },
+    }),
+  }), harness.context())
+  assert.equal(response.status, 200)
+  assert.equal(harness.row().editor_state.editorialTimeline.captionStyle, 'clean_bold')
+  assert.equal(harness.row().editor_state.editorialTimeline.cues[0]?.id, 'cue-move')
+})
+

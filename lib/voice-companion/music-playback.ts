@@ -1,6 +1,7 @@
 import type { VoiceActionResult } from './music-controls'
 
 const generations = new WeakMap<HTMLAudioElement, number>()
+const stopped = new WeakSet<HTMLAudioElement>()
 const players = new Map<HTMLAudioElement, () => void>()
 
 export function registerMusicPlayer(audio: HTMLAudioElement, onStop: () => void = () => {}) {
@@ -11,6 +12,7 @@ export function registerMusicPlayer(audio: HTMLAudioElement, onStop: () => void 
 export function stopMusicElement(audio: HTMLAudioElement | null | undefined) {
   if (!audio) return
   generations.set(audio, (generations.get(audio) ?? 0) + 1)
+  stopped.add(audio)
   audio.pause()
 }
 
@@ -25,11 +27,12 @@ export function stopRegisteredMusicPlayers() {
 export async function playMusicElement(audio: HTMLAudioElement, timeoutMs = 12000): Promise<VoiceActionResult> {
   const generation = (generations.get(audio) ?? 0) + 1
   generations.set(audio, generation)
+  stopped.delete(audio)
   let timer: ReturnType<typeof setTimeout> | undefined
   try {
     const playback = audio.play().then(() => {
       if (generations.get(audio) !== generation) {
-        audio.pause()
+        if (stopped.has(audio)) audio.pause()
         throw new Error('Music preview was cancelled.')
       }
       if (audio.paused || audio.muted || audio.volume === 0) throw new Error('Music preview is not playing audibly.')

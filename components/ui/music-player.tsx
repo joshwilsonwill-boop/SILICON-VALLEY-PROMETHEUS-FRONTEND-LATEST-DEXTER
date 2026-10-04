@@ -7,7 +7,7 @@ import { chamberEase } from '@/lib/chamber-motion'
 import { FALLBACK_ALBUM_ART } from '@/lib/music-art'
 import { cn } from '@/lib/utils'
 import { useStableReducedMotion } from '@/hooks/use-stable-reduced-motion'
-import { playMusicElement, registerMusicPlayer } from '@/lib/voice-companion/music-playback'
+import { playMusicElement, registerMusicPlayer, stopMusicElement } from '@/lib/voice-companion/music-playback'
 
 const formatTime = (timeInSeconds: number): string => {
   if (Number.isNaN(timeInSeconds)) return '00:00'
@@ -92,10 +92,12 @@ export function MusicPlayer({
   )
 
   const stopMusicPlayerRef = React.useRef(() => {})
-  stopMusicPlayerRef.current = () => {
-    setPlayingState(false)
-    setBufferingState(false)
-  }
+  React.useEffect(() => {
+    stopMusicPlayerRef.current = () => {
+      setPlayingState(false)
+      setBufferingState(false)
+    }
+  }, [setPlayingState, setBufferingState])
   React.useEffect(() => {
     const audio = audioRef.current
     if (!audio) return
@@ -151,6 +153,8 @@ export function MusicPlayer({
       setPlayingState(false)
     }
 
+    let active = true
+
     audio.addEventListener('loadedmetadata', setAudioData)
     audio.addEventListener('timeupdate', setAudioTime)
     audio.addEventListener('ended', handleEnded)
@@ -162,17 +166,18 @@ export function MusicPlayer({
     if (isPlaying) {
       setBufferingState(true)
       void playMusicElement(audio).then((result) => {
-        if (!result.success) {
+        if (active && !result.success) {
           setBufferingState(false)
           setPlayingState(false)
         }
       })
     } else {
-      audio.pause()
+      stopMusicElement(audio)
       setBufferingState(false)
     }
 
     return () => {
+      active = false
       audio.removeEventListener('loadedmetadata', setAudioData)
       audio.removeEventListener('timeupdate', setAudioTime)
       audio.removeEventListener('ended', handleEnded)

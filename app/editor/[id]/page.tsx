@@ -7920,10 +7920,13 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
     }))
     const retainedCues = before.timeline.cues.filter((cue) => cue.context?.source !== 'jarvis_editorial_plan')
     setEditorCaptionStyle(plan.captionStyle)
-    controller.patch({ type: 'caption_style', style: plan.captionStyle })
-    controller.patch({ type: 'cues', cues: [...retainedCues, ...planCues] })
+    controller.patch({
+      type: 'editorial_plan',
+      captionStyle: plan.captionStyle,
+      cues: [...retainedCues, ...planCues],
+    })
 
-    const saveDeadline = Date.now() + 15000
+    const saveDeadline = Date.now() + 20000
     while (Date.now() < saveDeadline) {
       const current = controller.getSnapshot()
       if (current.timeline?.sourceAssetId !== project.sourceAssetId) return { success: false, summary: 'The source changed while saving the editorial pass. Review the current timeline.' }

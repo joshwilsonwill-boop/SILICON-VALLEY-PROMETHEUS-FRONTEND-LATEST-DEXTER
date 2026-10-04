@@ -547,9 +547,9 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
             ...outcome,
             summary: outcome.summary,
             applied: {
-              captionStyle: plan.captionStyle,
+              captionStyle: outcome.success ? plan.captionStyle : null,
               movementCueCount: outcome.success ? plan.zooms.length : 0,
-              lookPreset: plan.lookPreset,
+              lookPreset: outcome.success ? plan.lookPreset : null,
               brollCount: outcome.success ? (plan.brollSuggestions?.length ?? 0) : 0,
             },
             musicSelected: false,
