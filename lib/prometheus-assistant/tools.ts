@@ -118,6 +118,8 @@ export const PROMETHEUS_TOOLS = [
                 headline: { type: 'string', description: 'For kind "open_thumbnail_studio": preserve the exact headline only when the user specified one.' },
                 referenceId: { type: 'string', enum: STUDIO_REFERENCES.map(reference => reference.id), description: 'For kind "open_thumbnail_studio": choose only when the user asks for a named or clearly matching reference thumbnail.' },
                 generateNow: { type: 'boolean', description: 'For kind "open_thumbnail_studio": true only when the user directly asked Jarvis to create/generate the thumbnail now; this starts one image generation after frame curation.' },
+                isIterative: { type: 'boolean', description: 'For kind "open_thumbnail_studio": true when iteratively refining an existing thumbnail rather than recreating from scratch.' },
+                iterationPrompt: { type: 'string', description: 'For kind "open_thumbnail_studio": specific revision prompt (e.g. "make headline neon cyan", "darken background").' },
                 minDurationSec: { type: 'number', description: 'For kind "cut_silence": minimum pause length to cut (default 0.4s).' },
                 description: { type: 'string', description: 'For kind "propose": what the media-mutating change would do.' },
                 summary: { type: 'string', description: 'Short user-facing label for this action.' },

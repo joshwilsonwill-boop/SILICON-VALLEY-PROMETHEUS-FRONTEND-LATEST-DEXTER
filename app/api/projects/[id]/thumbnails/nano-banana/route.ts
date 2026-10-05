@@ -19,7 +19,7 @@ import { buildStudioArtDirection, parseStudioDesign, resolveStudioImageModel, re
 import { getStudioReference, STUDIO_REFERENCES } from '@/lib/thumbnails/studio-references'
 import { compactGeneratedThumbnail } from '@/lib/thumbnails/thumbnail-output'
 import { THUMBNAIL_PROVIDER_TIMEOUT_MS } from '@/lib/thumbnails/thumbnail-runtime'
-import { applyThumbnailCreativeDirection } from '@/lib/thumbnails/creative-direction'
+import { applyThumbnailCreativeDirection, applyThumbnailIterationDirection } from '@/lib/thumbnails/creative-direction'
 import { buildThumbnailPromptPlannerText, extractPlannedArtDirection, THUMBNAIL_PROMPT_PLANNER_INSTRUCTIONS } from '@/lib/thumbnails/retention-prompt'
 
 export const runtime = 'nodejs'
@@ -29,6 +29,7 @@ const MAX_REQUEST_BODY_BYTES = 4_000_000
 interface NanoBananaRequestBody {
   studioDesign?: unknown
   frameDataUrl?: string
+  baseThumbnailUrl?: string
   headline?: string
   highlightWord?: string
   scriptAccent?: string
@@ -42,6 +43,7 @@ interface NanoBananaRequestBody {
   lightingId?: string
   brandColor?: string
   userPrompt?: string
+  iterationPrompt?: string
   aspectRatio?: '9:16' | '2:3' | '1:1' | '3:2' | '16:9'
   referenceImages?: string[]
   lockChannelStyle?: boolean
@@ -110,6 +112,10 @@ export async function POST(
     if (!frameDataUrl || !parseImageDataUrl(frameDataUrl)) {
       return NextResponse.json({ error: 'Select a video frame before generating a thumbnail.' }, { status: 400 })
     }
+    const baseThumbnailUrl = typeof body?.baseThumbnailUrl === 'string' && parseImageDataUrl(body.baseThumbnailUrl)
+      ? body.baseThumbnailUrl
+      : undefined
+    const iterationPrompt = typeof body?.iterationPrompt === 'string' ? body.iterationPrompt.trim().slice(0, 500) : ''
     const headline = typeof body?.headline === 'string' ? body.headline.trim() : ''
     if (!headline) {
       return NextResponse.json({ error: 'Add a headline before generating a thumbnail.' }, { status: 400 })
@@ -289,6 +295,10 @@ Extract the exact Channel Style DNA (lighting ratios, color contrast, proof card
             const parsedReference = parseImageDataUrl(reference)
             if (parsedReference) plannerParts.push({ inlineData: { mimeType: parsedReference.mimeType, data: parsedReference.data } })
           }
+          if (baseThumbnailUrl) {
+            const parsedBase = parseImageDataUrl(baseThumbnailUrl)
+            if (parsedBase) plannerParts.push({ inlineData: { mimeType: parsedBase.mimeType, data: parsedBase.data } })
+          }
           const planner = new GoogleGenerativeAI(geminiApiKey).getGenerativeModel({
             model: 'gemini-2.5-flash',
             generationConfig: { responseMimeType: 'application/json', temperature: 0.35 },
@@ -304,6 +314,9 @@ Extract the exact Channel Style DNA (lighting ratios, color contrast, proof card
       }
     }
     synthesizedPrompt = applyThumbnailCreativeDirection(synthesizedPrompt, userPrompt)
+    if (iterationPrompt) {
+      synthesizedPrompt = applyThumbnailIterationDirection(synthesizedPrompt, iterationPrompt)
+    }
     const imageModel = useOpenAICompatibleImageApi
       ? process.env.THUMBNAIL_IMAGE_MODEL?.trim() || DEFAULT_THUMBNAIL_IMAGE_MODEL
       : studioDesign ? resolveStudioImageModel(studioDesign.quality) : 'gemini-2.5-flash-image'
@@ -312,6 +325,7 @@ Extract the exact Channel Style DNA (lighting ratios, color contrast, proof card
           model: imageModel,
           prompt: synthesizedPrompt,
           frameDataUrl,
+          baseThumbnailUrl,
           referenceImages,
           aspectRatio: effectiveAspect,
           quality: studioDesign?.quality ?? 'fast',
@@ -319,6 +333,7 @@ Extract the exact Channel Style DNA (lighting ratios, color contrast, proof card
       : JSON.stringify(buildNanoBananaImageRequest({
           prompt: synthesizedPrompt,
           frameDataUrl,
+          baseThumbnailUrl,
           referenceImages,
           aspectRatio: effectiveAspect,
           ...(studioDesign ? { imageSize: resolveStudioImageSize(studioDesign.quality) } : {}),

@@ -21,7 +21,7 @@ const THANKS_PATTERN = /^(?:thanks?|thank\s+you|much\s+appreciated)[!,.?\s]*$/i;
 const SOCIAL_PATTERN =
   /\b(?:instagram|tiktok|linkedin|youtube|twitter|x\s+thread|caption|hashtags?|social\s+(?:post|content)|content\s+calendar)\b/i;
 const EDITING_PATTERN =
-  /\b(?:edit|editing|cut|cuts|timeline|montage|scene|shot|frame|transition|pace|pacing|b-?roll|caption|subtitle|color\s+grade|audio|soundtrack|opening|hook|export|render)\b/i;
+  /\b(?:edit|editing|cut|cuts|timeline|montage|scene|shot|frame|transition|pace|pacing|b-?roll|caption|subtitle|color\s+grade|audio|soundtrack|opening|hook|export|render|thumbnails?)\b/i;
 const ACTION_PATTERN =
   /^(?:(?:please\s+)?(?:add|apply|change|cut|delete|draft|edit|insert|make|move|remove|replace|shorten|split|tighten|trim)|i\s+(?:want|need|would\s+like)\s+(?:you\s+to\s+|to\s+)?(?:add|apply|change|cut|delete|draft|edit|insert|make|move|remove|replace|shorten|split|tighten|trim))\b/i;
 const CONVERSATIONAL_FOLLOW_UP_PATTERN =

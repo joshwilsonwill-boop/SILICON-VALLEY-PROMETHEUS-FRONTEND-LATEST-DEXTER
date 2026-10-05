@@ -113,6 +113,7 @@ export function useMiniRunLongformJob(
       resetBatch()
     } else {
       setLifecycle('polling')
+      setStatus(null)
       setError(null)
       if (typeof window !== 'undefined') {
         try {

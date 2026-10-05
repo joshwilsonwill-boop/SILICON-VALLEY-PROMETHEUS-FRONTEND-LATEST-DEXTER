@@ -48,6 +48,7 @@ import { useMiniRunDraftStore } from '@/lib/editor/mini-run-draft-store'
 import { MiniRunLiveOverlay } from '@/components/editor/mini-run-live-overlay'
 import { useMiniRunJob } from '@/lib/hooks/use-mini-run-job'
 import { useMiniRunLongformJob } from '@/lib/hooks/use-mini-run-longform-job'
+import { MiniRunComparison, type ComparisonClip } from '@/components/mini-run/mini-run-comparison'
 
 type SourceAsset = {
   id: string
@@ -72,6 +73,7 @@ const DEFAULT_SHORT_DURATION_SECONDS = 30
 const MIN_SHORT_DURATION_SECONDS = 5
 const MAX_SHORT_DURATION_SECONDS = 180
 const OUTPUT_DURATION_TOLERANCE_SECONDS = 5
+const BATCH_SOURCE_STORAGE_KEY = 'prometheus:mini-run:comparison-source'
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value))
 const parseNonNegative = (value: string, fallback: number) => {
@@ -138,7 +140,11 @@ export function MiniRunStudio() {
   const [singleDispatching, setSingleDispatching] = React.useState(false)
   const [singleDispatchError, setSingleDispatchError] = React.useState<string | null>(null)
   const [singleJob, setSingleJob] = React.useState<{ jobId: string } | null>(null)
+  const [singleWindow, setSingleWindow] = React.useState<{ startMs: number; endMs: number } | null>(null)
   const [deliveredDurationSec, setDeliveredDurationSec] = React.useState<number | null>(null)
+  const [selectedClipId, setSelectedClipId] = React.useState<string | null>(null)
+  const [batchSourceProjectId, setBatchSourceProjectId] = React.useState<string | null>(null)
+  const [batchSource, setBatchSource] = React.useState<{ asset: SourceAsset | null; url: string | null; title: string } | null>(null)
 
   const selectedProject = projects?.find((p) => p.id === selectedProjectId) ?? null
   const durationMs = asset?.duration_ms ?? null
@@ -158,6 +164,39 @@ export function MiniRunStudio() {
     setBatchJobId,
     resetBatch,
   } = useMiniRunLongformJob()
+
+  React.useEffect(() => {
+    if (!batchJobId || batchSourceProjectId) return
+    try {
+      const stored = JSON.parse(localStorage.getItem(BATCH_SOURCE_STORAGE_KEY) ?? 'null') as { batchJobId?: string; projectId?: string } | null
+      if (stored?.batchJobId === batchJobId && stored.projectId) setBatchSourceProjectId(stored.projectId)
+    } catch {
+      // Older batches may not have a saved source association.
+    }
+  }, [batchJobId, batchSourceProjectId])
+
+  React.useEffect(() => {
+    if (!batchSourceProjectId) return
+    let cancelled = false
+    async function loadBatchSource() {
+      try {
+        const res = await fetch(`/api/projects/${encodeURIComponent(batchSourceProjectId!)}/assets`, { cache: 'no-store' })
+        if (!res.ok) throw new Error('Source unavailable')
+        const body = (await res.json()) as AssetResponse
+        if (!cancelled) {
+          setBatchSource({
+            asset: body.asset ?? null,
+            url: body.source?.url ?? null,
+            title: projects?.find((project) => project.id === batchSourceProjectId)?.title ?? 'Original source',
+          })
+        }
+      } catch {
+        if (!cancelled) setBatchSource({ asset: null, url: null, title: 'Original source' })
+      }
+    }
+    void loadBatchSource()
+    return () => { cancelled = true }
+  }, [batchSourceProjectId, batchLifecycle, projects])
 
   React.useEffect(() => {
     let cancelled = false
@@ -203,6 +242,7 @@ export function MiniRunStudio() {
   async function selectProject(projectId: string) {
     setSelectedProjectId(projectId)
     setSingleJob(null)
+    setSingleWindow(null)
     setSingleDispatchError(null)
     setDeliveredDurationSec(null)
     setAsset(null)
@@ -237,6 +277,12 @@ export function MiniRunStudio() {
         prompt: viralPrompt.trim() || undefined,
         songPolicy,
       })
+      setSelectedClipId(null)
+      setBatchSourceProjectId(selectedProjectId)
+      setBatchSource({ asset, url: sourceUrl, title: selectedProject?.title ?? 'Original source' })
+      try {
+        localStorage.setItem(BATCH_SOURCE_STORAGE_KEY, JSON.stringify({ batchJobId: result.batchJobId, projectId: selectedProjectId }))
+      } catch {}
       setBatchJobId(result.batchJobId)
     } catch (err) {
       setViralDispatchError(err instanceof Error ? err.message : 'Could not start viral batch.')
@@ -312,6 +358,7 @@ export function MiniRunStudio() {
         shot: shotSpec,
         draftManifest,
       })
+      setSingleWindow({ startMs: shotSpec.sourceStartMs ?? 0, endMs: shotSpec.sourceEndMs ?? 0 })
       setSingleJob({ jobId: result.jobId })
     } catch (err) {
       setSingleDispatchError(err instanceof Error ? err.message : 'Could not start the short.')
@@ -329,6 +376,29 @@ export function MiniRunStudio() {
     deliveredDurationSec !== null &&
     deliveredDurationSec > requestedOutputDurationSec + OUTPUT_DURATION_TOLERANCE_SECONDS
 
+  const comparisonClips: ComparisonClip[] = mode === 'viral-batch'
+    ? batchClips.filter((clip) => Boolean(clip.outputUrl)).map((clip) => ({
+        id: clip.jobId,
+        label: `Short ${String(clip.rank).padStart(2, '0')}`,
+        outputUrl: clip.outputUrl!,
+        sourceStartMs: clip.window?.sourceStartMs,
+        sourceEndMs: clip.window?.sourceEndMs,
+        hook: clip.viralMetadata?.hook,
+        score: clip.viralMetadata?.viralityScore,
+      }))
+    : singleLifecycle === 'completed' && singleStatus?.outputUrl
+      ? [{
+          id: singleStatus.jobId,
+          label: 'Final short',
+          outputUrl: singleStatus.outputUrl,
+          sourceStartMs: singleWindow?.startMs,
+          sourceEndMs: singleWindow?.endMs,
+        }]
+      : []
+  const comparisonSource = mode === 'viral-batch'
+    ? batchSource
+    : { asset, url: sourceUrl, title: selectedProject?.title ?? 'Original source' }
+
   return (
     <div className="mx-auto w-full max-w-7xl px-4 pb-24 sm:px-6">
       {/* Header */}
@@ -338,10 +408,10 @@ export function MiniRunStudio() {
           Prometheus Mini-Runs
         </div>
         <h1 className="max-w-3xl text-3xl font-semibold tracking-[-0.02em] text-white sm:text-4xl">
-          Cut long-form sources into finished 9:16 viral shorts.
+          Shape source footage into finished 9:16 shorts.
         </h1>
         <p className="max-w-3xl text-sm leading-6 text-white/55">
-          Select any long-form video. Prometheus transcribes once, uses AI to extract up to 10 high-retention viral moments, reframes to 9:16 portrait, and renders concurrent captioned shorts in parallel.
+          Start with landscape or portrait footage. Create one deliberate cut, or select several moments for a batch of captioned shorts.
         </p>
       </div>
 
@@ -361,7 +431,7 @@ export function MiniRunStudio() {
                 </motion.span>
                 Choose the source video
               </CardTitle>
-              <CardDescription>Select long-form content to extract viral shorts from.</CardDescription>
+              <CardDescription>Choose a landscape or portrait video. Short sources can become a single short too.</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
               {projectsLoading ? (
@@ -375,7 +445,7 @@ export function MiniRunStudio() {
                 </div>
               ) : !projects || projects.length === 0 ? (
                 <p className="text-sm text-white/55">
-                  No projects with a source yet. Upload a long-form video in the Studio first.
+                  No projects with a source yet. Upload a video in the Studio first.
                 </p>
               ) : (
                 <div className="flex max-h-64 flex-col gap-2 overflow-y-auto pr-1">
@@ -445,7 +515,7 @@ export function MiniRunStudio() {
                 </div>
               ) : asset && sourceUrl ? (
                 <div className="overflow-hidden rounded-[18px] border border-white/10 bg-black relative">
-                  <video ref={sourceVideoRef} src={sourceUrl} controls className="aspect-video w-full bg-black object-contain" />
+                  <video ref={sourceVideoRef} src={sourceUrl} controls className="max-h-[420px] w-full bg-black object-contain" style={asset.width && asset.height ? { aspectRatio: `${asset.width} / ${asset.height}` } : undefined} />
                   <MiniRunLiveOverlay
                     videoRef={sourceVideoRef}
                     projectId={selectedProjectId ?? undefined}
@@ -813,7 +883,13 @@ export function MiniRunStudio() {
                       >
                         {batchStatus?.state ?? (batchLifecycle === 'completed' ? 'completed' : 'queued')}
                       </Badge>
-                      <Button variant="ghost" size="sm" onClick={resetBatch} className="h-7 px-2 text-xs text-white/50">
+                      <Button variant="ghost" size="sm" onClick={() => {
+                        resetBatch()
+                        setBatchSource(null)
+                        setBatchSourceProjectId(null)
+                        setSelectedClipId(null)
+                        try { localStorage.removeItem(BATCH_SOURCE_STORAGE_KEY) } catch {}
+                      }} className="h-7 px-2 text-xs text-white/50">
                         <RefreshCw className="size-3 mr-1" /> Reset
                       </Button>
                     </div>
@@ -856,7 +932,7 @@ export function MiniRunStudio() {
                         {batchClips.filter((c) => c.success).length} of {batchClips.length} Viral Shorts Ready
                       </div>
                       <Badge variant="outline" className="border-emerald-500/30 bg-emerald-500/10 text-emerald-200">
-                        9:16 Format
+                        9:16 target
                       </Badge>
                     </div>
 
@@ -898,17 +974,19 @@ export function MiniRunStudio() {
                             </p>
                           )}
 
-                          {/* Video player if outputUrl available */}
                           {clip.outputUrl ? (
-                            <div className="overflow-hidden rounded-[14px] border border-white/10 bg-black">
-                              <video
-                                src={clip.outputUrl}
-                                controls
-                                className="aspect-[9/16] max-h-64 w-full bg-black object-contain"
-                              />
-                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedClipId(clip.jobId)
+                                document.getElementById('mini-run-comparison')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                              }}
+                              className="flex items-center justify-between rounded-xl border border-violet-400/20 bg-violet-400/[0.07] px-3 py-2 text-xs font-medium text-violet-200 transition hover:border-violet-300/50 hover:bg-violet-400/[0.12] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400"
+                            >
+                              Compare with source <ExternalLink className="size-3.5" />
+                            </button>
                           ) : (
-                            <div className="flex aspect-[9/16] max-h-48 items-center justify-center rounded-[14px] bg-white/[0.02] text-xs text-white/40">
+                            <div className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-xs text-white/40">
                               {clip.error || 'Rendering in progress…'}
                             </div>
                           )}
@@ -988,19 +1066,11 @@ export function MiniRunStudio() {
                       <div className="flex items-center gap-2 text-sm font-medium text-emerald-200">
                         <CheckCircle2 className="size-4" /> MP4 delivered
                       </div>
-                      <Badge className="border-emerald-500/20 bg-emerald-500/10 text-emerald-200">9:16 short</Badge>
+                      <Badge className="border-emerald-500/20 bg-emerald-500/10 text-emerald-200">9:16 target</Badge>
                     </div>
-                    <div className="overflow-hidden rounded-[18px] border border-white/10 bg-black">
-                      <video
-                        src={singleStatus.outputUrl}
-                        controls
-                        className="aspect-[9/16] w-full bg-black object-contain"
-                        onLoadedMetadata={(event) => {
-                          const duration = event.currentTarget.duration
-                          setDeliveredDurationSec(Number.isFinite(duration) ? duration : null)
-                        }}
-                      />
-                    </div>
+                    <p className="rounded-[16px] border border-violet-400/20 bg-violet-400/[0.06] px-4 py-3 text-sm leading-6 text-white/70">
+                      Your final short is ready. Review it beside the original source in the comparison panel below.
+                    </p>
                     <div className="flex items-center gap-2 text-xs text-white/45">
                       <Clock3 className="size-3.5" />
                       {deliveredDurationSec == null
@@ -1069,7 +1139,39 @@ export function MiniRunStudio() {
           )}
         </div>
       </div>
+      {comparisonClips.length > 0 && (
+        <div id="mini-run-comparison" className="scroll-mt-8">
+          {mode === 'viral-batch' && !batchSourceProjectId && batchJobId && (
+            <div className="mt-8 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-400/20 bg-amber-400/[0.06] px-5 py-4 text-sm text-amber-100/80">
+              <span>This older batch has no saved source link. Select its original project above to restore the comparison.</span>
+              {selectedProjectId && sourceUrl && (
+                <Button variant="outline" size="sm" onClick={() => {
+                  setBatchSourceProjectId(selectedProjectId)
+                  setBatchSource({ asset, url: sourceUrl, title: selectedProject?.title ?? 'Original source' })
+                  try {
+                    localStorage.setItem(BATCH_SOURCE_STORAGE_KEY, JSON.stringify({ batchJobId, projectId: selectedProjectId }))
+                  } catch {}
+                }}>
+                  Use selected source
+                </Button>
+              )}
+            </div>
+          )}
+          <MiniRunComparison
+            sourceUrl={comparisonSource?.url ?? null}
+            sourceTitle={comparisonSource?.title ?? 'Original source'}
+            sourceDimensions={comparisonSource?.asset?.width && comparisonSource.asset.height
+              ? { width: comparisonSource.asset.width, height: comparisonSource.asset.height }
+              : null}
+            sourceDurationMs={comparisonSource?.asset?.duration_ms}
+            clips={comparisonClips}
+            selectedClipId={selectedClipId ?? comparisonClips[0].id}
+            onSelectClip={setSelectedClipId}
+            onOutputDuration={mode === 'single-cut' ? setDeliveredDurationSec : undefined}
+          />
+        </div>
+      )}
     </div>
   )
 }
-
+

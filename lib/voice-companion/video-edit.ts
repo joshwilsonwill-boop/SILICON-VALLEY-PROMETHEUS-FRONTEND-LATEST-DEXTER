@@ -8,12 +8,16 @@ export type TranscriptResult = VoiceActionResult & { pending?: boolean }
 export type VoiceVideoEditArgs = {
   removePauses?: boolean; captions?: boolean; transcription?: boolean; broll?: boolean; music?: boolean
   captionStyle?: string; musicQuery?: string; musicVolumePercent?: number; minDurationSec?: number
+  targetDurationSec?: number
 }
 type GetHandlers = () => VoiceCompanionBridgeHandlers
 
 function hasTimedTranscript(handlers: VoiceCompanionBridgeHandlers) {
-  return Array.isArray(handlers.transcriptSegments) && handlers.transcriptSegments.some(segment => segment &&
-    Number.isFinite(segment.startMs) && Number.isFinite(segment.endMs) && segment.endMs > segment.startMs && typeof segment.text === 'string' && segment.text.trim())
+  return (
+    (Array.isArray(handlers.transcriptSegments) && handlers.transcriptSegments.some(segment => segment &&
+      Number.isFinite(segment.startMs) && Number.isFinite(segment.endMs) && segment.endMs > segment.startMs && typeof segment.text === 'string' && segment.text.trim())) ||
+    Boolean(handlers.transcriptText && handlers.transcriptText.trim().length > 0)
+  )
 }
 
 export async function ensureVoiceTranscript(getHandlers: GetHandlers): Promise<TranscriptResult> {
@@ -75,7 +79,7 @@ export async function performVoiceVideoEdit(args: VoiceVideoEditArgs, getHandler
   if (args.removePauses) await run('pauses', () => {
     if (!outcomes.transcription?.success) return { success: false, pending: outcomes.transcription?.pending, summary: 'Pause cuts are pending a verified timed transcript.' }
     const cut = getHandlers().onCutSilence
-    return cut ? cut(args.minDurationSec ?? .4) : { success: false, summary: 'Confirmed silence editing is unavailable.' }
+    return cut ? cut(args.minDurationSec ?? .4, args.targetDurationSec) : { success: false, summary: 'Confirmed silence editing is unavailable.' }
   })
   if (args.captions) await run('captions', () => outcomes.transcription?.success
     ? applyVoiceCaptions(args.captionStyle || 'clean_bold', getHandlers)

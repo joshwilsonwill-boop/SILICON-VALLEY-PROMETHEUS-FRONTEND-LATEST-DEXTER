@@ -35,6 +35,7 @@ export type OpenAIImageEditInput = {
   model?: string
   prompt: string
   frameDataUrl: string
+  baseThumbnailUrl?: string
   referenceImages?: string[]
   aspectRatio: ThumbnailAspectRatio
   quality: ThumbnailQuality
@@ -45,14 +46,27 @@ export function buildOpenAIImageEditRequest(input: OpenAIImageEditInput): OpenAI
     throw new Error('A valid video frame is required to generate a thumbnail.')
   }
 
-  const images = [{ image_url: input.frameDataUrl }]
+  const hasBase = Boolean(input.baseThumbnailUrl && IMAGE_DATA_URL_PATTERN.test(input.baseThumbnailUrl))
+  const images: Array<{ image_url: string }> = []
+
+  if (hasBase) {
+    images.push({ image_url: input.baseThumbnailUrl! })
+    images.push({ image_url: input.frameDataUrl })
+  } else {
+    images.push({ image_url: input.frameDataUrl })
+  }
+
   for (const reference of input.referenceImages?.slice(0, 4) ?? []) {
     if (IMAGE_DATA_URL_PATTERN.test(reference)) images.push({ image_url: reference })
   }
 
+  const promptText = hasBase
+    ? `${input.prompt}\n\nUse the first attached image as the base thumbnail to edit iteratively. The second attached image is the video subject anchor. Preserve the person's identity, layout composition, and visual lighting from the base thumbnail, applying only the requested targeted modification. Do not recreate the image from scratch. Any following images are visual style references only. Render the requested headline exactly, with a clear reading order and safe margins.`
+    : `${input.prompt}\n\nUse the first attached image as the video subject anchor. Preserve the person's identity, expression, and recognizable features. Recompose the scene as a new, complete cinematic thumbnail; do not simply add text to the original frame. Any following images are visual style references only. Do not copy their people, logos, exact text, or layout. Render the requested headline exactly, with a clear reading order and safe margins.`
+
   return {
     model: input.model?.trim() || DEFAULT_THUMBNAIL_IMAGE_MODEL,
-    prompt: `${input.prompt}\n\nUse the first attached image as the video subject anchor. Preserve the person's identity, expression, and recognizable features. Recompose the scene as a new, complete cinematic thumbnail; do not simply add text to the original frame. Any following images are visual style references only. Do not copy their people, logos, exact text, or layout. Render the requested headline exactly, with a clear reading order and safe margins.`,
+    prompt: promptText,
     images,
     size: IMAGE_EDIT_SIZES[input.aspectRatio][input.quality],
     quality: input.quality === 'pro' ? 'high' : 'medium',
@@ -73,11 +87,15 @@ export function buildOpenAIImageEditFormData(input: OpenAIImageEditInput): FormD
   form.append('output_format', request.output_format)
   form.append('n', String(request.n))
 
+  const hasBase = Boolean(input.baseThumbnailUrl && IMAGE_DATA_URL_PATTERN.test(input.baseThumbnailUrl))
   request.images.forEach((image, index) => {
     const parsed = parseImageDataUrl(image.image_url)!
     const bytes = Uint8Array.from(Buffer.from(parsed.data, 'base64'))
     const extension = parsed.mimeType === 'image/jpeg' ? 'jpg' : parsed.mimeType.split('/')[1]
-    form.append('image[]', new Blob([bytes], { type: parsed.mimeType }), `${index === 0 ? 'video-frame' : `style-reference-${index}`}.${extension}`)
+    const label = hasBase
+      ? (index === 0 ? 'base-thumbnail' : index === 1 ? 'video-frame' : `style-reference-${index - 1}`)
+      : (index === 0 ? 'video-frame' : `style-reference-${index}`)
+    form.append('image[]', new Blob([bytes], { type: parsed.mimeType }), `${label}.${extension}`)
   })
 
   return form

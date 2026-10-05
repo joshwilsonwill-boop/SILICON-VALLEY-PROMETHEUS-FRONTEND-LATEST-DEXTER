@@ -42,7 +42,7 @@ export interface VoiceCompanionBridgeHandlers {
   onCutTranscriptSegment?: (segmentId: string) => VoiceEditResult
   onCutTranscriptPhrase?: (phrase: string) => VoiceEditResult
   onReplaceTranscriptPhrase?: (targetPhrase: string, replacementPhrase: string) => VoiceEditResult | Promise<VoiceEditResult>
-  onCutSilence?: (minDurationSec?: number) => Promise<VoiceEditResult> | VoiceEditResult
+  onCutSilence?: (minDurationSec?: number, targetDurationSec?: number) => Promise<VoiceEditResult> | VoiceEditResult
   onRemoveFillerWords?: () => Promise<VoiceEditResult> | VoiceEditResult
   /** Direct music track staging and audition handlers */
   getMusicCatalog?: () => VoiceMusicTrack[]
@@ -70,6 +70,9 @@ export interface VoiceCompanionBridgeHandlers {
   timelineDurationSec?: number
   sourceMediaState?: 'ready' | 'loading' | 'missing' | 'unavailable' | 'non_video'
   videoThumbnailUrl?: string
+  activeThumbnailUrl?: string
+  activeThumbnailHeadline?: string
+  onModifyThumbnail?: (args: { changes: string; headline?: string; referenceId?: string }) => Promise<VoiceActionResult> | VoiceActionResult
 }
 
 let currentHandlers: VoiceCompanionBridgeHandlers = {}

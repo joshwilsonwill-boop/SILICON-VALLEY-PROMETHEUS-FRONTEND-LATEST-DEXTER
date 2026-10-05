@@ -9,12 +9,22 @@ import { renderStudioDraft } from '@/lib/thumbnails/studio-draft'
 import { readThumbnailGenerationResponse } from '@/lib/thumbnails/thumbnail-response'
 import { isThumbnailRequestWithinBudget } from '@/lib/thumbnails/thumbnail-request'
 import { THUMBNAIL_CLIENT_TIMEOUT_MS } from '@/lib/thumbnails/thumbnail-runtime'
-import { ThumbnailWorkspace, type ThumbnailVariant } from '@/components/editor/thumbnail-studio/ThumbnailWorkspace'
+import { ThumbnailWorkspace, type ThumbnailVariant, type ThumbnailChatMessage } from '@/components/editor/thumbnail-studio/ThumbnailWorkspace'
 
 interface ThumbnailStudioModalProps {
   isOpen: boolean
   onClose: () => void
-  jarvisDraft?: { id: number; creativeDirection?: string; headline?: string; referenceId?: StudioReferenceId; generateNow?: boolean } | null
+  jarvisDraft?: {
+    id: number
+    creativeDirection?: string
+    headline?: string
+    referenceId?: StudioReferenceId
+    generateNow?: boolean
+    isIterative?: boolean
+    iterationPrompt?: string
+    baseThumbnailUrl?: string
+    aspectRatio?: string
+  } | null
   projectId: string
   projectTitle: string
   videoElement?: HTMLVideoElement | null
@@ -140,6 +150,13 @@ export function ThumbnailStudioModal({ isOpen, onClose, jarvisDraft, projectId, 
   const [savedSuccess, setSavedSuccess] = React.useState(false)
   const [nanoErrorMessage, setNanoErrorMessage] = React.useState<string | null>(null)
   const [nanoSuccessMessage, setNanoSuccessMessage] = React.useState<string | null>(null)
+  const [chatMessages, setChatMessages] = React.useState<ThumbnailChatMessage[]>([
+    {
+      id: 'welcome',
+      role: 'assistant',
+      content: 'Welcome to Thumbnail Studio. Select a keyframe or describe how you want to refine your thumbnail.',
+    },
+  ])
   const generationAbortRef = React.useRef<AbortController | null>(null)
   const curationAbortRef = React.useRef<AbortController | null>(null)
   const headlineTouchedRef = React.useRef(false)
@@ -153,6 +170,7 @@ export function ThumbnailStudioModal({ isOpen, onClose, jarvisDraft, projectId, 
   const autoGenerateQueuedRef = React.useRef(false)
   const savedTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
   const activeFrame = candidates[selectedFrameIndex]
+  const lastActiveFrameDataUrlRef = React.useRef<string | undefined>(undefined)
   const requestSignature = React.useMemo(() => JSON.stringify({ frameDataUrl: activeFrame?.dataUrl, headline, highlightWord, aspectRatio, studioDesign: design, recipeId, userPrompt: creativeDirection, referenceImages: channelReferences, studioReferenceId: referenceId }), [activeFrame, headline, highlightWord, aspectRatio, design, recipeId, creativeDirection, channelReferences, referenceId])
   const currentSignatureRef = React.useRef(requestSignature)
   const currentGeneratedUrlRef = React.useRef(generatedDataUrl)
@@ -170,17 +188,37 @@ export function ThumbnailStudioModal({ isOpen, onClose, jarvisDraft, projectId, 
       setHeadline(jarvisDraft.headline.slice(0, 64))
     }
     if (jarvisDraft.referenceId) setReferenceId(jarvisDraft.referenceId)
-  }, [isOpen, jarvisDraft])
+    if (jarvisDraft.aspectRatio && ['9:16', '2:3', '1:1', '3:2', '16:9'].includes(jarvisDraft.aspectRatio)) {
+      setAspectRatio(jarvisDraft.aspectRatio as StudioAspectRatio)
+    }
+    if (jarvisDraft.baseThumbnailUrl && !generatedDataUrl) {
+      setGeneratedDataUrl(jarvisDraft.baseThumbnailUrl)
+    }
+    if (jarvisDraft.isIterative && jarvisDraft.iterationPrompt) {
+      setChatMessages(prev => [
+        ...prev,
+        {
+          id: String(Date.now()),
+          role: 'user',
+          content: jarvisDraft.iterationPrompt!,
+        },
+        {
+          id: String(Date.now() + 1),
+          role: 'assistant',
+          content: `Refining thumbnail with: "${jarvisDraft.iterationPrompt}". Base artwork and subject identity locked.`,
+        },
+      ])
+    }
+  }, [isOpen, jarvisDraft, generatedDataUrl])
   React.useEffect(() => {
     generationAbortRef.current?.abort()
     setIsGeneratingNano(false)
-    if (generatedSignatureRef.current !== requestSignature) {
-      setGeneratedDataUrl(null)
-      setSelectedVariantId(null)
+    if (activeFrame && lastActiveFrameDataUrlRef.current && lastActiveFrameDataUrlRef.current !== activeFrame.dataUrl) {
       setNanoSuccessMessage(null)
       setSavedSuccess(false)
     }
-  }, [requestSignature])
+    lastActiveFrameDataUrlRef.current = activeFrame?.dataUrl
+  }, [requestSignature, activeFrame?.dataUrl])
   React.useEffect(() => {
     if (!isOpen) { generationAbortRef.current?.abort(); curationAbortRef.current?.abort(); fileReadEpochRef.current++; setIsGeneratingNano(false); setIsAiCurating(false) }
   }, [isOpen])
@@ -286,7 +324,7 @@ export function ThumbnailStudioModal({ isOpen, onClose, jarvisDraft, projectId, 
     } catch (error) { if (epoch === fileReadEpochRef.current) setNanoErrorMessage(error instanceof Error ? error.message : 'Could not load the source image.') }
   }
   const handleCancelGeneration = () => { generationAbortRef.current?.abort(); setIsGeneratingNano(false); setNanoSuccessMessage('Generation cancelled. Your previous versions are still available.') }
-  const handleGenerateNanoBanana = async () => {
+  const handleGenerateNanoBanana = async (options?: { iterationPrompt?: string; isIterative?: boolean }) => {
     if (!activeFrame || !headline.trim() || isGeneratingNano) return
     generationAbortRef.current?.abort()
     const controller = new AbortController()
@@ -301,7 +339,33 @@ export function ThumbnailStudioModal({ isOpen, onClose, jarvisDraft, projectId, 
       const visualReference = await readStudioReference(referenceId)
       if (controller.signal.aborted) return
       const referenceImages = [visualReference, ...channelReferences].slice(0, 4)
-      const requestBody = { frameDataUrl: activeFrame.dataUrl, headline: headline.trim(), highlightWord, recipeId, backgroundId: recipe.backgroundStyle, textTreatmentId: recipe.textTreatmentStyle, proofArtifactId: recipe.proofArtifact, directionalId: recipe.directionalStyle, lightingId: recipe.lightingStyle, brandColor: design.accent, aspectRatio, userPrompt: creativeDirection.trim(), projectTitle, transcriptSnippet: transcriptSnippet.slice(0, 5000), referenceImages, lockChannelStyle: true, studioReferenceId: referenceId, studioDesign: design }
+      const effectiveIterativePrompt = options?.iterationPrompt || (jarvisDraft?.isIterative ? jarvisDraft.iterationPrompt : undefined)
+      const baseThumbnailUrl = (options?.isIterative || effectiveIterativePrompt || jarvisDraft?.isIterative)
+        ? (generatedDataUrl ?? jarvisDraft?.baseThumbnailUrl ?? undefined)
+        : (generatedDataUrl ?? undefined)
+
+      const requestBody = {
+        frameDataUrl: activeFrame.dataUrl,
+        baseThumbnailUrl,
+        iterationPrompt: effectiveIterativePrompt,
+        headline: headline.trim(),
+        highlightWord,
+        recipeId,
+        backgroundId: recipe.backgroundStyle,
+        textTreatmentId: recipe.textTreatmentStyle,
+        proofArtifactId: recipe.proofArtifact,
+        directionalId: recipe.directionalStyle,
+        lightingId: recipe.lightingStyle,
+        brandColor: design.accent,
+        aspectRatio,
+        userPrompt: creativeDirection.trim(),
+        projectTitle,
+        transcriptSnippet: transcriptSnippet.slice(0, 5000),
+        referenceImages,
+        lockChannelStyle: true,
+        studioReferenceId: referenceId,
+        studioDesign: design,
+      }
       if (!isThumbnailRequestWithinBudget(requestBody)) {
         setNanoErrorMessage('The selected image references make this request too large. Remove a reference image or choose a smaller source, then try again.')
         return
@@ -322,19 +386,60 @@ export function ThumbnailStudioModal({ isOpen, onClose, jarvisDraft, projectId, 
       setGeneratedDataUrl(data.dataUrl)
       setVariants(previous => [...previous,variant].slice(-8))
       setSelectedVariantId(variant.id)
-      setNanoSuccessMessage('Thumbnail ready. Save it or create another version.')
+      setNanoSuccessMessage(effectiveIterativePrompt ? 'Refined thumbnail ready. Saved as a new version.' : 'Thumbnail ready. Save it or create another version.')
       setSavedSuccess(false)
-    } catch (error) { if (!controller.signal.aborted) setNanoErrorMessage(error instanceof Error ? error.message : 'Thumbnail generation failed. Try again.') }
+      if (effectiveIterativePrompt) {
+        setChatMessages(prev => [
+          ...prev,
+          {
+            id: String(Date.now()),
+            role: 'assistant',
+            content: `Refined thumbnail with "${effectiveIterativePrompt}". The composition and subject features have been updated while preserving your original look.`,
+          },
+        ])
+      }
+    } catch (error) {
+      if (!controller.signal.aborted) {
+        const errorMsg = error instanceof Error ? error.message : 'Thumbnail generation failed. Try again.'
+        setNanoErrorMessage(errorMsg)
+        if (options?.iterationPrompt || jarvisDraft?.isIterative) {
+          setChatMessages(prev => [
+            ...prev,
+            {
+              id: String(Date.now()),
+              role: 'assistant',
+              content: `Failed to apply refinement: ${errorMsg}. Your previous version is preserved.`,
+            },
+          ])
+        }
+      }
+    }
     finally { clearTimeout(timeout); if (!controller.signal.aborted) setIsGeneratingNano(false) }
   }
-  const generateFromJarvisRef = React.useRef<() => Promise<void>>(handleGenerateNanoBanana)
+  const generateFromJarvisRef = React.useRef<(options?: { iterationPrompt?: string; isIterative?: boolean }) => Promise<void>>(handleGenerateNanoBanana)
   generateFromJarvisRef.current = handleGenerateNanoBanana
   React.useEffect(() => {
     if (!isOpen || !autoGenerateQueuedRef.current || isExtracting || isAiCurating || !activeFrame || !headline.trim() || isGeneratingNano) return
     autoGenerateQueuedRef.current = false
-    const timer = setTimeout(() => { void generateFromJarvisRef.current() }, 0)
+    const isIterative = Boolean(jarvisDraft?.isIterative)
+    const iterationPrompt = jarvisDraft?.iterationPrompt
+    const timer = setTimeout(() => { void generateFromJarvisRef.current({ isIterative, iterationPrompt }) }, 0)
     return () => clearTimeout(timer)
-  }, [isOpen, isExtracting, isAiCurating, activeFrame, headline, isGeneratingNano])
+  }, [isOpen, isExtracting, isAiCurating, activeFrame, headline, isGeneratingNano, jarvisDraft])
+
+  const handleIterateThumbnail = async (prompt: string) => {
+    if (!prompt.trim() || isGeneratingNano) return
+    const trimmed = prompt.trim()
+    setChatMessages(prev => [
+      ...prev,
+      {
+        id: String(Date.now()),
+        role: 'user',
+        content: trimmed,
+      },
+    ])
+    await handleGenerateNanoBanana({ iterationPrompt: trimmed, isIterative: true })
+  }
   const handleRestoreVariant = (variant: ThumbnailVariant) => {
     generationAbortRef.current?.abort()
     curationAbortRef.current?.abort()
@@ -388,5 +493,5 @@ export function ThumbnailStudioModal({ isOpen, onClose, jarvisDraft, projectId, 
   }
 
   if (!isOpen) return null
-  return <ThumbnailWorkspace projectTitle={projectTitle} aspectRatio={aspectRatio} onAspectRatio={setAspectRatio} design={design} onDesign={update => setDesign(previous => ({ ...previous,...update }))} headline={headline} onHeadline={handleHeadline} emphasis={highlightWord} onEmphasis={setHighlightWord} creativeDirection={creativeDirection} onCreativeDirection={setCreativeDirection} recipeId={recipeId} onRecipe={setRecipeId} candidates={candidates} selectedFrameIndex={selectedFrameIndex} onFrame={handleFrame} isExtracting={isExtracting} isCurating={isAiCurating} recommendedFrameIndex={aiData?.recommendedFrameIndex} hookTitles={aiData?.hookTitles ?? []} onCapture={videoElement ? handleCaptureCurrentPlayhead : undefined} onUploadFrame={files => { void handleUploadFrame(files) }} previewUrl={previewDataUrl} generatedUrl={generatedDataUrl} referenceId={referenceId} onReference={setReferenceId} references={channelReferences} onReferences={files => { void handleAddReferenceImages(files) }} onRemoveReference={index => setChannelReferences(previous => previous.filter((_,i) => i !== index))} variants={variants} selectedVariantId={selectedVariantId} onVariant={handleRestoreVariant} isGenerating={isGeneratingNano} onGenerate={() => { void handleGenerateNanoBanana() }} onCancel={handleCancelGeneration} error={nanoErrorMessage} success={nanoSuccessMessage} onDownload={handleDownload} onSave={() => { void handleSaveCover() }} isSaving={isExporting} saved={savedSuccess} onClose={onClose} />
+  return <ThumbnailWorkspace projectTitle={projectTitle} aspectRatio={aspectRatio} onAspectRatio={setAspectRatio} design={design} onDesign={update => setDesign(previous => ({ ...previous,...update }))} headline={headline} onHeadline={handleHeadline} emphasis={highlightWord} onEmphasis={setHighlightWord} creativeDirection={creativeDirection} onCreativeDirection={setCreativeDirection} recipeId={recipeId} onRecipe={setRecipeId} candidates={candidates} selectedFrameIndex={selectedFrameIndex} onFrame={handleFrame} isExtracting={isExtracting} isCurating={isAiCurating} recommendedFrameIndex={aiData?.recommendedFrameIndex} hookTitles={aiData?.hookTitles ?? []} onCapture={videoElement ? handleCaptureCurrentPlayhead : undefined} onUploadFrame={files => { void handleUploadFrame(files) }} previewUrl={previewDataUrl} generatedUrl={generatedDataUrl} referenceId={referenceId} onReference={setReferenceId} references={channelReferences} onReferences={files => { void handleAddReferenceImages(files) }} onRemoveReference={index => setChannelReferences(previous => previous.filter((_,i) => i !== index))} variants={variants} selectedVariantId={selectedVariantId} onVariant={handleRestoreVariant} isGenerating={isGeneratingNano} onGenerate={() => { void handleGenerateNanoBanana() }} onCancel={handleCancelGeneration} error={nanoErrorMessage} success={nanoSuccessMessage} onDownload={handleDownload} onSave={() => { void handleSaveCover() }} isSaving={isExporting} saved={savedSuccess} onClose={onClose} chatMessages={chatMessages} onIterateThumbnail={handleIterateThumbnail} />
 }

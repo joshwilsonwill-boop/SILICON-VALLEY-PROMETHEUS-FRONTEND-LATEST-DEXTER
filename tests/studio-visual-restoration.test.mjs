@@ -20,7 +20,9 @@ assert.doesNotMatch(globals, /h1, h2, h3, h4, \.font-heading, \.font-display/)
 assert.match(rootFrame, /isPublic && pathname !== '\/' \? <LandingHeader \/>/, 'home has its own masthead')
 assert.doesNotMatch(home, /pt-20/, 'sticky masthead must not leave a second header-sized gap')
 assert.match(studio, /<span>Ready to Create<\/span>[\s\S]*?<span>Something<\/span>/)
-assert.match(studio, /max-w-full flex-col items-center/, 'hero title should use a constrained stacked layout')
+const studioHeading = studio.match(/<motion\.h1\s+aria-label="Ready to Create Something New\?"[\s\S]*?<\/motion\.h1>/)?.[0]
+assert.ok(studioHeading, 'Studio heading should be present')
+assert.match(studioHeading, /className="[^"]*flex-nowrap[^"]*whitespace-nowrap/, 'Studio title should remain on one line')
 
 assert.ok(existsSync(join(process.cwd(), 'public/branding/prometheus-logo-no-bg.png')))
 assert.match(wordmark, /src="\/branding\/prometheus-logo-no-bg\.png"/)

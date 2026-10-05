@@ -191,6 +191,7 @@ const DEFAULT_CROP_RECT: CropRect = { left: 0, top: 0, width: 100, height: 100 }
 const DEFAULT_TIMELINE_HEIGHT = 252
 const MIN_TIMELINE_HEIGHT = 112
 const MAX_TIMELINE_HEIGHT_ARIA = 1000
+const TIMELINE_HEADER_COLLAPSE_DISTANCE = 64
 const TIMELINE_REVEAL_THRESHOLD = 8
 const TIMELINE_COLLAPSE_THRESHOLD = 84
 const TIMELINE_RESIZE_STEP = 16
@@ -515,6 +516,13 @@ export function MotionEditWorkspace({
     return nextHeight
   }, [getMaximumTimelineHeight])
 
+  // Spend the first part of an upward timeline resize on making room for the
+  // preview. Once the framing row has folded away, the timeline can cover it.
+  const headerCollapseProgress = showTimeline
+    ? Math.min(1, Math.max(0, (timelineHeight - DEFAULT_TIMELINE_HEIGHT) / TIMELINE_HEADER_COLLAPSE_DISTANCE))
+    : 0
+  const framingCollapseProgress = activeTool === 'layout' ? headerCollapseProgress : 0
+
   const startTimelineResize = (event: React.PointerEvent<HTMLDivElement>) => {
     event.preventDefault()
     event.currentTarget.setPointerCapture(event.pointerId)
@@ -659,10 +667,10 @@ export function MotionEditWorkspace({
                 onClick={onRequestTranscribe}
                 disabled={isTranscribing || isSourceUploading}
                 className="inline-flex items-center gap-1 rounded bg-white/[0.08] px-2 py-1 text-[10px] text-white/70 hover:bg-white/[0.14] hover:text-white disabled:opacity-40"
-                title={isSourceUploading ? 'Source media is saving' : 'Transcribe source video with Prometheus AI'}
+                title={isSourceUploading ? 'Source media is saving' : 'Create a new transcript from the source video'}
               >
                 {isTranscribing || isSourceUploading ? <Loader2 className="size-3 animate-spin text-[#98f237]" /> : <RefreshCw className="size-3" />}
-                <span>Sync</span>
+                <span>Retranscribe</span>
               </button>
             ) : null}
             <div className="ml-auto flex items-center gap-1">
@@ -1054,7 +1062,13 @@ export function MotionEditWorkspace({
         <main className="flex min-h-0 min-w-0 flex-1 flex-col">
           <header className="relative shrink-0 border-b border-white/8 bg-black/40 px-3 py-2 sm:px-5">
             <div className="flex min-h-10 flex-wrap items-center justify-between gap-2">
-              <div className="flex min-w-0 items-center gap-2 text-xs text-white/62">
+              <div
+                data-motion-header-details
+                className="flex min-w-0 items-center gap-2 text-xs text-white/62 transition-[opacity,transform] duration-150 motion-reduce:transition-none"
+                style={{ opacity: 1 - headerCollapseProgress, transform: `translateY(-${headerCollapseProgress * 16}px)` }}
+                aria-hidden={headerCollapseProgress >= 1}
+                inert={headerCollapseProgress >= 1}
+              >
                 <div className="mr-2 hidden min-w-0 sm:block">
                   <div className="text-[15px] font-semibold tracking-[-0.02em] text-white">Motion Studio</div>
                   <div className="max-w-[220px] truncate text-[10px] uppercase tracking-[0.16em] text-white/38">{projectTitle}</div>
@@ -1087,10 +1101,20 @@ export function MotionEditWorkspace({
               <div className="flex items-center gap-1.5"><button type="button" onClick={() => onApplyPrompt?.(`Add a motion marker at ${formatTime(currentTimeSec)} in ${projectTitle}.`)} className="grid size-9 place-items-center rounded-md border border-white/10 bg-white/[0.045] text-white/72 transition-colors hover:bg-white/[0.1] hover:text-white" aria-label="Add motion marker"><Plus className="size-4" /></button><button type="button" onClick={() => onApplyPrompt?.('Prepare the current motion edit for export.')} className="inline-flex min-h-9 items-center gap-2 rounded-md bg-white px-3 py-2 text-xs font-semibold text-black transition-colors hover:bg-white/85"><Download className="size-3.5" /> <span className="hidden sm:inline">Export</span></button></div>
             </div>
             <div className="mt-1.5 flex gap-1 overflow-x-auto pb-0.5 lg:hidden" aria-label="Motion tools">{TOOLS.map(({ id, label, icon: Icon }) => <button key={id} type="button" onClick={() => selectTool(id)} className={cn('inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-md border px-2.5 text-xs transition-colors', activeTool === id ? 'border-[#98f237]/35 bg-[#98f237]/10 text-[#c9ff7d]' : 'border-white/10 text-white/58 hover:text-white')}><Icon className="size-3.5" />{label}</button>)}</div>
-            <ToolPanel aspectRatio={safeAspectRatio} onAspectRatioChange={(ratio) => { setFrameAspectRatio(ratio); setCropRect(DEFAULT_CROP_RECT) }} onResetCrop={() => setCropRect(DEFAULT_CROP_RECT)} activeTool={activeTool} treatment={referenceStyle?.treatment ?? treatment} captionsVisible={effectiveCaptionsVisible} cropEnabled={cropEnabled} fitMode={fitMode} onTreatment={applyTreatment} onToggleCaptions={() => {
-              if (referenceStyle) editorial.patch({ type: 'reference_style', style: { ...referenceStyle, captionStyle: effectiveCaptionsVisible ? 'none' : captionStyle ?? 'clean_bold' } })
-              else setCaptionsOverride(!effectiveCaptionsVisible)
-            }} onToggleCrop={() => setCropEnabled((value) => !value)} onToggleFit={() => onFitModeChange(fitMode === 'fill' ? 'fit' : 'fill')} onPickSource={onPickSource} />
+            <div
+              data-motion-framing-controls
+              className="grid transition-[grid-template-rows,opacity] duration-150 motion-reduce:transition-none"
+              style={{ gridTemplateRows: `${1 - framingCollapseProgress}fr`, opacity: 1 - framingCollapseProgress }}
+              aria-hidden={framingCollapseProgress >= 1}
+              inert={framingCollapseProgress >= 1}
+            >
+              <div className="min-h-0 overflow-hidden">
+                <ToolPanel aspectRatio={safeAspectRatio} onAspectRatioChange={(ratio) => { setFrameAspectRatio(ratio); setCropRect(DEFAULT_CROP_RECT) }} onResetCrop={() => setCropRect(DEFAULT_CROP_RECT)} activeTool={activeTool} treatment={referenceStyle?.treatment ?? treatment} captionsVisible={effectiveCaptionsVisible} cropEnabled={cropEnabled} fitMode={fitMode} onTreatment={applyTreatment} onToggleCaptions={() => {
+                  if (referenceStyle) editorial.patch({ type: 'reference_style', style: { ...referenceStyle, captionStyle: effectiveCaptionsVisible ? 'none' : captionStyle ?? 'clean_bold' } })
+                  else setCaptionsOverride(!effectiveCaptionsVisible)
+                }} onToggleCrop={() => setCropEnabled((value) => !value)} onToggleFit={() => onFitModeChange(fitMode === 'fill' ? 'fit' : 'fill')} onPickSource={onPickSource} />
+              </div>
+            </div>
             <details className="mt-2 max-h-[40vh] overflow-y-auto rounded-lg border border-white/10 bg-[#101214] text-xs">
               <summary className="cursor-pointer px-3 py-2 text-white/80">Reference look{referenceStyle ? ' · Preview only' : ''}</summary>
               <StyleCloneCard key={previewUrl} sourceKey={previewUrl} durationSec={hasPreviewMedia && previewKind === 'video' ? durationSec : 0} onApplyStyle={applyReference} />
@@ -1098,7 +1122,7 @@ export function MotionEditWorkspace({
             </details>
           </header>
 
-          <div className="relative min-h-[220px] flex-1 overflow-hidden bg-black/18 p-2 sm:min-h-[280px] sm:p-3 lg:min-h-0 lg:p-3">
+          <div data-motion-preview-stage className="relative min-h-[220px] flex-1 overflow-hidden bg-black/18 p-2 sm:min-h-[280px] sm:p-3 lg:min-h-0 lg:p-3">
             <div className="grid h-full w-full place-items-center [container-type:size]">
               <div
                 className="relative aspect-[var(--motion-preview-aspect)] w-[min(100cqw,calc(100cqh*var(--motion-preview-aspect)))] max-h-full max-w-full"

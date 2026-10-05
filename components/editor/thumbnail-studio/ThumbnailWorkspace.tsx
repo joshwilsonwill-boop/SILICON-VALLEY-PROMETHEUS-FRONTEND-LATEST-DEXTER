@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { ArrowRight, Camera, Check, ChevronLeft, ChevronRight, Download, Frame, ImagePlus, Layers, Loader2, Palette, ScanLine, Sparkles, X } from 'lucide-react'
+import { ArrowRight, Camera, Check, ChevronLeft, ChevronRight, Download, Frame, ImagePlus, Layers, Loader2, MessageSquare, Palette, ScanLine, Send, Sparkles, X } from 'lucide-react'
 import { STUDIO_ACCENTS, STUDIO_BACKGROUNDS, type StudioDesign } from '@/lib/thumbnails/studio-art-direction'
 import { STUDIO_REFERENCES, type StudioReferenceId } from '@/lib/thumbnails/studio-references'
 import { VIRAL_THUMBNAIL_RECIPES } from '@/lib/thumbnails/nano-banana-rulebook'
@@ -20,6 +20,13 @@ export type ThumbnailVariant = {
   recipeId: string
   references: string[]
   referenceId: StudioReferenceId
+}
+
+export type ThumbnailChatMessage = {
+  id: string
+  role: 'user' | 'assistant'
+  content: string
+  timestamp?: number
 }
 
 type Props = {
@@ -65,6 +72,9 @@ type Props = {
   isSaving: boolean
   saved: boolean
   onClose: () => void
+  chatMessages?: ThumbnailChatMessage[]
+  onSendChatMessage?: (prompt: string) => void
+  onIterateThumbnail?: (prompt: string) => void
 }
 
 function ReferenceTile({ reference, selected, index, onSelect }: { reference: typeof STUDIO_REFERENCES[number]; selected: boolean; index: number; onSelect: (id: StudioReferenceId) => void }) {
@@ -87,7 +97,8 @@ function ReferenceTile({ reference, selected, index, onSelect }: { reference: ty
 }
 
 export function ThumbnailWorkspace(props: Props) {
-  const [tab, setTab] = React.useState<'create' | 'styles' | 'brand'>('create')
+  const [tab, setTab] = React.useState<'create' | 'chat' | 'styles' | 'brand'>('create')
+  const [chatInput, setChatInput] = React.useState('')
   const [view, setView] = React.useState<'artwork' | 'source' | 'feed'>('artwork')
   const [guides, setGuides] = React.useState(false)
   const [dimensions, setDimensions] = React.useState('')
@@ -148,8 +159,22 @@ export function ThumbnailWorkspace(props: Props) {
   const resetStageTilt = () => setTilt({ x: 0, y: 0, pointerX: 50, pointerY: 50 })
   const headlineWords = Array.from(new Set(props.headline.trim().split(/\s+/).filter(Boolean)))
   const onFileInput = (event: React.ChangeEvent<HTMLInputElement>, action: (files: File[]) => void) => { action(Array.from(event.target.files ?? [])); event.target.value = '' }
-  const title = tab === 'create' ? 'Make the first impression count.' : tab === 'styles' ? 'Find your visual direction.' : 'Make it unmistakably yours.'
-  const help = tab === 'create' ? 'Start with your frame. Shape the hook. Create the final artwork.' : tab === 'styles' ? 'Choose a cinematic reference, then refine mood and detail.' : 'Choose your accent and use reference images to guide the look.'
+  const handleSendChat = (promptText: string) => {
+    const trimmed = promptText.trim()
+    if (!trimmed || props.isGenerating) return
+    setChatInput('')
+    setView('artwork')
+    if (props.onIterateThumbnail) {
+      props.onIterateThumbnail(trimmed)
+    } else if (props.onSendChatMessage) {
+      props.onSendChatMessage(trimmed)
+    } else {
+      props.onCreativeDirection(trimmed)
+      props.onGenerate()
+    }
+  }
+  const title = tab === 'create' ? 'Make the first impression count.' : tab === 'chat' ? 'Conversational Art Director.' : tab === 'styles' ? 'Find your visual direction.' : 'Make it unmistakably yours.'
+  const help = tab === 'create' ? 'Start with your frame. Shape the hook. Create the final artwork.' : tab === 'chat' ? 'Refine features, tweak lighting, or change style while keeping subject identity.' : tab === 'styles' ? 'Choose a cinematic reference, then refine mood and detail.' : 'Choose your accent and use reference images to guide the look.'
   const generatedLabel = props.generatedUrl ? 'Generated artwork' : 'Layout preview'
 
   const backgroundControl = <div className={styles.field}>
@@ -197,7 +222,7 @@ export function ThumbnailWorkspace(props: Props) {
             </div> : <div className={styles.empty}>{props.isExtracting ? <Loader2 size={25} className={styles.spin} /> : <Camera size={28} />}<strong>{props.isExtracting ? 'Finding your best frames' : 'Start with your subject'}</strong><p>{props.isExtracting ? 'We’re preparing frames from your video.' : 'Load a video in the editor, or add a still image to start creating.'}</p>{!props.isExtracting && <label className={styles.upload}><ImagePlus size={16} /><span>Add a source image</span><input className={styles.hiddenInput} type="file" accept="image/png,image/jpeg,image/webp" aria-label="Upload source image" onChange={event => onFileInput(event, props.onUploadFrame)} /></label>}</div>}
             {props.isGenerating && <div className={styles.generating} role="status"><Sparkles size={27} className={styles.spin} /><strong>Composing your thumbnail</strong><small>Refining the subject, lighting, and headline.</small><button className={styles.secondary} type="button" onClick={props.onCancel}>Cancel generation</button></div>}
           </div>
-          <div className={styles.previewMeta}><span className={styles.metaLabel}>{props.generatedUrl ? <Check size={12} /> : <Layers size={12} />}{view === 'source' ? 'Source frame' : generatedLabel}{dimensions && ' · ' + dimensions}</span><div className={styles.viewGroup}>{(['artwork','source','feed'] as const).map(mode => <button className={styles.viewButton} type="button" key={mode} aria-pressed={view === mode} disabled={!image && mode !== 'artwork'} onClick={() => setView(mode)}>{mode === 'artwork' ? 'Artwork' : mode === 'source' ? 'Source' : 'Feed size'}</button>)}<button className={styles.viewButton} type="button" aria-pressed={guides} aria-label="Toggle safe area guides" onClick={() => setGuides(!guides)}><ScanLine size={13} /></button></div></div>
+          <div className={styles.previewMeta}><span className={styles.metaLabel}>{props.generatedUrl ? <Check size={12} /> : <Layers size={12} />}{view === 'source' ? 'Source frame' : generatedLabel}{dimensions && ' · ' + dimensions}</span><div className={styles.viewGroup}>{props.generatedUrl && <button type="button" className={styles.refineChatButton} onClick={() => setTab('chat')} title="Refine this thumbnail in the Chat assistant"><MessageSquare size={12} />Refine in Chat</button>}{(['artwork','source','feed'] as const).map(mode => <button className={styles.viewButton} type="button" key={mode} aria-pressed={view === mode} disabled={!image && mode !== 'artwork'} onClick={() => setView(mode)}>{mode === 'artwork' ? 'Artwork' : mode === 'source' ? 'Source' : 'Feed size'}</button>)}<button className={styles.viewButton} type="button" aria-pressed={guides} aria-label="Toggle safe area guides" onClick={() => setGuides(!guides)}><ScanLine size={13} /></button></div></div>
           <section aria-label="Source keyframes">
             <div className={styles.sectionHeading}><h2>Source keyframes<span className={styles.count}>{props.candidates.length} captures</span></h2><div className={styles.sectionActions}>{props.onCapture && <button type="button" className={styles.textButton} onClick={props.onCapture}><Camera size={12} />Capture playhead</button>}<button type="button" className={styles.iconButton} aria-label="Previous source frames" disabled={!props.candidates.length} onClick={() => frameStripRef.current?.scrollBy({ left: -220, behavior: 'smooth' })}><ChevronLeft size={13} /></button><button type="button" className={styles.iconButton} aria-label="Next source frames" disabled={!props.candidates.length} onClick={() => frameStripRef.current?.scrollBy({ left: 220, behavior: 'smooth' })}><ChevronRight size={13} /></button></div></div>
             <div className={styles.frameStrip} ref={frameStripRef}>{props.isExtracting && !props.candidates.length ? Array.from({ length: 6 }, (_, index) => <div key={index} className={styles.skeleton} />) : props.candidates.map((frame, index) => <button type="button" key={index + '-' + frame.timecode} className={styles.frame} aria-label={'Use frame at ' + frame.timecode + (props.recommendedFrameIndex === index ? ', AI recommended' : '')} aria-pressed={props.selectedFrameIndex === index} onClick={() => props.onFrame(index)}><img src={frame.dataUrl} alt={'Video frame at ' + frame.timecode} /><span className={styles.frameTime}>{frame.timecode}</span>{props.selectedFrameIndex === index && <span className={styles.frameSelected}><Check size={9} /></span>}</button>)}</div>
@@ -206,7 +231,7 @@ export function ThumbnailWorkspace(props: Props) {
           {props.variants.length > 0 && <section className={styles.variants} aria-label="Generated versions"><div className={styles.sectionHeading}><h2>Your versions<span className={styles.count}>{props.variants.length}</span></h2><span className={styles.hint}>Select a version to restore its design</span></div><div className={styles.frameStrip}>{props.variants.map((variant, index) => <button type="button" className={styles.frame + ' ' + styles.variant} key={variant.id} aria-label={'Restore version ' + (index + 1) + ': ' + variant.headline} aria-pressed={props.selectedVariantId === variant.id} onClick={() => { props.onVariant(variant); setView('artwork') }}><img src={variant.dataUrl} alt={'Generated version ' + (index + 1)} /><span className={styles.frameTime}>Version {index + 1}</span>{props.selectedVariantId === variant.id && <span className={styles.frameSelected}><Check size={9} /></span>}</button>)}</div></section>}
         </section>
         <aside className={styles.inspector} aria-label="Thumbnail controls">
-          <nav className={styles.tabs} aria-label="Thumbnail settings">{([{ id: 'create', label: 'Create', icon: Sparkles },{ id: 'styles', label: 'Styles', icon: Layers },{ id: 'brand', label: 'Brand', icon: Palette }] as const).map(item => <button type="button" className={styles.tab} key={item.id} aria-pressed={tab === item.id} onClick={() => setTab(item.id)}><item.icon size={14} />{item.label}</button>)}</nav>
+          <nav className={styles.tabs} aria-label="Thumbnail settings">{([{ id: 'create', label: 'Create', icon: Sparkles },{ id: 'chat', label: 'Chat', icon: MessageSquare },{ id: 'styles', label: 'Styles', icon: Layers },{ id: 'brand', label: 'Brand', icon: Palette }] as const).map(item => <button type="button" className={styles.tab} key={item.id} aria-pressed={tab === item.id} onClick={() => setTab(item.id)}><item.icon size={14} />{item.label}</button>)}</nav>
           <div className={styles.panel}>
             <div className={styles.panelIntro}><h2>{title}</h2><p>{help}</p></div>
             {tab === 'create' && <>
@@ -216,6 +241,80 @@ export function ThumbnailWorkspace(props: Props) {
               <div className={styles.field}><label className={styles.label} htmlFor="thumbnail-direction">Creative direction<small>Optional · {props.creativeDirection.length}/500</small></label><textarea id="thumbnail-direction" className={styles.textarea} rows={3} maxLength={500} value={props.creativeDirection} onChange={event => props.onCreativeDirection(event.target.value)} placeholder="Describe the mood, subject placement, or an object to feature." /></div>
               {backgroundControl}{accentControl}{referenceControl}
             </>}
+            {tab === 'chat' && <div className={styles.chatContainer}>
+              {props.generatedUrl ? (
+                <div className={styles.chatContextCard}>
+                  <img src={props.generatedUrl} alt="Active thumbnail base" className={styles.chatContextThumb} />
+                  <div className={styles.chatContextInfo}>
+                    <p className={styles.chatContextTitle}>{props.headline || 'Active Artwork'}</p>
+                    <p className={styles.chatContextSubtitle}>Active artwork locked · Changes refine this base rather than starting over</p>
+                  </div>
+                  <span className={styles.chatRefineBadge}><Sparkles size={11} /> Iterative Mode</span>
+                </div>
+              ) : (
+                <div className={styles.chatContextCard}>
+                  <div className={styles.chatContextInfo}>
+                    <p className={styles.chatContextTitle}>Draft Layout</p>
+                    <p className={styles.chatContextSubtitle}>Generate initial artwork first, or describe the concept below to begin.</p>
+                  </div>
+                </div>
+              )}
+              <div className={styles.chatMessageList}>
+                {(props.chatMessages && props.chatMessages.length > 0 ? props.chatMessages : [
+                  {
+                    id: 'welcome',
+                    role: 'assistant' as const,
+                    content: props.generatedUrl
+                      ? "I have your active thumbnail locked as the base. What specific feature would you like to refine? (e.g. text color, background contrast, dramatic lighting, or specific props)"
+                      : "Welcome to Thumbnail Studio Assistant. Select your video frame or describe the visual hook you'd like to create.",
+                  }
+                ]).map(msg => (
+                  <div key={msg.id} className={`${styles.chatBubble} ${msg.role === 'user' ? styles.chatBubbleUser : styles.chatBubbleAssistant}`}>
+                    <div className={styles.chatBubbleSender}>{msg.role === 'user' ? 'You' : 'Jarvis Co-Director'}</div>
+                    <div>{msg.content}</div>
+                  </div>
+                ))}
+              </div>
+              <div className={styles.field}>
+                <div className={styles.label}>Suggested Refinements <small>Click to apply</small></div>
+                <div className={styles.chatPromptChips}>
+                  {[
+                    'Make headline neon cyan and punchy',
+                    'Darken background for high contrast',
+                    'Add dramatic rim lighting on subject',
+                    'Shorten hook to 3 words',
+                    'Shift to luxury minimalist editorial look',
+                    'Warm up lighting and add gold accents',
+                  ].map(chip => (
+                    <button key={chip} type="button" className={styles.chatPromptChip} disabled={props.isGenerating} onClick={() => handleSendChat(chip)}>{chip}</button>
+                  ))}
+                </div>
+              </div>
+              <div className={styles.chatInputBox}>
+                <textarea
+                  className={styles.chatTextarea}
+                  placeholder={props.generatedUrl ? "Describe specific changes (e.g. 'Make headline neon cyan, darken background, preserve face')..." : "Describe the thumbnail you want to generate..."}
+                  value={chatInput}
+                  onChange={e => setChatInput(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault()
+                      if (chatInput.trim() && !props.isGenerating) handleSendChat(chatInput.trim())
+                    }
+                  }}
+                  disabled={props.isGenerating}
+                  rows={3}
+                />
+                <div className={styles.chatInputFooter}>
+                  <span className={styles.hint}>Enter to submit · Preserves subject identity</span>
+                  <button type="button" className={styles.chatSendBtn} disabled={!chatInput.trim() || props.isGenerating} onClick={() => { if (chatInput.trim() && !props.isGenerating) handleSendChat(chatInput.trim()) }}>
+                    {props.isGenerating ? <Loader2 size={12} className={styles.spin} /> : <Send size={12} />}
+                    {props.generatedUrl ? 'Refine Artwork' : 'Generate'}
+                  </button>
+                </div>
+              </div>
+              {referenceControl}
+            </div>}
             {tab === 'styles' && <>
               <div className={styles.field}><div className={styles.label}>Selected visual reference</div><p className={styles.hint}>{STUDIO_REFERENCES.find(reference => reference.id === props.referenceId)?.cue}</p><div className={styles.referenceRail + ' ' + styles.inspectorReferences}>{STUDIO_REFERENCES.map((reference, index) => <ReferenceTile key={reference.id} reference={reference} index={index} selected={props.referenceId === reference.id} onSelect={props.onReference} />)}</div></div>
               <div className={styles.field}><label className={styles.label} htmlFor="thumbnail-recipe">Visual direction</label><select id="thumbnail-recipe" className={styles.select} value={props.recipeId} onChange={event => props.onRecipe(event.target.value)}>{VIRAL_THUMBNAIL_RECIPES.map(recipe => <option key={recipe.id} value={recipe.id}>{recipe.name}</option>)}</select><p className={styles.hint}>Use a direction as inspiration. Your reference image and color choices guide the result.</p></div>

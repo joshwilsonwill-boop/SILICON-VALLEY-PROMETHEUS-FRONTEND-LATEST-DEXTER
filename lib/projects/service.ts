@@ -88,16 +88,30 @@ export const ProjectService = {
     
     if (!user) throw new Error('Unauthorized')
 
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from('projects')
       .select('*')
       .eq('id', id)
       .eq('user_id', user.id)
-      .single()
+      .maybeSingle()
 
-    if (error) {
-      console.error('[ProjectService] getProject Supabase error:', error.message, error.details)
-      throw error
+    if (!data && !error) {
+      const { data: sharedData, error: sharedError } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('id', id)
+        .maybeSingle()
+      if (sharedData && !sharedError) {
+        data = sharedData
+      }
+    }
+
+    if (!data) {
+      if (error) {
+        console.error('[ProjectService] getProject Supabase error:', error.message, error.details)
+        throw error
+      }
+      throw new Error('Project not found')
     }
 
     if (!data.source_asset_id) {
@@ -192,17 +206,32 @@ export const ProjectService = {
     if (patch.animationPlan !== undefined) updateData.animation_plan = patch.animationPlan
     if (patch.sourceAssetId !== undefined) updateData.source_asset_id = patch.sourceAssetId
 
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from('projects')
       .update(updateData)
       .eq('id', id)
       .eq('user_id', user.id)
       .select()
-      .single()
+      .maybeSingle()
 
-    if (error) {
-      console.error('[ProjectService] updateProject Supabase error:', error.message, error.details)
-      throw error
+    if (!data) {
+      const { data: sharedUpdated, error: sharedError } = await supabase
+        .from('projects')
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .maybeSingle()
+      if (sharedUpdated && !sharedError) {
+        data = sharedUpdated
+      }
+    }
+
+    if (!data) {
+      if (error) {
+        console.error('[ProjectService] updateProject Supabase error:', error.message, error.details)
+        throw error
+      }
+      throw new Error('Project not found')
     }
     return mapProjectFromDb(data)
   },

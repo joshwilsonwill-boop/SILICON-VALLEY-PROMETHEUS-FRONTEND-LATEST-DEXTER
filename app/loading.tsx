@@ -1,6 +1,33 @@
+import { CinematicLogoLoader } from '@/components/loading-animation/cinematic-logo-loader'
+
 export default function Loading() {
-  return <div role="status" aria-live="polite" className="flex min-h-[60vh] items-center justify-center gap-3 bg-[var(--theme-background)] text-[var(--theme-foreground)]">
-    <span aria-hidden="true" className="h-5 w-5 animate-spin rounded-full border-2 border-white/20 border-t-[var(--theme-accent)] motion-reduce:animate-none" />
-    <span>Opening your workspace…</span>
-  </div>
+  return (
+    <>
+      <CinematicLogoLoader
+        caption="Opening your workspace…"
+        className="workspace-route-loader"
+      />
+      <style>{`
+        .workspace-route-loader.prom-cine-overlay {
+          background: #050507;
+        }
+        .workspace-route-loader .prom-cine-backdrop {
+          display: none;
+        }
+        .workspace-route-loader.prom-cine-enter {
+          animation-duration: 500ms;
+        }
+        .workspace-route-loader .prom-cine-caption {
+          color: rgba(255, 255, 255, 0.86);
+          letter-spacing: 0.16em;
+          white-space: nowrap;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .workspace-route-loader.prom-cine-enter {
+            animation: none;
+          }
+        }
+      `}</style>
+    </>
+  )
 }

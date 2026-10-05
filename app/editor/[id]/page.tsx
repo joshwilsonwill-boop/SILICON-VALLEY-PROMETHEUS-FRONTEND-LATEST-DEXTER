@@ -91,7 +91,7 @@ import { useViralClipJob } from '@/hooks/use-viral-clip-job'
 import { buildTimedTranscriptWords } from '@/lib/editor/modal-viral-clip-workflow'
 import { buildMotionTranscriptSegments, isLegacyMockTranscriptText } from '@/lib/editor/motion-transcript'
 import { requestConfirmedTranscription } from '@/lib/editor/request-transcription'
-import { findTranscriptSilenceCuts } from '@/lib/editor/silence-cuts'
+import { findTranscriptSilenceCuts, optimizeSilenceCutsForTargetDuration } from '@/lib/editor/silence-cuts'
 import { buildEditorialReadiness, type EditorialReadiness } from '@/lib/editor/editorial-readiness'
 import { buildEditorialCleanupRun, isAutonomousEditRequest, type EditorialCleanupRun } from '@/lib/editor/editorial-run'
 import { clearPendingEditorNavigation, getRememberedEditorReturnPath } from '@/lib/editor-navigation'
@@ -6205,6 +6205,10 @@ function OriginalEditorPage() {
     headline?: string
     referenceId?: Extract<EditorActionDraft, { kind: 'open_thumbnail_studio' }>['referenceId']
     generateNow?: boolean
+    isIterative?: boolean
+    iterationPrompt?: string
+    baseThumbnailUrl?: string
+    aspectRatio?: string
   } | null>(null)
   const thumbnailJarvisDraftSequenceRef = React.useRef(0)
   const [isMasterReviewOpen, setIsMasterReviewOpen] = React.useState(false)
@@ -7176,8 +7180,12 @@ const requestAssemblyAITranscription = React.useCallback(async (): Promise<boole
     lastTranscriptionRequestErrorRef.current = null
     setIsTranscribingVideo(true)
     try {
+      const alreadyHasTranscript = Boolean(
+        (Array.isArray(job?.artifacts?.transcript) && job.artifacts.transcript.length > 0) ||
+        (Array.isArray(motionTranscriptSegments) && motionTranscriptSegments.length > 0)
+      )
       const started = await requestConfirmedTranscription(sourceAssetId, {
-        restart: true,
+        restart: !alreadyHasTranscript,
         fetcher: fetch,
         confirm: (message) => window.confirm(message),
         newRequestId: () => crypto.randomUUID(),
@@ -8671,6 +8679,10 @@ const requestAssemblyAITranscription = React.useCallback(async (): Promise<boole
         headline: draft.headline,
         referenceId: draft.referenceId,
         generateNow: draft.generateNow,
+        isIterative: draft.isIterative,
+        iterationPrompt: draft.iterationPrompt,
+        baseThumbnailUrl: draft.baseThumbnailUrl,
+        aspectRatio: draft.aspectRatio,
       })
     }
     setIsThumbnailStudioOpen(true)
@@ -8840,8 +8852,16 @@ const requestAssemblyAITranscription = React.useCallback(async (): Promise<boole
       onCutTranscriptWord: handleVoiceCutWord,
       onCutTranscriptSegment: handleVoiceCutSegment,
       onCutTranscriptPhrase: handleVoiceCutPhrase,
-      onCutSilence: (threshold) => {
+      onCutSilence: (threshold, targetDurationSec) => {
         if (!voiceTranscriptRef.current.length) return { success: false, count: 0, totalRemovedSec: 0, ranges: [], summary: 'Transcript timestamps are unavailable. No silence cuts were applied.' }
+        if (typeof targetDurationSec === 'number' && Number.isFinite(targetDurationSec) && targetDurationSec > 0) {
+          const optimized = optimizeSilenceCutsForTargetDuration(voiceTranscriptRef.current, targetDurationSec, transportDurationSec || previewDurationSec)
+          const applied = handleApplySilenceCuts(optimized.cuts)
+          return {
+            ...applied,
+            summary: optimized.summary,
+          }
+        }
         return handleApplySilenceCuts(findTranscriptSilenceCuts(voiceTranscriptRef.current, threshold, transportDurationSec))
       },
       onRemoveFillerWords: handleVoiceRemoveFillers,
@@ -8858,6 +8878,9 @@ const requestAssemblyAITranscription = React.useCallback(async (): Promise<boole
             : project?.sourceAssetId
               ? 'unavailable'
               : 'missing',
+      videoThumbnailUrl: project?.thumbnailUrl ?? undefined,
+      activeThumbnailUrl: project?.thumbnailUrl ?? undefined,
+      activeThumbnailHeadline: project?.title ?? undefined,
       videoMusicContext: videoContext,
       captureVideoFrame: captureVoiceVideoFrame,
       getMusicCatalog: () => [...voiceMusicCatalogRef.current.values()],
@@ -8886,6 +8909,13 @@ const requestAssemblyAITranscription = React.useCallback(async (): Promise<boole
         return { trackId: music?.track.id ?? null, title: music?.track.title ?? null, volume: music?.volume ?? 0, muted: music?.muted ?? false, ducking: music?.ducking ?? false }
       },
       onRequestTranscription: async () => {
+        const hasExistingTranscript = Boolean(
+          (Array.isArray(job?.artifacts?.transcript) && job.artifacts.transcript.length > 0) ||
+          (Array.isArray(motionTranscriptSegments) && motionTranscriptSegments.length > 0)
+        )
+        if (hasExistingTranscript) {
+          return { success: true, pending: false, summary: 'The timed video transcript is already available.' }
+        }
         if (isTranscribingVideo) return { success: true, pending: true, summary: 'Video transcription is already processing.' }
         const started = await requestAssemblyAITranscription()
         return { success: started, pending: started, summary: started ? 'Video transcription started.' : lastTranscriptionRequestErrorRef.current || transcriptError || 'Video transcription could not be started.' }

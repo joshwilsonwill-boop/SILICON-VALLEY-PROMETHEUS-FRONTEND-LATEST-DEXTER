@@ -2275,7 +2275,7 @@ export function VideoUploadInterface() {
                         <InteractiveOrb size={76} intensity="vivid" />
                         <motion.h1
                             aria-label="Ready to Create Something New?"
-                            className="mx-auto flex max-w-full flex-col items-center text-[clamp(30px,4.9vw,64px)] font-extrabold leading-[0.98] tracking-[-0.025em] text-white"
+                            className="mx-auto flex max-w-full flex-nowrap items-center justify-center gap-x-[0.3em] whitespace-nowrap text-[clamp(16px,4.35vw,56px)] font-extrabold leading-[0.98] tracking-[-0.025em] text-white"
                             style={STUDIO_DISPLAY_FONT_STYLE}
                             initial={false}
                             animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}

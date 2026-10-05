@@ -36,7 +36,7 @@ assert.match(thumbnailWorkspace, /Save Project Cover/)
 
 // Master Video Review checks
 assert.match(masterReview, /MasterVideoReviewModal/)
-assert.match(masterReview, /Prometheus Master/)
+assert.match(masterReview, /Master Video Review/)
 assert.match(masterReview, /Original Source/)
 assert.match(masterReview, /Split Compare/)
 

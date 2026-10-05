@@ -225,6 +225,9 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
             videoMusicContext: bridge.videoMusicContext,
             transcriptAvailable: Boolean(bridge.transcriptText || bridge.transcriptSegments),
             music: bridge.getMusicState?.() ?? null,
+            hasThumbnail: Boolean(bridge.activeThumbnailUrl || bridge.videoThumbnailUrl),
+            thumbnailUrl: bridge.activeThumbnailUrl || bridge.videoThumbnailUrl || null,
+            activeThumbnailHeadline: bridge.activeThumbnailHeadline ?? null,
             brollInsertionAvailable: false,
           }
         }
@@ -353,6 +356,7 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
             query: typeof args.query === 'string' ? args.query : typeof args.genreOrMood === 'string' ? args.genreOrMood : undefined,
             context: handlersRef.current.videoMusicContext,
             excludeTrackId: typeof args.excludeTrackId === 'string' ? args.excludeTrackId : undefined,
+            excludeTrackIds: Array.isArray(args.excludeTrackIds) ? args.excludeTrackIds.filter((id): id is string => typeof id === 'string') : undefined,
             limit: typeof args.limit === 'number' ? args.limit : undefined,
             offset: typeof args.offset === 'number' ? args.offset : undefined,
           }, getCurrentHandlers)
@@ -378,6 +382,7 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
             musicQuery: typeof args.musicQuery === 'string' ? args.musicQuery : undefined,
             musicVolumePercent: typeof args.musicVolumePercent === 'number' ? args.musicVolumePercent : undefined,
             minDurationSec: typeof args.minDurationSec === 'number' ? args.minDurationSec : undefined,
+            targetDurationSec: typeof args.targetDurationSec === 'number' ? args.targetDurationSec : undefined,
           }
           if (editArgs.music) {
             const bridge = getCurrentHandlers()
@@ -394,17 +399,69 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
           const headline = typeof args.headline === 'string' && args.headline.trim()
             ? args.headline.trim().slice(0, 64)
             : titleHint.slice(0, 64)
+          const isIterative = Boolean(args.isIterative || args.changes)
+          const changes = typeof args.changes === 'string' && args.changes.trim()
+            ? args.changes.trim().slice(0, 500)
+            : undefined
           const creativeDirection = typeof args.creativeDirection === 'string' && args.creativeDirection.trim()
             ? args.creativeDirection.trim().slice(0, 500)
-            : `High-impact cinematic YouTube thumbnail with bold typography for "${titleHint}"`
+            : changes || `High-impact cinematic YouTube thumbnail with bold typography for "${titleHint}"`
+          const aspectRatio = typeof args.aspectRatio === 'string' && ['16:9', '9:16', '1:1', '3:2', '2:3'].includes(args.aspectRatio)
+            ? args.aspectRatio
+            : undefined
+          const baseThumbnailUrl = (isIterative || changes) ? (handlers.activeThumbnailUrl || handlers.videoThumbnailUrl || undefined) : undefined
           await onApplyActions([{
             kind: 'open_thumbnail_studio',
             headline,
             creativeDirection,
             generateNow: true,
-            summary: 'Generate a thumbnail for this video',
+            isIterative: isIterative || Boolean(changes),
+            iterationPrompt: changes || creativeDirection,
+            baseThumbnailUrl,
+            aspectRatio,
+            summary: isIterative ? `Iteratively modify thumbnail: ${changes || headline}` : 'Generate a thumbnail for this video',
           }])
-          return { success: true, generationStarted: true, headline, message: 'Thumbnail Studio opened and image generation was started in Thumbnail Studio.' }
+          return { success: true, generationStarted: true, headline, aspectRatio, isIterative: isIterative || Boolean(changes), message: `Thumbnail Studio opened and image generation was started${aspectRatio ? ` in ${aspectRatio} format` : ''} in Thumbnail Studio.` }
+        }
+
+        case 'modify_video_thumbnail': {
+          const handlers = handlersRef.current
+          if (!handlers.hasVideo && !handlers.projectId) return { success: false, error: 'There is no playable source video in this project yet.' }
+          if (!onApplyActions) return { success: false, error: 'Thumbnail Studio is not connected to this editor.' }
+          const changes = typeof args.changes === 'string' && args.changes.trim()
+            ? args.changes.trim().slice(0, 500)
+            : ''
+          if (!changes) return { success: false, error: 'Specify what you would like to change on the thumbnail.' }
+          const headline = typeof args.headline === 'string' && args.headline.trim()
+            ? args.headline.trim().slice(0, 64)
+            : undefined
+          const aspectRatio = typeof args.aspectRatio === 'string' && ['16:9', '9:16', '1:1', '3:2', '2:3'].includes(args.aspectRatio)
+            ? args.aspectRatio
+            : undefined
+          const referenceId = typeof args.referenceId === 'string' && args.referenceId.trim()
+            ? (args.referenceId.trim() as any)
+            : undefined
+          const baseThumbnailUrl = handlers.activeThumbnailUrl || handlers.videoThumbnailUrl || undefined
+          await onApplyActions([{
+            kind: 'open_thumbnail_studio',
+            headline,
+            referenceId,
+            creativeDirection: changes,
+            isIterative: true,
+            iterationPrompt: changes,
+            baseThumbnailUrl,
+            aspectRatio,
+            generateNow: true,
+            summary: `Iteratively adjust thumbnail: ${changes}`,
+          }])
+          return {
+            success: true,
+            iterativeAdjustment: true,
+            changes,
+            headline,
+            aspectRatio,
+            message: `Thumbnail Studio opened and iterative modification started for: "${changes}". Existing composition and subject are preserved.`,
+          }
         }
 
         case 'reference_video_style': {

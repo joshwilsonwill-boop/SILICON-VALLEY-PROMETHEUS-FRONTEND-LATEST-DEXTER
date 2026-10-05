@@ -20,8 +20,25 @@ export type VoiceMusicActionArgs = {
   recommendation?: boolean
   context?: unknown
   excludeTrackId?: string
+  excludeTrackIds?: string[]
   limit?: number
   offset?: number
+}
+
+const sessionRejectedTrackIds = new Set<string>()
+
+export function clearVoiceMusicRejectionHistory(): void {
+  sessionRejectedTrackIds.clear()
+}
+
+export function getVoiceMusicRejectionHistory(): string[] {
+  return Array.from(sessionRejectedTrackIds)
+}
+
+export function recordVoiceMusicRejection(trackId: string): void {
+  if (trackId && typeof trackId === 'string') {
+    sessionRejectedTrackIds.add(trackId)
+  }
 }
 export type VoiceMusicActionResult = VoiceActionResult & {
   action: string
@@ -79,7 +96,27 @@ export async function performVoiceMusicAction(
     const requestedTitle = (args.trackName || args.query || '').trim()
     if (!args.trackId && !requestedTitle && !['search', 'browse'].includes(action) && !args.recommendation) return result(false, 'Provide a song title or a music search query.')
     let handlers = getHandlers()
-    let catalog = (handlers.getMusicCatalog?.() ?? []).filter(candidate => candidate.id !== args.excludeTrackId)
+    const excludedIds = new Set<string>([
+      ...sessionRejectedTrackIds,
+      ...(args.excludeTrackId ? [args.excludeTrackId] : []),
+      ...(args.excludeTrackIds ?? []),
+    ])
+    if (args.excludeTrackId) recordVoiceMusicRejection(args.excludeTrackId)
+    if (args.excludeTrackIds) {
+      for (const id of args.excludeTrackIds) recordVoiceMusicRejection(id)
+    }
+
+    const currentActiveTrackId = handlers.getMusicState?.().trackId
+    const isExplicitUserSelection = Boolean(args.trackId || (requestedTitle && !args.recommendation))
+    const isCandidateAllowed = (candidate: VoiceMusicTrack) => {
+      if (isExplicitUserSelection) {
+        if (args.trackId && candidate.id === args.trackId) return true
+        if (requestedTitle && normalizeTitle(candidate.title) === normalizeTitle(requestedTitle)) return true
+      }
+      return !excludedIds.has(candidate.id)
+    }
+
+    let catalog = (handlers.getMusicCatalog?.() ?? []).filter(isCandidateAllowed)
     if (catalog.length === 0 && Array.isArray(MUSIC_CATALOG)) {
       catalog = (MUSIC_CATALOG as any[]).map((t) => ({
         id: t.id,
@@ -89,15 +126,15 @@ export async function performVoiceMusicAction(
         genre: t.genre,
         mood: t.mood,
         vibeTags: t.vibeTags ?? [],
-      })).filter(candidate => candidate.id !== args.excludeTrackId)
+      })).filter(isCandidateAllowed)
     }
     const matchesQuery = (candidate: VoiceMusicTrack) => normalizeTitle([candidate.title, candidate.artist, candidate.genre, candidate.mood, ...(candidate.vibeTags ?? [])].filter(Boolean).join(' ')).includes(normalizeTitle(requestedTitle))
     if (action === 'browse' || (action === 'search' && !requestedTitle)) {
       if (handlers.searchMusicTracks) {
-        try { catalog = [...catalog, ...(await handlers.searchMusicTracks(''))] }
+        try { catalog = [...catalog, ...(await handlers.searchMusicTracks('')).filter(isCandidateAllowed)] }
         catch (error) { warning = `Catalog refresh failed: ${error instanceof Error ? error.message : 'service unavailable'}. Showing cached tracks.` }
       }
-      catalog = [...new Map(catalog.filter(candidate => candidate.id !== args.excludeTrackId).map(candidate => [candidate.id, candidate])).values()]
+      catalog = [...new Map(catalog.filter(isCandidateAllowed).map(candidate => [candidate.id, candidate])).values()]
       if (!catalog.length) return { ...result(false, 'No music catalog tracks are available yet.'), results: [], total: 0 }
       const opened = await switchVoiceWorkspace('Music', getHandlers)
       if (!opened.success) return result(false, 'The editor did not confirm Music is open.')
@@ -105,14 +142,22 @@ export async function performVoiceMusicAction(
       const offset = Number.isFinite(args.offset) ? Math.max(0, Math.floor(args.offset!)) : 0
       return { ...result(true, `${catalog.length} catalog tracks are available. Showing ${Math.min(limit, Math.max(0, catalog.length - offset))} tracks in Music.`), results: catalog.slice(offset, offset + limit), total: catalog.length, tab: 'Music' }
     }
-    const findExact = () => args.trackId
-      ? catalog.find((candidate) => candidate.id === args.trackId)
-      : catalog.find((candidate) => normalizeTitle(candidate.title) === normalizeTitle(requestedTitle))
+    const findExact = () => {
+      const match = args.trackId
+        ? catalog.find((candidate) => candidate.id === args.trackId)
+        : catalog.find((candidate) => normalizeTitle(candidate.title) === normalizeTitle(requestedTitle))
+      if (match && isExplicitUserSelection) {
+        sessionRejectedTrackIds.delete(match.id)
+        excludedIds.delete(match.id)
+        return match
+      }
+      return match && !excludedIds.has(match.id) ? match : undefined
+    }
     track = findExact()
     let searched: VoiceMusicTrack[] = []
     if (handlers.searchMusicTracks && (action === 'search' || !track || args.recommendation)) {
       try {
-        searched = (await handlers.searchMusicTracks(requestedTitle || args.trackId || '', { recommendation: args.recommendation === true })).filter(candidate => candidate.id !== args.excludeTrackId)
+        searched = (await handlers.searchMusicTracks(requestedTitle || args.trackId || '', { recommendation: args.recommendation === true })).filter(isCandidateAllowed)
       } catch (error) {
         warning = `Recommendation search failed: ${error instanceof Error ? error.message : 'service unavailable'}. Using the available catalog.`
         searched = catalog.filter(matchesQuery)
@@ -120,6 +165,9 @@ export async function performVoiceMusicAction(
       }
       catalog = [...catalog, ...searched]
       track = findExact()
+    } else if (action === 'search' || !track || args.recommendation) {
+      searched = catalog.filter(matchesQuery)
+      if (args.recommendation && !args.trackName && !args.trackId && !searched.length) searched = catalog
     }
     if (args.recommendation && !args.trackName && !args.trackId && searched.length > 0) {
       // The search endpoint returns ranked, video-aware recommendations. When
@@ -150,6 +198,9 @@ export async function performVoiceMusicAction(
         return result(false, outcome?.summary || 'The editor did not confirm soundtrack staging.')
       }
       staged = true
+      if (currentActiveTrackId && currentActiveTrackId !== track.id) {
+        recordVoiceMusicRejection(currentActiveTrackId)
+      }
     }
     if (action === 'preview' || action === 'select_and_preview') {
       const outcome = await getHandlers().onPlayMusicPreview?.(track.id)

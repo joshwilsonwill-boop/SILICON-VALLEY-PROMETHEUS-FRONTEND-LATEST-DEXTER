@@ -17,6 +17,7 @@ export function parseImageDataUrl(value: string): { mimeType: string; data: stri
 export function buildNanoBananaImageRequest(input: {
   prompt: string
   frameDataUrl: string
+  baseThumbnailUrl?: string
   referenceImages?: string[]
   aspectRatio: '9:16' | '2:3' | '1:1' | '3:2' | '16:9'
   imageSize?: '1K' | '2K'
@@ -24,11 +25,22 @@ export function buildNanoBananaImageRequest(input: {
   const frame = parseImageDataUrl(input.frameDataUrl)
   if (!frame) throw new Error('A valid video frame is required to generate a thumbnail.')
 
+  const baseThumbnail = input.baseThumbnailUrl ? parseImageDataUrl(input.baseThumbnailUrl) : null
+
+  const instructionPreamble = baseThumbnail
+    ? `${input.prompt}\n\nThis is an iterative refinement of the existing thumbnail. Use the attached base thumbnail as the starting design. Preserve the overall composition, character identity, and visual atmosphere, modifying only the requested feature(s). Any following images are visual style references only.`
+    : `${input.prompt}\n\nUse the first attached image as the video subject anchor. Preserve the person's identity, expression, and recognizable features. Recompose the scene as a new, complete cinematic thumbnail; do not simply add text to the original frame. Any following images are visual style references only. Do not copy their people, logos, exact text, or layout. Render the requested headline exactly, with a clear reading order and safe margins.`
+
   const parts: Array<TextPart | ImagePart> = [
-    { text: `${input.prompt}\n\nUse the first attached image as the video subject anchor. Preserve the person's identity, expression, and recognizable features. Recompose the scene as a new, complete cinematic thumbnail; do not simply add text to the original frame. Any following images are visual style references only. Do not copy their people, logos, exact text, or layout. Render the requested headline exactly, with a clear reading order and safe margins.` },
+    { text: instructionPreamble },
     { text: 'Video frame and principal subject:' },
     { inline_data: { mime_type: frame.mimeType, data: frame.data } },
   ]
+
+  if (baseThumbnail) {
+    parts.push({ text: 'Current base thumbnail being iteratively refined:' })
+    parts.push({ inline_data: { mime_type: baseThumbnail.mimeType, data: baseThumbnail.data } })
+  }
 
   input.referenceImages?.slice(0, 4).forEach((value, index) => {
     const reference = parseImageDataUrl(value)

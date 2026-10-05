@@ -27,7 +27,7 @@ export type EditorActionDraft =
   | { kind: 'soundtrack_control'; command: SoundtrackCommand; volume?: number; enabled?: boolean; summary: string }
   | { kind: 'set_fit_mode'; mode: EditorFitMode; summary: string }
   | { kind: 'switch_tab'; tab: EditorWorkspaceTab; summary: string }
-  | { kind: 'open_thumbnail_studio'; creativeDirection?: string; headline?: string; referenceId?: StudioReferenceId; generateNow?: boolean; summary: string }
+  | { kind: 'open_thumbnail_studio'; creativeDirection?: string; headline?: string; referenceId?: StudioReferenceId; generateNow?: boolean; isIterative?: boolean; iterationPrompt?: string; baseThumbnailUrl?: string; aspectRatio?: string; summary: string }
   | { kind: 'open_master_review'; summary: string }
   | { kind: 'set_playback_rate'; rate: number; summary: string }
   | { kind: 'step_frames'; frames: number; summary: string }
@@ -165,6 +165,13 @@ export function parseEditorActionDraft(input: unknown): EditorActionDraft | null
           ? { referenceId: record.referenceId as StudioReferenceId }
           : {}),
         ...(typeof record.generateNow === 'boolean' ? { generateNow: record.generateNow } : {}),
+        ...(typeof record.isIterative === 'boolean' ? { isIterative: record.isIterative } : {}),
+        ...(typeof (record.iterationPrompt ?? record.changes) === 'string'
+          ? { iterationPrompt: String(record.iterationPrompt ?? record.changes).replace(/\s+/g, ' ').trim().slice(0, 500) }
+          : {}),
+        ...(typeof record.baseThumbnailUrl === 'string' && record.baseThumbnailUrl.startsWith('data:image/')
+          ? { baseThumbnailUrl: record.baseThumbnailUrl }
+          : {}),
         summary: cleanSummary(record.summary, 'Open Thumbnail Studio'),
       }
     case 'open_master_review':

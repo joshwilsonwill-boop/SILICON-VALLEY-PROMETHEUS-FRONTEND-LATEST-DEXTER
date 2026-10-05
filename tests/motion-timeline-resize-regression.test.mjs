@@ -14,3 +14,5 @@ assert.match(workspace, /TIMELINE_COLLAPSE_THRESHOLD/)
 assert.match(workspace, /event\.key === 'ArrowUp'/)
 assert.match(workspace, /event\.key === 'Enter'/)
 assert.match(workspace, /style=\{\{ height: timelineHeight \}\}/)
+
+console.log('motion timeline resize regression passed')
