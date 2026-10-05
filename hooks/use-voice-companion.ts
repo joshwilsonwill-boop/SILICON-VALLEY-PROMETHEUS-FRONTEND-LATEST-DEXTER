@@ -231,12 +231,39 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
 
         case 'inspect_video': {
           const inspectingClient = clientRef.current
-          autonomousCoordinator.setPillMode('waiting', 'Inspecting source video')
+          const { timestamps, timeSec, startSec, endSec, frameCount, intent, keepPosition } =
+            (args ?? {}) as {
+              timestamps?: number[]
+              timeSec?: number
+              startSec?: number
+              endSec?: number
+              frameCount?: number
+              intent?: string
+              keepPosition?: boolean
+            }
+          const initialLabel = intent
+            ? `Jarvis: ${intent}`
+            : typeof timeSec === 'number'
+              ? `Jarvis: Inspecting at ${timeSec.toFixed(1)}s`
+              : 'Jarvis: Inspecting source video'
+          autonomousCoordinator.setPillMode('waiting', initialLabel)
           try {
             const result = await inspectVoiceVideo(
               () => handlersRef.current,
               (frame) => inspectingClient?.sendVisualFrame(frame),
-              { isSessionActive: () => clientRef.current === inspectingClient && (inspectingClient?.isConnected() ?? false) },
+              {
+                isSessionActive: () => clientRef.current === inspectingClient && (inspectingClient?.isConnected() ?? false),
+                timestamps: Array.isArray(timestamps) ? timestamps.map(Number).filter(Number.isFinite) : undefined,
+                timeSec: typeof timeSec === 'number' && Number.isFinite(timeSec) ? timeSec : undefined,
+                startSec: typeof startSec === 'number' && Number.isFinite(startSec) ? startSec : undefined,
+                endSec: typeof endSec === 'number' && Number.isFinite(endSec) ? endSec : undefined,
+                frameCount: typeof frameCount === 'number' ? frameCount : undefined,
+                intent: typeof intent === 'string' && intent.trim() ? intent.trim() : undefined,
+                keepPosition: typeof keepPosition === 'boolean' ? keepPosition : undefined,
+                onProgress: (stepInfo) => {
+                  autonomousCoordinator.setPillMode('waiting', `Jarvis: ${stepInfo.label}`)
+                },
+              },
             )
             const inspectedBridge = handlersRef.current
             if (result.success && inspectedBridge.hasVideo && inspectedBridge.sourceAssetId) {

@@ -5,8 +5,8 @@
 
 :root {
   --font-primary: var(--font-inter);
-  --font-display: var(--font-playfair-display);
-  --font-subtext: var(--font-inter);
+  --font-display: var(--font-elegist);
+  --font-subtext: var(--font-black-delights);
   --theme-background: #0A0A0F;
   --theme-foreground: #E8E8ED;
   --theme-accent: #38BDF8;
@@ -129,22 +129,9 @@ body {
   margin: 0;
 }
 
-/* Keep the Motion workspace responsive to the editorial timeline. */
-[data-motion-chamber] > section[aria-label='Video timeline'] {
-  min-height: 14.5rem;
-  height: 16rem;
-}
-
 [data-motion-chamber] > section[aria-label='Video timeline'] > div:first-child {
   height: 2.75rem;
   padding-inline: 1rem;
-}
-
-@media (min-width: 640px) {
-  [data-motion-chamber] > section[aria-label='Video timeline'] {
-    min-height: 15rem;
-    height: 16rem;
-  }
 }
 
 /* Shared luxury motion language. Components opt in through the existing glass
@@ -242,6 +229,14 @@ body {
 }
 
 @layer utilities {
+  .font-elegist {
+    font-family: var(--font-elegist);
+  }
+
+  .font-vogue {
+    font-family: var(--font-vogue-display), var(--font-primary), sans-serif;
+  }
+
   .font-display {
     font-family: var(--font-playfair-display);
   }
@@ -1991,10 +1986,7 @@ html[data-prometheus-reduce-motion='true'] *::after {
   }
 }
 
-/* Shared typography, controls, and keyboard navigation. */
-h1, h2, h3, h4, .font-heading, .font-display {
-  font-family: var(--font-playfair-display), Georgia, serif;
-}
+/* Shared keyboard navigation. Heading faces remain component-specific. */
 :focus-visible {
   outline: 2px solid var(--theme-accent);
   outline-offset: 4px;

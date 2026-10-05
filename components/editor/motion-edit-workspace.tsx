@@ -1136,7 +1136,7 @@ export function MotionEditWorkspace({
       {audioError ? <p role="status" className="shrink-0 border-t border-amber-200/15 bg-[#15130d] px-4 py-1 text-[10px] text-amber-100">{audioError}</p> : null}
       {showTimeline ? (
         <section
-          className="relative flex shrink-0 flex-col border-t border-white/10 bg-[#070809]/95"
+          className="absolute inset-x-0 bottom-0 z-20 flex min-h-0 flex-col border-t border-white/10 bg-[#070809]/95"
           style={{ height: timelineHeight }}
           aria-label="Video timeline"
         >
@@ -1207,7 +1207,7 @@ export function MotionEditWorkspace({
           </div>
         </section>
       ) : (
-        <div className="relative h-10 shrink-0 border-t border-white/10 bg-[#070809]">
+        <div className="absolute inset-x-0 bottom-0 z-20 h-10 border-t border-white/10 bg-[#070809]">
           {timelineResizeHandle}
           <button
             type="button"

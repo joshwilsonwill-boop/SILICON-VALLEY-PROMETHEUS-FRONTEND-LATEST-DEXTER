@@ -47,7 +47,10 @@ export function MasterVideoReviewModal({
   const renderedVideoRef = React.useRef<HTMLVideoElement | null>(null)
   const originalVideoRef = React.useRef<HTMLVideoElement | null>(null)
 
-  const effectiveRenderedUrl = renderedVideoUrl || originalVideoUrl
+  const effectiveRenderedUrl = renderedVideoUrl ?? null
+  React.useEffect(() => {
+    if (!renderedVideoUrl && activeView !== 'original') setActiveView('original')
+  }, [activeView, renderedVideoUrl])
 
   // Synchronized playback controls
   const togglePlayPause = () => {
@@ -100,10 +103,10 @@ export function MasterVideoReviewModal({
                 <div className="flex items-center gap-2">
                   <h2 className="text-base font-medium tracking-tight text-white/90">Master Video Review</h2>
                   <span className="rounded-full bg-[#7ff2d4]/15 px-2 py-0.5 text-[10px] font-semibold text-[#7ff2d4]">
-                    Preview only
+                    {renderedVideoUrl ? 'MP4 ready' : 'Awaiting render'}
                   </span>
                 </div>
-                <p className="text-xs text-white/40">{projectTitle} — review the current preview; no edited render is confirmed</p>
+                <p className="text-xs text-white/40">{projectTitle} — {renderedVideoUrl ? 'review the finished cut beside its source' : 'start a render to review the finished MP4'}</p>
               </div>
             </div>
 
@@ -113,12 +116,13 @@ export function MasterVideoReviewModal({
                 <button
                   type="button"
                   onClick={() => setActiveView('rendered')}
+                  disabled={!renderedVideoUrl}
                   className={cn(
                     'rounded-full px-3 py-1 transition-all',
                     activeView === 'rendered' ? 'bg-[#7ff2d4] text-black font-semibold' : 'hover:text-white',
                   )}
                 >
-                  Current Preview
+                  Finished MP4
                 </button>
                 {originalVideoUrl ? (
                   <>
@@ -132,7 +136,7 @@ export function MasterVideoReviewModal({
                     >
                       Original Source
                     </button>
-                    <button
+                    {renderedVideoUrl ? <button
                       type="button"
                       onClick={() => setActiveView('split')}
                       className={cn(
@@ -141,7 +145,7 @@ export function MasterVideoReviewModal({
                       )}
                     >
                       Split Compare
-                    </button>
+                    </button> : null}
                   </>
                 ) : null}
               </div>
@@ -160,7 +164,7 @@ export function MasterVideoReviewModal({
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-black p-6 lg:flex-row lg:gap-6">
             {/* Player Container */}
             <div className="relative flex flex-1 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-black/80">
-              {activeView === 'split' && originalVideoUrl ? (
+              {activeView === 'split' && originalVideoUrl && renderedVideoUrl ? (
                 <div className="grid size-full grid-cols-2 gap-2 p-2">
                   <div className="relative flex flex-col items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-black">
                     <span className="absolute left-3 top-3 z-10 rounded bg-black/75 px-2 py-0.5 text-[10px] uppercase tracking-wider text-white/60">
@@ -176,7 +180,7 @@ export function MasterVideoReviewModal({
                   </div>
                   <div className="relative flex flex-col items-center justify-center overflow-hidden rounded-xl border border-[#7ff2d4]/30 bg-black">
                     <span className="absolute left-3 top-3 z-10 rounded bg-[#7ff2d4] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-black">
-                      Current Preview
+                      Finished MP4
                     </span>
                     <video
                       ref={renderedVideoRef}
@@ -189,15 +193,15 @@ export function MasterVideoReviewModal({
               ) : (
                 <div className="relative flex size-full items-center justify-center p-2">
                   <span className="absolute left-4 top-4 z-10 rounded-full border border-white/15 bg-black/80 px-3 py-1 text-xs text-white/80 backdrop-blur-md">
-                    {activeView === 'rendered' ? (renderedVideoUrl ? 'Current Preview' : 'Source Preview') : 'Raw Unedited Source'}
+                    {activeView === 'rendered' ? 'Finished MP4' : 'Raw Unedited Source'}
                   </span>
-                  <video
+                  {(activeView === 'rendered' ? effectiveRenderedUrl : originalVideoUrl) ? <video
                     ref={renderedVideoRef}
                     src={activeView === 'rendered' ? effectiveRenderedUrl || undefined : originalVideoUrl || undefined}
                     controls
                     playsInline
                     className="max-h-full max-w-full rounded-xl object-contain shadow-2xl"
-                  />
+                  /> : <p className="max-w-xs text-center text-sm leading-6 text-white/45">The finished MP4 will appear here after the render completes.</p>}
                 </div>
               )}
             </div>
@@ -251,15 +255,17 @@ export function MasterVideoReviewModal({
                 <button
                   type="button"
                   onClick={handleDownload}
+                  disabled={!effectiveRenderedUrl}
                   className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/[0.05] px-4 py-3 text-xs font-semibold text-white transition-all hover:bg-white/[0.1]"
                 >
                   <Download className="size-4" />
-                  Download Current File
+                  Download Finished MP4
                 </button>
 
                 <button
                   type="button"
                   onClick={onPublishSocial}
+                  disabled={!effectiveRenderedUrl}
                   className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#7ff2d4] px-4 py-3 text-xs font-semibold text-black transition-all hover:bg-[#9ff6e3]"
                 >
                   <Share2 className="size-4" />

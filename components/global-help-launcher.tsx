@@ -40,7 +40,7 @@ export function GlobalHelpLauncher() {
   if (/^\/(?:login|signup|verify|forgot-password|reset-password)(?:\/|$)/.test(pathname) || pathname.startsWith('/editor/')) return null
 
   return (
-    <div className="fixed bottom-[calc(env(safe-area-inset-bottom)+1rem)] right-4 z-[90] sm:right-5">
+    <div className="fixed bottom-[calc(env(safe-area-inset-bottom)+1rem)] right-4 z-[90] font-sans sm:bottom-5 sm:right-5">
       {visible ? (
         <div ref={panelRef} id="prometheus-help-panel" role="dialog" aria-modal="false" aria-label="Prometheus help" className="mb-3 w-[min(23rem,calc(100vw-2rem))] rounded-lg border border-white/15 bg-[var(--theme-background)] p-3 shadow-2xl">
           <div className="flex items-center justify-between px-1 pb-3">
@@ -61,8 +61,8 @@ export function GlobalHelpLauncher() {
           {isPending ? <p role="status" className="mt-3 text-sm text-[var(--theme-accent)]">Opening {pendingLabel}?</p> : null}
         </div>
       ) : null}
-      <button ref={launcherRef} type="button" onClick={() => { setOpenedPath(pathname); setIsOpen(!visible) }} aria-expanded={visible} aria-controls="prometheus-help-panel" aria-label={visible ? 'Close Prometheus help' : 'Open Prometheus help'} className="grid size-12 place-items-center rounded-lg bg-[var(--theme-accent)] text-black shadow-xl">
-        {visible ? <X className="size-5" /> : <HelpCircle className="size-5" />}
+      <button ref={launcherRef} type="button" onClick={() => { setOpenedPath(pathname); setIsOpen(!visible) }} aria-expanded={visible} aria-controls="prometheus-help-panel" aria-label={visible ? 'Close Prometheus help' : 'Open Prometheus help'} className="grid size-12 place-items-center rounded-full border border-white/25 bg-white text-black shadow-[0_12px_34px_-12px_rgba(0,0,0,0.9)] transition-transform hover:scale-[1.04] active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black">
+        {visible ? <X className="size-5" strokeWidth={1.8} /> : <HelpCircle className="size-5" strokeWidth={1.8} />}
       </button>
     </div>
   )

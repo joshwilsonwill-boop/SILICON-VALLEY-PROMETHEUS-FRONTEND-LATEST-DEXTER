@@ -54,7 +54,7 @@ import { cn } from '@/lib/utils'
 const SAVE_DELAY_MS = 800
 
 const THEME_IDS = ['obsidian', 'midnight', 'ember', 'forest', 'aurora', 'glacier', 'rose-gold', 'solar'] as const
-const FONT_IDS = ['inter', 'jetbrains-mono', 'playfair-display'] as const
+const FONT_IDS = ['inter', 'sf-pro-display', 'geist', 'jetbrains-mono', 'playfair-display', 'space-grotesk'] as const
 
 const themeSchema = z.enum(THEME_IDS)
 const fontSchema = z.enum(FONT_IDS)
@@ -130,7 +130,7 @@ const DEFAULT_VALUES: ProfileSettingsFormValues = {
   location: '',
   theme: 'obsidian',
   fontPreference: 'inter',
-  accent: 'cyan',
+  accent: 'indigo',
   density: 'comfortable',
   sidebar: 'left',
   notificationPreferences: DEFAULT_NOTIFICATION_PREFERENCES,
@@ -179,9 +179,9 @@ const ACCENT_OPTIONS: Array<{
   className: string
   hex: string
 }> = [
-  { value: 'indigo', label: 'Indigo', className: 'bg-[#38BDF8]', hex: '#38BDF8' },
+  { value: 'indigo', label: 'Indigo', className: 'bg-[#6366f1]', hex: '#6366f1' },
   { value: 'violet', label: 'Violet', className: 'bg-violet-500', hex: '#8b5cf6' },
-  { value: 'cyan', label: 'Cyan', className: 'bg-cyan-400', hex: '#38BDF8' },
+  { value: 'cyan', label: 'Cyan', className: 'bg-cyan-400', hex: '#22d3ee' },
   { value: 'emerald', label: 'Emerald', className: 'bg-emerald-400', hex: '#34d399' },
   { value: 'amber', label: 'Amber', className: 'bg-amber-400', hex: '#fbbf24' },
   { value: 'rose', label: 'Rose', className: 'bg-rose-400', hex: '#fb7185' },

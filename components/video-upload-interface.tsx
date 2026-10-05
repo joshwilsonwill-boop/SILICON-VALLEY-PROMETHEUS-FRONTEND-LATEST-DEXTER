@@ -2267,7 +2267,7 @@ export function VideoUploadInterface() {
                     transition={{ duration: 0.6, ease: "easeOut" }}
                 >
                     <motion.div
-                        className="flex flex-col items-center gap-4 pt-2 text-center"
+                        className="flex flex-col items-center gap-5 pt-2 text-center"
                         initial={false}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.12, duration: 0.45 }}
@@ -2275,22 +2275,27 @@ export function VideoUploadInterface() {
                         <InteractiveOrb size={76} intensity="vivid" />
                         <motion.h1
                             aria-label="Ready to Create Something New?"
-                            className="flex flex-wrap items-center justify-center gap-x-2 gap-y-2 text-[35px] font-extrabold leading-[1.06] tracking-normal text-white sm:gap-y-0 sm:text-[48px] sm:leading-[0.94] md:flex-nowrap lg:text-[59px]"
+                            className="mx-auto flex max-w-full flex-col items-center text-[clamp(30px,4.9vw,64px)] font-extrabold leading-[0.98] tracking-[-0.025em] text-white"
                             style={STUDIO_DISPLAY_FONT_STYLE}
                             initial={false}
                             animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
                             transition={{ delay: 0.08, duration: 0.58, ease: [0.22, 1, 0.36, 1] }}
                         >
-                            <span className="w-full md:w-auto">Ready to Create Something</span>
-                            <GooeyText
-                                texts={["Novel", "Fresh", "Grand", "Vivid", "Crisp"]}
-                                morphTime={0.95}
-                                cooldownTime={0.65}
-                                className="hidden h-[0.95em] w-[5.5ch] shrink-0 md:inline-flex"
-                                textClassName="left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-[1em] font-extrabold leading-none text-white"
-                            />
-                            <span className="md:hidden">New</span>
-                            <span>?</span>
+                            <span>Ready to Create</span>
+                            <span className="inline-flex max-w-full items-center justify-center gap-x-[0.15em]">
+                                <span>Something</span>
+                                <span className="hidden sm:inline-flex">
+                                    <GooeyText
+                                        texts={["Novel", "Fresh", "Grand", "Vivid", "Crisp"]}
+                                        morphTime={0.95}
+                                        cooldownTime={0.65}
+                                        className="h-[0.95em] w-[5.5ch] shrink-0"
+                                        textClassName="left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-[1em] font-extrabold leading-none text-white"
+                                    />
+                                </span>
+                                <span className="sm:hidden">New</span>
+                                <span>?</span>
+                            </span>
                         </motion.h1>
                         <p className="max-w-xl text-[15px] leading-7 text-white/58">
                             Upload a source, choose a visual lane, and send the next edit into motion.

@@ -16,7 +16,7 @@ export function RootLayoutFrame({ children }: { children: ReactNode }) {
 
   return (
     <div className="prometheus-motion-root flex min-h-screen flex-col">
-      {isPublic ? <LandingHeader /> : null}
+      {isPublic && pathname !== '/' ? <LandingHeader /> : null}
       <div className="flex-1">
         {isPublic ? children : <WorkspaceFrame>{children}</WorkspaceFrame>}
       </div>

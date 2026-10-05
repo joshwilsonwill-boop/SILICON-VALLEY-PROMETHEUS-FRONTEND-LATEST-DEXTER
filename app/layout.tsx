@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { headers } from 'next/headers'
-import { Inter, JetBrains_Mono, Playfair_Display } from 'next/font/google'
+import { Geist, Inter, JetBrains_Mono, Playfair_Display, Space_Grotesk } from 'next/font/google'
+import localFont from 'next/font/local'
 import { RootClientEffects } from '@/components/root-client-effects'
 import { AuthProvider } from '@/components/auth/auth-provider'
 import { RootLayoutFrame } from '@/components/root-layout-frame'
@@ -33,6 +34,30 @@ const playfairDisplay = Playfair_Display({
   preload: false,
 })
 
+const geist = Geist({ subsets: ['latin'], display: 'swap', variable: '--font-geist', preload: false })
+const spaceGrotesk = Space_Grotesk({ subsets: ['latin'], display: 'swap', variable: '--font-space-grotesk', preload: false })
+const vogueDisplay = localFont({ src: '../Vogue.ttf', variable: '--font-vogue-display', display: 'swap', preload: false })
+const blackDelights = localFont({ src: '../black_delights/Black Delights.ttf', variable: '--font-black-delights', display: 'swap', preload: false })
+const migraDisplay = localFont({
+  src: [
+    { path: '../public/fonts/migra/Migra-Extralight.woff2', weight: '200', style: 'normal' },
+    { path: '../public/fonts/migra/Migra-Extrabold.woff2', weight: '800', style: 'normal' },
+    { path: '../public/fonts/migra/MigraItalic-ExtraboldItalic.woff2', weight: '800', style: 'italic' },
+  ],
+  variable: '--font-migra',
+  display: 'swap',
+  preload: false,
+})
+const elegistDisplay = localFont({
+  src: '../elegist/Elegist.otf',
+  variable: '--font-elegist',
+  display: 'block',
+  preload: true,
+  adjustFontFallback: false,
+  fallback: [],
+})
+const ztOtezItalic = localFont({ src: '../zt_otez/ZTOtez-Italic.ttf', variable: '--font-zt-otez', display: 'swap', preload: false })
+
 export const metadata: Metadata = {
   metadataBase: new URL('https://prometheusstudio.tech'),
   title: 'Prometheus Studio ? Record once. Publish fast.',
@@ -62,7 +87,7 @@ export default async function RootLayout({
 
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
-      <body className={`${inter.variable} ${jetbrainsMono.variable} ${playfairDisplay.variable} bg-background font-sans text-foreground antialiased`}>
+      <body className={`${inter.variable} ${jetbrainsMono.variable} ${playfairDisplay.variable} ${geist.variable} ${spaceGrotesk.variable} ${vogueDisplay.variable} ${blackDelights.variable} ${migraDisplay.variable} ${elegistDisplay.variable} ${ztOtezItalic.variable} bg-background font-sans text-foreground antialiased`}>
         <CookieConsentProvider>
           <LoadingProvider>
             <AuthProvider>

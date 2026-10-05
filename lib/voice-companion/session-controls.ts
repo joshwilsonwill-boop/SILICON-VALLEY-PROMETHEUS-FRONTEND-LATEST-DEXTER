@@ -51,11 +51,24 @@ export async function switchVoiceWorkspace(
   }
 }
 
-/** Sample decoded frames without driving a decorative cursor across the timeline. */
+export interface InspectVoiceVideoOptions {
+  isSessionActive?: () => boolean
+  frameTimeoutMs?: number
+  timestamps?: number[]
+  timeSec?: number
+  startSec?: number
+  endSec?: number
+  frameCount?: number
+  intent?: string
+  keepPosition?: boolean
+  onProgress?: (step: { timeSec: number; fraction: number; index: number; total: number; label: string }) => void
+}
+
+/** Sample decoded frames with intentional beat/section targeting without driving a decorative cursor across the timeline. */
 export async function inspectVoiceVideo(
   getHandlers: GetHandlers,
   sendFrame: (base64Jpeg: string) => void,
-  options: { isSessionActive?: () => boolean; frameTimeoutMs?: number } = {},
+  options: InspectVoiceVideoOptions = {},
 ): Promise<Record<string, unknown>> {
   const initial = getHandlers()
   if (!initial.hasVideo) return { success: false, error: 'There is no playable source video to inspect.' }
@@ -87,10 +100,62 @@ export async function inspectVoiceVideo(
       const switched = await switchVoiceWorkspace('Editor', getHandlers)
       if (!switched.success) return switched
     }
-    for (const fraction of [0.08, 0.28, 0.5, 0.72, 0.92]) {
+
+    // Resolve intentional targets: specific timestamps, range, single timestamp, or default beats
+    let targetTimes: number[] = []
+    if (Array.isArray(options.timestamps) && options.timestamps.length > 0) {
+      targetTimes = Array.from(
+        new Set(
+          options.timestamps
+            .filter((t): t is number => typeof t === 'number' && Number.isFinite(t))
+            .map((t) => Number(Math.max(0, Math.min(durationSec, t)).toFixed(1)))
+        )
+      )
+    } else if (typeof options.timeSec === 'number' && Number.isFinite(options.timeSec)) {
+      targetTimes = [Number(Math.max(0, Math.min(durationSec, options.timeSec)).toFixed(1))]
+    } else if (
+      typeof options.startSec === 'number' &&
+      typeof options.endSec === 'number' &&
+      Number.isFinite(options.startSec) &&
+      Number.isFinite(options.endSec)
+    ) {
+      const count = Math.max(1, Math.min(5, options.frameCount ?? 3))
+      const start = Math.max(0, Math.min(durationSec, options.startSec))
+      const end = Math.max(0, Math.min(durationSec, options.endSec))
+      if (count === 1) {
+        targetTimes = [Number(((start + end) / 2).toFixed(1))]
+      } else {
+        targetTimes = []
+        for (let i = 0; i < count; i++) {
+          targetTimes.push(Number((start + (i / (count - 1)) * (end - start)).toFixed(1)))
+        }
+      }
+    } else if (typeof options.startSec === 'number' && Number.isFinite(options.startSec)) {
+      targetTimes = [Number(Math.max(0, Math.min(durationSec, options.startSec)).toFixed(1))]
+    } else {
+      // Default to 5 well-distributed fractions across the video duration
+      targetTimes = [0.08, 0.28, 0.5, 0.72, 0.92].map((f) => Number((durationSec * f).toFixed(1)))
+    }
+
+    for (let index = 0; index < targetTimes.length; index++) {
       if (!isActive()) return { success: false, error: 'Video inspection was cancelled because the voice session or source changed.' }
-      const timeSec = Math.max(0, Math.min(durationSec, durationSec * fraction))
+      const timeSec = targetTimes[index]
       movedPlayhead = true
+
+      const label = targetTimes.length === 1
+        ? (options.intent ? `${options.intent} (${timeSec.toFixed(1)}s)` : `Inspecting part at ${timeSec.toFixed(1)}s`)
+        : options.intent
+          ? `${options.intent} [${index + 1}/${targetTimes.length}] (${timeSec.toFixed(1)}s)`
+          : `Inspecting part ${index + 1}/${targetTimes.length} (${timeSec.toFixed(1)}s)`
+
+      options.onProgress?.({
+        timeSec,
+        fraction: durationSec > 0 ? timeSec / durationSec : 0,
+        index,
+        total: targetTimes.length,
+        label,
+      })
+
       await seek(timeSec)
       const deadline = Date.now() + (options.frameTimeoutMs ?? 2000)
       let frameBase64: string | undefined
@@ -112,7 +177,7 @@ export async function inspectVoiceVideo(
   } finally {
     // Restore only this source, never navigate a new project/session backwards.
     if (isActive()) {
-      if (movedPlayhead && typeof originalTimeSec === 'number') {
+      if (movedPlayhead && typeof originalTimeSec === 'number' && !options.keepPosition) {
         try { await seek(originalTimeSec) } catch { restorationErrors.push('The original playhead position could not be restored.') }
       }
       if (movedWorkspace && originalTab) {

@@ -8,7 +8,7 @@ export type ThemeId =
   | 'rose-gold'
   | 'solar'
 
-export type FontId = 'inter' | 'jetbrains-mono' | 'playfair-display'
+export type FontId = 'inter' | 'sf-pro-display' | 'geist' | 'jetbrains-mono' | 'playfair-display' | 'space-grotesk'
 
 export type ThemePreset = {
   id: ThemeId
@@ -46,7 +46,7 @@ export const THEME_PRESETS: ThemePreset[] = [
     name: 'Midnight',
     background: '#0F172A',
     foreground: '#F1F5F9',
-    accent: '#38BDF8',
+    accent: '#818CF8',
     surface: '#18213B',
     elevated: '#1E2940',
     border: 'rgba(129, 140, 248, 0.14)',
@@ -56,7 +56,7 @@ export const THEME_PRESETS: ThemePreset[] = [
     name: 'Ember',
     background: '#1A0F0F',
     foreground: '#FDE8E8',
-    accent: '#38BDF8',
+    accent: '#F97316',
     surface: '#271414',
     elevated: '#361A1A',
     border: 'rgba(249, 115, 22, 0.14)',
@@ -66,7 +66,7 @@ export const THEME_PRESETS: ThemePreset[] = [
     name: 'Forest',
     background: '#0F1A0F',
     foreground: '#E8FDE8',
-    accent: '#38BDF8',
+    accent: '#22C55E',
     surface: '#172617',
     elevated: '#203120',
     border: 'rgba(34, 197, 94, 0.14)',
@@ -76,7 +76,7 @@ export const THEME_PRESETS: ThemePreset[] = [
     name: 'Aurora',
     background: '#0F0A1A',
     foreground: '#F0E8FD',
-    accent: '#38BDF8',
+    accent: '#A855F7',
     surface: '#1B1329',
     elevated: '#241936',
     border: 'rgba(168, 85, 247, 0.14)',
@@ -86,7 +86,7 @@ export const THEME_PRESETS: ThemePreset[] = [
     name: 'Glacier',
     background: '#0A1A1F',
     foreground: '#E8F4FD',
-    accent: '#38BDF8',
+    accent: '#06B6D4',
     surface: '#13242A',
     elevated: '#1A3138',
     border: 'rgba(6, 182, 212, 0.14)',
@@ -96,7 +96,7 @@ export const THEME_PRESETS: ThemePreset[] = [
     name: 'Rose Gold',
     background: '#1A0F14',
     foreground: '#FDE8F0',
-    accent: '#38BDF8',
+    accent: '#FB7185',
     surface: '#28141C',
     elevated: '#371B24',
     border: 'rgba(251, 113, 133, 0.14)',
@@ -106,7 +106,7 @@ export const THEME_PRESETS: ThemePreset[] = [
     name: 'Solar',
     background: '#1A1A0A',
     foreground: '#FDFDE8',
-    accent: '#38BDF8',
+    accent: '#EAB308',
     surface: '#282814',
     elevated: '#36361A',
     border: 'rgba(234, 179, 8, 0.14)',
@@ -120,6 +120,16 @@ export const FONT_PRESETS: FontPreset[] = [
     stack: 'var(--font-inter), Inter, system-ui, sans-serif',
   },
   {
+    id: 'sf-pro-display',
+    name: 'SF Pro Display',
+    stack: '"SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+  },
+  {
+    id: 'geist',
+    name: 'Geist',
+    stack: 'var(--font-geist), Geist, system-ui, sans-serif',
+  },
+  {
     id: 'jetbrains-mono',
     name: 'JetBrains Mono',
     stack: 'var(--font-jetbrains-mono), "JetBrains Mono", monospace',
@@ -128,6 +138,11 @@ export const FONT_PRESETS: FontPreset[] = [
     id: 'playfair-display',
     name: 'Playfair Display',
     stack: 'var(--font-playfair-display), "Playfair Display", Georgia, serif',
+  },
+  {
+    id: 'space-grotesk',
+    name: 'Space Grotesk',
+    stack: 'var(--font-space-grotesk), "Space Grotesk", system-ui, sans-serif',
   },
 ]
 
@@ -169,7 +184,7 @@ export function fontCssVariables(fontId: string | null | undefined) {
 
   return {
     '--font-primary': preset.stack,
-    '--font-display': 'var(--font-playfair-display), Georgia, serif',
+    '--font-display': preset.stack,
   } as const
 }
 

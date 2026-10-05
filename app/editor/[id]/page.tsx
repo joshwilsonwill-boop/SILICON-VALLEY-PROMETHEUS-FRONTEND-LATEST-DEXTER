@@ -59,6 +59,8 @@ import { LuxuryVignette } from '@/components/editor/luxury-vignette'
 import { EditorNewProjectUploadDialog } from '@/components/editor/editor-new-project-upload-dialog'
 import { ThumbnailStudioModal } from '@/components/editor/ThumbnailStudioModal'
 import { MasterVideoReviewModal } from '@/components/editor/MasterVideoReviewModal'
+import { EditorialDeliveryStudio } from '@/components/editor/editorial-delivery-studio'
+import { isPlayableRender, renderPreviewPath } from '@/lib/editor/render-delivery'
 import { EditorHeader } from '@/components/editor/EditorHeader'
 import { PreviewCanvas } from '@/components/editor/PreviewCanvas'
 import { TimelinePanel } from '@/components/editor/TimelinePanel'
@@ -5799,6 +5801,7 @@ type MobileEditorViewProps = {
   clipRelayState: ClipRelayState | null
   automationRequest: ComposerAutomationRequest | null
   workspaceTab: HeaderNavMode
+  deliveryOpenToken: number
   onBack: () => void
   onOpenUploadNewProject: () => void
   onTogglePlayback: () => void
@@ -5856,6 +5859,7 @@ function MobileEditorView({
   clipRelayState,
   automationRequest,
   workspaceTab,
+  deliveryOpenToken,
   onBack,
   onTogglePlayback,
   onSeekPreview,
@@ -5889,13 +5893,12 @@ function MobileEditorView({
     if (workspaceTab === 'Music') setActiveTab('music')
     else if (workspaceTab === 'Motion' || workspaceTab === 'Editor') setActiveTab('motion')
   }, [workspaceTab])
+  React.useEffect(() => {
+    if (deliveryOpenToken > 0) setActiveTab('export')
+  }, [deliveryOpenToken])
   const [chatComposerPortal, setChatComposerPortal] = React.useState<HTMLDivElement | null>(null)
-  const [exportQuality, setExportQuality] = React.useState<MobileExportQuality>('standard')
-  const [exportFormat, setExportFormat] = React.useState<MobileExportFormat>('mp4')
   const activeJobStep = getActiveJobStep(job)
   const isJobRunning = job?.status === 'running'
-  const exportDate = formatMobileDate(latestExport?.completedAt ?? latestExport?.updatedAt ?? latestExport?.createdAt)
-  const exportSize = formatMobileBytes(latestExport?.fileSizeBytes)
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -5981,109 +5984,14 @@ function MobileEditorView({
         )
       case 'versions':
         return (
-          <div className="h-full overflow-y-auto rounded-[24px] border border-white/8 bg-[#101116] p-3">
-            {latestExport ? (
-              <div className="flex min-h-[96px] gap-3 rounded-[20px] border border-white/10 bg-white/[0.035] p-3">
-                <div
-                  className="h-20 w-28 shrink-0 rounded-[14px] border border-white/10 bg-black bg-cover bg-center"
-                  style={previewUrl ? { backgroundImage: `url(${previewUrl})` } : undefined}
-                  aria-hidden
-                />
-                <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm font-medium text-white">{latestExport.preset || 'Latest export'}</div>
-                  <div className="mt-1 text-xs text-white/48">{exportDate}</div>
-                  <div className="mt-1 text-xs text-white/48">{exportSize}</div>
-                  <Button
-                    type="button"
-                    size="sm"
-                    className="mt-3 w-full"
-                    disabled={latestExport.status !== 'completed' || isDownloading}
-                    onClick={onDownloadLatest}
-                  >
-                    {isDownloading ? <Sparkles className="size-4" /> : <Download className="size-4" />}
-                    Download
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="flex h-full min-h-[18rem] items-center justify-center text-center">
-                <div>
-                  <div className="text-base font-medium text-white/78">No exports yet</div>
-                  <div className="mt-2 text-sm leading-6 text-white/44">Start an export when this cut is ready to share.</div>
-                </div>
-              </div>
-            )}
+          <div className="h-full overflow-y-auto rounded-[24px] bg-[#101116] p-3">
+            <EditorialDeliveryStudio projectId={projectId} sourceAssetId={project?.sourceAssetId ?? null} sourceUrl={previewKind === 'video' ? previewUrl : null} projectTitle={projectTitle} currentTimeSec={currentTimeSec} durationSec={durationSec} />
           </div>
         )
       case 'export':
         return (
-          <div className="h-full overflow-y-auto rounded-[24px] border border-white/8 bg-[#101116] p-4">
-            <div className="text-[11px] uppercase tracking-[0.24em] text-white/40">Quality</div>
-            <div className="mt-3 grid grid-cols-3 gap-2">
-              {(['draft', 'standard', 'max'] as const).map((quality) => (
-                <button
-                  key={quality}
-                  type="button"
-                  onClick={() => setExportQuality(quality)}
-                  className={cn(
-                    'h-11 rounded-[16px] border text-sm capitalize transition-colors',
-                    exportQuality === quality
-                      ? 'border-[#6366f1]/60 bg-[#6366f1]/18 text-white'
-                      : 'border-white/10 bg-white/[0.035] text-white/56',
-                  )}
-                >
-                  {quality}
-                </button>
-              ))}
-            </div>
-
-            <div className="mt-6 text-[11px] uppercase tracking-[0.24em] text-white/40">Format</div>
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              {(['mp4', 'mov'] as const).map((format) => (
-                <button
-                  key={format}
-                  type="button"
-                  onClick={() => setExportFormat(format)}
-                  className={cn(
-                    'h-11 rounded-[16px] border text-sm uppercase transition-colors',
-                    exportFormat === format
-                      ? 'border-[#6366f1]/60 bg-[#6366f1]/18 text-white'
-                      : 'border-white/10 bg-white/[0.035] text-white/56',
-                  )}
-                >
-                  {format}
-                </button>
-              ))}
-            </div>
-
-            <Button
-              type="button"
-              disabled={isExporting}
-              onClick={() => onStartExport({ quality: exportQuality, format: exportFormat })}
-              className="mt-6 h-12 w-full border-[#6366f1]/80 bg-[#6366f1] text-white shadow-[0_18px_54px_-24px_rgba(99,102,241,0.95)]"
-            >
-              {isExporting ? (
-                <InlineLoadingAnimation size={16} label="Starting export" />
-              ) : (
-                <Download className="size-4" />
-              )}
-              {isExporting ? 'Starting export' : 'Start Export'}
-            </Button>
-
-            {(isExporting || latestExport?.status === 'processing' || latestExport?.status === 'pending') ? (
-              <div className="mt-5 rounded-[18px] border border-white/10 bg-white/[0.035] p-3">
-                <div className="flex items-center justify-between text-xs text-white/50">
-                  <span>Export progress</span>
-                  <span>{latestExport?.status ?? 'queued'}</span>
-                </div>
-                <div className="mt-3">
-                  <InlineLoadingAnimation
-                    size={40}
-                    label={`Export ${latestExport?.status ?? 'queued'}`}
-                  />
-                </div>
-              </div>
-            ) : null}
+          <div className="h-full overflow-y-auto rounded-[24px] bg-[#101116] p-3">
+            <EditorialDeliveryStudio projectId={projectId} sourceAssetId={project?.sourceAssetId ?? null} sourceUrl={previewKind === 'video' ? previewUrl : null} projectTitle={projectTitle} currentTimeSec={currentTimeSec} durationSec={durationSec} />
           </div>
         )
       case 'status':
@@ -6245,7 +6153,6 @@ function OriginalEditorPage() {
   const requestedWorkspaceTab = normalizeWorkspaceTabParam(searchParams.get('tab'))
   const projectId = params.id
   const isMobile = useMediaQuery('(max-width: 1024px)')
-  const { showExport, setShowExport } = useEditor()
 
   React.useEffect(() => {
     rememberEditorialChamberPath(`/editor/${projectId}`)
@@ -6288,6 +6195,7 @@ function OriginalEditorPage() {
   )
   const previousWorkspaceTabRef = React.useRef(activeWorkspaceTab)
   const [isExporting, setIsExporting] = React.useState(false)
+  const [deliveryOpenToken, setDeliveryOpenToken] = React.useState(0)
   const [isDownloading, setIsDownloading] = React.useState(false)
   const [isDownloadDialogOpen, setIsDownloadDialogOpen] = React.useState(false)
   const [isNewProjectUploadOpen, setIsNewProjectUploadOpen] = React.useState(false)
@@ -6343,13 +6251,14 @@ function OriginalEditorPage() {
       }
 
       if (command === 'export') {
-        setShowExport(true)
+        setActiveWorkspaceTab('Editor')
+        setDeliveryOpenToken((value) => value + 1)
       }
     }
 
     window.addEventListener('prometheus:editor-command', handleEditorCommand)
     return () => window.removeEventListener('prometheus:editor-command', handleEditorCommand)
-  }, [setActiveWorkspaceTab, setShowExport])
+  }, [setActiveWorkspaceTab])
 
   const handleTitleStartEdit = () => {
     setTempTitle(project?.title || '')
@@ -6635,6 +6544,10 @@ function OriginalEditorPage() {
       }
     }
     void loadLatestExport()
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === 'visible') void loadLatestExport()
+    }, 10_000)
+    return () => window.clearInterval(timer)
   }, [projectId])
 
   React.useEffect(() => {
@@ -8295,16 +8208,50 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
   ])
 
   const handlePrepareExport = React.useCallback(async (options?: { quality: MobileExportQuality; format: MobileExportFormat }) => {
-    setShowExport(true)
-  }, [setShowExport])
+    setActiveWorkspaceTab('Editor')
+    setDeliveryOpenToken((value) => value + 1)
+    window.setTimeout(() => document.querySelector('[aria-label="Final render studio"]')?.scrollIntoView({behavior: 'smooth', block: 'nearest'}), 50)
+  }, [])
+
+  const startProjectRender = React.useCallback(async () => {
+    if (!project?.sourceAssetId) {
+      toast.error('Upload a source video before rendering.')
+      return false
+    }
+    const controller = getEditorialTimelineController(projectId)
+    const deadline = Date.now() + 15_000
+    while (controller.getSnapshot().status === 'saving' && Date.now() < deadline) {
+      await new Promise((resolve) => window.setTimeout(resolve, 100))
+    }
+    const snapshot = controller.getSnapshot()
+    if (snapshot.status !== 'saved' || snapshot.timeline?.sourceAssetId !== project.sourceAssetId) {
+      toast.error('The project edits must finish saving before rendering.')
+      return false
+    }
+    try {
+      const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/exports`, {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({preset: 'default', sourceAssetId: project.sourceAssetId, editorialRevision: snapshot.timeline.revision}),
+      })
+      const payload = await response.json() as {export?: ProjectExport; error?: string}
+      if (!response.ok) throw new Error(payload.error || 'Unable to start the final render.')
+      if (payload.export) setLatestExport(payload.export)
+      await handlePrepareExport()
+      toast.success('Final MP4 render queued. Follow its progress in the editorial view.')
+      return true
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Unable to start the final render.')
+      return false
+    }
+  }, [handlePrepareExport, project?.sourceAssetId, projectId])
 
   const handleDownload = React.useCallback(() => {
-    if (!latestExport) return
+    if (!latestExport || !project?.sourceAssetId || !isPlayableRender(latestExport, projectId, project.sourceAssetId)) return
     setIsDownloadDialogOpen(true)
-  }, [latestExport])
+  }, [latestExport, project?.sourceAssetId, projectId])
 
   const handleConfirmDownload = React.useCallback(async () => {
-    if (!latestExport || isDownloading) return
+    if (!latestExport || !project?.sourceAssetId || !isPlayableRender(latestExport, projectId, project.sourceAssetId) || isDownloading) return
 
     setIsDownloadDialogOpen(false)
     setIsDownloading(true)
@@ -8327,9 +8274,7 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
       link.click()
       document.body.removeChild(link)
 
-      toast.success('Download started', {
-        description: 'The source video copy is being delivered. It does not include the editor timeline changes.',
-      })
+      toast.success('Finished MP4 download started.')
     } catch (err: any) {
       console.error('Download error:', err)
       toast.error('Could not download file', {
@@ -8338,7 +8283,7 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
     } finally {
       setIsDownloading(false)
     }
-  }, [latestExport, isDownloading])
+  }, [latestExport, project?.sourceAssetId, projectId, isDownloading])
 
   const handleRestoreLandscapePreview = React.useCallback(() => {
     setIsLockedViralClipTriggerHovered(false)
@@ -8799,7 +8744,7 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
     setCaptionStyle: (style) => setEditorCaptionStyle(style),
     startRender: async (mode) => {
       if (mode === 'final') {
-        setIsMasterReviewOpen(true)
+        await startProjectRender()
         return
       }
       if (!project?.sourceAssetId) return
@@ -8817,7 +8762,7 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
     },
     // A direct chat instruction is explicit consent for this whitelisted action set.
     allowMutations: true,
-  }), [transportDurationSec, handlePreviewSeekSeconds, startPreviewPlayback, pausePreviewPlayback, handleSoundtrackVolumeChange, handleSoundtrackDuckingChange, handleRemoveEditorMusicTrack, handleApplySilenceCuts, resolveSilenceCuts, openThumbnailStudioFromJarvis, project?.id, project?.sourceAssetId])
+  }), [transportDurationSec, handlePreviewSeekSeconds, startPreviewPlayback, pausePreviewPlayback, handleSoundtrackVolumeChange, handleSoundtrackDuckingChange, handleRemoveEditorMusicTrack, handleApplySilenceCuts, resolveSilenceCuts, openThumbnailStudioFromJarvis, project?.id, project?.sourceAssetId, startProjectRender])
 
   const handleApplyChatActions = React.useCallback(async (drafts: EditorActionDraft[]) => {
     if (!drafts || drafts.length === 0) return
@@ -8851,8 +8796,8 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
         setBottomMode('Original')
         handleApplySilenceCuts(resolveSilenceCuts(draft.minDurationSec))
       } else if (draft.kind === 'start_render') {
-        if (draft.mode === 'final') setIsMasterReviewOpen(true)
-        else handlePrepareExport()
+        if (draft.mode === 'final') await startProjectRender()
+        else await handlePrepareExport()
       } else if (draft.kind === 'open_master_review') {
         setIsMasterReviewOpen(true)
       } else {
@@ -8872,6 +8817,7 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
     handlePreviewSeekSeconds,
     transportDurationSec,
     handlePrepareExport,
+    startProjectRender,
     handleApplySilenceCuts,
     resolveSilenceCuts,
     handleSplitClip,
@@ -9358,12 +9304,13 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
           videoContext={videoContext}
           initialPrompt={promptText}
           initialSources={sourceList}
-          latestExport={latestExport}
+          latestExport={latestExport && project?.sourceAssetId && isPlayableRender(latestExport, projectId, project.sourceAssetId) ? latestExport : null}
           isExporting={isExporting}
           isDownloading={isDownloading}
           clipRelayState={clipRelayState}
           automationRequest={composerAutomationRequest}
           workspaceTab={activeWorkspaceTab}
+          deliveryOpenToken={deliveryOpenToken}
           onTogglePlayback={togglePreviewPlayback}
           onSeekPreview={handlePreviewSeekSeconds}
           onVideoLoadedMetadata={handlePreviewMetadataLoaded}
@@ -9425,7 +9372,7 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
           isDeferredChromeReady={isDeferredChromeReady}
           isExporting={isExporting}
           isDownloading={isDownloading}
-          latestExport={latestExport}
+          latestExport={latestExport && project?.sourceAssetId && isPlayableRender(latestExport, projectId, project.sourceAssetId) ? latestExport : null}
           hasSourceAsset={hasSourceAsset}
           headerNavItems={WORKSPACE_TABS.map(tab => ({
             name: tab.key,
@@ -9664,6 +9611,14 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
                       onToggleMute={() => setIsPreviewMuted((prev) => !prev)}
                       onSetBottomMode={setBottomMode}
                     />
+                    <EditorialDeliveryStudio
+                      projectId={projectId}
+                      sourceAssetId={project?.sourceAssetId ?? null}
+                      sourceUrl={previewKind === 'video' ? previewUrl : null}
+                      projectTitle={project?.title ?? 'Untitled Project'}
+                      currentTimeSec={previewCurrentTimeSec}
+                      durationSec={transportDurationSec}
+                    />
                   </>
                 )}
               </div>
@@ -9684,7 +9639,7 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
             </div>
             <DialogTitle className="text-2xl font-medium tracking-tight">Prepare final download?</DialogTitle>
             <DialogDescription className="text-[15px] leading-relaxed text-white/60">
-              The editor cannot create an edited MP4 yet. This download is only the original source video; saved timeline edits are not included.
+              Download the finished MP4 stored for this project&apos;s current source video.
             </DialogDescription>
           </DialogHeader>
 
@@ -9781,7 +9736,7 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
         isOpen={isMasterReviewOpen}
         onClose={() => setIsMasterReviewOpen(false)}
         originalVideoUrl={persistedPreviewUrl ?? previewUrl}
-        renderedVideoUrl={(latestExport?.metadata as any)?.downloadUrl ?? latestExport?.storagePath ?? previewUrl}
+        renderedVideoUrl={latestExport && project?.sourceAssetId && isPlayableRender(latestExport, projectId, project.sourceAssetId) ? renderPreviewPath(latestExport.id) : null}
         projectTitle={project?.title ?? 'Untitled Project'}
         treatmentName="Prometheus Cinematic Master"
         onOpenThumbnailStudio={() => {
