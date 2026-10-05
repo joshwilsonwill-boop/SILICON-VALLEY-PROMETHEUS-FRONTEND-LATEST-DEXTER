@@ -90,6 +90,7 @@ import { useSourceStage } from '@/hooks/use-source-stage'
 import { useViralClipJob } from '@/hooks/use-viral-clip-job'
 import { buildTimedTranscriptWords } from '@/lib/editor/modal-viral-clip-workflow'
 import { buildMotionTranscriptSegments, isLegacyMockTranscriptText } from '@/lib/editor/motion-transcript'
+import { requestConfirmedTranscription } from '@/lib/editor/request-transcription'
 import { findTranscriptSilenceCuts } from '@/lib/editor/silence-cuts'
 import { buildEditorialReadiness, type EditorialReadiness } from '@/lib/editor/editorial-readiness'
 import { buildEditorialCleanupRun, isAutonomousEditRequest, type EditorialCleanupRun } from '@/lib/editor/editorial-run'
@@ -936,10 +937,8 @@ const SHOULD_PREFETCH_EDITOR_SUPPORT_ROUTES = process.env.NODE_ENV === 'producti
 
 const MUSIC_RECOMMENDATION_LIMIT = 8
 const EDITOR_REQUEST_TIMEOUT_MS = 25_000
-const TRANSCRIPT_SYNC_FAILURES_BEFORE_FALLBACK = 3
+const TRANSCRIPT_SYNC_FAILURES_BEFORE_ERROR = 3
 const TRANSCRIPT_PROVIDER_MAX_WAIT_MS = 30 * 60 * 1000
-const TRANSCRIPT_START_BACKOFF_MS = 30 * 1000
-const MAX_TRANSCRIPT_AUTO_RESTARTS = 1
 
 const CHAT_COMPOSER_FONT_STYLE = {
   fontFamily: '"SF Pro Text","SF Pro Display",-apple-system,BlinkMacSystemFont,"Segoe UI","Helvetica Neue",Arial,sans-serif',
@@ -7158,76 +7157,51 @@ function OriginalEditorPage() {
     [job?.artifacts.transcript],
   )
 
-const [isTranscribingVideo, setIsTranscribingVideo] = React.useState(false)
+  const [isTranscribingVideo, setIsTranscribingVideo] = React.useState(false)
   const [transcriptError, setTranscriptError] = React.useState<string | null>(null)
-  const transcriptStartAttemptedRef = React.useRef<string | null>(null)
-  const transcriptLastStartAttemptAtRef = React.useRef(0)
-  const transcriptAutoRestartsRef = React.useRef(0)
+  const lastTranscriptionRequestErrorRef = React.useRef<string | null>(null)
 
-  const runFallbackTranscription = React.useCallback(async (sourceAssetId: string) => {
-    // Source video bytes already live in R2. Restart the provider job with a
-    // fresh signed URL instead of routing the full video through Vercel.
-    const restartResponse = await fetch(`/api/assets/${sourceAssetId}/transcript?restart=1`, {
-      method: 'POST',
-      cache: 'no-store',
-      signal: AbortSignal.timeout(12_000),
-    })
-    const restart = (await restartResponse.json().catch(() => null)) as { error?: string } | null
-    if (!restartResponse.ok) throw new Error(restart?.error || 'Transcription could not be restarted.')
-    setTranscriptError(null)
-    setTranscriptRefreshToken((current) => current + 1)
-  }, [])
-
-const requestAssemblyAITranscription = React.useCallback(async (retry = false, requestedAssetId?: string): Promise<boolean> => {
-    const sourceAssetId = requestedAssetId ?? project?.sourceAssetId
+const requestAssemblyAITranscription = React.useCallback(async (): Promise<boolean> => {
+    const sourceAssetId = project?.sourceAssetId
     if (!sourceAssetId) {
       toast.info('Choose a source video to create a transcript.')
       return false
     }
     if (isSourceUploadPending) {
-      toast.info('Source media is still saving. Transcription starts automatically once it is ready.')
+      toast.info('Source media is still saving. Transcribe once it is ready.')
       return false
     }
 
-    const now = Date.now()
-    const withinBackoff = !retry && now - transcriptLastStartAttemptAtRef.current < TRANSCRIPT_START_BACKOFF_MS
-    if (!retry && (transcriptStartAttemptedRef.current === sourceAssetId || withinBackoff)) return false
-
-    transcriptStartAttemptedRef.current = sourceAssetId
-    transcriptLastStartAttemptAtRef.current = now
-    if (retry) transcriptAutoRestartsRef.current = 0
     setTranscriptError(null)
+    lastTranscriptionRequestErrorRef.current = null
     setIsTranscribingVideo(true)
     try {
-      const response = await fetch(`/api/assets/${sourceAssetId}/transcript${retry ? '?restart=1' : ''}`, {
-        method: 'POST',
-        cache: 'no-store',
-        signal: AbortSignal.timeout(12_000),
+      const started = await requestConfirmedTranscription(sourceAssetId, {
+        restart: true,
+        fetcher: fetch,
+        confirm: (message) => window.confirm(message),
+        newRequestId: () => crypto.randomUUID(),
       })
-      if (response.ok) {
-        setTranscriptRefreshToken((current) => current + 1)
-        return true
+      if (!started) {
+        setIsTranscribingVideo(false)
+        lastTranscriptionRequestErrorRef.current = 'Transcription was canceled before any credits were used.'
+        return false
       }
-
-      const primaryError = (await response.json().catch(() => null)) as { error?: string } | null
-      if (!retry && (!previewUrl || previewKind !== 'video')) {
-        throw new Error(primaryError?.error || 'The saved video could not be prepared for transcription.')
-      }
-      await runFallbackTranscription(sourceAssetId)
+      setTranscriptRefreshToken((current) => current + 1)
       return true
     } catch (err) {
       console.warn('[Prometheus AI] Transcription request failed:', err)
-      transcriptStartAttemptedRef.current = null
       setIsTranscribingVideo(false)
       const message = err instanceof Error ? err.message : 'Prometheus could not start the transcript.'
       setTranscriptError(message)
-      if (retry) toast.error(message)
+      lastTranscriptionRequestErrorRef.current = message
+      toast.error(message)
       return false
     }
-  }, [isSourceUploadPending, previewKind, previewUrl, project?.sourceAssetId, runFallbackTranscription])
+  }, [isSourceUploadPending, project?.sourceAssetId])
 
-  // Observe the durable asset job. Provider errors restart it with a fresh R2
-  // signed URL instead of sending the source video through a serverless route.
+  // Observe the durable asset job. A failed job requires another credit review
+  // before retrying, so provider errors remain visible for the user to resolve.
   React.useEffect(() => {
     const sourceAssetId = project?.sourceAssetId
     if (!sourceAssetId || isSourceUploadPending) return
@@ -7275,9 +7249,6 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
       setIsTranscribingVideo(false)
     }
 
-    // Stop auto-recovery and surface the real provider error instead of looping
-    // forever. The budget persists across effect re-runs (a restart bumps
-    // transcriptRefreshToken, which otherwise would reset every counter).
     const giveUp = (message: string) => {
       if (gaveUp) return
       gaveUp = true
@@ -7287,19 +7258,9 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
       setIsTranscribingVideo(false)
     }
 
-    const attemptRestart = async (message: string) => {
+    const stopWithError = (message: string) => {
       if (gaveUp) return
-      if (transcriptAutoRestartsRef.current >= MAX_TRANSCRIPT_AUTO_RESTARTS) {
-        giveUp(message)
-        return
-      }
-      transcriptAutoRestartsRef.current += 1
-      setTranscriptError(message)
-      try {
-        await runFallbackTranscription(sourceAssetId)
-      } catch (fallbackError) {
-        giveUp(fallbackError instanceof Error ? fallbackError.message : message)
-      }
+      giveUp(message)
     }
 
     const pollTranscript = async () => {
@@ -7321,13 +7282,12 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
         }
 
         if (body?.status === 'idle') {
-          const started = await requestAssemblyAITranscription(false, sourceAssetId)
-          if (!started) setIsTranscribingVideo(false)
+          setIsTranscribingVideo(false)
           return
         }
 
         if (body?.status === 'failed') {
-          await attemptRestart(failureMessage || 'Transcription failed.')
+          stopWithError(failureMessage || 'Transcription failed.')
           return
         }
 
@@ -7335,7 +7295,7 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
           setIsTranscribingVideo(true)
           const transcriptStartedAt = body.startedAt ? Date.parse(body.startedAt) : NaN
           if (!Number.isFinite(transcriptStartedAt) || Date.now() - transcriptStartedAt >= TRANSCRIPT_PROVIDER_MAX_WAIT_MS) {
-            await attemptRestart(
+            stopWithError(
               Number.isFinite(transcriptStartedAt)
                 ? 'The transcription provider did not finish.'
                 : 'This transcript has no valid start time.',
@@ -7358,14 +7318,14 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
             return
           }
           if (syncBody?.status === 'idle' || syncBody?.reset) {
-            await requestAssemblyAITranscription(true, sourceAssetId)
+            giveUp('The transcription job is no longer available. Review the credit cost and retry from the transcript panel.')
             return
           }
           if (!syncResponse.ok || syncBody?.status === 'failed') {
             failureMessage = syncBody?.error || failureMessage
             syncFailures += 1
-            if (syncFailures < TRANSCRIPT_SYNC_FAILURES_BEFORE_FALLBACK) return
-            await attemptRestart(failureMessage || 'AssemblyAI could not finish this transcript.')
+            if (syncFailures < TRANSCRIPT_SYNC_FAILURES_BEFORE_ERROR) return
+            stopWithError(failureMessage || 'AssemblyAI could not finish this transcript.')
             return
           }
           syncFailures = 0
@@ -7373,8 +7333,8 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
         }
       } catch (error) {
         syncFailures += 1
-        if (!active || syncFailures < TRANSCRIPT_SYNC_FAILURES_BEFORE_FALLBACK) return
-        await attemptRestart(error instanceof Error ? error.message : 'AssemblyAI is unavailable.')
+        if (!active || syncFailures < TRANSCRIPT_SYNC_FAILURES_BEFORE_ERROR) return
+        stopWithError(error instanceof Error ? error.message : 'AssemblyAI is unavailable.')
       } finally {
         inFlight = false
       }
@@ -7386,7 +7346,7 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
       active = false
       if (intervalId !== null) window.clearInterval(intervalId)
     }
-  }, [isSourceUploadPending, project?.sourceAssetId, requestAssemblyAITranscription, runFallbackTranscription, transcriptRefreshToken])
+  }, [isSourceUploadPending, project?.sourceAssetId, transcriptRefreshToken])
 
   const persistTranscriptTimerRef = React.useRef<number | null>(null)
   const pendingTranscriptSegmentsRef = React.useRef<TranscriptSegment[] | null>(null)
@@ -8927,8 +8887,8 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
       },
       onRequestTranscription: async () => {
         if (isTranscribingVideo) return { success: true, pending: true, summary: 'Video transcription is already processing.' }
-        const started = await requestAssemblyAITranscription(true)
-        return { success: started, pending: started, summary: started ? 'Video transcription started.' : transcriptError || 'Video transcription could not be started.' }
+        const started = await requestAssemblyAITranscription()
+        return { success: started, pending: started, summary: started ? 'Video transcription started.' : lastTranscriptionRequestErrorRef.current || transcriptError || 'Video transcription could not be started.' }
       },
       onApplyCaptionStyle: async (style) => {
         const outcome = await saveVoiceCaptionStyle(getEditorialTimelineController(projectId), project?.sourceAssetId, style)
@@ -9496,7 +9456,7 @@ const requestAssemblyAITranscription = React.useCallback(async (retry = false, r
                     onUpdateTranscriptSegment={handleUpdateTranscriptSegment}
                     onToggleCutSegment={handleToggleCutSegment}
                     onToggleCutWord={handleToggleCutWord}
-                    onRequestTranscribe={() => void requestAssemblyAITranscription(true)}
+                    onRequestTranscribe={() => void requestAssemblyAITranscription()}
                     isTranscribing={isTranscribingVideo}
                     transcriptError={transcriptError}
                     isSourceUploading={isSourceUploadPending}

@@ -14,13 +14,14 @@ const motion = read('components/editor/motion-edit-workspace.tsx')
 assert.match(transcriptRoute, /transcript_status: 'completed'/)
 assert.match(transcriptRoute, /transcript_completed_at: new Date\(\)\.toISOString\(\)/)
 
-// Failed jobs and transport failures must be visible and recoverable, never an
-// infinite loading state. Recovery restarts the durable R2-backed provider job;
-// Vercel must never receive the full source video as multipart form data.
-assert.match(transcriptRoute, /status: 'failed', error: asset\.transcript_error/)
-assert.match(editor, /TRANSCRIPT_SYNC_FAILURES_BEFORE_FALLBACK/)
-assert.match(editor, /runFallbackTranscription/)
-assert.match(editor, /\/api\/assets\/\$\{sourceAssetId\}\/transcript\?restart=1/)
+// Failed jobs and transport failures must be visible. A retry needs another
+// credit review, so polling must never dispatch a paid transcription itself.
+assert.match(transcriptRoute, /status: 'failed',[\s\S]*?error: asset\.transcript_error/)
+assert.match(editor, /TRANSCRIPT_SYNC_FAILURES_BEFORE_ERROR/)
+assert.match(editor, /stopWithError/)
+assert.match(editor, /requestConfirmedTranscription\(sourceAssetId/)
+assert.doesNotMatch(editor, /runFallbackTranscription/)
+assert.doesNotMatch(editor, /requestAssemblyAITranscription\(false/)
 assert.doesNotMatch(editor, /\/api\/prometheus-chat\/transcribe/)
 assert.match(editor, /syncBody\?\.error/)
 assert.match(editor, /setTranscriptError/)
