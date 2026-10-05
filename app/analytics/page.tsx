@@ -1,5 +1,5 @@
-﻿import { SphereAnalytics } from '@/components/analytics/SphereAnalytics'
+﻿import { VideoPerformanceDashboard } from '@/components/analytics/VideoPerformanceDashboard'
 
 export default function AnalyticsPage() {
-  return <SphereAnalytics />
+  return <VideoPerformanceDashboard />
 }
