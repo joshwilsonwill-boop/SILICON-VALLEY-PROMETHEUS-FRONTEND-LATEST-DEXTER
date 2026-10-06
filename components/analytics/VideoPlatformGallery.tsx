@@ -31,7 +31,7 @@ type GalleryVideo = {
 
 type VideoPlatformGalleryProps = {
   videos: GalleryVideo[]
-  onOpenVideo: (video: GalleryVideo) => void
+  onOpenVideo: (video: GalleryVideo, platformId: string | null) => void
 }
 
 export function VideoPlatformGallery({ videos, onOpenVideo }: VideoPlatformGalleryProps) {
@@ -89,7 +89,7 @@ export function VideoPlatformGallery({ videos, onOpenVideo }: VideoPlatformGalle
             <article key={video.id} className="group overflow-hidden rounded-2xl border border-white/[0.1] bg-white/[0.025] transition-colors duration-300 hover:border-white/[0.22] hover:bg-white/[0.04]">
               <button
                 type="button"
-                onClick={() => onOpenVideo(video)}
+                onClick={() => onOpenVideo(video, selectedPlatform === 'all' ? null : selectedPlatform)}
                 className="block w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#D7FF4F]"
                 aria-label={`Open analytics for ${video.title}`}
               >

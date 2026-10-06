@@ -10,6 +10,7 @@ import { Activity, ArrowUpRight, Eye, Heart, Link2, MessageCircle, Play, PlayCir
 import { BackButton } from '@/components/navigation/BackButton'
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet'
 import { Jarvis, JarvisFollow, JarvisProvider, useJarvisAgent } from '@/components/ui/jarvis'
+import { isVideoAnalyticsReadStale, resolveVideoAnalyticsDetailScope } from '@/lib/analytics/video-detail-scope.mjs'
 import { cn } from '@/lib/utils'
 import { VideoPlatformGallery } from './VideoPlatformGallery'
 import { JarvisReachChart, metricVisuals, type JarvisChartPoint, type ReachMetric } from './JarvisReachChart'
@@ -76,6 +77,8 @@ type AnalyticsPlatform = {
   name: string
   color: string
   connected: boolean
+  status: string
+  accountName: string | null
 }
 
 type AnalyticsPayload = {
@@ -134,7 +137,7 @@ function AnalyticsStage() {
   const [activeMetric, setActiveMetric] = React.useState<ReachMetric>('reach')
   const [livePayload, setLivePayload] = React.useState<AnalyticsPayload | null>(null)
   const [loadState, setLoadState] = React.useState<'loading' | 'ready' | 'error'>('loading')
-  const [selectedVideo, setSelectedVideo] = React.useState<LiveVideo | null>(null)
+  const [selectedVideo, setSelectedVideo] = React.useState<{ video: LiveVideo; platformId: string | null } | null>(null)
   const [armedCount, setArmedCount] = React.useState(0)
 
   const chartData = React.useMemo(
@@ -312,8 +315,8 @@ function AnalyticsStage() {
     if (!reduceMotion) focusElement(el, { thought: `Overlaying ${metricVisuals[metric].label}`, duration: 400, click: true })
   }
 
-  const handleOpenVideo = (video: LiveVideo) => {
-    setSelectedVideo(video)
+  const handleOpenVideo = (video: LiveVideo, platformId: string | null = null) => {
+    setSelectedVideo({ video, platformId })
     say(`Expanding dossier · ${video.title.length > 34 ? `${video.title.slice(0, 34)}…` : video.title}`)
   }
 
@@ -518,8 +521,11 @@ function AnalyticsStage() {
       </section>
 
       <VideoPerformanceSheet
-        video={selectedVideo}
+        video={selectedVideo?.video ?? null}
+        selectedPlatformId={selectedVideo?.platformId ?? null}
         platforms={livePayload?.platforms ?? []}
+        metricsWarning={livePayload?.metricsWarning ?? null}
+        loadState={loadState}
         onOpenChange={(open) => !open && setSelectedVideo(null)}
       />
     </div>
@@ -925,16 +931,29 @@ function RecentAssetsGrid({
 
 function VideoPerformanceSheet({
   video,
+  selectedPlatformId,
   platforms,
+  metricsWarning,
+  loadState,
   onOpenChange,
 }: {
   video: LiveVideo | null
+  selectedPlatformId: string | null
   platforms: AnalyticsPlatform[]
+  metricsWarning: string | null
+  loadState: 'loading' | 'ready' | 'error'
   onOpenChange: (open: boolean) => void
 }) {
-  const trackedPlatforms = video?.platformBreakdown.filter((platform) => platform.connected) ?? []
-  const availablePlatforms = platforms.filter((platform) => !platform.connected)
+  const detailScope = video
+    ? resolveVideoAnalyticsDetailScope(video, platforms, selectedPlatformId)
+    : null
+  const trackedPlatforms = detailScope?.platforms ?? []
+  const availablePlatforms = platforms.filter((platform) =>
+    !platform.connected && (!selectedPlatformId || platform.id === selectedPlatformId),
+  )
   const hasTrackedData = trackedPlatforms.length > 0
+  const selectedAccountUnavailable = detailScope?.state === 'unavailable'
+  const selectedPlatformHasNoData = Boolean(selectedPlatformId && detailScope?.account?.connected && !hasTrackedData)
 
   return (
     <Sheet open={Boolean(video)} onOpenChange={onOpenChange}>
@@ -946,30 +965,52 @@ function VideoPerformanceSheet({
           <>
             <div className="pr-10">
               <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.22em] text-[#8D8E85]">
-                <span className={cn('size-1.5 rounded-full', hasTrackedData ? 'bg-[#D7FF4F]' : 'bg-[#777970]')} />
-                {hasTrackedData ? 'Performance detail' : 'Tracking setup'}
+                <span className={cn('size-1.5 rounded-full', hasTrackedData && detailScope?.state !== 'stale' ? 'bg-[#D7FF4F]' : 'bg-[#777970]')} />
+                {hasTrackedData
+                  ? detailScope?.state === 'stale' ? 'Stale performance detail' : 'Performance detail'
+                  : selectedAccountUnavailable ? 'Account unavailable' : 'Tracking setup'}
               </div>
               <SheetTitle className="mt-4 font-[family-name:var(--font-vogue-display)] text-[clamp(2.1rem,6vw,4.1rem)] font-normal leading-[0.92] text-[#F1F0EA]">
                 {video.title}
               </SheetTitle>
               <SheetDescription className="mt-3 max-w-[30rem] text-[12px] leading-5 text-[#A8AA9D]">
                 {hasTrackedData
-                  ? 'A live reading of the channels carrying this cut.'
-                  : 'Connect a publishing account to begin reading this video after it is published.'}
+                  ? selectedPlatformId
+                    ? `${detailScope?.account?.name ?? trackedPlatforms[0]?.platformName}${detailScope?.account?.accountName ? ` · ${detailScope.account.accountName}` : ''} · ${video.status}`
+                    : `${video.status} · Channel readings are shown separately for this authenticated workspace.`
+                  : selectedAccountUnavailable
+                    ? `${detailScope?.account?.name ?? 'Selected channel'} is disconnected. Reconnect it to restore analytics for this video.`
+                    : selectedPlatformHasNoData
+                      ? `${detailScope?.account?.name ?? 'Selected channel'} is connected, but no report is available for this video yet.`
+                      : 'Connect a publishing account to begin reading this video after it is published.'}
               </SheetDescription>
             </div>
 
+            {metricsWarning && !hasTrackedData ? (
+              <p role="status" className="mt-6 border-y border-white/[0.1] py-4 text-[12px] leading-5 text-[#A8AA9D]">{metricsWarning}</p>
+            ) : null}
+            {loadState === 'loading' ? (
+              <p role="status" aria-live="polite" className="mt-6 text-[12px] text-[#A8AA9D]">Refreshing video analytics…</p>
+            ) : null}
+            {loadState === 'error' ? (
+              <p role="alert" className="mt-6 border-y border-white/[0.1] py-4 text-[12px] leading-5 text-[#A8AA9D]">Video analytics could not be loaded. Close this panel and refresh to try again.</p>
+            ) : null}
+
             {hasTrackedData ? (
               <div className="mt-9 space-y-8">
-                <div className="grid grid-cols-2 border-y border-white/[0.1] sm:grid-cols-4">
-                  <PerformanceMetric label="Reach" value={formatNumber(video.totals.views)} />
-                  <PerformanceMetric label="Retention" value={`${video.totals.retentionRate}%`} />
-                  <PerformanceMetric label="Engagement" value={`${video.totals.engagementRate}%`} />
-                  <PerformanceMetric label="Watch time" value={formatWatchTime(trackedPlatforms.reduce((total, platform) => total + platform.watchTimeSeconds, 0))} />
-                </div>
+                {detailScope?.totals ? (
+                  <div className="grid grid-cols-2 border-y border-white/[0.1] sm:grid-cols-4">
+                    <PerformanceMetric label="Reach" value={formatNumber(detailScope.totals.views)} />
+                    <PerformanceMetric label="Retention" value={`${detailScope.totals.retentionRate}%`} />
+                    <PerformanceMetric label="Engagement" value={`${detailScope.totals.engagementRate}%`} />
+                    <PerformanceMetric label="Watch time" value={formatWatchTime(trackedPlatforms.reduce((total, platform) => total + platform.watchTimeSeconds, 0))} />
+                  </div>
+                ) : null}
 
                 <div>
-                  <p className="text-[10px] uppercase tracking-[0.22em] text-[#8D8E85]">Channel readings</p>
+                  <p className="text-[10px] uppercase tracking-[0.22em] text-[#8D8E85]">
+                    {selectedPlatformId ? 'Channel reading' : 'Separate channel readings'}
+                  </p>
                   <div className="mt-4 divide-y divide-white/[0.09] border-y border-white/[0.09]">
                     {trackedPlatforms.map((platform) => (
                       <article key={platform.platform} className="py-5">
@@ -979,8 +1020,13 @@ function VideoPerformanceSheet({
                             <div>
                               <h3 className="text-[13px] text-[#F1F0EA]">{platform.platformName}</h3>
                               <p className="mt-1 text-[10px] uppercase tracking-[0.16em] text-[#777970]">
-                                {platform.capturedAt ? `Read ${formatCaptureDate(platform.capturedAt)}` : 'Awaiting first read'}
+                                {platform.capturedAt
+                                  ? `${isVideoAnalyticsReadStale(platform.capturedAt) ? 'Stale · ' : ''}Read ${formatCaptureDate(platform.capturedAt)}`
+                                  : 'Awaiting first read'}
                               </p>
+                              {platforms.find((account) => account.id === platform.platform)?.accountName ? (
+                                <p className="mt-1 text-[10px] text-[#8D8E85]">{platforms.find((account) => account.id === platform.platform)?.accountName}</p>
+                              ) : null}
                             </div>
                           </div>
                           {platform.publishedUrl ? (
@@ -994,6 +1040,9 @@ function VideoPerformanceSheet({
                           <PerformanceDatum icon={Heart} label="Likes" value={formatNumber(platform.likes)} />
                           <PerformanceDatum icon={MessageCircle} label="Comments" value={formatNumber(platform.comments)} />
                           <PerformanceDatum icon={Share2} label="Shares" value={formatNumber(platform.shares)} />
+                          <PerformanceDatum icon={Activity} label="Watch time" value={formatWatchTime(platform.watchTimeSeconds)} />
+                          <PerformanceDatum icon={Activity} label="Retention" value={`${platform.retentionRate}%`} />
+                          <PerformanceDatum icon={Activity} label="Engagement" value={`${platform.engagementRate}%`} />
                         </div>
                       </article>
                     ))}
@@ -1004,8 +1053,8 @@ function VideoPerformanceSheet({
               <div className="mt-9">
                 <div className="border-y border-white/[0.1] py-6">
                   <Link2 className="size-5 text-white" />
-                  <p className="mt-4 text-[18px] font-light text-[#F1F0EA]">No channel is reading this cut yet.</p>
-                  <p className="mt-2 max-w-[28rem] text-[12px] leading-5 text-[#8D8E85]">Choose a channel to connect. Prometheus will begin capturing available performance once this video is live.</p>
+                  <p className="mt-4 text-[18px] font-light text-[#F1F0EA]">{selectedAccountUnavailable ? 'This linked account is unavailable.' : 'No channel is reading this cut yet.'}</p>
+                  <p className="mt-2 max-w-[28rem] text-[12px] leading-5 text-[#8D8E85]">{selectedAccountUnavailable ? 'Reconnect the selected account to restore its publishing status and analytics.' : 'Connect or publish to a channel to begin capturing performance for this video.'}</p>
                 </div>
                 <div className="mt-2 divide-y divide-white/[0.09] border-b border-white/[0.09]">
                   {availablePlatforms.map((platform) => (
@@ -1016,17 +1065,24 @@ function VideoPerformanceSheet({
                     >
                       <span className="flex items-center gap-3">
                         <span className="size-2 rounded-full" style={{ backgroundColor: platform.color }} />
-                        <span className="text-[13px] text-[#E9E9E1]">Connect {platform.name}</span>
+                        <span className="text-[13px] text-[#E9E9E1]">{platform.status === 'expired' ? `Reconnect ${platform.name}` : `Connect ${platform.name}`}</span>
                       </span>
                       <span className="flex size-7 items-center justify-center rounded-full border border-white/[0.12] text-[#A8AA9D] transition-all duration-300 group-hover/platform:border-white group-hover/platform:bg-[#101010] group-hover/platform:text-white">
                         <ArrowUpRight className="size-3.5 transition-transform duration-300 group-hover/platform:-translate-y-0.5 group-hover/platform:translate-x-0.5" />
                       </span>
                     </a>
                   ))}
-                  {availablePlatforms.length === 0 ? <p className="py-5 text-[12px] leading-5 text-[#8D8E85]">Your connected channels are ready. Publish this cut to let the next analytics read locate it.</p> : null}
+                  {availablePlatforms.length === 0 ? (
+                    <p className="py-5 text-[12px] leading-5 text-[#8D8E85]">
+                      {selectedPlatformId && !detailScope?.account
+                        ? 'The selected linked account is unavailable in this analytics report.'
+                        : 'Your connected channels are ready. Publish this cut to let the next analytics read locate it.'}
+                    </p>
+                  ) : null}
                 </div>
               </div>
             )}
+            <p className="mt-8 text-[10px] leading-5 text-[#676961]">Ratings are not included in the analytics report returned for this video.</p>
           </>
         ) : null}
       </SheetContent>
