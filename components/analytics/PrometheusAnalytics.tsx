@@ -793,7 +793,7 @@ function TiltSignalCard({ signal }: { signal: TopSignal | null }) {
           '--ry': '0deg',
         } as React.CSSProperties}
       >
-        <div className="relative aspect-[4/5] overflow-hidden rounded-3xl">
+        <div data-theme-independent={signal?.image ? 'media' : undefined} className="relative aspect-[4/5] overflow-hidden rounded-3xl">
           {signal?.image ? <Image src={signal.image} alt={signal.title} fill sizes="(max-width: 1280px) 100vw, 30vw" className="object-cover transition-transform duration-700 group-hover:scale-[1.035]" /> : null}
           <div className={cn('absolute inset-0', signal?.image ? 'bg-[linear-gradient(180deg,rgba(0,0,0,0.06)_0%,rgba(0,0,0,0.12)_40%,rgba(0,0,0,0.94)_100%)]' : 'bg-black')} />
           {signal ? <div className="absolute left-4 top-4 flex items-center gap-2 border border-white/[0.14] bg-black/20 px-2.5 py-1.5 text-[9px] uppercase tracking-[0.2em] text-white/80 backdrop-blur-sm">

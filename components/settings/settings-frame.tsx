@@ -71,7 +71,7 @@ export function SettingsFrame({
       rootClassName="relative flex h-full min-h-0 w-full flex-col overflow-hidden bg-[#050505] font-sans text-white"
       mainClassName="relative z-auto h-full overflow-y-auto overflow-x-hidden overscroll-contain bg-[#050505]"
     >
-      <div className="min-h-full bg-[#050505] px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
+      <div data-light-mode-reference className="min-h-full bg-[#050505] px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
         <div className={cn('mx-auto max-w-[1440px] overflow-hidden border border-white/[0.09] bg-[#090909] shadow-[0_28px_90px_-48px_rgba(0,0,0,0.95)] sm:grid sm:min-h-[760px] sm:grid-cols-[224px_minmax(0,1fr)] md:grid-cols-[256px_minmax(0,1fr)]', className)}>
           <aside className="border-b border-white/[0.08] bg-[#070707] sm:border-b-0 sm:border-r">
             <div className="flex items-center gap-3 border-b border-white/[0.08] px-4 py-4 lg:px-5">

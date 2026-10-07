@@ -206,7 +206,7 @@ export function CinematicLibrary({
         <LayoutGroup id="library-cinema">
           <section className="overflow-hidden rounded-[12px] border border-white/8 bg-[linear-gradient(180deg,rgba(15,15,20,0.9)_0%,rgba(8,8,12,0.96)_100%)] p-3 shadow-[0_42px_100px_-54px_rgba(0,0,0,0.8)] backdrop-blur-xl sm:p-4 lg:p-5">
             <div className="min-w-0 border border-white/8 bg-[#06070b] shadow-[0_24px_60px_-34px_rgba(0,0,0,0.82)]">
-              <div className="relative min-h-[640px] overflow-hidden border-b border-white/10">
+              <div data-theme-independent="artwork" className="relative min-h-[640px] overflow-hidden border-b border-white/10">
                 <AnimatePresence mode="sync">
                   <motion.div
                     key={`hero-media-${active.id}`}

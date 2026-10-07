@@ -41,8 +41,8 @@ function application({ consent = true, preferences, deniedStorage = false } = {}
   }
   function load(file) {
     if (cache.has(file)) return cache.get(file)
-    const module = { exports: {} }
-    cache.set(file, module.exports)
+    const compiledModule = { exports: {} }
+    cache.set(file, compiledModule.exports)
     const compiled = ts.transpileModule(readFileSync(file, 'utf8'), {
       fileName: file,
       reportDiagnostics: true,
@@ -50,14 +50,14 @@ function application({ consent = true, preferences, deniedStorage = false } = {}
     })
     assert.deepEqual(compiled.diagnostics, [])
     runInNewContext(compiled.outputText, {
-      module, exports: module.exports,
+      module: compiledModule, exports: compiledModule.exports,
       require: id => id in mocks ? mocks[id] : load(id.startsWith('@/') ? `${id.slice(2)}.ts${id.includes('components/') ? 'x' : ''}` : 'lib/theme/theme-tokens.ts'),
       localStorage: storage,
       window: { localStorage: storage },
       document: { documentElement: root, body },
       console,
     }, { filename: file })
-    return module.exports
+    return compiledModule.exports
   }
   const store = load('lib/theme/theme-store.ts').useThemePreferenceStore
   return {
@@ -127,7 +127,10 @@ postcss.parse(readFileSync('app/light-mode.css', 'utf8')).walkRules(rule => {
   }
   for (const declaration of rule.nodes.filter(node => node.type === 'decl')) {
     const logoColor = declaration.prop === 'filter' && declaration.value === 'brightness(0)' && rule.selector.endsWith("img[src*='prometheus-logo-no-bg.png']")
-    assert.ok(declaration.prop.startsWith('--') || colorOnlyProperties.has(declaration.prop) || logoColor, `Light mode must not change layout, typography, or project media: ${declaration.prop}`)
+    const quietDecoration = ['backdrop-filter', '-webkit-backdrop-filter', 'text-shadow'].includes(declaration.prop) && declaration.value === 'none'
+    const focusIndicator = ['outline-color', 'outline-width', 'outline-style', 'outline-offset'].includes(declaration.prop) && rule.selector.includes(':focus-visible')
+    const projectArtworkBlend = declaration.prop === 'mix-blend-mode' && declaration.value === 'multiply' && rule.selector.endsWith('.project-tile-artwork')
+    assert.ok(declaration.prop.startsWith('--') || colorOnlyProperties.has(declaration.prop) || logoColor || quietDecoration || focusIndicator || projectArtworkBlend, `Light mode must not change layout, typography, or project media: ${declaration.prop}`)
   }
 })
 

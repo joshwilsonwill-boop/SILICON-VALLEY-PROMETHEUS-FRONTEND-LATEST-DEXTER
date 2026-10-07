@@ -124,11 +124,11 @@ export function SlideDrawer({
         )}
         style={{
           width,
-          backgroundColor: 'rgba(10, 10, 15, 0.88)',
+          backgroundColor: 'var(--light-ui-surface, rgba(10, 10, 15, 0.88))',
           backdropFilter: 'blur(24px) saturate(180%)',
           WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-          borderLeft: direction === 'right' ? '1px solid rgba(255, 255, 255, 0.08)' : undefined,
-          borderRight: direction === 'left' ? '1px solid rgba(255, 255, 255, 0.08)' : undefined,
+          borderLeft: direction === 'right' ? '1px solid var(--light-ui-border, rgba(255, 255, 255, 0.08))' : undefined,
+          borderRight: direction === 'left' ? '1px solid var(--light-ui-border, rgba(255, 255, 255, 0.08))' : undefined,
         }}
       >
         {children}

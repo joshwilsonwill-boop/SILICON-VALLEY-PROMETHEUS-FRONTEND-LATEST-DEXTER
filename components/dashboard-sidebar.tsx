@@ -52,7 +52,7 @@ const BASE_MENU_ITEMS: MenuItem[] = [
   ...prometheusNavItems,
 ]
 
-const ACTIVE_CUTOUT_COLOR = '#0f0b17'
+const ACTIVE_CUTOUT_COLOR = 'var(--light-ui-subtle, #0f0b17)'
 const SIDEBAR_EXPANDED_WIDTH = 260
 const SIDEBAR_COLLAPSED_WIDTH = 72
 const COLLAPSE_CONTENT_TRANSITION = {
@@ -109,6 +109,7 @@ export function DashboardSidebar() {
 
   return (
     <motion.aside
+      data-ui-surface="navigation"
       initial={false}
       animate={{
         width: collapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH,
@@ -318,6 +319,7 @@ function BladeNavGroup({ items, activeHref, hoveredHref, onHoverChange, onRouteI
 function ActiveBlade({ top, height, transition }: ActiveBladeProps) {
   return (
     <motion.div
+      data-ui-surface="navigation"
       initial={false}
       animate={{ top, height }}
       transition={transition}
