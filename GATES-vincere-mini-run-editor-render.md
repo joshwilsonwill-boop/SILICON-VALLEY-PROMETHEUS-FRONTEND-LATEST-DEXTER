@@ -29,6 +29,6 @@ Scope: Connect authenticated editor and Jarvis final-render requests to the VINC
 
 - [ ] G6: The Mini-Run worker advances durable progress as Modal slices finish, while keeping 100% for the completed render receipt.
   CHECK: python -m unittest mini_run_pipeline.test_slice_dispatch_progress
-  EXPECT: Ran 1 test and the suite passed
+  EXPECT: Ran 1 test
   CWD: C:/Users/HomePC/Downloads/PROMETHEUS-VINCERE-BACKEND
   EVIDENCE: pending
