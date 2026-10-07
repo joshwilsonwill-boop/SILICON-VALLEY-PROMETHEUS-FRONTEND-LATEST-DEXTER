@@ -1,8 +1,10 @@
 'use client'
 
 import * as React from 'react'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { AlertCircle, Film, Play, Pause, Maximize2 } from 'lucide-react'
+import { AlertCircle, Film, Play, Pause, Maximize2, Minimize2, X } from 'lucide-react'
+import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { CinematicPreviewRuntime } from '@/components/editor/cinematic-preview-runtime'
 import { ViralClipSplitPreview } from '@/components/editor/viral-clip-split-preview'
 import { PreviewGenerationState } from '@/components/editor/preview-generation-state'
@@ -68,6 +70,7 @@ export interface PreviewCanvasProps {
   onPreviewVideoPause: () => void
   onPreviewVideoError: () => void
   onTogglePreviewPlayback: () => void
+  onSeekPreview: (timeSec: number) => void
   onSetIsPreviewBriefGenerating: (visible: boolean) => void
   onSetShowPreviewFeedback: (show: boolean) => void
   onSetInlinePreviewStatusHovered: (hovered: boolean) => void
@@ -125,6 +128,7 @@ export function PreviewCanvas({
   onPreviewVideoPause,
   onPreviewVideoError,
   onTogglePreviewPlayback,
+  onSeekPreview,
   onSetIsPreviewBriefGenerating,
   onSetShowPreviewFeedback,
   onSetInlinePreviewStatusHovered,
@@ -133,9 +137,33 @@ export function PreviewCanvas({
   onInlineSourceDragLeave,
   onInlineSourceDrop,
 }: PreviewCanvasProps) {
+  const [isFullscreen, setIsFullscreen] = React.useState(false)
+  const fullscreenVideoRef = React.useRef<HTMLVideoElement | null>(null)
+
+  React.useEffect(() => {
+    if (!isFullscreen) return
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsFullscreen(false)
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isFullscreen])
+
+  React.useEffect(() => {
+    if (!isFullscreen || previewKind !== 'video') return
+    const video = fullscreenVideoRef.current
+    if (!video) return
+    if (Math.abs(video.currentTime - previewCurrentTimeSec) > 0.5) video.currentTime = previewCurrentTimeSec
+    if (previewPlaying) void video.play().catch(() => undefined)
+    else video.pause()
+  }, [isFullscreen, previewCurrentTimeSec, previewKind, previewPlaying])
+
   if (activeWorkspaceTab === 'Music') return null
 
   return (
+    <>
     <div className="flex flex-col items-center w-full">
       <div className="relative group w-full max-w-[min(100%,54rem)] self-center rounded-[24px] bg-black shadow-[0_32px_64px_-18px_rgba(0,0,0,0.92)]">
         {/* Glass Border Container */}
@@ -320,9 +348,9 @@ export function PreviewCanvas({
           <AnimatePresence>
             {hasPreviewMedia && (
               <div
-                className="pointer-events-none absolute inset-x-0 bottom-6 z-30 flex translate-y-2 items-center justify-center px-6 opacity-0 transition-all duration-300 ease-out group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100"
+                className="pointer-events-none absolute inset-x-0 bottom-6 z-30 flex translate-y-2 items-center justify-center px-6 opacity-0 transition-[opacity,transform] duration-300 ease-out group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:translate-y-0 group-focus-within:opacity-100"
               >
-                <div className="flex items-center gap-4 rounded-full bg-void/60 border border-white/10 px-2 py-2 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+                <div className="glass-panel flex items-center gap-4 rounded-full border border-white/10 bg-void/60 px-2 py-2 shadow-[0_8px_32px_rgba(0,0,0,0.4)] backdrop-blur-2xl">
                   <div className="flex items-center gap-3 px-3 py-1">
                     <span className="font-mono text-[11px] font-medium tracking-wide text-white/80">
                       {transportCurrentTime}
@@ -340,7 +368,11 @@ export function PreviewCanvas({
                   </button>
 
                   <button
+                    type="button"
+                    onClick={() => setIsFullscreen(true)}
                     className="flex h-10 w-10 items-center justify-center rounded-full text-white/40 transition-colors hover:bg-white/5 hover:text-white"
+                    aria-label="Expand preview"
+                    title="Expand preview"
                   >
                     <Maximize2 className="size-4" />
                   </button>
@@ -381,6 +413,31 @@ export function PreviewCanvas({
         </div>
       </div>
     </div>
+    {isFullscreen && typeof document !== 'undefined' ? createPortal(
+      <AnimatePresence>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/88 p-4 backdrop-blur-xl sm:p-8"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Expanded preview"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setIsFullscreen(false)
+          }}
+        >
+          <motion.div initial={{ opacity: 0, scale: 0.985 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.985 }} transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }} className="relative flex h-full w-full items-center justify-center">
+            <button type="button" onClick={() => setIsFullscreen(false)} className="absolute right-0 top-0 z-10 grid size-11 place-items-center rounded-full border border-white/15 bg-black/62 text-white/76 backdrop-blur-xl transition-colors hover:bg-white/12 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50" aria-label="Exit expanded preview" title="Exit expanded preview"><Minimize2 className="size-4" /></button>
+            <div className="relative flex max-h-full max-w-full items-center justify-center overflow-hidden rounded-lg bg-black shadow-[0_36px_100px_rgba(0,0,0,0.7)]">
+              {previewKind === 'image' ? <img src={previewUrl} alt={project?.title ?? 'Project preview'} className="max-h-[calc(100svh-4rem)] max-w-[calc(100vw-2rem)] object-contain" /> : <video ref={fullscreenVideoRef} src={previewUrl} muted={isPreviewMuted} controls playsInline className="max-h-[calc(100svh-4rem)] max-w-[calc(100vw-2rem)] object-contain" onPlay={onPreviewVideoPlay} onPause={onPreviewVideoPause} onTimeUpdate={(event) => onSeekPreview(event.currentTarget.currentTime)} />}
+            </div>
+          </motion.div>
+        </motion.div>
+      </AnimatePresence>,
+      document.body,
+    ) : null}
+    </>
   )
 }
 

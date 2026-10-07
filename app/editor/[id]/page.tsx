@@ -48,8 +48,6 @@ import { dispatchLongformFromProject } from '@/lib/api/mini-run-console'
 import type { AIChatContextProvider, AIChatLiveContext, AIChatVideoContext } from '@/hooks/use-ai-chat'
 import { ChatStyleSelector } from '@/components/editor/chat-style-selector'
 import { MusicTabPanel } from '@/components/editor/music-tab-panel'
-import { MotionPropertyCanvas } from '@/components/editor/motion-property-canvas'
-import { MotionEditWorkspace } from '@/components/editor/motion-edit-workspace'
 import { IterationModal } from '@/components/editor/IterationModal'
 import { ContinueBanner } from '@/components/editor/ContinueBanner'
 import gsap from 'gsap'
@@ -63,6 +61,7 @@ import { EditorialDeliveryStudio } from '@/components/editor/editorial-delivery-
 import { isPlayableRender, renderPreviewPath } from '@/lib/editor/render-delivery'
 import { EditorHeader } from '@/components/editor/EditorHeader'
 import { PreviewCanvas } from '@/components/editor/PreviewCanvas'
+import { EditorialTranscript } from '@/components/editor/editorial-timeline-panel'
 import { TimelinePanel } from '@/components/editor/TimelinePanel'
 import { MobileVideoPlayer } from '@/app/editor/components/mobile-video-player'
 import { stopEditorMedia } from '@/app/editor/stores/audio-store'
@@ -195,7 +194,7 @@ type PreviewMediaKind = 'video' | 'image'
 type PreviewFitMode = 'fill' | 'fit'
 type BottomMode = 'Original' | 'Music' | 'Timeline'
 type PreviewFramePreset = OutputProfile
-type MobileEditorTabKey = 'status' | 'music' | 'motion' | 'chat' | 'versions' | 'export'
+type MobileEditorTabKey = 'status' | 'music' | 'chat' | 'versions' | 'export'
 type MobileExportQuality = 'draft' | 'standard' | 'max'
 type MobileExportFormat = 'mp4' | 'mov'
 type SessionPreviewState = {
@@ -853,7 +852,6 @@ function toPrometheusChatMessages(entries: ChatEntry[]): PrometheusChatMessage[]
 const WORKSPACE_TABS: Array<{ key: HeaderNavMode; label: string; icon: React.ComponentType<{ className?: string }> }> = [
   { key: 'Editor', label: 'Editor', icon: Film },
   { key: 'Music', label: 'Music', icon: Music4 },
-  { key: 'Motion', label: 'Motion', icon: Sparkles },
 ]
 
 function normalizeWorkspaceTabParam(value: string | null): HeaderNavMode | null {
@@ -861,14 +859,13 @@ function normalizeWorkspaceTabParam(value: string | null): HeaderNavMode | null 
   const normalized = value.trim().toLowerCase()
   if (normalized === 'editor') return 'Editor'
   if (normalized === 'music') return 'Music'
-  if (normalized === 'motion') return 'Motion'
+  if (normalized === 'motion') return 'Editor'
   return null
 }
 
 const MOBILE_EDITOR_TABS: Array<{ key: MobileEditorTabKey; label: string; icon: React.ComponentType<{ className?: string }> }> = [
   { key: 'status', label: 'Status', icon: Activity },
   { key: 'music', label: 'Music', icon: Music4 },
-  { key: 'motion', label: 'Motion', icon: Sparkles },
   { key: 'chat', label: 'Chat', icon: MessageSquare },
   { key: 'versions', label: 'Versions', icon: GitBranch },
   { key: 'export', label: 'Export', icon: Download },
@@ -1719,7 +1716,14 @@ function buildWorkspaceVideoContext({
   }
 }
 
-
+function buildEditorialTranscript(job: ProcessingJob | null) {
+  return (job?.artifacts.transcript ?? []).map((segment) => ({
+    id: segment.id,
+    start: Math.max(0, segment.startMs / 1000),
+    end: Math.max(segment.startMs / 1000, segment.endMs / 1000),
+    text: segment.text,
+  }))
+}
 function buildVideoMusicContext({
   projectTitle,
   promptText,
@@ -5915,40 +5919,6 @@ function MobileEditorView({
             />
           </div>
         )
-      case 'motion':
-        return (
-          <div className="relative h-full min-h-0">
-            <MotionPropertyCanvas
-              projectTitle={projectTitle}
-              previewUrl={previewUrl}
-              previewKind={previewKind}
-              hasPreviewMedia={hasPreviewMedia}
-              sourceLabel={sourceLabel}
-              objectFit={objectFit}
-              mediaTransformStyle={mediaTransformStyle}
-              currentTimeLabel={currentTimeLabel}
-              durationLabel={durationLabel}
-              currentTimeSec={currentTimeSec}
-              durationSec={durationSec}
-              previewPlaying={previewPlaying}
-              previewMuted={previewMuted}
-              videoRef={motionVideoRef}
-              onTogglePlayback={onTogglePlayback}
-              onPickSource={onOpenUploadNewProject}
-              onSeek={onSeekPreview}
-              onVideoLoadedMetadata={onVideoLoadedMetadata}
-              onVideoLoadedData={onVideoLoadedData}
-              onVideoCanPlay={onVideoCanPlay}
-              onVideoTimeUpdate={onVideoTimeUpdate}
-              onVideoEnded={onVideoEnded}
-              onVideoPlay={onVideoPlay}
-              onVideoPause={onVideoPause}
-              onVideoError={onVideoError}
-              onImageLoaded={onImageLoaded}
-              onApplyPrompt={onApplyMotionPrompt}
-            />
-          </div>
-        )
       case 'chat':
         return (
           <div className="mobile-chat-panel relative h-full min-h-0 overflow-hidden rounded-[24px] border border-white/8 bg-[#101116]">
@@ -8209,8 +8179,8 @@ const requestAssemblyAITranscription = React.useCallback(async (): Promise<boole
       if (payload.export.status === 'failed') throw new Error(payload.export.errorMessage || 'The render service rejected the job.')
       setLatestExport(payload.export)
       await handlePrepareExport()
-      toast.success('Final MP4 render queued. Follow its progress in the editorial view.')
-      return { success: true, summary: 'The final render job was accepted. Its live status is shown in the editorial view.' }
+      toast.success('Mini-Run accepted. Follow its progress in the editor.')
+      return { success: true, summary: 'VINCERE accepted the source-based portrait Mini-Run. Its progress is shown in the editor; saved timeline layers are not included in this output yet.' }
     } catch (error) {
       const summary = error instanceof Error ? error.message : 'Unable to start the final render.'
       toast.error(summary)
@@ -9397,17 +9367,13 @@ const requestAssemblyAITranscription = React.useCallback(async (): Promise<boole
         <main
           className={cn(
             'relative z-20 mx-auto flex min-h-0 w-full flex-1 flex-col overflow-y-auto overflow-x-hidden lg:overflow-hidden',
-            activeWorkspaceTab === 'Motion'
-              ? 'max-w-none px-0 py-0 pb-0 lg:px-0 lg:pb-0'
-              : 'max-w-[1580px] px-3 py-3 pb-24 lg:pb-4 lg:px-5 xl:px-6',
+            'max-w-[1580px] px-3 py-3 pb-24 lg:pb-4 lg:px-5 xl:px-6',
           )}
         >
           <div
             className={cn(
               'grid min-h-0 w-full items-stretch gap-[clamp(0.75rem,1vw,1rem)] lg:h-full lg:overflow-hidden lg:grid-rows-[minmax(0,1fr)]',
-              activeWorkspaceTab === 'Motion'
-                ? 'gap-0 lg:grid-cols-[minmax(0,1fr)]'
-                : 'lg:grid-cols-[minmax(0,1fr)]',
+              'lg:grid-cols-[minmax(0,1fr)]',
             )}
           >
             <section
@@ -9443,9 +9409,7 @@ const requestAssemblyAITranscription = React.useCallback(async (): Promise<boole
               <div
                 className={cn(
                   'flex min-h-0 flex-1 flex-col',
-                  activeWorkspaceTab === 'Motion'
-                    ? 'overflow-hidden px-0 py-0'
-                    : activeWorkspaceTab === 'Music'
+                  activeWorkspaceTab === 'Music'
                       ? 'overflow-hidden px-4 py-4'
                     : 'overflow-y-auto overscroll-contain bg-black py-3',
                   activeWorkspaceTab === 'Editor' && 'px-4 gap-6 justify-center',
@@ -9533,6 +9497,13 @@ const requestAssemblyAITranscription = React.useCallback(async (): Promise<boole
 
                 {activeWorkspaceTab === 'Editor' && (
                   <>
+                    <div className="grid w-full min-h-0 gap-4 lg:grid-cols-[minmax(15rem,20rem)_minmax(0,1fr)] lg:items-stretch">
+                    <EditorialTranscript
+                      segments={buildEditorialTranscript(job)}
+                      currentTimeSec={previewCurrentTimeSec}
+                      onSeek={handlePreviewSeekSeconds}
+                    />
+
                     <PreviewCanvas
                       projectId={projectId}
                       project={project}
@@ -9581,6 +9552,7 @@ const requestAssemblyAITranscription = React.useCallback(async (): Promise<boole
                       onPreviewVideoPause={handlePreviewVideoPause}
                       onPreviewVideoError={handlePreviewVideoError}
                       onTogglePreviewPlayback={togglePreviewPlayback}
+                      onSeekPreview={handlePreviewSeekSeconds}
                       onSetIsPreviewBriefGenerating={setIsPreviewBriefGenerating}
                       onSetShowPreviewFeedback={setShowPreviewFeedback}
                       onSetInlinePreviewStatusHovered={setInlinePreviewStatusHovered}
@@ -9589,6 +9561,7 @@ const requestAssemblyAITranscription = React.useCallback(async (): Promise<boole
                       onInlineSourceDragLeave={handleInlineSourceDragLeave}
                       onInlineSourceDrop={handleInlineSourceDrop}
                     />
+                    </div>
 
                     <TimelinePanel
                       activeWorkspaceTab={activeWorkspaceTab}

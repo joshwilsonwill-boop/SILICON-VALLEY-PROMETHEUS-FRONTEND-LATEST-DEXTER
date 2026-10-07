@@ -86,7 +86,6 @@ export type MiniRunLongformClip = {
   outputUrl?: string
   r2Key?: string | null
   chunkCount?: number
-  progressPercent?: number
   stageTimingsMs?: Record<string, number>
 }
 

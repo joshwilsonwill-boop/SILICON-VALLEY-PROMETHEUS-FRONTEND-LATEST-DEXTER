@@ -15,9 +15,8 @@ export const MUSIC_RECOMMENDATION_LIMIT = 8
 export const EDITOR_REQUEST_TIMEOUT_MS = 25_000
 
 export const HEADER_NAV_ITEMS = [
-  { name: 'Motion', icon: 'zap' },
+  { name: 'Editor', icon: 'film' },
   { name: 'Music', icon: 'music' },
-  { name: 'Output', icon: 'export' },
 ]
 
 export const LEFT_TABS = [

@@ -120,7 +120,7 @@ export function useEditorState(): EditorState {
   const [saveStatus, setSaveStatus] = React.useState<'saved' | 'saving' | 'error'>('saved')
   const [isEditorBootReady, setIsEditorBootReady] = React.useState(false)
   const [leftTab, setLeftTab] = React.useState<LeftTabKey>('chat')
-  const [activeWorkspaceTab, setActiveWorkspaceTab] = React.useState<HeaderNavMode>('Motion')
+  const [activeWorkspaceTab, setActiveWorkspaceTab] = React.useState<HeaderNavMode>('Editor')
   const [bottomMode, setBottomMode] = React.useState<BottomMode>('Original')
   const [isEditingTitle, setIsEditingTitle] = React.useState(false)
   const [tempTitle, setTempTitle] = React.useState('')
@@ -331,7 +331,7 @@ export function useEditorState(): EditorState {
 
   // Handlers
   const handleWorkspaceTabChange = React.useCallback((name: string) => {
-    if (name !== 'Motion' && name !== 'Music' && name !== 'Editor') return
+    if (name !== 'Music' && name !== 'Editor') return
     setActiveWorkspaceTab(name as HeaderNavMode)
     if (name === 'Music') {
       setBottomMode('Music')
@@ -397,7 +397,7 @@ export function useEditorState(): EditorState {
     setIsAiLampOpen(false)
     setIsLeftPanelCollapsed(false)
     setLeftTab('chat')
-    setActiveWorkspaceTab('Motion')
+    setActiveWorkspaceTab('Editor')
     setBottomMode('Original')
   }, [])
 

@@ -14,7 +14,7 @@ This describes the current voice companion and editor bridge. A tool existing in
 | Music | Search uses the connected catalog. Preview means browser playback started; selection means the track was staged and saved. Staging switches to Motion. Neither result means a rendered file contains the music. |
 | Editorial plan | The configured Gemini Live model chooses when to invoke the edit tool; a local heuristic then selects a caption preset and restrained transcript-timed camera moves, saves them to the project timeline, and opens Motion. This is not a separate server-side Flash planning call or a final render. No music is selected automatically. |
 | Video thumbnails | Voice Jarvis checks that playable video exists, inspects sampled frames, uses transcript context to choose a truthful headline and creative direction, then opens Thumbnail Studio and starts generation. Studio uses the configured image provider and displays the generated result; generation failures must be reported from the Studio status. |
-| Export entry points | Jarvis can open export/review interfaces. The current export proof copies the source video and is explicitly labeled as a source copy; it does not render timeline edits. |
+| Export entry points | Chat and Jarvis now share an authenticated VINCERE Mini-Run submission path. The job row is tracked in project export history and the editor can consume its MP4 receipt. This is a source-based Mini-Run, not a render of the editor's saved timeline. The gateway changes still need deployment and a receipt check before this is a live capability. |
 
 ## Fixed in the reliability work
 
@@ -31,9 +31,9 @@ This describes the current voice companion and editor bridge. A tool existing in
 
 | Gap | What is needed |
 | --- | --- |
-| Final edited render | A render queue and worker exist in the separate VINCERE backend, but this editor does not submit its saved timeline to that queue or receive a durable edited artifact. The worker manifest/render path must be mapped to editor cuts, captions, movement, soundtrack, aspect ratio, and source storage before it can be presented as this editor's final export. |
-| Render lifecycle and delivery | Queue status, progress, completion/failure, output validation, and a download link for an edited render must be connected before Jarvis can deliver a finished file. |
-| Music embedded in final output | Timeline selection and preview work, but no connected final renderer mixes the soundtrack into an output video. |
+| Final edited render | The Mini-Run worker still builds its own source-based plan. The worker manifest/render path must be mapped to editor cuts, captions, movement, soundtrack, aspect ratio, and source storage before its output can be presented as this editor's final edited export. |
+| Render lifecycle and delivery | The frontend now records Mini-Run jobs, polls worker status/progress, and routes completed output through an authenticated MP4 handoff. Production deployment and an actual receipt/output check remain outstanding. |
+| Music embedded in editor output | Timeline selection and preview work, but the current Mini-Run request does not pass the selected editor soundtrack or effects into its audio mix. |
 | Full editorial plan | LUT/color changes, sourced b-roll, and generated effects are not applied by the voice plan. Only caption style and timed movement cues are supported there. |
 | Model-backed editorial planning | The live model selects and explains the tool action, but the plan itself is still heuristic code. A server-side Flash planner should return a validated, evidence-linked plan before the product describes it as model-generated. |
 | Thumbnail generation receipt | Voice Jarvis can start thumbnail generation through the editor, but does not yet receive the completed image or final provider status as a tool result. It must not tell the user the thumbnail is ready until the Studio visibly confirms success. |

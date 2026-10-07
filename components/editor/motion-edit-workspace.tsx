@@ -1069,12 +1069,6 @@ export function MotionEditWorkspace({
                 aria-hidden={headerCollapseProgress >= 1}
                 inert={headerCollapseProgress >= 1}
               >
-                <div className="mr-2 hidden min-w-0 sm:block">
-                  <div className="text-[15px] font-semibold tracking-[-0.02em] text-white">Motion Studio</div>
-                  <div className="max-w-[220px] truncate text-[10px] uppercase tracking-[0.16em] text-white/38">{projectTitle}</div>
-                </div>
-                <span className="rounded border border-white/10 px-2 py-1 text-[11px] tabular-nums text-white/70">{safeAspectRatio.toFixed(2)}:1</span>
-                <button type="button" onClick={() => onFitModeChange(fitMode === 'fill' ? 'fit' : 'fill')} className="inline-flex min-h-9 items-center gap-1.5 rounded px-1.5 transition-colors hover:bg-white/[0.06] hover:text-white"><Maximize2 className="size-3.5" /> {fitMode === 'fill' ? 'Fill frame' : 'Fit frame'}</button>
                 {selectedMusicTrack ? (
                   <button
                     type="button"

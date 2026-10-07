@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { motion } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
 import { ArrowDownToLine, Check, Film, LoaderCircle, Plus, RefreshCw, Type } from 'lucide-react'
 import type { ProjectExport } from '@/lib/types'
 import type { EditorialCue } from '@/lib/editor/editorial-timeline-state'
@@ -61,6 +61,7 @@ export function EditorialDeliveryStudio({
   durationSec: number
 }) {
   const editorial = useEditorialTimeline()
+  const prefersReducedMotion = useReducedMotion()
   const [records, setRecords] = React.useState<ProjectExport[]>([])
   const [selectedId, setSelectedId] = React.useState<string | null>(null)
   const [selectedCueId, setSelectedCueId] = React.useState<string | null>(null)
@@ -220,7 +221,9 @@ export function EditorialDeliveryStudio({
         >
           <div className="h-px overflow-hidden bg-white/20">
             {pendingProgress === null
-              ? <motion.div className="h-full w-1/3 bg-[#b4fb60]" initial={{x: '-100%'}} animate={{x: '300%'}} transition={{duration: 1.4, ease: 'linear', repeat: Infinity}} />
+              ? prefersReducedMotion
+                ? <div className="h-full w-1/3 bg-[#b4fb60]" />
+                : <motion.div className="h-full w-1/3 bg-[#b4fb60]" initial={{x: '-100%'}} animate={{x: '300%'}} transition={{duration: 1.4, ease: 'linear', repeat: Infinity}} />
               : <div className="h-full bg-[#b4fb60] transition-[width] duration-500" style={{width: `${pendingProgress}%`}} />}
           </div>
           <p className="mt-1 text-[10px] text-white/40">{pendingProgress === null ? 'The renderer has not reported a percentage yet.' : `${pendingProgress}% complete`}</p>

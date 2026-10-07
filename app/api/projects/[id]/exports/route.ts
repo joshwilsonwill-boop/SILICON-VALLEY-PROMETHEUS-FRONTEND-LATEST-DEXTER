@@ -36,6 +36,10 @@ export async function POST(request: Request, {params}: RouteContext) {
     .eq('id', sourceAssetId).eq('project_id', projectId).eq('user_id', user.id).maybeSingle()
   if (assetError || !asset?.storage_path) return NextResponse.json({error: 'Project source video is unavailable.'}, {status: 404})
 
+  const currentRevision = typeof timeline.revision === 'number' ? timeline.revision : 0
+  const activeExport = await ExportService.findActiveProjectExport(projectId, sourceAssetId, currentRevision)
+  if (activeExport) return NextResponse.json({export: activeExport}, {status: 202, headers: {'Cache-Control': 'no-store'}})
+
   const miniRunJobId = crypto.randomUUID()
   let projectExport
   try {
@@ -45,7 +49,7 @@ export async function POST(request: Request, {params}: RouteContext) {
         sourceAssetId,
         outputKind: 'mini-run',
         miniRunJobId,
-        editorialRevision: typeof timeline.revision === 'number' ? timeline.revision : 0,
+        editorialRevision: currentRevision,
         timelineApplied: false,
         canvas: '1080x1920',
       },
@@ -61,7 +65,7 @@ export async function POST(request: Request, {params}: RouteContext) {
         width: asset.width ?? undefined,
         height: asset.height ?? undefined,
         jobId: miniRunJobId,
-        editorialRevision: typeof timeline.revision === 'number' ? timeline.revision : undefined,
+        editorialRevision: currentRevision,
         songPolicy: 'auto',
       },
       env: {

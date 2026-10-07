@@ -10,6 +10,19 @@ export interface ExportOptions {
 }
 
 export const ExportService = {
+  async findActiveProjectExport(projectId: string, sourceAssetId: string, editorialRevision: number): Promise<ProjectExport | null> {
+    const supabase = await createClient()
+    const {data: {user}} = await supabase.auth.getUser()
+    if (!user) throw new Error('Unauthorized')
+    const {data, error} = await supabase.from('project_exports').select('*')
+      .eq('project_id', projectId).eq('user_id', user.id)
+      .in('status', ['pending', 'processing'])
+      .contains('metadata', {sourceAssetId, editorialRevision, outputKind: 'mini-run'})
+      .order('created_at', {ascending: false}).limit(1).maybeSingle()
+    if (error) throw error
+    return data ? mapProjectExportFromDb(data) : null
+  },
+
   async createProjectExport(projectId: string, options: ExportOptions = {}): Promise<ProjectExport> {
     const supabase = await createClient()
     const {data: {user}} = await supabase.auth.getUser()
