@@ -7,53 +7,27 @@ import type { LucideIcon } from 'lucide-react'
 import {
   Bell,
   ChevronRight,
-  CircleHelp,
   Cloud,
   Cookie,
-  CreditCard,
   Eye,
   LayoutTemplate,
-  Link2,
   LogOut,
   Palette,
   ShieldCheck,
   SlidersHorizontal,
-  UserRound,
   UsersRound,
 } from 'lucide-react'
 
 import { useAuth } from '@/components/auth/auth-provider'
 import { InlineLoadingAnimation } from '@/components/loading-animation'
-import { PrometheusShell } from '@/components/prometheus-shell'
 import { CookieSettingsButton } from '@/components/cookie-consent/cookie-settings-button'
 import { StorageIntegrationsPanel } from '@/components/settings/storage-integrations-panel'
+import { isSettingsPanel, SettingsFrame, settingsPanelTitle, type SettingsPanel } from '@/components/settings/settings-frame'
 import { ColorModeSelector } from '@/components/theme/color-mode-selector'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { getProfileDisplayName, useProfile } from '@/hooks/use-profile'
 import { cn } from '@/lib/utils'
-
-type SettingsPanel = 'profile' | 'notifications' | 'appearance' | 'workspace' | 'integrations' | 'billing' | 'security'
-
-type SettingsNavItem = {
-  id: SettingsPanel
-  label: string
-  icon: LucideIcon
-}
-
-const accountItems: SettingsNavItem[] = [
-  { id: 'profile', label: 'Profile', icon: UserRound },
-  { id: 'notifications', label: 'Notifications', icon: Bell },
-  { id: 'appearance', label: 'Appearance', icon: Palette },
-]
-
-const workspaceItems: SettingsNavItem[] = [
-  { id: 'workspace', label: 'Workspace', icon: UsersRound },
-  { id: 'integrations', label: 'Integrations', icon: Link2 },
-  { id: 'billing', label: 'Billing & access', icon: CreditCard },
-]
-
-const securityItems: SettingsNavItem[] = [{ id: 'security', label: 'Privacy & security', icon: ShieldCheck }]
 
 export default function SettingsPage() {
   const router = useRouter()
@@ -67,8 +41,7 @@ export default function SettingsPage() {
 
   React.useEffect(() => {
     const panel = new URLSearchParams(window.location.search).get('panel')
-    const item = [...accountItems, ...workspaceItems, ...securityItems].find(({ id }) => id === panel)
-    if (item) setActivePanel(item.id)
+    if (isSettingsPanel(panel)) setActivePanel(panel)
   }, [])
 
   function handlePanelChange(panel: SettingsPanel) {
@@ -101,196 +74,117 @@ export default function SettingsPage() {
   }
 
   return (
-    <PrometheusShell
-      rootClassName="relative flex h-full min-h-0 w-full flex-col overflow-hidden bg-[#050505] font-sans text-white"
-      mainClassName="relative z-auto h-full overflow-y-auto overflow-x-hidden overscroll-contain bg-[#050505]"
+    <SettingsFrame
+      activePanel={activePanel}
+      title={settingsPanelTitle(activePanel)}
+      onPanelChange={handlePanelChange}
+      onBack={() => router.push('/studio')}
+      backLabel="Return to studio"
     >
-      <div className="min-h-full bg-[#050505] px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
-        <div className="mx-auto max-w-[1440px] overflow-hidden border border-white/[0.09] bg-[#090909] shadow-[0_28px_90px_-48px_rgba(0,0,0,0.95)] md:grid md:min-h-[760px] md:grid-cols-[256px_minmax(0,1fr)]">
-          <aside className="border-b border-white/[0.08] bg-[#070707] md:border-b-0 md:border-r">
-            <div className="flex items-center gap-3 border-b border-white/[0.08] px-4 py-4 lg:px-5">
-              <button
-                type="button"
-                onClick={() => router.push('/studio')}
-                className="grid size-9 shrink-0 place-items-center border border-white/[0.1] text-white/62 transition-colors hover:border-white/25 hover:bg-white/[0.06] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
-                aria-label="Return to studio"
-                title="Return to studio"
-              >
-                <ChevronRight className="size-4 rotate-180" aria-hidden="true" />
-              </button>
-              <div className="min-w-0">
-                <p className="text-xs font-medium uppercase tracking-[0.14em] text-white/42">Settings</p>
-                <p className="truncate text-sm font-medium text-white/88">My account</p>
-              </div>
+      {activePanel === 'profile' ? (
+        <ProfilePanel
+          avatarUrl={profile?.avatar_url}
+          displayName={profileLoading ? 'Loading account' : displayName}
+          email={email}
+          initials={initials || 'P'}
+          location={profile?.location}
+          pronouns={profile?.pronouns}
+          username={username}
+        />
+      ) : null}
+
+      {activePanel === 'notifications' ? (
+        <SettingsSurface title="Notifications" subtitle="Choose which account updates reach you.">
+          <SettingToggle
+            label="Processing completion"
+            description="Notify me when edits are ready."
+            checked={notifications}
+            onCheckedChange={setNotifications}
+          />
+          <SettingToggle
+            label="Reduced motion"
+            description="Limit non-essential interface animation."
+            checked={reducedMotion}
+            onCheckedChange={setReducedMotion}
+          />
+          <Link href="/settings/profile" className="mt-2 inline-flex items-center gap-2 text-sm font-medium text-white/68 transition-colors hover:text-white">
+            Notification preferences <ChevronRight className="size-4" aria-hidden="true" />
+          </Link>
+        </SettingsSurface>
+      ) : null}
+
+      {activePanel === 'appearance' ? (
+        <SettingsSurface title="Appearance" subtitle="Use your saved preferences across the workspace.">
+          <div className="mb-5 border-b border-white/[0.08] pb-5">
+            <p className="text-sm font-medium text-white/88">Color mode</p>
+            <p className="mb-3 mt-1 text-sm text-white/48">Choose a dark or light workspace.</p>
+            <ColorModeSelector />
+            <p className="mt-3 text-xs text-white/48">Saved in this browser when preference cookies are enabled.</p>
+          </div>
+          <div className="grid gap-3 @md/settings:grid-cols-2">
+            <PreferenceLink icon={Palette} label="Theme & accent" href="/settings/profile" />
+            <PreferenceLink icon={LayoutTemplate} label="Display preferences" href="/settings/profile" />
+          </div>
+        </SettingsSurface>
+      ) : null}
+
+      {activePanel === 'workspace' ? (
+        <SettingsSurface title="Workspace" subtitle="Manage the people and defaults behind your projects.">
+          <div className="grid gap-3 @md/settings:grid-cols-2">
+            <PreferenceLink icon={UsersRound} label="Team workspace" href="/team" />
+            <PreferenceLink icon={SlidersHorizontal} label="Editor preferences" href="/settings/profile" />
+          </div>
+        </SettingsSurface>
+      ) : null}
+
+      {activePanel === 'integrations' ? (
+        <SettingsSurface title="Integrations" subtitle="Connect storage and publishing accounts.">
+          <StorageIntegrationsPanel />
+          <PreferenceLink className="mt-3" icon={Cloud} label="Social accounts" href="/settings/social-accounts" />
+        </SettingsSurface>
+      ) : null}
+
+      {activePanel === 'billing' ? (
+        <SettingsSurface title="Billing & access" subtitle="Review your plan and manage workspace access.">
+          <div className="flex flex-col gap-4 border border-white/[0.09] bg-white/[0.025] p-4 @md/settings:flex-row @md/settings:items-center @md/settings:justify-between">
+            <div>
+              <p className="text-sm font-medium text-white/88">Workspace subscription</p>
+              <p className="mt-1 text-sm text-white/48">Plans, invoices, and editing access.</p>
             </div>
+            <Button asChild className="rounded-none bg-white px-4 text-black hover:bg-white/85">
+              <Link href="/settings/billing">Open billing</Link>
+            </Button>
+          </div>
+        </SettingsSurface>
+      ) : null}
 
-            <nav className="space-y-6 p-4" aria-label="Settings navigation">
-              <SettingsNavSection label="Account" items={accountItems} activePanel={activePanel} onChange={handlePanelChange} />
-              <SettingsNavSection label="Workspace" items={workspaceItems} activePanel={activePanel} onChange={handlePanelChange} />
-              <SettingsNavSection label="Security" items={securityItems} activePanel={activePanel} onChange={handlePanelChange} />
-            </nav>
-          </aside>
-
-          <section className="min-w-0">
-            <header className="flex min-h-16 items-center justify-between gap-4 border-b border-white/[0.08] px-5 py-4 sm:px-7">
-              <div className="min-w-0">
-                <p className="text-xs font-medium uppercase tracking-[0.14em] text-white/42">My account</p>
-                <h1 className="mt-1 truncate text-lg font-semibold text-white/94">{panelTitle(activePanel)}</h1>
-              </div>
-              <div className="flex shrink-0 items-center gap-2 text-xs text-white/46">
-                <CircleHelp className="size-4" aria-hidden="true" />
-                <span className="hidden sm:inline">Account settings</span>
-              </div>
-            </header>
-
-            <div className="px-5 py-7 sm:px-7 sm:py-9 lg:px-10">
-              {activePanel === 'profile' ? (
-                <ProfilePanel
-                  avatarUrl={profile?.avatar_url}
-                  displayName={profileLoading ? 'Loading account' : displayName}
-                  email={email}
-                  initials={initials || 'P'}
-                  location={profile?.location}
-                  pronouns={profile?.pronouns}
-                  username={username}
-                />
-              ) : null}
-
-              {activePanel === 'notifications' ? (
-                <SettingsSurface title="Notifications" subtitle="Choose which account updates reach you.">
-                  <SettingToggle
-                    label="Processing completion"
-                    description="Notify me when edits are ready."
-                    checked={notifications}
-                    onCheckedChange={setNotifications}
-                  />
-                  <SettingToggle
-                    label="Reduced motion"
-                    description="Limit non-essential interface animation."
-                    checked={reducedMotion}
-                    onCheckedChange={setReducedMotion}
-                  />
-                  <Link href="/settings/profile" className="mt-2 inline-flex items-center gap-2 text-sm font-medium text-white/68 transition-colors hover:text-white">
-                    Notification preferences <ChevronRight className="size-4" aria-hidden="true" />
-                  </Link>
-                </SettingsSurface>
-              ) : null}
-
-              {activePanel === 'appearance' ? (
-                <SettingsSurface title="Appearance" subtitle="Use your saved preferences across the workspace.">
-                  <div className="mb-5 border-b border-white/[0.08] pb-5">
-                    <p className="text-sm font-medium text-white/88">Color mode</p>
-                    <p className="mb-3 mt-1 text-sm text-white/48">Choose a dark or light workspace.</p>
-                    <ColorModeSelector />
-                    <p className="mt-3 text-xs text-white/48">Saved in this browser when preference cookies are enabled.</p>
-                  </div>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <PreferenceLink icon={Palette} label="Theme & accent" href="/settings/profile" />
-                    <PreferenceLink icon={LayoutTemplate} label="Display preferences" href="/settings/profile" />
-                  </div>
-                </SettingsSurface>
-              ) : null}
-
-              {activePanel === 'workspace' ? (
-                <SettingsSurface title="Workspace" subtitle="Manage the people and defaults behind your projects.">
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <PreferenceLink icon={UsersRound} label="Team workspace" href="/team" />
-                    <PreferenceLink icon={SlidersHorizontal} label="Editor preferences" href="/settings/profile" />
-                  </div>
-                </SettingsSurface>
-              ) : null}
-
-              {activePanel === 'integrations' ? (
-                <SettingsSurface title="Integrations" subtitle="Connect storage and publishing accounts.">
-                  <StorageIntegrationsPanel />
-                  <PreferenceLink className="mt-3" icon={Cloud} label="Social accounts" href="/settings/social-accounts" />
-                </SettingsSurface>
-              ) : null}
-
-              {activePanel === 'billing' ? (
-                <SettingsSurface title="Billing & access" subtitle="Review your plan and manage workspace access.">
-                  <div className="flex flex-col gap-4 border border-white/[0.09] bg-white/[0.025] p-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-white/88">Workspace subscription</p>
-                      <p className="mt-1 text-sm text-white/48">Plans, invoices, and editing access.</p>
-                    </div>
-                    <Button asChild className="rounded-none bg-white px-4 text-black hover:bg-white/85">
-                      <Link href="/settings/billing">Open billing</Link>
-                    </Button>
-                  </div>
-                </SettingsSurface>
-              ) : null}
-
-              {activePanel === 'security' ? (
-                <SettingsSurface title="Privacy & security" subtitle="Keep your account and workspace protected.">
-                  <div className="space-y-3">
-                    <PreferenceLink icon={ShieldCheck} label="Password, sessions & API access" href="/settings/profile" />
-                    <CookieSettingsButton className="flex w-full items-center justify-between gap-3 border border-white/[0.09] bg-white/[0.025] p-4 text-left text-sm font-medium text-white/82 transition-colors hover:border-white/[0.18] hover:bg-white/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40">
-                      <span className="flex items-center gap-3"><Cookie className="size-4 text-white/52" aria-hidden="true" />Cookie preferences</span>
-                      <ChevronRight className="size-4 text-white/42" aria-hidden="true" />
-                    </CookieSettingsButton>
-                    <SettingToggle
-                      label="Safe mode"
-                      description="Use conservative pacing and captioning defaults."
-                      checked={safeMode}
-                      onCheckedChange={setSafeMode}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => void handleSignOut()}
-                      disabled={signingOut}
-                      className="flex w-full items-center justify-between gap-3 border border-red-400/20 bg-red-400/[0.04] p-4 text-left text-sm font-medium text-red-100 transition-colors hover:bg-red-400/[0.09] disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-200/50"
-                    >
-                      <span className="flex items-center gap-3"><LogOut className="size-4" aria-hidden="true" />Sign out of this account</span>
-                      {signingOut ? <InlineLoadingAnimation size={16} label="Signing out" /> : <ChevronRight className="size-4" aria-hidden="true" />}
-                    </button>
-                  </div>
-                </SettingsSurface>
-              ) : null}
-            </div>
-          </section>
-        </div>
-      </div>
-    </PrometheusShell>
-  )
-}
-
-function SettingsNavSection({
-  label,
-  items,
-  activePanel,
-  onChange,
-}: {
-  label: string
-  items: SettingsNavItem[]
-  activePanel: SettingsPanel
-  onChange: (panel: SettingsPanel) => void
-}) {
-  return (
-    <div className="space-y-1">
-      <p className="px-2 pb-1 text-[11px] font-medium uppercase tracking-[0.14em] text-white/35">{label}</p>
-      {items.map(({ id, label: itemLabel, icon: Icon }) => {
-        const active = activePanel === id
-
-        return (
-          <button
-            key={id}
-            type="button"
-            onClick={() => onChange(id)}
-            className={cn(
-              'flex h-10 w-full items-center gap-2 border px-3 text-sm font-medium whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40',
-              active
-                ? 'border-white/[0.12] bg-white/[0.09] text-white'
-                : 'border-transparent text-white/52 hover:border-white/[0.08] hover:bg-white/[0.04] hover:text-white/82',
-            )}
-            aria-current={active ? 'page' : undefined}
-          >
-            <Icon className="size-4 shrink-0" aria-hidden="true" />
-            {itemLabel}
-          </button>
-        )
-      })}
-    </div>
+      {activePanel === 'security' ? (
+        <SettingsSurface title="Privacy & security" subtitle="Keep your account and workspace protected.">
+          <div className="space-y-3">
+            <PreferenceLink icon={ShieldCheck} label="Password, sessions & API access" href="/settings/profile" />
+            <CookieSettingsButton className="flex w-full items-center justify-between gap-3 border border-white/[0.09] bg-white/[0.025] p-4 text-left text-sm font-medium text-white/82 transition-colors hover:border-white/[0.18] hover:bg-white/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40">
+              <span className="flex items-center gap-3"><Cookie className="size-4 text-white/52" aria-hidden="true" />Cookie preferences</span>
+              <ChevronRight className="size-4 text-white/42" aria-hidden="true" />
+            </CookieSettingsButton>
+            <SettingToggle
+              label="Safe mode"
+              description="Use conservative pacing and captioning defaults."
+              checked={safeMode}
+              onCheckedChange={setSafeMode}
+            />
+            <button
+              type="button"
+              onClick={() => void handleSignOut()}
+              disabled={signingOut}
+              className="flex w-full items-center justify-between gap-3 border border-red-400/20 bg-red-400/[0.04] p-4 text-left text-sm font-medium text-red-100 transition-colors hover:bg-red-400/[0.09] disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-200/50"
+            >
+              <span className="flex items-center gap-3"><LogOut className="size-4" aria-hidden="true" />Sign out of this account</span>
+              {signingOut ? <InlineLoadingAnimation size={16} label="Signing out" /> : <ChevronRight className="size-4" aria-hidden="true" />}
+            </button>
+          </div>
+        </SettingsSurface>
+      ) : null}
+    </SettingsFrame>
   )
 }
 
@@ -314,7 +208,7 @@ function ProfilePanel({
   return (
     <div className="mx-auto max-w-3xl">
       <div className="border-b border-white/[0.08] pb-7">
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-5 @md/settings:flex-row @md/settings:items-center @md/settings:justify-between">
           <div className="flex min-w-0 items-center gap-4">
             <div className="grid size-20 shrink-0 place-items-center overflow-hidden border border-white/[0.13] bg-white/[0.08] text-xl font-semibold text-white">
               {avatarUrl ? (
@@ -353,7 +247,7 @@ function ProfilePanel({
         </dl>
       </div>
 
-      <div className="mt-5 grid gap-3 sm:grid-cols-2">
+      <div className="mt-5 grid gap-3 @md/settings:grid-cols-2">
         <PreferenceLink icon={ShieldCheck} label="Security settings" href="/settings/profile" />
         <PreferenceLink icon={Bell} label="Notification preferences" href="/settings/profile" />
       </div>
@@ -363,7 +257,7 @@ function ProfilePanel({
 
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="grid gap-1 px-4 py-3.5 sm:grid-cols-[150px_minmax(0,1fr)] sm:gap-6 sm:px-5">
+    <div className="grid gap-1 px-4 py-3.5 @md/settings:grid-cols-[150px_minmax(0,1fr)] @md/settings:gap-6 sm:px-5">
       <dt className="text-xs font-medium text-white/42">{label}</dt>
       <dd className="min-w-0 truncate text-sm text-white/84" title={value}>{value}</dd>
     </div>
@@ -427,8 +321,4 @@ function PreferenceLink({
       <ChevronRight className="size-4 shrink-0 text-white/42" aria-hidden="true" />
     </Link>
   )
-}
-
-function panelTitle(panel: SettingsPanel) {
-  return panel === 'billing' ? 'Billing & access' : panel === 'security' ? 'Privacy & security' : panel.charAt(0).toUpperCase() + panel.slice(1)
 }

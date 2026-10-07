@@ -666,7 +666,7 @@ export default function ProfileSettingsPage() {
       <div className="space-y-5">
             <ProfileCard>
               <SectionTitle title="Account Info" />
-              <div className="flex flex-col gap-6 sm:flex-row">
+              <div className="flex flex-col gap-6 @xl/settings:flex-row">
                 <div className="flex shrink-0 flex-col items-start gap-3">
                   <button
                     type="button"
@@ -709,7 +709,7 @@ export default function ProfileSettingsPage() {
 
                 <div className="min-w-0 flex-1 space-y-5">
                   <FieldRow label="Username" description="Use letters, numbers, dots, dashes, or underscores." error={errors.username?.message}>
-                    <div className="flex flex-col gap-2 sm:flex-row">
+                    <div className="flex flex-col gap-2 @xl/settings:flex-row">
                       <Input
                         {...register('username')}
                         className="h-10 rounded-[14px] border-white/16 bg-white/[0.06] text-white/90 focus:border-[#38BDF8]/70 focus:ring-[#38BDF8]/20"
@@ -745,7 +745,7 @@ export default function ProfileSettingsPage() {
                     description="Use letters, numbers, spaces, dots, apostrophes, or hyphens. Separate from username."
                     error={errors.displayName?.message}
                   >
-                    <div className="flex flex-col gap-2 sm:flex-row">
+                    <div className="flex flex-col gap-2 @xl/settings:flex-row">
                       <Input
                         {...register('displayName')}
                                         className="h-10 rounded-[14px] border-white/16 bg-white/[0.06] text-white/90 focus:border-[#38BDF8]/70 focus:ring-[#38BDF8]/20"
@@ -786,7 +786,7 @@ export default function ProfileSettingsPage() {
                     </div>
                   </FieldRow>
 
-                  <div className="grid gap-5 sm:grid-cols-2">
+                  <div className="grid gap-5 @xl/settings:grid-cols-2">
                     <FieldRow label="Pronouns" error={errors.pronouns?.message}>
                       <div className="space-y-2">
                         <SelectField
@@ -915,7 +915,7 @@ export default function ProfileSettingsPage() {
                   </div>
                 </PreferenceBlock>
 
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-4 @xl/settings:grid-cols-2">
                   <PreferenceBlock label="Default Export Quality" saving={savingPreference === 'export'}>
                     <SelectField
                       value={defaultExportQuality}
@@ -1006,7 +1006,7 @@ export default function ProfileSettingsPage() {
             <ProfileCard>
               <SectionTitle title="Data & Privacy" withDivider />
               <div className="space-y-4">
-                <div className="flex flex-col gap-3 rounded-[18px] border border-white/10 bg-white/[0.03] p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-col gap-3 rounded-[18px] border border-white/10 bg-white/[0.03] p-4 @xl/settings:flex-row @xl/settings:items-center @xl/settings:justify-between">
                   <div>
                     <div className="text-sm font-medium text-white">Data Export</div>
                     <div className="mt-1 text-xs leading-5 text-white/42">Download a ZIP of all your project metadata and settings.</div>
@@ -1127,7 +1127,7 @@ function PreferenceBlock({
 
 function ThemeSelector({ onChange, value }: { onChange: (value: ThemeValue) => void; value: ThemeValue }) {
   return (
-    <div className="grid gap-3 sm:grid-cols-3">
+    <div className="grid gap-3 @xl/settings:grid-cols-3">
       {THEME_OPTIONS.map((option) => {
         const selected = value === option.value
         return (
@@ -1192,7 +1192,7 @@ function ThemeSelector({ onChange, value }: { onChange: (value: ThemeValue) => v
 
 function FontSelector({ onChange, value }: { onChange: (value: FontValue) => void; value: FontValue }) {
   return (
-    <div className="grid gap-3 sm:grid-cols-2">
+    <div className="grid gap-3 @xl/settings:grid-cols-2">
       {FONT_OPTIONS.map((option) => {
         const selected = value === option.value
         return (
@@ -1358,7 +1358,7 @@ function SecurityRow({
   value: React.ReactNode
 }) {
   return (
-    <div className="flex flex-col gap-3 rounded-[18px] border border-white/10 bg-white/[0.03] p-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-col gap-3 rounded-[18px] border border-white/10 bg-white/[0.03] p-4 @xl/settings:flex-row @xl/settings:items-center @xl/settings:justify-between">
       <div className="flex min-w-0 items-center gap-3">
         <div className="flex size-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.05] text-white/54">
           <Icon className="size-4" />

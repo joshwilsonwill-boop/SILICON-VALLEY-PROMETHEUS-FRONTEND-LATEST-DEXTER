@@ -58,6 +58,7 @@ function createNavigation(initialUrl = '/settings', historyState = { __NA: true 
       }
     },
     useCallback: (callback) => callback,
+    useRef: (value) => ({ current: value }),
   }
   const mocks = {
     react,
@@ -93,15 +94,16 @@ function createNavigation(initialUrl = '/settings', historyState = { __NA: true 
       compilerOptions: { jsx: ts.JsxEmit.ReactJSX, module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true },
     })
     assert.deepEqual(compiled.diagnostics, [], `${relativePath} must parse successfully`)
-    const module = { exports: {} }
-    cache.set(relativePath, module.exports)
+    const vmModule = { exports: {} }
+    cache.set(relativePath, vmModule.exports)
     runInNewContext(compiled.outputText, {
-      module,
-      exports: module.exports,
+      module: vmModule,
+      exports: vmModule.exports,
       require: (id) => {
         if (id in mocks) return mocks[id]
         if (id === '@/components/page-header') return load('components/page-header.tsx')
         if (id === '@/components/navigation/BackButton') return load('components/navigation/BackButton.tsx')
+        if (id === '@/components/settings/settings-frame') return load('components/settings/settings-frame.tsx')
         throw new Error(`Unexpected dependency: ${id}`)
       },
       URL,
@@ -111,7 +113,7 @@ function createNavigation(initialUrl = '/settings', historyState = { __NA: true 
         history: { state: historyState, replaceState: (_, __, href) => navigate(href, true) },
       },
     }, { filename: relativePath })
-    return module.exports
+    return vmModule.exports
   }
 
   function expand(node) {
@@ -128,8 +130,13 @@ function createNavigation(initialUrl = '/settings', historyState = { __NA: true 
       hookIndex = 0
       effects = []
       stateChanged = false
+      const detailPage = pathname().startsWith('/settings/')
       const page = pathname() === '/team' ? 'app/team/page.tsx' : 'app/settings/page.tsx'
-      tree = expand(element(load(page).default))
+      tree = expand(detailPage
+        ? element(load('components/settings/settings-detail-shell.tsx').SettingsDetailShell, {
+          title: 'Account details', description: 'Manage account details.', children: element('editor-content'),
+        })
+        : element(load(page).default))
       for (const effect of effects) effect()
       if (!stateChanged) return tree
     }
@@ -152,7 +159,15 @@ function createNavigation(initialUrl = '/settings', historyState = { __NA: true 
       button.props.onClick()
     },
     assertPanel(label) {
-      assert.ok(find((node) => node.type === 'button' && textContent(node) === label && node.props['aria-current'] === 'page'), `${label} must be the selected settings panel after returning from Team`)
+      assert.ok(find((node) => ['button', 'a'].includes(node.type) && textContent(node) === label && node.props['aria-current'] === 'page'), `${label} must be the selected settings panel`)
+    },
+    openPanelFromDetail(label) {
+      const link = find((node) => node.type === 'a' && textContent(node) === label)
+      assert.ok(link, `Detail pages must expose the ${label} settings panel`)
+      router.push(link.props.href)
+    },
+    assertDetailContent() {
+      assert.ok(find((node) => node.type === 'editor-content'), 'The restored shell must retain the account editor')
     },
     openTeam() {
       const link = find((node) => node.type === 'a' && textContent(node) === 'Team workspace')
@@ -208,6 +223,31 @@ for (const label of ['Profile', 'Notifications', 'Appearance', 'Workspace', 'Int
   settings.reload()
   settings.assertPanel(label)
   assert.equal(new URL(settings.url, 'https://example.test').searchParams.get('connected'), 'google_drive', 'Selecting a panel must preserve unrelated query parameters')
+}
+
+// Opening a settings subpage retains the same grouped menu and provides a
+// direct route back to Workspace. The actual detail shell renders its content.
+for (const [path, panel] of [
+  ['/settings/profile', 'Profile'],
+  ['/settings/profile/mfa', 'Privacy & security'],
+  ['/settings/social-accounts', 'Integrations'],
+  ['/settings/billing', 'Billing & access'],
+  ['/settings/billing/success', 'Billing & access'],
+]) {
+  const detail = createNavigation(path)
+  detail.assertPanel(panel)
+  detail.assertDetailContent()
+  detail.openPanelFromDetail('Workspace')
+  detail.assertPanel('Workspace')
+  detail.openTeam()
+  detail.goBack()
+  detail.assertPanel('Workspace')
+}
+
+for (const label of ['Profile', 'Notifications', 'Appearance', 'Workspace', 'Integrations', 'Billing & access', 'Privacy & security']) {
+  const detail = createNavigation('/settings/profile')
+  detail.openPanelFromDetail(label)
+  detail.assertPanel(label)
 }
 
 console.log('team workspace navigation checks passed')
