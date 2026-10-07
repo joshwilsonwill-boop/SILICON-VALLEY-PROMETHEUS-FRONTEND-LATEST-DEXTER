@@ -12,7 +12,7 @@ import {
 
 export default function TeamPage() {
   return (
-    <PrometheusShell header={<PageHeader title="Team" description="UI-only team management scaffolding." showBackButton />}>
+    <PrometheusShell header={<PageHeader title="Team" description="UI-only team management scaffolding." showBackButton backHref="/settings?panel=workspace" />}>
       <div className="px-8 py-6">
         <Card>
           <CardHeader>

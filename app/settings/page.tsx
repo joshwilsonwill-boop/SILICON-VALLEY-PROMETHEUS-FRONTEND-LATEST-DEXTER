@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import type { LucideIcon } from 'lucide-react'
 import {
   Bell,
@@ -55,14 +55,30 @@ const workspaceItems: SettingsNavItem[] = [
 const securityItems: SettingsNavItem[] = [{ id: 'security', label: 'Privacy & security', icon: ShieldCheck }]
 
 export default function SettingsPage() {
+  return (
+    <React.Suspense fallback={<InlineLoadingAnimation size={40} label="Loading settings" />}>
+      <SettingsContent />
+    </React.Suspense>
+  )
+}
+
+function SettingsContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { session } = useAuth()
   const { profile, loading: profileLoading } = useProfile()
-  const [activePanel, setActivePanel] = React.useState<SettingsPanel>('profile')
+  const activePanel = [...accountItems, ...workspaceItems, ...securityItems]
+    .find(({ id }) => id === searchParams.get('panel'))?.id ?? 'profile'
   const [notifications, setNotifications] = React.useState(true)
   const [reducedMotion, setReducedMotion] = React.useState(false)
   const [safeMode, setSafeMode] = React.useState(true)
   const [signingOut, setSigningOut] = React.useState(false)
+
+  function setActivePanel(panel: SettingsPanel) {
+    const params = new URLSearchParams(searchParams.toString())
+    params.set('panel', panel)
+    router.replace(`/settings?${params.toString()}`, { scroll: false })
+  }
 
   const displayName = getProfileDisplayName(profile)
   const username = profile?.username?.trim() || 'prometheus-user'
