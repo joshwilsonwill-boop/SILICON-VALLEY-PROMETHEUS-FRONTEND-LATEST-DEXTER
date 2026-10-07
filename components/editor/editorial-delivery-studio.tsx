@@ -72,6 +72,7 @@ export function EditorialDeliveryStudio({
   const [error, setError] = React.useState<string | null>(null)
   const [historyError, setHistoryError] = React.useState<string | null>(null)
   const [expanded, setExpanded] = React.useState(false)
+  const refreshSequenceRef = React.useRef(0)
 
   const cues = editorial.timeline?.cues ?? []
   const textCues = cues.filter((cue) => cue.type === 'text')
@@ -85,13 +86,16 @@ export function EditorialDeliveryStudio({
   const pendingProgress = renderProgress(pendingRecord)
 
   const refresh = React.useCallback(async () => {
+    const requestSequence = ++refreshSequenceRef.current
     try {
       const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/exports/history`, {cache: 'no-store'})
       const payload = await response.json() as {exports?: ProjectExport[]; error?: string}
       if (!response.ok) throw new Error(payload.error || 'Unable to load renders.')
+      if (requestSequence !== refreshSequenceRef.current) return
       setRecords(Array.isArray(payload.exports) ? payload.exports : [])
       setHistoryError(null)
     } catch (cause) {
+      if (requestSequence !== refreshSequenceRef.current) return
       setHistoryError(cause instanceof Error ? cause.message : 'Unable to load renders.')
     }
   }, [projectId])
@@ -103,7 +107,10 @@ export function EditorialDeliveryStudio({
     const timer = window.setInterval(() => {
       if (document.visibilityState === 'visible') void refresh()
     }, 5000)
-    return () => window.clearInterval(timer)
+    return () => {
+      window.clearInterval(timer)
+      refreshSequenceRef.current += 1
+    }
   }, [projectId, sourceAssetId, refresh])
 
   React.useEffect(() => {
