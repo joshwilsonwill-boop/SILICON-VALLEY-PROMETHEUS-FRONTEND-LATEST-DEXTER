@@ -854,6 +854,7 @@ function toPrometheusChatMessages(entries: ChatEntry[]): PrometheusChatMessage[]
 const WORKSPACE_TABS: Array<{ key: HeaderNavMode; label: string; icon: React.ComponentType<{ className?: string }> }> = [
   { key: 'Editor', label: 'Editor', icon: Film },
   { key: 'Music', label: 'Music', icon: Music4 },
+  { key: 'Motion', label: 'Motion', icon: Sparkles },
 ]
 
 function normalizeWorkspaceTabParam(value: string | null): HeaderNavMode | null {
@@ -861,7 +862,7 @@ function normalizeWorkspaceTabParam(value: string | null): HeaderNavMode | null 
   const normalized = value.trim().toLowerCase()
   if (normalized === 'editor') return 'Editor'
   if (normalized === 'music') return 'Music'
-  if (normalized === 'motion') return 'Editor'
+  if (normalized === 'motion') return 'Motion'
   return null
 }
 
@@ -9453,7 +9454,7 @@ const requestAssemblyAITranscription = React.useCallback(async (): Promise<boole
                   activeWorkspaceTab === 'Music'
                       ? 'overflow-hidden px-4 py-4'
                     : 'overflow-y-auto overscroll-contain bg-black py-3',
-                  activeWorkspaceTab === 'Editor' && 'px-4 gap-6 justify-center',
+                  activeWorkspaceTab === 'Editor' && 'min-h-0 px-4 gap-4',
                 )}
               >
                 {activeWorkspaceTab === 'Music' ? (
