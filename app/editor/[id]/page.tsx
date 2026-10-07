@@ -48,6 +48,8 @@ import { dispatchLongformFromProject } from '@/lib/api/mini-run-console'
 import type { AIChatContextProvider, AIChatLiveContext, AIChatVideoContext } from '@/hooks/use-ai-chat'
 import { ChatStyleSelector } from '@/components/editor/chat-style-selector'
 import { MusicTabPanel } from '@/components/editor/music-tab-panel'
+import { MotionPropertyCanvas } from '@/components/editor/motion-property-canvas'
+import { MotionEditWorkspace } from '@/components/editor/motion-edit-workspace'
 import { IterationModal } from '@/components/editor/IterationModal'
 import { ContinueBanner } from '@/components/editor/ContinueBanner'
 import gsap from 'gsap'
@@ -194,7 +196,7 @@ type PreviewMediaKind = 'video' | 'image'
 type PreviewFitMode = 'fill' | 'fit'
 type BottomMode = 'Original' | 'Music' | 'Timeline'
 type PreviewFramePreset = OutputProfile
-type MobileEditorTabKey = 'status' | 'music' | 'chat' | 'versions' | 'export'
+type MobileEditorTabKey = 'status' | 'music' | 'motion' | 'chat' | 'versions' | 'export'
 type MobileExportQuality = 'draft' | 'standard' | 'max'
 type MobileExportFormat = 'mp4' | 'mov'
 type SessionPreviewState = {
@@ -5916,6 +5918,40 @@ function MobileEditorView({
               selectedTrackId={selectedMusicTrackId}
               onSelectTrack={onSelectMusicTrack}
               variant="mobile"
+            />
+          </div>
+        )
+      case 'motion':
+        return (
+          <div className="relative h-full min-h-0">
+            <MotionPropertyCanvas
+              projectTitle={projectTitle}
+              previewUrl={previewUrl}
+              previewKind={previewKind}
+              hasPreviewMedia={hasPreviewMedia}
+              sourceLabel={sourceLabel}
+              objectFit={objectFit}
+              mediaTransformStyle={mediaTransformStyle}
+              currentTimeLabel={currentTimeLabel}
+              durationLabel={durationLabel}
+              currentTimeSec={currentTimeSec}
+              durationSec={durationSec}
+              previewPlaying={previewPlaying}
+              previewMuted={previewMuted}
+              videoRef={motionVideoRef}
+              onTogglePlayback={onTogglePlayback}
+              onPickSource={onOpenUploadNewProject}
+              onSeek={onSeekPreview}
+              onVideoLoadedMetadata={onVideoLoadedMetadata}
+              onVideoLoadedData={onVideoLoadedData}
+              onVideoCanPlay={onVideoCanPlay}
+              onVideoTimeUpdate={onVideoTimeUpdate}
+              onVideoEnded={onVideoEnded}
+              onVideoPlay={onVideoPlay}
+              onVideoPause={onVideoPause}
+              onVideoError={onVideoError}
+              onImageLoaded={onImageLoaded}
+              onApplyPrompt={onApplyMotionPrompt}
             />
           </div>
         )
