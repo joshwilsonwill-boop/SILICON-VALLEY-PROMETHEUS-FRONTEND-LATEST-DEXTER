@@ -21,7 +21,6 @@ import { ChatSuggestions } from './ai-chat-suggestions'
 import { PrometheusChatHistoryDrawer } from './prometheus-chat-history-drawer'
 import { PrometheusChatMarkdown } from './prometheus-chat-markdown'
 import { PrometheusChatActivity } from './prometheus-chat-activity'
-import { PrometheusChatContextBrief } from './prometheus-chat-context-brief'
 import { PrometheusChatLoadingSkeleton } from './prometheus-chat-loading-skeleton'
 import { PrometheusChatMedia } from './prometheus-chat-media'
 import { VoiceWaveform } from './voice-waveform'
@@ -550,18 +549,10 @@ export function PrometheusChat({
           ) : null}
           {renderedMessages.length === 0 && !showingThinking ? (
             <div className="flex min-h-full items-center justify-center px-4 pb-24 text-center">
-              {videoPresent ? (
-                <PrometheusChatContextBrief
-                  context={videoContext}
-                  onPrompt={handleSuggestionSelect}
-                  className="max-w-xl"
-                />
-              ) : (
-                <ElegistChatGreeting
-                  greeting={getChatGreeting(session?.user, profile)}
-                  className="max-w-[52rem] text-balance text-[clamp(2.4rem,4.8vw,5.2rem)] font-normal leading-[0.9] tracking-normal text-white/92 [overflow-wrap:anywhere]"
-                />
-              )}
+              <ElegistChatGreeting
+                greeting={getChatGreeting(session?.user, profile)}
+                className="max-w-[52rem] text-balance text-[clamp(2.4rem,4.8vw,5.2rem)] font-normal leading-[0.9] tracking-normal text-white/92 [overflow-wrap:anywhere]"
+              />
             </div>
           ) : (
             <div className="mx-auto flex w-full max-w-3xl flex-col gap-7 py-8 md:py-12">

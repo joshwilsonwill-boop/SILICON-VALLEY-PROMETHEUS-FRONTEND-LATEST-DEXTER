@@ -1,8 +1,9 @@
 'use client'
 
 import * as React from 'react'
+import { createPortal } from 'react-dom'
 import { motion, useReducedMotion } from 'framer-motion'
-import { ArrowDownToLine, Check, Film, LoaderCircle, Plus, RefreshCw, Type } from 'lucide-react'
+import { ArrowDownToLine, Check, Columns2, Film, LoaderCircle, Plus, RefreshCw, Type, X } from 'lucide-react'
 import type { ProjectExport } from '@/lib/types'
 import type { EditorialCue } from '@/lib/editor/editorial-timeline-state'
 import { useEditorialTimeline } from '@/hooks/use-editorial-timeline'
@@ -51,7 +52,7 @@ function renderProgress(record: ProjectExport | undefined): number | null {
 }
 
 export function EditorialDeliveryStudio({
-  projectId, sourceAssetId, sourceUrl, projectTitle, currentTimeSec, durationSec,
+  projectId, sourceAssetId, sourceUrl, projectTitle, currentTimeSec, durationSec, presentation = 'studio',
 }: {
   projectId: string
   sourceAssetId: string | null
@@ -59,6 +60,7 @@ export function EditorialDeliveryStudio({
   projectTitle: string
   currentTimeSec: number
   durationSec: number
+  presentation?: 'studio' | 'preview'
 }) {
   const editorial = useEditorialTimeline()
   const prefersReducedMotion = useReducedMotion()
@@ -72,18 +74,33 @@ export function EditorialDeliveryStudio({
   const [error, setError] = React.useState<string | null>(null)
   const [historyError, setHistoryError] = React.useState<string | null>(null)
   const [expanded, setExpanded] = React.useState(false)
+  const [comparisonOpen, setComparisonOpen] = React.useState(false)
   const refreshSequenceRef = React.useRef(0)
 
   const cues = editorial.timeline?.cues ?? []
   const textCues = cues.filter((cue) => cue.type === 'text')
   const selectedCue = textCues.find((cue) => cue.id === selectedCueId) ?? textCues[0]
   const history = sourceAssetId ? projectRenderHistory(records, projectId, sourceAssetId) : []
-  const completedRecords = history.filter((record) => isPlayableRender(record, projectId, sourceAssetId ?? ''))
+  const completedRecords = history.filter((record) => {
+    const metadata = record.metadata && typeof record.metadata === 'object' && !Array.isArray(record.metadata)
+      ? record.metadata as Record<string, unknown>
+      : {}
+    return metadata.outputKind !== 'mini-run' && isPlayableRender(record, projectId, sourceAssetId ?? '')
+  })
   const selectedRecord = completedRecords.find((record) => record.id === selectedId) ?? completedRecords[0]
   const finishedRecord = selectedRecord && sourceAssetId && isPlayableRender(selectedRecord, projectId, sourceAssetId) ? selectedRecord : null
   const pendingRecord = history.find((record) => record.status === 'pending' || record.status === 'processing')
   const latestRecord = history[0]
   const pendingProgress = renderProgress(pendingRecord)
+
+  React.useEffect(() => {
+    if (!comparisonOpen) return
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setComparisonOpen(false)
+    }
+    window.addEventListener('keydown', closeOnEscape)
+    return () => window.removeEventListener('keydown', closeOnEscape)
+  }, [comparisonOpen])
 
   const refresh = React.useCallback(async () => {
     const requestSequence = ++refreshSequenceRef.current
@@ -194,6 +211,77 @@ export function EditorialDeliveryStudio({
     }
   }
 
+  if (presentation === 'preview') {
+    return (
+      <>
+        <button
+          type="button"
+          onClick={() => setComparisonOpen(true)}
+          disabled={!sourceUrl}
+          aria-label="Compare original and rendered video"
+          title="Compare versions"
+          className="grid size-10 place-items-center rounded-full text-white/55 transition-colors hover:bg-white/8 hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+        >
+          <Columns2 className="size-4" strokeWidth={1.6} />
+        </button>
+        {comparisonOpen && typeof document !== 'undefined' ? createPortal(
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[240] flex items-center justify-center bg-black/92 p-3 backdrop-blur-xl sm:p-6"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Compare original and rendered video"
+            onMouseDown={(event) => {
+              if (event.target === event.currentTarget) setComparisonOpen(false)
+            }}
+          >
+            <motion.section
+              initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.985, y: 8 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{ duration: prefersReducedMotion ? 0 : 0.2, ease: [0.22, 1, 0.36, 1] }}
+              className="flex h-[min(92dvh,60rem)] w-full max-w-[96rem] flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#090a0b] shadow-[0_36px_100px_rgba(0,0,0,0.68)]"
+            >
+              <header className="flex shrink-0 items-center justify-between gap-3 border-b border-white/8 px-4 py-3 sm:px-6">
+                <div className="flex min-w-0 items-center gap-3">
+                  <Columns2 className="size-4 shrink-0 text-[#b4fb60]" />
+                  <h2 className="truncate text-sm font-medium text-white/88">Compare versions</h2>
+                </div>
+                <div className="flex shrink-0 items-center gap-1.5">
+                  <button type="button" onClick={() => void refresh()} aria-label="Refresh versions" title="Refresh versions" className="grid size-9 place-items-center rounded-full text-white/55 transition-colors hover:bg-white/8 hover:text-white"><RefreshCw className="size-4" /></button>
+                  <button type="button" onClick={() => setComparisonOpen(false)} aria-label="Close comparison" title="Close" className="grid size-9 place-items-center rounded-full text-white/55 transition-colors hover:bg-white/8 hover:text-white"><X className="size-4" /></button>
+                </div>
+              </header>
+
+              {(error || historyError || editorial.status === 'error') ? (
+                <p role="alert" className="shrink-0 border-b border-rose-400/15 bg-rose-400/5 px-5 py-2 text-xs text-rose-200">{error ?? historyError ?? editorial.error}</p>
+              ) : null}
+
+              <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 overflow-y-auto p-3 sm:grid-cols-2 sm:p-5">
+                <figure className="relative flex aspect-video min-h-0 min-w-0 flex-col overflow-hidden rounded-xl bg-black sm:aspect-auto">
+                  {sourceUrl ? <video key={sourceUrl} src={sourceUrl} controls playsInline preload="metadata" className="absolute inset-0 size-full object-contain" aria-label="Original video" /> : <div className="grid h-full place-items-center text-xs text-white/40">Source video unavailable</div>}
+                  <figcaption className="pointer-events-none absolute left-3 top-3 rounded-full border border-white/12 bg-black/65 px-2.5 py-1 text-[10px] font-medium text-white/75 backdrop-blur">Original</figcaption>
+                </figure>
+
+                <figure className="relative flex aspect-video min-h-0 min-w-0 flex-col overflow-hidden rounded-xl border border-[#b4fb60]/16 bg-black sm:aspect-auto">
+                  {finishedRecord ? <video key={finishedRecord.id} src={renderPreviewPath(finishedRecord.id)} controls playsInline preload="metadata" className="absolute inset-0 size-full object-contain" aria-label="Finished edit" /> : <div className="grid h-full place-items-center px-6 text-center text-xs text-white/42">No finished edit is available yet.</div>}
+                  <figcaption className="pointer-events-none absolute left-3 top-3 rounded-full border border-[#b4fb60]/22 bg-black/70 px-2.5 py-1 text-[10px] font-medium text-[#c9ff88] backdrop-blur">Finished edit</figcaption>
+                </figure>
+              </div>
+
+              <footer className="flex min-h-12 shrink-0 items-center gap-2 overflow-x-auto border-t border-white/8 px-4 py-2 sm:px-6">
+                {completedRecords.map((record, index) => <button key={record.id} type="button" onClick={() => setSelectedId(record.id)} aria-pressed={finishedRecord?.id === record.id} title={dateLabel(record.createdAt)} className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] transition ${finishedRecord?.id === record.id ? 'border-[#9df65a]/45 bg-[#9df65a]/12 text-[#c9ff88]' : 'border-white/10 text-white/52 hover:text-white'}`}>V{completedRecords.length - index}</button>)}
+                {finishedRecord ? <button type="button" onClick={() => void download()} disabled={isDownloading} className="ml-auto inline-flex min-h-8 shrink-0 items-center gap-1.5 rounded-full border border-white/12 px-3 text-[11px] text-white/70 hover:bg-white/5"><ArrowDownToLine className="size-3.5" /> Download</button> : null}
+              </footer>
+            </motion.section>
+          </motion.div>,
+          document.body,
+        ) : null}
+      </>
+    )
+  }
+
   return (
     <section aria-label="Final render studio" className="w-full overflow-hidden rounded-[1.35rem] border border-white/12 bg-[#0a0e0c] shadow-[0_20px_70px_rgba(0,0,0,.35)]">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-[radial-gradient(circle_at_15%_0%,rgba(157,246,90,.13),transparent_35%)] px-4 py-3 sm:px-5">
@@ -210,8 +298,7 @@ export function EditorialDeliveryStudio({
         </div>
       </div>
       {(error || historyError || editorial.status === 'error') && <p role="alert" className="border-b border-rose-400/15 bg-rose-400/5 px-5 py-2 text-xs text-rose-200">{error ?? historyError ?? editorial.error}</p>}
-      <p role="status" className="border-b border-white/8 px-5 py-2 text-[11px] text-white/45">This creates a 9:16 Mini-Run from the source, 30 seconds by default. Saved editor timeline layers are not yet applied to its render.</p>
-      {isSubmitting && <p role="status" aria-live="polite" className="border-b border-white/8 px-5 py-2 text-[11px] text-white/55">Submitting the source to VINCERE Mini-Run…</p>}
+      {isSubmitting && <p role="status" aria-live="polite" className="border-b border-white/8 px-5 py-2 text-[11px] text-white/55">Submitting render…</p>}
       {latestRecord && <div role="status" aria-live="polite" className="border-b border-white/8 px-5 py-3 text-[11px] text-white/65">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <span>Latest render: <span className="capitalize text-white/90">{latestRecord.status}</span>{latestRecord.errorMessage ? ` · ${latestRecord.errorMessage}` : ''}</span>

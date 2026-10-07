@@ -45,6 +45,6 @@ export function getUserDisplayName(user: User | null | undefined, profile?: Disp
 export function getChatGreeting(user: User | null | undefined, profile?: DisplayNameProfile) {
   const displayName = getUserDisplayName(user, profile);
   return displayName === "Creator"
-    ? "What would you like to create today?"
-    : `What would you like to create, ${displayName}?`;
+    ? "What would you like to edit today?"
+    : `What would you like to edit, ${displayName}?`;
 }

@@ -63,7 +63,6 @@ import { EditorialDeliveryStudio } from '@/components/editor/editorial-delivery-
 import { isPlayableRender, renderPreviewPath } from '@/lib/editor/render-delivery'
 import { EditorHeader } from '@/components/editor/EditorHeader'
 import { PreviewCanvas } from '@/components/editor/PreviewCanvas'
-import { EditorialTranscript } from '@/components/editor/editorial-timeline-panel'
 import { TimelinePanel } from '@/components/editor/TimelinePanel'
 import { MobileVideoPlayer } from '@/app/editor/components/mobile-video-player'
 import { stopEditorMedia } from '@/app/editor/stores/audio-store'
@@ -1719,14 +1718,6 @@ function buildWorkspaceVideoContext({
   }
 }
 
-function buildEditorialTranscript(job: ProcessingJob | null) {
-  return (job?.artifacts.transcript ?? []).map((segment) => ({
-    id: segment.id,
-    start: Math.max(0, segment.startMs / 1000),
-    end: Math.max(segment.startMs / 1000, segment.endMs / 1000),
-    text: segment.text,
-  }))
-}
 function buildVideoMusicContext({
   projectTitle,
   promptText,
@@ -9539,13 +9530,7 @@ const requestAssemblyAITranscription = React.useCallback(async (): Promise<boole
 
                 {activeWorkspaceTab === 'Editor' && (
                   <>
-                    <div className="grid w-full min-h-0 gap-4 lg:grid-cols-[minmax(15rem,20rem)_minmax(0,1fr)] lg:items-stretch">
-                    <EditorialTranscript
-                      segments={buildEditorialTranscript(job)}
-                      currentTimeSec={previewCurrentTimeSec}
-                      onSeek={handlePreviewSeekSeconds}
-                    />
-
+                    <div className="flex min-h-0 w-full justify-center">
                     <PreviewCanvas
                       projectId={projectId}
                       project={project}
@@ -9602,6 +9587,17 @@ const requestAssemblyAITranscription = React.useCallback(async (): Promise<boole
                       onInlineSourceDragOver={handleInlineSourceDragOver}
                       onInlineSourceDragLeave={handleInlineSourceDragLeave}
                       onInlineSourceDrop={handleInlineSourceDrop}
+                      comparisonControl={(
+                        <EditorialDeliveryStudio
+                          projectId={projectId}
+                          sourceAssetId={project?.sourceAssetId ?? null}
+                          sourceUrl={previewKind === 'video' ? previewUrl : null}
+                          projectTitle={project?.title ?? 'Untitled Project'}
+                          currentTimeSec={previewCurrentTimeSec}
+                          durationSec={transportDurationSec}
+                          presentation="preview"
+                        />
+                      )}
                     />
                     </div>
 
@@ -9628,14 +9624,6 @@ const requestAssemblyAITranscription = React.useCallback(async (): Promise<boole
                       durationSec={transportDurationSec}
                       onToggleMute={() => setIsPreviewMuted((prev) => !prev)}
                       onSetBottomMode={setBottomMode}
-                    />
-                    <EditorialDeliveryStudio
-                      projectId={projectId}
-                      sourceAssetId={project?.sourceAssetId ?? null}
-                      sourceUrl={previewKind === 'video' ? previewUrl : null}
-                      projectTitle={project?.title ?? 'Untitled Project'}
-                      currentTimeSec={previewCurrentTimeSec}
-                      durationSec={transportDurationSec}
                     />
                   </>
                 )}

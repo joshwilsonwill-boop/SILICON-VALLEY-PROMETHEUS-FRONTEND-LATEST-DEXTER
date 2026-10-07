@@ -78,6 +78,7 @@ export interface PreviewCanvasProps {
   onInlineSourceDragOver: (event: React.DragEvent<HTMLButtonElement>) => void
   onInlineSourceDragLeave: () => void
   onInlineSourceDrop: (event: React.DragEvent<HTMLButtonElement>) => void
+  comparisonControl?: React.ReactNode
 }
 
 export function PreviewCanvas({
@@ -136,6 +137,7 @@ export function PreviewCanvas({
   onInlineSourceDragOver,
   onInlineSourceDragLeave,
   onInlineSourceDrop,
+  comparisonControl,
 }: PreviewCanvasProps) {
   const [isFullscreen, setIsFullscreen] = React.useState(false)
   const fullscreenVideoRef = React.useRef<HTMLVideoElement | null>(null)
@@ -164,14 +166,13 @@ export function PreviewCanvas({
 
   return (
     <>
-    <div className="flex flex-col items-center w-full">
-      <div className="relative group w-full max-w-[min(100%,54rem)] self-center rounded-[24px] bg-black shadow-[0_32px_64px_-18px_rgba(0,0,0,0.92)]">
-        {/* Glass Border Container */}
+    <div className="flex w-full flex-col items-center">
+      <div className="group relative w-full max-w-[min(100%,54rem)] self-center">
         <div
           className={cn(
-            'relative w-full overflow-hidden rounded-[18px] bg-black',
+            'relative w-full',
             hasPreviewMedia
-              ? 'max-h-[clamp(250px,40vh,460px)] p-2'
+              ? 'max-h-[clamp(250px,40vh,460px)]'
               : 'h-[clamp(250px,40vh,460px)]',
           )}
           style={hasPreviewMedia ? { aspectRatio: visiblePreviewAspectRatio } : undefined}
@@ -179,7 +180,7 @@ export function PreviewCanvas({
           <div className="relative flex h-full w-full items-center justify-center">
             <motion.div
               layout
-              className="relative overflow-hidden rounded-[8px] bg-black"
+              className="relative overflow-hidden"
               style={{
                 aspectRatio: visiblePreviewAspectRatio,
                 width: previewFrameWidth,
@@ -356,9 +357,12 @@ export function PreviewCanvas({
                   <button
                     onClick={onTogglePreviewPlayback}
                     className="flex h-12 w-12 items-center justify-center rounded-full bg-accent-cyan text-void transition-transform active:scale-95"
+                    aria-label={previewPlaying ? 'Pause preview' : 'Play preview'}
                   >
                     {previewPlaying ? <Pause className="size-5 fill-current" /> : <Play className="size-5 fill-current ml-1" />}
                   </button>
+
+                  {comparisonControl}
 
                   <button
                     type="button"
