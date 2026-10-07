@@ -15,6 +15,7 @@ function createNavigation(initialUrl = '/settings', historyState = { __NA: true 
   let hooks = []
   let hookIndex = 0
   let effects = []
+  let stateChanged = false
   const history = [initialUrl]
   const cache = new Map()
   const element = (type, props) => ({ type, props: props ?? {} })
@@ -43,7 +44,9 @@ function createNavigation(initialUrl = '/settings', historyState = { __NA: true 
       const index = hookIndex++
       if (!(index in hooks)) hooks[index] = typeof initial === 'function' ? initial() : initial
       return [hooks[index], (next) => {
-        hooks[index] = typeof next === 'function' ? next(hooks[index]) : next
+        const value = typeof next === 'function' ? next(hooks[index]) : next
+        if (!Object.is(value, hooks[index])) stateChanged = true
+        hooks[index] = value
       }]
     },
     useEffect: (callback, dependencies) => {
@@ -75,6 +78,7 @@ function createNavigation(initialUrl = '/settings', historyState = { __NA: true 
     '@/components/loading-animation': { InlineLoadingAnimation: visual },
     '@/components/cookie-consent/cookie-settings-button': { CookieSettingsButton: visual },
     '@/components/settings/storage-integrations-panel': { StorageIntegrationsPanel: visual },
+    '@/components/theme/color-mode-selector': { ColorModeSelector: visual },
     '@/components/ui/button': { Button: visual },
     '@/components/ui/switch': { Switch: visual },
     '@/components/ui/card': Object.fromEntries(['Card', 'CardContent', 'CardHeader', 'CardTitle', 'CardDescription'].map((name) => [name, visual])),
@@ -102,7 +106,10 @@ function createNavigation(initialUrl = '/settings', historyState = { __NA: true 
       },
       URL,
       URLSearchParams,
-      window: { history: { state: historyState, replaceState: (_, __, href) => navigate(href, true) } },
+      window: {
+        location: { get search() { return new URL(url, 'https://example.test').search } },
+        history: { state: historyState, replaceState: (_, __, href) => navigate(href, true) },
+      },
     }, { filename: relativePath })
     return module.exports
   }
@@ -116,11 +123,17 @@ function createNavigation(initialUrl = '/settings', historyState = { __NA: true 
   }
 
   function render() {
-    hookIndex = 0
-    effects = []
-    const page = pathname() === '/team' ? 'app/team/page.tsx' : 'app/settings/page.tsx'
-    const tree = expand(element(load(page).default))
-    for (const effect of effects) effect()
+    let tree
+    for (let pass = 0; pass < 10; pass++) {
+      hookIndex = 0
+      effects = []
+      stateChanged = false
+      const page = pathname() === '/team' ? 'app/team/page.tsx' : 'app/settings/page.tsx'
+      tree = expand(element(load(page).default))
+      for (const effect of effects) effect()
+      if (!stateChanged) return tree
+    }
+    assert.fail('Settings effects must settle without a render loop')
     return tree
   }
 
@@ -155,6 +168,14 @@ function createNavigation(initialUrl = '/settings', historyState = { __NA: true 
     browserBack: () => router.back(),
     reload() { hooks = [] },
   }
+}
+
+// A page back button has a logical destination even when a user opened Team
+// from elsewhere or the browser happens to expose a numeric history index.
+for (const state of [{ __NA: true }, null, { idx: 0 }, { idx: 1 }]) {
+  const directTeam = createNavigation('/team', state)
+  directTeam.goBack()
+  directTeam.assertPanel('Workspace')
 }
 
 for (const state of [{ __NA: true }, null, { idx: 0 }, { idx: 1 }]) {

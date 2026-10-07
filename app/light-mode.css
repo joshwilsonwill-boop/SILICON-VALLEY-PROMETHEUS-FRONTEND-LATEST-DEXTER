@@ -1,0 +1,153 @@
+/* Color-only adaptations for the existing dark-first components. Keeping all
+   rules behind the mode attribute preserves the original dark presentation. */
+html[data-color-mode='light'] {
+  color-scheme: light;
+  --color-white: #182230;
+  --background: var(--theme-background);
+  --foreground: var(--theme-foreground);
+  --card: var(--theme-surface);
+  --card-foreground: var(--theme-foreground);
+  --popover: var(--theme-surface);
+  --popover-foreground: var(--theme-foreground);
+  --primary: var(--theme-accent);
+  --primary-foreground: #fff;
+  --secondary: var(--theme-surface-elevated);
+  --secondary-foreground: var(--theme-foreground);
+  --muted: var(--theme-surface-elevated);
+  --muted-foreground: #526174;
+  --accent: var(--theme-surface-elevated);
+  --accent-foreground: var(--theme-foreground);
+  --border: var(--theme-border);
+  --input: var(--theme-border);
+  --ring: var(--theme-accent);
+  --sidebar: var(--theme-surface);
+  --sidebar-foreground: var(--theme-foreground);
+  --sidebar-primary: var(--theme-accent);
+  --sidebar-primary-foreground: #fff;
+  --sidebar-accent: var(--theme-surface-elevated);
+  --sidebar-accent-foreground: var(--theme-foreground);
+  --sidebar-border: var(--theme-border);
+  --sidebar-ring: var(--theme-accent);
+  --void: var(--theme-background);
+  --abyss: var(--theme-background);
+  --surface-base: var(--theme-background);
+  --surface: var(--theme-surface);
+  --surface-elevated: var(--theme-surface-elevated);
+  --surface-floating: var(--theme-surface);
+  --glass-bg: rgba(255, 255, 255, 0.88);
+  --glass-border: var(--theme-border);
+  --glass-border-strong: rgba(24, 34, 48, 0.24);
+  --glass-highlight: rgba(24, 34, 48, 0.03);
+  --glass-fill: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(246, 247, 251, 0.98));
+  --glass-fill-strong: linear-gradient(180deg, #fff, #edf0f5);
+  --glass-shadow: 0 24px 60px -34px rgba(24, 34, 48, 0.16);
+  --glass-shadow-lg: 0 40px 110px -58px rgba(24, 34, 48, 0.22);
+  --focus-glow: 0 0 0 1px var(--theme-accent), 0 0 0 5px rgba(3, 105, 161, 0.12);
+  --chrome: var(--theme-foreground);
+  --chrome-dim: #526174;
+  --prometheus-bg-primary: var(--theme-background);
+  --prometheus-bg-secondary: var(--theme-surface);
+  --prometheus-bg-tertiary: var(--theme-surface-elevated);
+  --prometheus-bg-overlay: rgba(24, 34, 48, 0.28);
+  --prometheus-border-glass: var(--theme-border);
+}
+
+html[data-color-mode='light'] body {
+  background: var(--theme-background);
+  color-scheme: light;
+}
+
+html[data-color-mode='light'] :is(.prometheus-workspace-shell, .editor-root, .editorial-chamber-shell, .ambient-bg) {
+  background: var(--theme-background);
+}
+
+html[data-color-mode='light'] .prometheus-workspace-shell > .absolute.inset-0 {
+  background: none;
+}
+
+/* Existing neutral canvas utilities, including their original case spelling. */
+html[data-color-mode='light'] :is(
+  [class~='bg-[#000]'], [class~='bg-[#000000]'], [class~='bg-[#050505]'],
+  [class~='bg-[#050506]'], [class~='bg-[#070707]'], [class~='bg-[#080808]'],
+  [class~='bg-[#090909]'], [class~='bg-[#09090c]'], [class~='bg-[#0a0a0a]'],
+  [class~='bg-[#0a0a0b]'], [class~='bg-[#0a0a0c]'], [class~='bg-[#0a0a0d]'],
+  [class~='bg-[#0a0a0f]'], [class~='bg-[#0A0A0F]'], [class~='bg-[#0b0b0c]'],
+  [class~='bg-[#0c0c10]'], [class~='bg-[#0c0b16]'], [class~='bg-[#0e1016]'],
+  .bg-gray-950, .bg-zinc-950, .bg-slate-950
+) {
+  background-color: var(--theme-background);
+}
+
+html[data-color-mode='light'] :is(
+  [class~='bg-[#111]'], [class~='bg-[#111116]'], [class~='bg-[#111118]'],
+  [class~='bg-[#101116]'], [class~='bg-[#121212]'], [class~='bg-[#121622]'],
+  [class~='bg-[#1a1a24]'], [class~='bg-[#1A1A24]'], [class~='bg-[#26232c]'],
+  .bg-gray-900, .bg-zinc-900, .bg-slate-900
+) {
+  background-color: var(--theme-surface);
+}
+
+html[data-color-mode='light'] :is(
+  .glass-pill, .glass-panel, .glass-panel-enhanced, .glass-card-premium,
+  .premium-ambient-panel, .premium-search-pill, .iteration-modal, .motion-node,
+  [class*='bg-[linear-gradient(180deg,rgba(10,12,18'],
+  [class*='linear-gradient(180deg,rgba(22,16,34'],
+  [class*='bg-[linear-gradient(180deg,rgba(21,15,33'],
+  [class*='bg-[linear-gradient(180deg,rgba(19,15,29'],
+  [class*='bg-[radial-gradient(circle_at_78%_0%']
+) {
+  background: var(--glass-fill);
+  border-color: var(--theme-border);
+  box-shadow: var(--glass-shadow);
+}
+
+html[data-color-mode='light'] .prometheus-masthead.studio-masthead--studio,
+html[data-color-mode='light'] .prometheus-masthead.studio-masthead--studio:hover {
+  background-color: var(--theme-background);
+}
+
+/* Low-opacity white labels need stronger contrast against a light surface. */
+html[data-color-mode='light'] :is(
+  [class*='text-white/'], .text-gray-300, .text-gray-400, .text-slate-300, .text-slate-400,
+  .text-zinc-300, .text-zinc-400, [class~='text-[#94a3b8]'], [class~='text-[#8d8e85]'],
+  [class~='text-[#777970]'], [class~='text-[#a8aa9d]']
+) {
+  color: #526174;
+}
+
+html[data-color-mode='light'] :is(
+  [class~='text-white/80'], [class~='text-white/82'], [class~='text-white/84'],
+  [class~='text-white/85'], [class~='text-white/88'], [class~='text-white/90'],
+  [class~='text-white/94'], [class~='text-white/95'], [class~='text-white/96'],
+  [class~='text-[#f8fafc]'], [class~='text-[#f5f5f5]'], [class~='text-[#f1f0ea]'],
+  [class~='text-[#e9e9e1]'], [class~='text-[#f8f7ff]'], [class~='text-[#c5c7b9]'],
+  [class~='text-[#f2f0eb]']
+) {
+  color: var(--theme-foreground);
+}
+
+html[data-color-mode='light'] :is(
+  .text-cyan-300, .text-cyan-400, .text-sky-300, .text-sky-400,
+  [class~='text-[#38bdf8]'], [class~='text-[#7ff2d4]'], [class~='text-[#9ff6e3]'],
+  [class~='text-[#55ff9b]'], [class~='text-[#98f237]'], [class~='text-[#b4fb60]']
+) {
+  color: var(--theme-accent);
+}
+
+html[data-color-mode='light'] :is(.text-red-100, .text-red-200, .text-red-300, .text-rose-200, .text-rose-300) {
+  color: #b91c1c;
+}
+
+/* Keep contrast on filled actions; branded mint actions retain their black text. */
+html[data-color-mode='light'] :is([class~='bg-white'], [class*='bg-[var(--theme-accent)]']) {
+  color: #fff;
+}
+
+html[data-color-mode='light'] .chrome-text {
+  background-image: linear-gradient(180deg, #182230, #526174);
+}
+
+html[data-color-mode='light'] ::selection {
+  background: rgba(3, 105, 161, 0.2);
+  color: #182230;
+}

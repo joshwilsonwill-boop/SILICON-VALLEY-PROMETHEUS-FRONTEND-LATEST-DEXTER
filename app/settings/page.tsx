@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import Link from 'next/link'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import type { LucideIcon } from 'lucide-react'
 import {
   Bell,
@@ -27,6 +27,7 @@ import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { PrometheusShell } from '@/components/prometheus-shell'
 import { CookieSettingsButton } from '@/components/cookie-consent/cookie-settings-button'
 import { StorageIntegrationsPanel } from '@/components/settings/storage-integrations-panel'
+import { ColorModeSelector } from '@/components/theme/color-mode-selector'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { getProfileDisplayName, useProfile } from '@/hooks/use-profile'
@@ -55,29 +56,27 @@ const workspaceItems: SettingsNavItem[] = [
 const securityItems: SettingsNavItem[] = [{ id: 'security', label: 'Privacy & security', icon: ShieldCheck }]
 
 export default function SettingsPage() {
-  return (
-    <React.Suspense fallback={<InlineLoadingAnimation size={40} label="Loading settings" />}>
-      <SettingsContent />
-    </React.Suspense>
-  )
-}
-
-function SettingsContent() {
   const router = useRouter()
-  const searchParams = useSearchParams()
   const { session } = useAuth()
   const { profile, loading: profileLoading } = useProfile()
-  const activePanel = [...accountItems, ...workspaceItems, ...securityItems]
-    .find(({ id }) => id === searchParams.get('panel'))?.id ?? 'profile'
+  const [activePanel, setActivePanel] = React.useState<SettingsPanel>('profile')
   const [notifications, setNotifications] = React.useState(true)
   const [reducedMotion, setReducedMotion] = React.useState(false)
   const [safeMode, setSafeMode] = React.useState(true)
   const [signingOut, setSigningOut] = React.useState(false)
 
-  function setActivePanel(panel: SettingsPanel) {
-    const params = new URLSearchParams(searchParams.toString())
+  React.useEffect(() => {
+    const panel = new URLSearchParams(window.location.search).get('panel')
+    const item = [...accountItems, ...workspaceItems, ...securityItems].find(({ id }) => id === panel)
+    if (item) setActivePanel(item.id)
+  }, [])
+
+  function handlePanelChange(panel: SettingsPanel) {
+    setActivePanel(panel)
+    const params = new URLSearchParams(window.location.search)
     params.set('panel', panel)
-    router.replace(`/settings?${params.toString()}`, { scroll: false })
+    // Keep tab selection local while remembering the return panel in history.
+    window.history.replaceState(window.history.state, '', `/settings?${params.toString()}`)
   }
 
   const displayName = getProfileDisplayName(profile)
@@ -107,8 +106,8 @@ function SettingsContent() {
       mainClassName="relative z-auto h-full overflow-y-auto overflow-x-hidden overscroll-contain bg-[#050505]"
     >
       <div className="min-h-full bg-[#050505] px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
-        <div className="mx-auto max-w-[1440px] overflow-hidden border border-white/[0.09] bg-[#090909] shadow-[0_28px_90px_-48px_rgba(0,0,0,0.95)] lg:grid lg:min-h-[760px] lg:grid-cols-[256px_minmax(0,1fr)]">
-          <aside className="border-b border-white/[0.08] bg-[#070707] lg:border-b-0 lg:border-r">
+        <div className="mx-auto max-w-[1440px] overflow-hidden border border-white/[0.09] bg-[#090909] shadow-[0_28px_90px_-48px_rgba(0,0,0,0.95)] md:grid md:min-h-[760px] md:grid-cols-[256px_minmax(0,1fr)]">
+          <aside className="border-b border-white/[0.08] bg-[#070707] md:border-b-0 md:border-r">
             <div className="flex items-center gap-3 border-b border-white/[0.08] px-4 py-4 lg:px-5">
               <button
                 type="button"
@@ -125,10 +124,10 @@ function SettingsContent() {
               </div>
             </div>
 
-            <nav className="flex gap-1 overflow-x-auto p-3 lg:block lg:space-y-6 lg:overflow-visible lg:p-4" aria-label="Settings navigation">
-              <SettingsNavSection label="Account" items={accountItems} activePanel={activePanel} onChange={setActivePanel} />
-              <SettingsNavSection label="Workspace" items={workspaceItems} activePanel={activePanel} onChange={setActivePanel} />
-              <SettingsNavSection label="Security" items={securityItems} activePanel={activePanel} onChange={setActivePanel} />
+            <nav className="space-y-6 p-4" aria-label="Settings navigation">
+              <SettingsNavSection label="Account" items={accountItems} activePanel={activePanel} onChange={handlePanelChange} />
+              <SettingsNavSection label="Workspace" items={workspaceItems} activePanel={activePanel} onChange={handlePanelChange} />
+              <SettingsNavSection label="Security" items={securityItems} activePanel={activePanel} onChange={handlePanelChange} />
             </nav>
           </aside>
 
@@ -179,6 +178,12 @@ function SettingsContent() {
 
               {activePanel === 'appearance' ? (
                 <SettingsSurface title="Appearance" subtitle="Use your saved preferences across the workspace.">
+                  <div className="mb-5 border-b border-white/[0.08] pb-5">
+                    <p className="text-sm font-medium text-white/88">Color mode</p>
+                    <p className="mb-3 mt-1 text-sm text-white/48">Choose a dark or light workspace.</p>
+                    <ColorModeSelector />
+                    <p className="mt-3 text-xs text-white/48">Saved in this browser when preference cookies are enabled.</p>
+                  </div>
                   <div className="grid gap-3 sm:grid-cols-2">
                     <PreferenceLink icon={Palette} label="Theme & accent" href="/settings/profile" />
                     <PreferenceLink icon={LayoutTemplate} label="Display preferences" href="/settings/profile" />
@@ -262,8 +267,8 @@ function SettingsNavSection({
   onChange: (panel: SettingsPanel) => void
 }) {
   return (
-    <div className="flex shrink-0 gap-1 lg:block lg:space-y-1">
-      <p className="hidden px-2 pb-1 text-[11px] font-medium uppercase tracking-[0.14em] text-white/35 lg:block">{label}</p>
+    <div className="space-y-1">
+      <p className="px-2 pb-1 text-[11px] font-medium uppercase tracking-[0.14em] text-white/35">{label}</p>
       {items.map(({ id, label: itemLabel, icon: Icon }) => {
         const active = activePanel === id
 
@@ -273,7 +278,7 @@ function SettingsNavSection({
             type="button"
             onClick={() => onChange(id)}
             className={cn(
-              'flex h-10 items-center gap-2 border px-3 text-sm font-medium whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 lg:w-full',
+              'flex h-10 w-full items-center gap-2 border px-3 text-sm font-medium whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40',
               active
                 ? 'border-white/[0.12] bg-white/[0.09] text-white'
                 : 'border-transparent text-white/52 hover:border-white/[0.08] hover:bg-white/[0.04] hover:text-white/82',
