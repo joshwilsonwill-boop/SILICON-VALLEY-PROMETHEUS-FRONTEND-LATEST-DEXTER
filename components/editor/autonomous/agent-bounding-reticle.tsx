@@ -47,3 +47,4 @@ export function AgentBoundingReticle() {
     style={{ ...box, pointerEvents: 'none' }}
   />
 }
+

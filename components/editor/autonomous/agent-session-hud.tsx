@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useState } from 'react'
 import { Check, CircleAlert, CircleStop, LoaderCircle, Sparkles } from 'lucide-react'
@@ -150,3 +150,4 @@ export function AgentSessionHud() {
     </aside>
   )
 }
+

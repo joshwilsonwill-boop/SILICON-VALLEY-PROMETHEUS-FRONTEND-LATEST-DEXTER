@@ -24,5 +24,11 @@ Scope: Connect authenticated editor and Jarvis final-render requests to the VINC
   EXPECT: typecheck verification passed
   EVIDENCE: pending
 
-- [ ] G5: The Modal receipt matches the audited backend deployment commit, and the rendered MP4 pixels, audio, and delivery are inspected.
+- [ ] G5: The Modal receipt matches the audited backend deployment commit, and the rendered video, audio, and delivery are inspected.
+  EVIDENCE: pending
+
+- [ ] G6: The Mini-Run worker advances durable progress as Modal slices finish, while keeping 100% for the completed render receipt.
+  CHECK: python -m unittest mini_run_pipeline.test_slice_dispatch_progress
+  EXPECT: Ran 1 test and the suite passed
+  CWD: C:/Users/HomePC/Downloads/PROMETHEUS-VINCERE-BACKEND
   EVIDENCE: pending

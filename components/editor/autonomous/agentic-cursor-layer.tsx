@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect } from 'react'
 import { autonomousCoordinator } from '@/lib/autonomous-ui/coordinator'
@@ -46,3 +46,4 @@ export function AgenticCursorLayer() {
 
   return <><AgentBoundingReticle /><AgentSessionHud /></>
 }
+

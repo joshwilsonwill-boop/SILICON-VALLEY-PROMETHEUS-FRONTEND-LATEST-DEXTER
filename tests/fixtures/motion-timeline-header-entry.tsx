@@ -24,7 +24,7 @@ function Harness() {
       videoRef={videoRef}
       onPreviewMutedChange={() => {}}
       onTogglePlayback={() => {}}
-      onPickSource={() => {}}
+      onPickSource={() => { (window as any).__pickedSourceCount = ((window as any).__pickedSourceCount || 0) + 1 }}
       onSeek={() => {}}
       transcriptSegments={[]}
     />

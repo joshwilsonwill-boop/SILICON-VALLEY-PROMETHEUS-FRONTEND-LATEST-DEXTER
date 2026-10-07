@@ -600,9 +600,21 @@ export function MotionEditWorkspace({
       </span>
     </div>
   )
+  const handlePickSource = React.useCallback(() => {
+    if (typeof onPickSource === 'function') {
+      onPickSource()
+    } else if (typeof document !== 'undefined') {
+      const fallbackInput = document.getElementById('editor-source-file-input') as HTMLInputElement | null
+      if (fallbackInput) {
+        fallbackInput.value = ''
+        fallbackInput.click()
+      }
+    }
+  }, [onPickSource])
+
   const selectTool = (tool: MotionToolId) => {
     setActiveTool(tool)
-    if (tool === 'media') onPickSource()
+    if (tool === 'media') handlePickSource()
     if (tool === 'captions') { setCaptionsVisible(true); setCaptionsOverride(true) }
   }
 
@@ -618,7 +630,7 @@ export function MotionEditWorkspace({
       <div className="h-full w-full" style={{ transform: motionCropTransform(cropRect) }}><video key={previewUrl} ref={videoRef} src={previewUrl} className="h-full w-full bg-black object-center" muted={previewMuted} playsInline controls={false} preload="metadata" onLoadedMetadata={onVideoLoadedMetadata} onLoadedData={onVideoLoadedData} onCanPlay={onVideoCanPlay} onTimeUpdate={onVideoTimeUpdate} onEnded={onVideoEnded} onPlay={onVideoPlay} onPause={onVideoPause} onError={onVideoError} style={referenceMediaStyle} /></div>
     )
   ) : (
-    <button type="button" onClick={onPickSource} className="absolute inset-0 grid place-items-center bg-[radial-gradient(circle_at_center,rgba(152,242,55,0.1),transparent_38%)] text-sm text-white/66 transition-colors hover:text-white"><span className="inline-flex items-center gap-2 rounded-md border border-white/12 bg-black/45 px-4 py-2.5"><Upload className="size-4" /> Choose source media</span></button>
+    <button type="button" onClick={handlePickSource} className="absolute inset-0 grid place-items-center bg-[radial-gradient(circle_at_center,rgba(152,242,55,0.1),transparent_38%)] text-sm text-white/66 transition-colors hover:text-white"><span className="inline-flex items-center gap-2 rounded-md border border-white/12 bg-black/45 px-4 py-2.5"><Upload className="size-4" /> Choose source media</span></button>
   )
 
   const [editingSegmentId, setEditingSegmentId] = React.useState<string | null>(null)
@@ -1106,7 +1118,7 @@ export function MotionEditWorkspace({
                 <ToolPanel aspectRatio={safeAspectRatio} onAspectRatioChange={(ratio) => { setFrameAspectRatio(ratio); setCropRect(DEFAULT_CROP_RECT) }} onResetCrop={() => setCropRect(DEFAULT_CROP_RECT)} activeTool={activeTool} treatment={referenceStyle?.treatment ?? treatment} captionsVisible={effectiveCaptionsVisible} cropEnabled={cropEnabled} fitMode={fitMode} onTreatment={applyTreatment} onToggleCaptions={() => {
                   if (referenceStyle) editorial.patch({ type: 'reference_style', style: { ...referenceStyle, captionStyle: effectiveCaptionsVisible ? 'none' : captionStyle ?? 'clean_bold' } })
                   else setCaptionsOverride(!effectiveCaptionsVisible)
-                }} onToggleCrop={() => setCropEnabled((value) => !value)} onToggleFit={() => onFitModeChange(fitMode === 'fill' ? 'fit' : 'fill')} onPickSource={onPickSource} />
+                }} onToggleCrop={() => setCropEnabled((value) => !value)} onToggleFit={() => onFitModeChange(fitMode === 'fill' ? 'fit' : 'fill')} onPickSource={handlePickSource} />
               </div>
             </div>
             <details className="mt-2 max-h-[40vh] overflow-y-auto rounded-lg border border-white/10 bg-[#101214] text-xs">
@@ -1346,7 +1358,16 @@ function ToolPanel({ aspectRatio, onAspectRatioChange, onResetCrop, activeTool, 
     <div className="flex flex-wrap items-center gap-2">
       <button
         type="button"
-        onClick={onPickSource}
+        onClick={() => {
+          if (typeof onPickSource === 'function') onPickSource()
+          else if (typeof document !== 'undefined') {
+            const fallbackInput = document.getElementById('editor-source-file-input') as HTMLInputElement | null
+            if (fallbackInput) {
+              fallbackInput.value = ''
+              fallbackInput.click()
+            }
+          }
+        }}
         className="inline-flex min-h-8 items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-1 text-xs font-medium text-white/80 hover:border-white/20 hover:bg-white/[0.07] hover:text-white transition-all shadow-sm"
       >
         <Upload className="size-3.5 text-[#98f237]" />

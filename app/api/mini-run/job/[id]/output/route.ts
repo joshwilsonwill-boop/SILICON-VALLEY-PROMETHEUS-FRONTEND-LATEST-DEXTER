@@ -45,6 +45,20 @@ export async function GET(request: Request, {params}: {params: Promise<{id: stri
       return NextResponse.json({error: 'Unauthorized'}, {status: 401})
     }
 
+    const {data: ownedExport, error: ownershipError} = await supabase.from('project_exports')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('status', 'completed')
+      .contains('metadata', {outputKind: 'mini-run', miniRunJobId: id})
+      .maybeSingle()
+    if (ownershipError) {
+      console.error('[api/mini-run/job/output] ownership lookup failed:', ownershipError)
+      return NextResponse.json({error: 'Unable to verify render ownership.'}, {status: 500})
+    }
+    if (!ownedExport) {
+      return NextResponse.json({error: 'Render not found.'}, {status: 404})
+    }
+
     const config = resolveMiniRunConfig({
       MINI_RUN_BACKEND_URL: process.env.MINI_RUN_BACKEND_URL,
       MODAL_PROXY_KEY: process.env.MODAL_PROXY_KEY,

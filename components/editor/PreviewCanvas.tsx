@@ -177,13 +177,6 @@ export function PreviewCanvas({
           style={hasPreviewMedia ? { aspectRatio: visiblePreviewAspectRatio } : undefined}
         >
           <div className="relative flex h-full w-full items-center justify-center">
-            <input
-              ref={sourceFileInputRef}
-              type="file"
-              accept="video/mp4,video/quicktime,video/webm,video/x-m4v,video/x-matroska,.mp4,.mov,.m4v,.webm,.mkv"
-              className="sr-only"
-              onChange={onInlineSourceFileInputChange}
-            />
             <motion.div
               layout
               className="relative overflow-hidden rounded-[8px] bg-black"

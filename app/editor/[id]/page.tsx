@@ -8987,7 +8987,11 @@ const requestAssemblyAITranscription = React.useCallback(async (): Promise<boole
   }, [clearPreviewToggleCooldown])
 
   const openInlineSourcePicker = React.useCallback(() => {
-    sourceFileInputRef.current?.click()
+    const input = sourceFileInputRef.current ?? (typeof document !== 'undefined' ? (document.getElementById('editor-source-file-input') as HTMLInputElement | null) : null)
+    if (input) {
+      input.value = ''
+      input.click()
+    }
   }, [])
 
   const uploadedSourceAssetIdsRef = React.useRef<Set<string>>(new Set())
@@ -9315,6 +9319,7 @@ const requestAssemblyAITranscription = React.useCallback(async (): Promise<boole
   return (
     <>
       <input
+        id="editor-source-file-input"
         ref={sourceFileInputRef}
         type="file"
         accept="video/mp4,video/quicktime,video/webm,video/x-m4v,video/x-matroska,.mp4,.mov,.m4v,.webm,.mkv"
@@ -9387,7 +9392,7 @@ const requestAssemblyAITranscription = React.useCallback(async (): Promise<boole
                 initial="hidden"
                 whileInView="visible"
                 viewport={{ once: false, amount: 0.45 }}
-                className={cn('shrink-0 bg-black px-4 py-3', (activeWorkspaceTab === 'Motion' || activeWorkspaceTab === 'Music') && 'hidden')}
+                className={cn('shrink-0 bg-black px-4 py-3', activeWorkspaceTab === 'Motion' && 'hidden', activeWorkspaceTab === 'Music' && 'hidden')}
               >
                 {activeWorkspaceTab === 'Editor' ? (
                   <div className="flex justify-end">
