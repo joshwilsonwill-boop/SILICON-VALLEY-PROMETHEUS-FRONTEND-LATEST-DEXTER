@@ -126,7 +126,8 @@ postcss.parse(readFileSync('app/light-mode.css', 'utf8')).walkRules(rule => {
     assert.ok(selector.startsWith("html[data-color-mode='light']"), 'Every new theme rule must be opt-in so dark mode remains unchanged')
   }
   for (const declaration of rule.nodes.filter(node => node.type === 'decl')) {
-    assert.ok(declaration.prop.startsWith('--') || colorOnlyProperties.has(declaration.prop), `Light mode must not change layout or typography: ${declaration.prop}`)
+    const logoColor = declaration.prop === 'filter' && declaration.value === 'brightness(0)' && rule.selector.endsWith("img[src*='prometheus-logo-no-bg.png']")
+    assert.ok(declaration.prop.startsWith('--') || colorOnlyProperties.has(declaration.prop) || logoColor, `Light mode must not change layout, typography, or project media: ${declaration.prop}`)
   }
 })
 

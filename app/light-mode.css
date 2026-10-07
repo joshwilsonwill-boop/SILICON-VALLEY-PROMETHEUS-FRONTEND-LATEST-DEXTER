@@ -147,6 +147,12 @@ html[data-color-mode='light'] .chrome-text {
   background-image: linear-gradient(180deg, #182230, #526174);
 }
 
+/* The existing transparent logo is white; keep its silhouette visible without
+   recoloring project images or video previews. */
+html[data-color-mode='light'] img[src*='prometheus-logo-no-bg.png'] {
+  filter: brightness(0);
+}
+
 html[data-color-mode='light'] ::selection {
   background: rgba(3, 105, 161, 0.2);
   color: #182230;
