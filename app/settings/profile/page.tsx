@@ -25,6 +25,7 @@ import { useAuth } from '@/components/auth/auth-provider'
 import { InlineLoadingAnimation } from '@/components/loading-animation'
 import { AvatarCropModal } from '@/components/settings/avatar-crop-modal'
 import { SettingsDetailShell } from '@/components/settings/settings-detail-shell'
+import { ColorModeSelector } from '@/components/theme/color-mode-selector'
 import { Button } from '@/components/ui/button'
 import { GlassCard } from '@/components/ui/glass-card'
 import {
@@ -829,6 +830,9 @@ export default function ProfileSettingsPage() {
             <ProfileCard>
               <SectionTitle title="Workspace Customization" withDivider />
               <div className="space-y-6">
+                <PreferenceBlock label="Color mode">
+                  <ColorModeSelector />
+                </PreferenceBlock>
                 <PreferenceBlock label="Interface Theme" saving={savingPreference === 'theme'}>
                   <ThemeSelector
                     value={selectedTheme}
