@@ -1,8 +1,10 @@
-﻿'use client'
+'use client'
 
 import * as React from 'react'
 import { BackButton } from '@/components/navigation/BackButton'
 import SphereGallery3D from './SphereGallery3D'
+
+import type { LayaCatalogAppraisal } from '@/lib/analytics/laya-types'
 
 type GalleryPlatform = {
   platform: string
@@ -23,12 +25,14 @@ type AnalyticsResponse = {
   success: true
   videos: AnalyticsVideo[]
   metricsWarning: string | null
+  appraisal?: LayaCatalogAppraisal
 }
 
 const PAGE_SIZE = 60
 
 export function SphereAnalytics() {
   const [videos, setVideos] = React.useState<AnalyticsVideo[]>([])
+  const [appraisal, setAppraisal] = React.useState<LayaCatalogAppraisal | null>(null)
   const [loadState, setLoadState] = React.useState<'loading' | 'ready' | 'error'>('loading')
   const [activePlatform, setActivePlatform] = React.useState('all')
   const [page, setPage] = React.useState(0)
@@ -46,6 +50,7 @@ export function SphereAnalytics() {
         const data = (await response.json().catch(() => null)) as AnalyticsResponse | null
         if (!response.ok || !data?.success) throw new Error('Analytics request failed')
         setVideos(data.videos)
+        setAppraisal(data.appraisal ?? null)
         setMetricsWarning(data.metricsWarning)
         setLoadState('ready')
       } catch {
@@ -139,6 +144,29 @@ export function SphereAnalytics() {
             return <PlatformFilter key={platform.id} active={selectedPlatform === platform.id} label={platform.name} count={count} color={platform.color} onClick={() => selectPlatform(platform.id)} />
           })}
         </div>
+
+        {appraisal && appraisal.totalPostsAnalyzed > 0 ? (
+          <div className="mt-3 flex max-w-full flex-wrap items-center justify-center gap-3 rounded-full border border-white/[0.1] bg-black/60 px-4 py-1.5 backdrop-blur-md">
+            <span className="flex items-center gap-1.5 text-[9px] font-medium uppercase tracking-[0.2em] text-[#D7FF4F]">
+              <span className="size-1.5 rounded-full bg-[#D7FF4F] animate-pulse" />
+              LAYA Autonomous Appraisal
+            </span>
+            <span className="text-[9px] uppercase tracking-[0.15em] text-[#A8AA9D]">
+              Retention Index: <span className="text-white font-medium">{Math.round(appraisal.catalogSummary.averageRetentionScore * 100)}%</span>
+            </span>
+            <span className="text-[9px] uppercase tracking-[0.15em] text-[#A8AA9D]">
+              Virality Velocity: <span className="text-white font-medium">{Math.round(appraisal.catalogSummary.averageViralityScore * 100)}%</span>
+            </span>
+            {appraisal.catalogSummary.viralOutliersCount > 0 ? (
+              <span className="rounded-full bg-[#D7FF4F]/10 px-2 py-0.5 text-[8px] uppercase tracking-[0.15em] text-[#D7FF4F]">
+                {appraisal.catalogSummary.viralOutliersCount} Outliers
+              </span>
+            ) : null}
+            <span className="text-[8px] text-[#8D8E85] italic truncate max-w-xs sm:max-w-md hidden md:inline">
+              &ldquo;{appraisal.jarvisSynthesis.spokenVoiceLine}&rdquo;
+            </span>
+          </div>
+        ) : null}
 
         <div className="relative flex min-h-[min(67vh,48rem)] w-full items-center justify-center overflow-hidden">
           {loadState === 'loading' ? (

@@ -3,6 +3,7 @@ import {
   resolveMiniRunConfig,
   type MiniRunEnvironment,
 } from '@/lib/server/mini-run-proxy'
+import {buildMiniRunRenderPayload} from '@/lib/server/mini-run-render-payload'
 
 /**
  * Server-side dispatch to the Prometheus Mini-Runs long-form→short-form render
@@ -26,6 +27,9 @@ export type MiniRunRenderDispatchRequest = {
   durationMs?: number
   width?: number
   height?: number
+  jobId?: string
+  editorialRevision?: number
+  songPolicy?: 'auto' | 'disabled'
 }
 
 export type MiniRunRenderDispatchEnvironment = MiniRunEnvironment
@@ -46,12 +50,14 @@ export async function dispatchMiniRunRender({
   const config = resolveMiniRunConfig(env)
   const sourceUrl = await buildMiniRunSourceUrl(request.bucket, request.storagePath)
 
-  const metadata: Record<string, unknown> = {
-    durationSec: request.durationMs != null ? request.durationMs / 1000 : undefined,
-    durationMs: request.durationMs,
-    width: request.width,
-    height: request.height,
-  }
+  const body = buildMiniRunRenderPayload({
+    sourceUrl,
+    source: {durationMs: request.durationMs, width: request.width, height: request.height},
+    shot: {songPolicy: request.songPolicy},
+    jobId: request.jobId ?? request.projectId,
+  })
+  const metadata = body.metadata as Record<string, unknown>
+  metadata.pipeline = 'maul'
 
   const response = await fetchImpl(`${config.baseUrl}/api/pipeline/render`, {
     method: 'POST',
@@ -61,15 +67,13 @@ export async function dispatchMiniRunRender({
       'Modal-Secret': config.proxySecret,
     },
     body: JSON.stringify({
-      source: {url: sourceUrl},
-      metadata,
-      // Force a 9:16 portrait short canvas unless the caller overrides later.
-      design: {canvasWidth: 1080, canvasHeight: 1920},
+      ...body,
+      metadata: {...metadata, editorialRevision: request.editorialRevision},
     }),
     cache: 'no-store',
   })
 
-  const body = (await response.json().catch(() => ({}))) as {
+  const responseBody = (await response.json().catch(() => ({}))) as {
     jobId?: unknown
     pipelineJobId?: unknown
     status?: unknown
@@ -78,16 +82,16 @@ export async function dispatchMiniRunRender({
 
   if (!response.ok) {
     throw new Error(
-      typeof body.error === 'string' ? body.error : `Mini-Run render returned HTTP ${response.status}.`,
+      typeof responseBody.error === 'string' ? responseBody.error : `Mini-Run render returned HTTP ${response.status}.`,
     )
   }
-  if (typeof body.jobId !== 'string' || !body.jobId) {
+  if (typeof responseBody.jobId !== 'string' || !responseBody.jobId) {
     throw new Error('Mini-Run render response omitted jobId.')
   }
 
   return {
-    jobId: body.jobId,
-    pipelineJobId: typeof body.pipelineJobId === 'string' ? body.pipelineJobId : '',
-    status: typeof body.status === 'string' ? body.status : 'queued',
+    jobId: responseBody.jobId,
+    pipelineJobId: typeof responseBody.pipelineJobId === 'string' ? responseBody.pipelineJobId : '',
+    status: typeof responseBody.status === 'string' ? responseBody.status : 'queued',
   }
 }

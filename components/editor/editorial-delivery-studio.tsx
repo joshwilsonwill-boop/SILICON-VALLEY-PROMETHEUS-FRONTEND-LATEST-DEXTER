@@ -41,6 +41,15 @@ function dateLabel(value: string) {
   return Number.isFinite(timestamp) ? new Date(timestamp).toLocaleString() : 'Unknown date'
 }
 
+function renderProgress(record: ProjectExport | undefined): number | null {
+  const metadata = record?.metadata
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return null
+  const progress = (metadata as Record<string, unknown>).progressPercent
+  return typeof progress === 'number' && Number.isFinite(progress) && progress >= 0 && progress <= 100
+    ? Math.round(progress)
+    : null
+}
+
 export function EditorialDeliveryStudio({
   projectId, sourceAssetId, sourceUrl, projectTitle, currentTimeSec, durationSec,
 }: {
@@ -72,6 +81,7 @@ export function EditorialDeliveryStudio({
   const finishedRecord = selectedRecord && sourceAssetId && isPlayableRender(selectedRecord, projectId, sourceAssetId) ? selectedRecord : null
   const pendingRecord = history.find((record) => record.status === 'pending' || record.status === 'processing')
   const latestRecord = history[0]
+  const pendingProgress = renderProgress(pendingRecord)
 
   const refresh = React.useCallback(async () => {
     try {
@@ -185,21 +195,44 @@ export function EditorialDeliveryStudio({
         </div>
         <div className="flex items-center gap-2">
           <button type="button" onClick={() => void refresh()} className="grid size-9 place-items-center rounded-lg border border-white/10 text-white/60 hover:bg-white/5 hover:text-white" aria-label="Refresh renders"><RefreshCw className="size-4" /></button>
-          <button type="button" onClick={() => void startRender()} disabled={!sourceAssetId || isSubmitting || Boolean(pendingRecord) || editorial.status !== 'saved'} className="inline-flex min-h-9 items-center gap-2 rounded-lg bg-[#b4fb60] px-3 text-xs font-semibold text-black transition hover:bg-[#c9ff88] disabled:cursor-not-allowed disabled:opacity-45">
+          <button type="button" onClick={() => void startRender()} disabled={!sourceAssetId || isSubmitting || Boolean(pendingRecord) || editorial.status !== 'saved'} title={!sourceAssetId ? 'Add a source video first.' : editorial.status !== 'saved' ? 'Wait for the timeline to finish saving.' : undefined} className="inline-flex min-h-9 items-center gap-2 rounded-lg bg-[#b4fb60] px-3 text-xs font-semibold text-black transition disabled:cursor-not-allowed disabled:opacity-45">
             {isSubmitting || pendingRecord ? <LoaderCircle className="size-3.5 animate-spin" /> : <Film className="size-3.5" />}
-            {pendingRecord ? 'Rendering…' : 'Render final MP4'}
+            {isSubmitting ? 'Submitting render…' : pendingRecord?.status === 'pending' ? 'Queued…' : pendingRecord ? 'Rendering…' : editorial.status !== 'saved' ? 'Saving timeline…' : 'Render final MP4'}
           </button>
         </div>
       </div>
       {(error || historyError || editorial.status === 'error') && <p role="alert" className="border-b border-rose-400/15 bg-rose-400/5 px-5 py-2 text-xs text-rose-200">{error ?? historyError ?? editorial.error}</p>}
-      {latestRecord && <p role="status" className="border-b border-white/8 px-5 py-2 text-[11px] text-white/55">Latest version: <span className="capitalize text-white/80">{latestRecord.status}</span>{latestRecord.errorMessage ? ` · ${latestRecord.errorMessage}` : ''}</p>}
+      <p role="status" className="border-b border-white/8 px-5 py-2 text-[11px] text-white/45">This creates a 9:16 Mini-Run from the source, 30 seconds by default. Saved editor timeline layers are not yet applied to its render.</p>
+      {isSubmitting && <p role="status" aria-live="polite" className="border-b border-white/8 px-5 py-2 text-[11px] text-white/55">Submitting the source to VINCERE Mini-Run…</p>}
+      {latestRecord && <div role="status" aria-live="polite" className="border-b border-white/8 px-5 py-3 text-[11px] text-white/65">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span>Latest render: <span className="capitalize text-white/90">{latestRecord.status}</span>{latestRecord.errorMessage ? ` · ${latestRecord.errorMessage}` : ''}</span>
+          {pendingRecord && <span className="text-white/40">Status refreshes every 5 seconds</span>}
+        </div>
+        {pendingRecord && <div
+          className="mt-2"
+          role="progressbar"
+          aria-label="Final render progress"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={pendingProgress ?? undefined}
+          aria-valuetext={pendingProgress === null ? 'Progress percentage not reported' : `${pendingProgress}% complete`}
+        >
+          <div className="h-px overflow-hidden bg-white/20">
+            {pendingProgress === null
+              ? <motion.div className="h-full w-1/3 bg-[#b4fb60]" initial={{x: '-100%'}} animate={{x: '300%'}} transition={{duration: 1.4, ease: 'linear', repeat: Infinity}} />
+              : <div className="h-full bg-[#b4fb60] transition-[width] duration-500" style={{width: `${pendingProgress}%`}} />}
+          </div>
+          <p className="mt-1 text-[10px] text-white/40">{pendingProgress === null ? 'The renderer has not reported a percentage yet.' : `${pendingProgress}% complete`}</p>
+        </div>}
+      </div>}
       <div className="grid gap-3 p-3 sm:p-4 lg:grid-cols-2">
         <div className="overflow-hidden rounded-xl border border-white/10 bg-black">
           <div className="flex items-center justify-between px-3 py-2 text-[10px] font-semibold uppercase tracking-[.14em] text-white/55"><span>01 / Original footage</span><span>Source</span></div>
           {sourceUrl ? <video key={sourceUrl} src={sourceUrl} controls playsInline preload="metadata" className="aspect-video w-full bg-black object-contain" aria-label="Original footage" /> : <div className="grid aspect-video place-items-center text-xs text-white/35">Upload a source video to begin</div>}
         </div>
         <div className="overflow-hidden rounded-xl border border-[#9df65a]/20 bg-black">
-          <div className="flex items-center justify-between px-3 py-2 text-[10px] font-semibold uppercase tracking-[.14em] text-[#b4fb60]"><span>02 / Finished cut</span><span>{finishedRecord ? 'MP4 ready' : pendingRecord ? 'In progress' : 'Awaiting render'}</span></div>
+          <div className="flex items-center justify-between px-3 py-2 text-[10px] font-semibold uppercase tracking-[.14em] text-[#b4fb60]"><span>02 / Finished cut</span><span>{finishedRecord ? 'MP4 ready' : pendingRecord?.status === 'pending' ? 'Queued' : pendingRecord ? 'Rendering' : 'Awaiting render'}</span></div>
           {finishedRecord ? <video key={finishedRecord.id} src={renderPreviewPath(finishedRecord.id)} controls playsInline preload="metadata" className="aspect-video w-full bg-black object-contain" aria-label="Finished MP4" /> : <div className="grid aspect-video place-items-center bg-[radial-gradient(circle_at_50%_40%,rgba(157,246,90,.08),transparent_55%)] px-8 text-center text-xs leading-5 text-white/40">{pendingRecord ? 'The backend is rendering this version. It will appear here when the MP4 is stored.' : 'Your completed render will play here beside the original.'}</div>}
         </div>
       </div>

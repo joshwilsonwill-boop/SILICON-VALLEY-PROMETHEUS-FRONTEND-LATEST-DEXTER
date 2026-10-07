@@ -42,6 +42,7 @@ export type MiniRunRenderStatus = {
   r2Key?: string | null
   outputPath?: string
   chunkCount?: number
+  progressPercent?: number
   error?: string
   failedReason?: string | null
 }
@@ -85,6 +86,7 @@ export type MiniRunLongformClip = {
   outputUrl?: string
   r2Key?: string | null
   chunkCount?: number
+  progressPercent?: number
   stageTimingsMs?: Record<string, number>
 }
 
@@ -130,6 +132,7 @@ type MiniRunJobEnvelope = {
   r2Key?: string | null
   outputPath?: string
   chunkCount?: number
+  progressPercent?: number
   returnvalue?: MiniRunRenderStatus | null
   response?: MiniRunRenderStatus | null
 }
@@ -160,6 +163,7 @@ function normalizeEnvelope(payload: MiniRunJobEnvelope): MiniRunRenderStatus {
     r2Key: payload.r2Key ?? inner.r2Key,
     outputPath: payload.outputPath ?? inner.outputPath,
     chunkCount: payload.chunkCount ?? inner.chunkCount,
+    progressPercent: payload.progressPercent ?? inner.progressPercent,
     failedReason: payload.failedReason ?? inner.failedReason ?? null,
     error: payload.failedReason ?? inner.error ?? (payload.ok === false ? 'Mini-Run job failed.' : undefined),
   }

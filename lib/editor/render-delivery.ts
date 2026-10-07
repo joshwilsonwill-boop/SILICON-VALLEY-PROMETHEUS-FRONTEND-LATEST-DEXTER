@@ -18,9 +18,11 @@ export function isProjectRender(record: ProjectExport, projectId: string, source
 }
 
 export function isPlayableRender(record: ProjectExport, projectId: string, sourceAssetId: string): boolean {
+  const metadata = metadataOf(record)
+  const hasMiniRunOutput = metadata.outputKind === 'mini-run' && typeof metadata.miniRunJobId === 'string'
   return isProjectRender(record, projectId, sourceAssetId)
     && record.status === 'completed'
-    && Boolean(record.storagePath)
+    && (Boolean(record.storagePath) || hasMiniRunOutput)
     && (record.mimeType === 'video/mp4' || record.mimeType === null || record.mimeType === undefined)
 }
 

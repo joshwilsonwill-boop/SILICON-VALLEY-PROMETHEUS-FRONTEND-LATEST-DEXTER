@@ -526,21 +526,17 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
           if (!handlersRef.current.hasVideo && !handlersRef.current.projectId) {
             return { success: false, error: 'There is no playable source video to render.' }
           }
-          if (!onApplyActions) return { success: false, error: 'The editor is not linked, so I cannot start a render.' }
           const access = await requireEditingAccess()
           if (!access.success) return access
-          await onApplyActions([{
-            kind: 'start_render',
-            mode,
-            summary: mode === 'final' ? 'Triggering final video export render' : 'Opening export render workflow',
-          }])
+          const startRender = getCurrentHandlers().onStartRender
+          if (!startRender) return { success: false, error: 'The editor is not linked, so I cannot start or confirm an export.' }
+          const result = await startRender(mode)
+          if (!result.success) return { success: false, error: result.summary, mode, renderInitiated: false }
           return {
             success: true,
             mode,
-            renderInitiated: true,
-            status: mode === 'final'
-              ? 'Final export render initiated. The output will be available for download and cloud delivery.'
-              : 'Export render workflow initiated. You can preview or download your rendered cut once complete.',
+            renderInitiated: mode === 'final',
+            status: result.summary,
           }
         }
 

@@ -19,6 +19,8 @@ export interface VoiceCompanionBridgeHandlers {
   onApplyEditorialPlan?: (plan: EditorialPlan) => Promise<VoiceActionResult>
   contextProvider?: () => ChatEditorContext | null
   onApplyActions?: (drafts: EditorActionDraft[]) => Promise<void> | void
+  /** Starts an export and returns only after the editor confirms its outcome. */
+  onStartRender?: (mode: 'preview' | 'final') => Promise<{ success: boolean; summary: string }>
   onSeek?: (timeSec: number) => Promise<void> | void
   onPlay?: () => Promise<void> | void
   onPause?: () => Promise<void> | void

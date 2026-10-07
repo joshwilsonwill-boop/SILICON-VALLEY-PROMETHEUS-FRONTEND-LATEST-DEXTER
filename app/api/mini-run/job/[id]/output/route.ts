@@ -50,7 +50,7 @@ export async function GET(request: Request, {params}: {params: Promise<{id: stri
       MODAL_PROXY_KEY: process.env.MODAL_PROXY_KEY,
       MODAL_PROXY_SECRET: process.env.MODAL_PROXY_SECRET,
     })
-    const statusUrl = `${config.baseUrl}/api/pipeline/job/${encodeURIComponent(id)}`
+    const statusUrl = `${config.baseUrl}/api/pipeline/job/${encodeURIComponent(id)}/output`
     const statusResponse = await fetch(statusUrl, {
       headers: upstreamHeaders(config),
       redirect: 'manual',
@@ -108,6 +108,13 @@ export async function GET(request: Request, {params}: {params: Promise<{id: stri
     }
     headers.set('Cache-Control', 'private, no-store')
     if (!headers.has('content-type')) headers.set('content-type', 'video/mp4')
+    if (new URL(request.url).searchParams.get('download') === '1') {
+      const requested = new URL(request.url).searchParams.get('filename') || 'render.mp4'
+      const filename = requested.replace(/[\\"\r\n]/g, '-').slice(0, 180) || 'render.mp4'
+      headers.set('content-disposition', `attachment; filename="${filename}"`)
+    } else {
+      headers.set('content-disposition', 'inline')
+    }
 
     return new Response(mediaResponse.body, {
       status: mediaResponse.status,

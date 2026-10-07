@@ -13,8 +13,16 @@ export async function GET(
     const { id } = await params
     const projectExport = await ExportService.getExport(id)
 
-    if (projectExport.status !== 'completed' || !projectExport.storagePath) {
+    const miniRunJobId = typeof projectExport.metadata?.miniRunJobId === 'string' ? projectExport.metadata.miniRunJobId : null
+    if (projectExport.status !== 'completed' || (!projectExport.storagePath && !miniRunJobId)) {
       return NextResponse.json({ error: 'Export not ready' }, { status: 404 })
+    }
+
+    if (projectExport.metadata?.outputKind === 'mini-run' && miniRunJobId) {
+      return NextResponse.redirect(new URL(
+        `/api/mini-run/job/${encodeURIComponent(miniRunJobId)}/output`,
+        request.url,
+      ), 307)
     }
 
     const bucket = projectExport.storageBucket || process.env.R2_BUCKET_EXPORTS || 'prometheus-exports'

@@ -8183,8 +8183,9 @@ const requestAssemblyAITranscription = React.useCallback(async (): Promise<boole
 
   const startProjectRender = React.useCallback(async () => {
     if (!project?.sourceAssetId) {
-      toast.error('Upload a source video before rendering.')
-      return false
+      const summary = 'Upload a source video before rendering.'
+      toast.error(summary)
+      return { success: false, summary }
     }
     const controller = getEditorialTimelineController(projectId)
     const deadline = Date.now() + 15_000
@@ -8193,8 +8194,9 @@ const requestAssemblyAITranscription = React.useCallback(async (): Promise<boole
     }
     const snapshot = controller.getSnapshot()
     if (snapshot.status !== 'saved' || snapshot.timeline?.sourceAssetId !== project.sourceAssetId) {
-      toast.error('The project edits must finish saving before rendering.')
-      return false
+      const summary = 'The project edits must finish saving before rendering.'
+      toast.error(summary)
+      return { success: false, summary }
     }
     try {
       const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/exports`, {
@@ -8203,15 +8205,24 @@ const requestAssemblyAITranscription = React.useCallback(async (): Promise<boole
       })
       const payload = await response.json() as {export?: ProjectExport; error?: string}
       if (!response.ok) throw new Error(payload.error || 'Unable to start the final render.')
-      if (payload.export) setLatestExport(payload.export)
+      if (!payload.export?.id) throw new Error('The export service returned success without a tracked render job.')
+      if (payload.export.status === 'failed') throw new Error(payload.export.errorMessage || 'The render service rejected the job.')
+      setLatestExport(payload.export)
       await handlePrepareExport()
       toast.success('Final MP4 render queued. Follow its progress in the editorial view.')
-      return true
+      return { success: true, summary: 'The final render job was accepted. Its live status is shown in the editorial view.' }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Unable to start the final render.')
-      return false
+      const summary = error instanceof Error ? error.message : 'Unable to start the final render.'
+      toast.error(summary)
+      return { success: false, summary }
     }
   }, [handlePrepareExport, project?.sourceAssetId, projectId])
+
+  const handleVoiceStartRender = React.useCallback(async (mode: 'preview' | 'final') => {
+    if (mode === 'final') return startProjectRender()
+    await handlePrepareExport()
+    return { success: true, summary: 'The export panel is open. No render has been started.' }
+  }, [handlePrepareExport, startProjectRender])
 
   const handleDownload = React.useCallback(() => {
     if (!latestExport || !project?.sourceAssetId || !isPlayableRender(latestExport, projectId, project.sourceAssetId)) return
@@ -8827,6 +8838,7 @@ const requestAssemblyAITranscription = React.useCallback(async (): Promise<boole
       onApplyEditorialPlan: handleVoiceEditorialPlan,
       contextProvider: chatContextProvider,
       onApplyActions: handleApplyChatActions,
+      onStartRender: handleVoiceStartRender,
       onSeek: (timeSec) => handleApplyChatActions([{ kind: 'seek', timeSec, summary: `Seek to ${timeSec.toFixed(1)}s` }]),
       onPlay: () => handleApplyChatActions([{ kind: 'preview_control', command: 'play', summary: 'Play preview' }]),
       onPause: () => handleApplyChatActions([{ kind: 'preview_control', command: 'pause', summary: 'Pause preview' }]),
@@ -8932,6 +8944,7 @@ const requestAssemblyAITranscription = React.useCallback(async (): Promise<boole
   }, [
     chatContextProvider,
     handleApplyChatActions,
+    handleVoiceStartRender,
     isAgentTakeoverEnabled,
     handleToggleAgentTakeover,
     motionTranscriptSegments,

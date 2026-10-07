@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import type { ProjectExport, ProjectExportStatus } from '@/lib/types'
 import { R2Keys } from '@/lib/r2/keys'
 import { copyR2Object } from '@/lib/r2/copy-object'
+import { resolveMiniRunConfig } from '@/lib/server/mini-run-proxy'
 
 export interface ExportOptions {
   preset?: string
@@ -9,8 +10,20 @@ export interface ExportOptions {
 }
 
 export const ExportService = {
-  async createProjectExport(_projectId: string, _options: ExportOptions = {}): Promise<ProjectExport> {
-    throw new Error('Edited video rendering is unavailable in this export flow.')
+  async createProjectExport(projectId: string, options: ExportOptions = {}): Promise<ProjectExport> {
+    const supabase = await createClient()
+    const {data: {user}} = await supabase.auth.getUser()
+    if (!user) throw new Error('Unauthorized')
+    const {data, error} = await supabase.from('project_exports').insert({
+      project_id: projectId,
+      user_id: user.id,
+      status: 'pending' satisfies ProjectExportStatus,
+      preset: options.preset || 'mini-run-maul-portrait',
+      metadata: options.metadata || {},
+      started_at: new Date().toISOString(),
+    }).select('*').single()
+    if (error || !data) throw error || new Error('Unable to create render record')
+    return mapProjectExportFromDb(data)
   },
 
   async completeExportFromSourceCopy(projectExport: ProjectExport, sourceAssetId: string): Promise<ProjectExport> {
@@ -98,7 +111,61 @@ export const ExportService = {
       .order('created_at', { ascending: false })
 
     if (error) throw error
-    return (data || []).map(mapProjectExportFromDb)
+    const records = (data || []).map(mapProjectExportFromDb)
+    const active = records.filter((record) =>
+      (record.status === 'pending' || record.status === 'processing') &&
+      typeof record.metadata?.miniRunJobId === 'string',
+    )
+    if (active.length === 0) return records
+
+    const config = resolveMiniRunConfig({
+      MINI_RUN_BACKEND_URL: process.env.MINI_RUN_BACKEND_URL,
+      MODAL_PROXY_KEY: process.env.MODAL_PROXY_KEY,
+      MODAL_PROXY_SECRET: process.env.MODAL_PROXY_SECRET,
+    })
+    await Promise.all(active.map(async (record) => {
+      const jobId = record.metadata.miniRunJobId as string
+      try {
+        const response = await fetch(`${config.baseUrl}/api/pipeline/job/${encodeURIComponent(jobId)}`, {
+          headers: {'Modal-Key': config.proxyKey, 'Modal-Secret': config.proxySecret},
+          cache: 'no-store',
+        })
+        if (!response.ok) return
+        const job = await response.json() as Record<string, unknown>
+        const state = String(job.status ?? job.state ?? '').toLowerCase()
+        const result = (job.returnvalue && typeof job.returnvalue === 'object' ? job.returnvalue : {}) as Record<string, unknown>
+        const nextStatus = state === 'completed' || state === 'done' ? 'completed'
+          : state === 'failed' ? 'failed'
+          : state === 'pending' || state === 'queued' ? 'pending' : 'processing'
+        const progress = job.progressPercent
+        const metadata = {
+          ...record.metadata,
+          ...(typeof progress === 'number' && Number.isFinite(progress) ? {progressPercent: Math.max(0, Math.min(nextStatus === 'completed' ? 100 : 99, progress))} : {}),
+          ...(typeof result.outputUrl === 'string' ? {outputUrl: result.outputUrl} : {}),
+          ...(typeof result.r2Key === 'string' ? {r2Key: result.r2Key} : {}),
+          ...(typeof job.failedReason === 'string' ? {backendError: job.failedReason} : {}),
+        }
+        const update: Record<string, unknown> = {status: nextStatus, metadata}
+        if (nextStatus === 'completed') {
+          update.mime_type = 'video/mp4'
+          update.completed_at = new Date().toISOString()
+        }
+        if (nextStatus === 'failed') {
+          update.error_message = typeof job.failedReason === 'string' ? job.failedReason : 'Mini-Run render failed.'
+          update.failed_at = new Date().toISOString()
+        }
+        const {error: updateError} = await supabase.from('project_exports').update(update)
+          .eq('id', record.id).eq('user_id', user.id)
+        if (!updateError) Object.assign(record, {
+          status: nextStatus,
+          metadata,
+          ...(typeof update.error_message === 'string' ? {errorMessage: update.error_message} : {}),
+        })
+      } catch (error) {
+        console.error('[EXPORT_MINI_RUN_STATUS]', error)
+      }
+    }))
+    return records
   },
 
   async getExportProject(exportId: string): Promise<{ id: string; title: string } | null> {
