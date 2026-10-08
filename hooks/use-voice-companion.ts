@@ -14,6 +14,7 @@ import { autonomousCoordinator } from '@/lib/autonomous-ui/coordinator'
 import { getJarvisMemory, saveJarvisMemory } from '@/lib/voice-companion/memory'
 import { detectFillerWords } from '@/lib/voice-companion/filler-words'
 import { buildEditorialPlan } from '@/lib/editor/timeline-document'
+import { readVoiceExportStatus } from '@/lib/voice-companion/export-status'
 import { searchTranscriptText } from '@/lib/voice-companion/transcript-search'
 import { inspectVoiceVideo, switchVoiceWorkspace } from '@/lib/voice-companion/session-controls'
 import { performVoiceMusicAction, type VoiceMusicActionArgs } from '@/lib/voice-companion/music-controls'
@@ -225,6 +226,7 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
             videoMusicContext: bridge.videoMusicContext,
             transcriptAvailable: Boolean(bridge.transcriptText || bridge.transcriptSegments),
             music: bridge.getMusicState?.() ?? null,
+            timelineSync: bridge.getTimelineSyncState?.() ?? null,
             hasThumbnail: Boolean(bridge.activeThumbnailUrl || bridge.videoThumbnailUrl),
             thumbnailUrl: bridge.activeThumbnailUrl || bridge.videoThumbnailUrl || null,
             activeThumbnailHeadline: bridge.activeThumbnailHeadline ?? null,
@@ -520,6 +522,9 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
           return { success: true, style }
         }
 
+        case 'get_export_status':
+          return await readVoiceExportStatus(getCurrentHandlers)
+
         case 'review_export_readiness': {
           const review = getCurrentHandlers().onReviewExportReadiness
           if (!review) return { success: false, error: 'The export readiness panel is not connected to this editor.' }
@@ -659,6 +664,7 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
       apply_editorial_plan: 'Applying caption plan', set_caption_style: 'Restyling captions',
       switch_workspace_tab: 'Opening workspace', review_export_readiness: 'Checking export readiness',
       start_render: 'Opening export preflight',
+      get_export_status: 'Checking MP4 status',
     }
     const label = labels[name]
     const receipt = label ? useAutonomousStore.getState().beginAction({ label }) : null
