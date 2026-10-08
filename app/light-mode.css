@@ -521,6 +521,31 @@ html[data-color-mode='light'] [data-theme-independent] {
   color: #fff;
 }
 
+/* Preview controls follow the workspace theme; only the footage is independent.
+   The legacy accent-cyan/void utilities have no Tailwind color mapping. */
+html[data-color-mode='light'] [data-preview-controls] .text-chrome-dim {
+  color: var(--muted-foreground);
+}
+
+html[data-color-mode='light'] [data-preview-playback] {
+  background-color: var(--theme-accent);
+  color: var(--light-ui-on-accent);
+}
+
+html[data-color-mode='light'] [data-preview-playback]:hover {
+  background-color: var(--light-ui-accent-hover);
+}
+
+/* Dark decorative gradients must not sit behind the themed scissors icon. */
+html[data-color-mode='light'] [data-editor-clip-trigger] {
+  background: var(--theme-surface);
+  border-color: var(--theme-border);
+}
+
+html[data-color-mode='light'] [data-editor-clip-trigger] > span.absolute {
+  background: none;
+}
+
 html[data-color-mode='light'] :is(
   [class~='hover:bg-black'], [class~='hover:bg-black/20'],
   [class~='hover:bg-black/60'], [class~='hover:bg-black/72'],

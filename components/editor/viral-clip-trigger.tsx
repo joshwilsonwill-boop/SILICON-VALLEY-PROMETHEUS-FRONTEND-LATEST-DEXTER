@@ -81,6 +81,7 @@ export function ViralClipTrigger({
   return (
     <motion.button
       type="button"
+      data-editor-clip-trigger
       aria-label="Clip long-form content into viral cuts"
       aria-pressed={active}
       aria-disabled={isLocked}
