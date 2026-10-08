@@ -723,3 +723,42 @@ html[data-color-mode='light'] [data-motion-chamber] .group:focus-visible [class~
 html[data-color-mode='light'] [data-motion-chamber] :is([class*='shadow-[0_0_'], [class*='shadow-[0_2px_8px']):not(:where([data-theme-independent], [data-theme-independent] *)) {
   box-shadow: none;
 }
+
+/* Creator archive: deep green on light chrome, light captions on dark photos.
+   Keep these tokens local so other workspaces and the dark palette stay intact. */
+html[data-color-mode='light'] [data-creator-library] {
+  --library-accent-ink: #166534;
+  --library-accent-line: #15803d;
+  --library-photo-accent: #86efac;
+}
+
+html[data-color-mode='light'] [data-creator-library] [data-library-accent] {
+  color: var(--library-accent-ink);
+}
+
+html[data-color-mode='light'] [data-creator-library] :is([data-library-symbol], [data-creator-action]) {
+  color: var(--library-accent-ink);
+  background: var(--theme-surface);
+  border-color: var(--library-accent-line);
+}
+
+html[data-color-mode='light'] [data-creator-library] [data-creator-card]:is(:hover, :focus-visible) {
+  border-color: var(--library-accent-line);
+}
+
+html[data-color-mode='light'] [data-creator-library] [data-creator-caption] {
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.78), rgba(0, 0, 0, 0.96));
+}
+
+html[data-color-mode='light'] [data-creator-library] [data-creator-name] {
+  color: #fff;
+}
+
+html[data-color-mode='light'] [data-creator-library] [data-creator-designation] {
+  color: var(--library-photo-accent);
+}
+
+html[data-color-mode='light'] [data-creator-library] [data-creator-index] {
+  color: #fff;
+  background: rgba(0, 0, 0, 0.78);
+}
