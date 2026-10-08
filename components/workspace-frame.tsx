@@ -47,6 +47,7 @@ export function WorkspaceFrame({ children }: { children: React.ReactNode }) {
           data-lenis-prevent
           className="relative z-10 flex h-full min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden overscroll-contain touch-pan-y"
         >
+          {shouldRenderSidebar ? <DashboardSidebar mobile /> : null}
           {children}
         </div>
       </div>

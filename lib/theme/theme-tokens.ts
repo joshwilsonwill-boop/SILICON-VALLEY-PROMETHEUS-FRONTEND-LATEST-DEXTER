@@ -1,3 +1,6 @@
+export type ColorMode = 'dark' | 'light'
+export const DEFAULT_COLOR_MODE: ColorMode = 'dark'
+
 export type ThemeId =
   | 'obsidian'
   | 'midnight'
@@ -154,8 +157,29 @@ export function getFontPreset(fontId: string | null | undefined) {
   return FONT_PRESETS.find((preset) => preset.id === fontId) ?? FONT_PRESETS[0]
 }
 
-export function themeCssVariables(themeId: string | null | undefined) {
-  const preset = getThemePreset(themeId)
+// The existing accent choices have darker equivalents for readable light UI.
+const LIGHT_ACCENTS: Record<ThemeId, string> = {
+  obsidian: '#0369A1',
+  midnight: '#4F46E5',
+  ember: '#C2410C',
+  forest: '#15803D',
+  aurora: '#7E22CE',
+  glacier: '#0E7490',
+  'rose-gold': '#BE123C',
+  solar: '#854D0E',
+}
+
+export function themeCssVariables(themeId: string | null | undefined, colorMode: ColorMode = DEFAULT_COLOR_MODE) {
+  const selected = getThemePreset(themeId)
+  const preset = colorMode === 'light' ? {
+    ...selected,
+    background: '#F6F7FB',
+    foreground: '#182230',
+    accent: LIGHT_ACCENTS[selected.id],
+    surface: '#FFFFFF',
+    elevated: '#EDF0F5',
+    border: 'rgba(24, 34, 48, 0.16)',
+  } : selected
 
   return {
     '--theme-background': preset.background,

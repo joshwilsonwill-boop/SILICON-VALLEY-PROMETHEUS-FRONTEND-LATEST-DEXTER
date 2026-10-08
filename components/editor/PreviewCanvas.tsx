@@ -167,7 +167,7 @@ export function PreviewCanvas({
   return (
     <>
     <div className="flex w-full flex-col items-center">
-      <div className="group relative w-full max-w-[min(100%,54rem)] self-center">
+      <div data-theme-independent="media" className="group relative w-full max-w-[min(100%,54rem)] self-center">
         <div
           className={cn(
             'relative w-full',
@@ -413,6 +413,7 @@ export function PreviewCanvas({
     {isFullscreen && typeof document !== 'undefined' ? createPortal(
       <AnimatePresence>
         <motion.div
+          data-theme-independent="media"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}

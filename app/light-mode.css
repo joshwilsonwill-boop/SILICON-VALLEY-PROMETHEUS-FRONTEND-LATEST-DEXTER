@@ -1,0 +1,598 @@
+/* Color and elevation adaptations for the existing dark-first components. Keeping all
+   rules behind the mode attribute preserves the original dark presentation. */
+html[data-color-mode='light'] {
+  color-scheme: light;
+  --color-white: #182230;
+  --background: var(--theme-background);
+  --foreground: var(--theme-foreground);
+  --card: var(--theme-surface);
+  --card-foreground: var(--theme-foreground);
+  --popover: var(--theme-surface);
+  --popover-foreground: var(--theme-foreground);
+  --primary: var(--theme-accent);
+  --primary-foreground: #fff;
+  --secondary: var(--theme-surface-elevated);
+  --secondary-foreground: var(--theme-foreground);
+  --muted: var(--theme-surface-elevated);
+  --muted-foreground: #526174;
+  --accent: var(--theme-surface-elevated);
+  --accent-foreground: var(--theme-foreground);
+  --border: var(--theme-border);
+  --input: var(--theme-border);
+  --ring: var(--theme-accent);
+  --sidebar: var(--theme-surface);
+  --sidebar-foreground: var(--theme-foreground);
+  --sidebar-primary: var(--theme-accent);
+  --sidebar-primary-foreground: #fff;
+  --sidebar-accent: var(--theme-surface-elevated);
+  --sidebar-accent-foreground: var(--theme-foreground);
+  --sidebar-border: var(--theme-border);
+  --sidebar-ring: var(--theme-accent);
+  --void: var(--theme-background);
+  --abyss: var(--theme-background);
+  --surface-base: var(--theme-background);
+  --surface: var(--theme-surface);
+  --surface-elevated: var(--theme-surface-elevated);
+  --surface-floating: var(--theme-surface);
+  /* Opt-in aliases let legacy components keep their exact dark fallbacks. */
+  --light-ui-canvas: var(--theme-background);
+  --light-ui-surface: var(--theme-surface);
+  --light-ui-subtle: var(--theme-surface-elevated);
+  --light-ui-text: var(--theme-foreground);
+  --light-ui-muted: var(--muted-foreground);
+  --light-ui-line: var(--theme-foreground);
+  --light-ui-border: var(--theme-border);
+  --light-ui-accent: var(--theme-accent);
+  --light-ui-on-accent: #fff;
+  --light-ui-accent-hover: color-mix(in srgb, var(--theme-accent) 88%, black);
+  --light-ui-danger: #b91c1c;
+  --light-ui-danger-border: rgba(185, 28, 28, 0.24);
+  --light-ui-success: #15803d;
+  --light-ui-panel-shadow: none;
+  --light-ui-menu-shadow: 0 6px 16px -6px rgba(24, 34, 48, 0.14), 0 1px 3px rgba(24, 34, 48, 0.08);
+  --light-ui-dialog-shadow: 0 16px 48px -12px rgba(24, 34, 48, 0.22);
+  --glass-bg: rgba(255, 255, 255, 0.88);
+  --glass-border: var(--theme-border);
+  --glass-border-strong: rgba(24, 34, 48, 0.24);
+  --glass-highlight: rgba(24, 34, 48, 0.03);
+  --glass-fill: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(246, 247, 251, 0.98));
+  --glass-fill-strong: linear-gradient(180deg, #fff, #edf0f5);
+  --glass-shadow: var(--light-ui-panel-shadow);
+  --glass-shadow-lg: var(--light-ui-dialog-shadow);
+  --focus-glow: 0 0 0 2px var(--theme-accent);
+  --chrome: var(--theme-foreground);
+  --chrome-dim: #526174;
+  --prometheus-bg-primary: var(--theme-background);
+  --prometheus-bg-secondary: var(--theme-surface);
+  --prometheus-bg-tertiary: var(--theme-surface-elevated);
+  --prometheus-bg-overlay: rgba(24, 34, 48, 0.28);
+  --prometheus-border-glass: var(--theme-border);
+}
+
+html[data-color-mode='light'] body {
+  background: var(--theme-background);
+  color-scheme: light;
+}
+
+html[data-color-mode='light'] :is(.prometheus-workspace-shell, .editor-root, .editorial-chamber-shell, .youtube-create-editor, .ambient-bg):not(:where([data-theme-independent], [data-theme-independent] *)) {
+  background: var(--theme-background);
+}
+
+html[data-color-mode='light'] .prometheus-workspace-shell > .absolute.inset-0:not(:where([data-theme-independent], [data-theme-independent] *)) {
+  background: none;
+}
+
+/* Existing neutral canvas utilities, including their original case spelling. */
+html[data-color-mode='light'] :is(
+  [class~='bg-[#000]'], [class~='bg-[#000000]'], [class~='bg-[#050505]'],
+  [class~='bg-[#050506]'], [class~='bg-[#070707]'], [class~='bg-[#080808]'],
+  [class~='bg-[#090909]'], [class~='bg-[#09090c]'], [class~='bg-[#0a0a0a]'],
+  [class~='bg-[#0a0a0b]'], [class~='bg-[#0a0a0c]'], [class~='bg-[#0a0a0d]'],
+  [class~='bg-[#0a0a0f]'], [class~='bg-[#0A0A0F]'], [class~='bg-[#0b0b0c]'],
+  [class~='bg-[#0c0c10]'], [class~='bg-[#0c0b16]'], [class~='bg-[#0e1016]'],
+  .bg-gray-950, .bg-zinc-950, .bg-slate-950
+):not(:where([data-theme-independent], [data-theme-independent] *)) {
+  background-color: var(--theme-background);
+}
+
+html[data-color-mode='light'] :is(
+  [class~='bg-[#111]'], [class~='bg-[#111116]'], [class~='bg-[#111118]'],
+  [class~='bg-[#101116]'], [class~='bg-[#121212]'], [class~='bg-[#121622]'],
+  [class~='bg-[#1a1a24]'], [class~='bg-[#1A1A24]'], [class~='bg-[#26232c]'],
+  .bg-gray-900, .bg-zinc-900, .bg-slate-900
+):not(:where([data-theme-independent], [data-theme-independent] *)) {
+  background-color: var(--theme-surface);
+}
+
+html[data-color-mode='light'] :is(
+  .glass-pill, .glass-panel, .glass-panel-enhanced, .glass-card-premium,
+  .premium-ambient-panel, .premium-search-pill, .iteration-modal, .motion-node,
+  [class*='bg-[linear-gradient(180deg,rgba(10,12,18'],
+  [class*='linear-gradient(180deg,rgba(22,16,34'],
+  [class*='bg-[linear-gradient(180deg,rgba(21,15,33'],
+  [class*='bg-[linear-gradient(180deg,rgba(19,15,29'],
+  [class*='bg-[radial-gradient(circle_at_78%_0%']
+):not(:where([data-theme-independent], [data-theme-independent] *)) {
+  background: var(--glass-fill);
+  border-color: var(--theme-border);
+  box-shadow: var(--glass-shadow);
+}
+
+html[data-color-mode='light'] .prometheus-masthead.studio-masthead--studio:not(:where([data-theme-independent], [data-theme-independent] *)),
+html[data-color-mode='light'] .prometheus-masthead.studio-masthead--studio:hover:not(:where([data-theme-independent], [data-theme-independent] *)) {
+  background-color: var(--theme-background);
+}
+
+/* Low-opacity white labels need stronger contrast against a light surface. */
+html[data-color-mode='light'] :is(
+  [class*='text-white/'], .text-gray-300, .text-gray-400, .text-slate-300, .text-slate-400,
+  .text-zinc-300, .text-zinc-400, [class~='text-[#94a3b8]'], [class~='text-[#8d8e85]'],
+  [class~='text-[#777970]'], [class~='text-[#a8aa9d]']
+):not(:where([data-theme-independent], [data-theme-independent] *)) {
+  color: #526174;
+}
+
+html[data-color-mode='light'] :is(
+  [class~='text-white/80'], [class~='text-white/82'], [class~='text-white/84'],
+  [class~='text-white/85'], [class~='text-white/88'], [class~='text-white/90'],
+  [class~='text-white/94'], [class~='text-white/95'], [class~='text-white/96'],
+  [class~='text-[#f8fafc]'], [class~='text-[#f5f5f5]'], [class~='text-[#f1f0ea]'],
+  [class~='text-[#e9e9e1]'], [class~='text-[#f8f7ff]'], [class~='text-[#c5c7b9]'],
+  [class~='text-[#f2f0eb]']
+):not(:where([data-theme-independent], [data-theme-independent] *)) {
+  color: var(--theme-foreground);
+}
+
+html[data-color-mode='light'] :is(
+  .text-cyan-300, .text-cyan-400, .text-sky-300, .text-sky-400,
+  [class~='text-[#38bdf8]'], [class~='text-[#7ff2d4]'], [class~='text-[#9ff6e3]'],
+  [class~='text-[#55ff9b]'], [class~='text-[#98f237]'], [class~='text-[#b4fb60]']
+):not(:where([data-theme-independent], [data-theme-independent] *)) {
+  color: var(--theme-accent);
+}
+
+html[data-color-mode='light'] :is(.text-red-100, .text-red-200, .text-red-300, .text-rose-200, .text-rose-300):not(:where([data-theme-independent], [data-theme-independent] *)) {
+  color: #b91c1c;
+}
+
+/* Keep contrast on filled actions; branded mint actions retain their black text. */
+html[data-color-mode='light'] :is([class~='bg-white'], [class*='bg-[var(--theme-accent)]']):not(:where([data-theme-independent], [data-theme-independent] *)) {
+  color: #fff;
+}
+
+html[data-color-mode='light'] .chrome-text:not(:where([data-theme-independent], [data-theme-independent] *)) {
+  background-image: linear-gradient(180deg, #182230, #526174);
+}
+
+/* The existing transparent logo is white; keep its silhouette visible without
+   recoloring project images or video previews. */
+html[data-color-mode='light'] img[src*='prometheus-logo-no-bg.png'] {
+  filter: brightness(0);
+}
+
+html[data-color-mode='light'] ::selection {
+  background: rgba(3, 105, 161, 0.2);
+  color: #182230;
+}
+
+/* Legacy neutral utilities form one compatibility layer, rather than a new
+   palette per page. Match base tokens, not a hover class at rest. Media and
+   the successful Settings reference opt out of these additional adapters. */
+html[data-color-mode='light'] :is(
+  [class~='bg-[#000]' i],
+  [class~='bg-[#020203]' i],
+  [class~='bg-[#030406]' i],
+  [class~='bg-[#030503]' i],
+  [class~='bg-[#04060b]' i],
+  [class~='bg-[#050505]' i],
+  [class~='bg-[#050505]/88' i],
+  [class~='bg-[#050507]/88' i],
+  [class~='bg-[#050508]' i],
+  [class~='bg-[#050609]' i],
+  [class~='bg-[#05060a]' i],
+  [class~='bg-[#05070a]' i],
+  [class~='bg-[#060606]' i],
+  [class~='bg-[#06070b]' i],
+  [class~='bg-[#06090a]' i],
+  [class~='bg-[#07060d]' i],
+  [class~='bg-[#070707]' i],
+  [class~='bg-[#070707]/90' i],
+  [class~='bg-[#07070a]' i],
+  [class~='bg-[#070809]' i],
+  [class~='bg-[#070809]/95' i],
+  [class~='bg-[#07080b]' i],
+  [class~='bg-[#07120b]' i],
+  [class~='bg-[#080808]' i],
+  [class~='bg-[#08080c]/95' i],
+  [class~='bg-[#080a0d]' i],
+  [class~='bg-[#080c14]' i],
+  [class~='bg-[#081a0e]/95' i],
+  [class~='bg-[#090909]' i],
+  [class~='bg-[#09090c]/85' i],
+  [class~='bg-[#09090c]/90' i],
+  [class~='bg-[#09090c]/95' i],
+  [class~='bg-[#09090d]' i],
+  [class~='bg-[#090a0f]' i],
+  [class~='bg-[#090b11]' i],
+  [class~='bg-[#090b12]' i],
+  [class~='bg-[#090d12]/95' i],
+  [class~='bg-[#090d14]' i],
+  [class~='bg-[#0A0A0C]' i],
+  [class~='bg-[#0A0A0F]' i],
+  [class~='bg-[#0a0a0a]' i],
+  [class~='bg-[#0a0a0a]/95' i],
+  [class~='bg-[#0a0a0b]' i],
+  [class~='bg-[#0a0a0d]' i],
+  [class~='bg-[#0a0a0d]/95' i],
+  [class~='bg-[#0a0a12]/80' i],
+  [class~='bg-[#0a0a12]/90' i],
+  [class~='bg-[#0a0d08]' i],
+  [class~='bg-[#0a0e0c]' i],
+  [class~='bg-[#0a0e15]' i],
+  [class~='bg-[#0b0b10]' i],
+  [class~='bg-[#0b0c11]' i],
+  [class~='bg-[#0b0e14]' i],
+  [class~='bg-[#0b1710]' i],
+  [class~='bg-[#0b1b12]' i],
+  [class~='bg-[#0b1b12]/90' i],
+  [class~='bg-[#0c0b16]' i],
+  [class~='bg-[#0c0b16]/95' i],
+  [class~='bg-[#0c0c0c]' i],
+  [class~='bg-[#0c0c10]' i],
+  [class~='bg-[#0c0c10]/90' i],
+  [class~='bg-[#0c0c10]/95' i],
+  [class~='bg-[#0c0f12]/86' i],
+  [class~='bg-[#0c1014]/[0.97]' i],
+  [class~='bg-[#0c1017]/80' i],
+  [class~='bg-[#0c1018]' i],
+  [class~='bg-[#0c1118]/90' i],
+  [class~='bg-[#0d0d12]' i],
+  [class~='bg-[#0e0d1b]' i],
+  [class~='bg-[#0e1016]/95' i],
+  [class~='bg-[#0f0b17]' i],
+  [class~='bg-[#0f0f1a]/80' i],
+  [class~='bg-[#0f1118]/96' i],
+  [class~='bg-[#101010]' i],
+  [class~='bg-[#101116]' i],
+  [class~='bg-[#101214]' i],
+  [class~='bg-[#101316]' i],
+  [class~='bg-[#10131a]' i],
+  [class~='bg-[#111111]/96' i],
+  [class~='bg-[#111113]/96' i],
+  [class~='bg-[#111115]/90' i],
+  [class~='bg-[#111116]/85' i],
+  [class~='bg-[#111116]/[0.82]' i],
+  [class~='bg-[#111116]/[0.92]' i],
+  [class~='bg-[#111117]' i],
+  [class~='bg-[#11111c]' i],
+  [class~='bg-[#111214]' i],
+  [class~='bg-[#111315]' i],
+  [class~='bg-[#11131b]' i],
+  [class~='bg-[#111512]' i],
+  [class~='bg-[#111]' i],
+  [class~='bg-[#111]/95' i],
+  [class~='bg-[#121212]' i],
+  [class~='bg-[#13131a]' i],
+  [class~='bg-[#14141e]/90' i],
+  [class~='bg-[#15130d]' i],
+  [class~='bg-[#151515]' i],
+  [class~='bg-[#15151c]' i],
+  [class~='bg-[#151817]' i],
+  [class~='bg-[#151a17]' i],
+  [class~='bg-[#16161c]' i],
+  [class~='bg-[#171212]' i],
+  [class~='bg-[#171717]' i],
+  [class~='bg-[#171719]' i],
+  [class~='bg-[#1a1a1a]' i],
+  [class~='bg-[#1c1c1e]/95' i],
+  [class~='bg-black' i],
+  [class~='bg-gray-950' i],
+  [class~='bg-neutral-950' i],
+  [class~='bg-slate-950' i],
+  [class~='bg-zinc-950' i]
+):not(:where([data-ui-overlay], [data-theme-independent], [data-theme-independent] *, [data-light-mode-reference], [data-light-mode-reference] *)) {
+  background-color: var(--theme-background);
+}
+
+html[data-color-mode='light'] :is(
+  [class~='bg-[#0d131f]/95' i],
+  [class~='bg-[#0d1720]' i],
+  [class~='bg-[#111622]/90' i],
+  [class~='bg-[#111722]' i],
+  [class~='bg-[#111820]' i],
+  [class~='bg-[#120d26]/35' i],
+  [class~='bg-[#120d26]/65' i],
+  [class~='bg-[#120d26]/[0.94]' i],
+  [class~='bg-[#121622]' i],
+  [class~='bg-[#13251a]' i],
+  [class~='bg-[#161b26]' i],
+  [class~='bg-[#171a22]' i],
+  [class~='bg-[#171a22]/95' i],
+  [class~='bg-[#1a1a24]/80' i],
+  [class~='bg-[#1a1a2e]' i],
+  [class~='bg-[#1a2b20]' i],
+  [class~='bg-[#1f1c25]' i],
+  [class~='bg-[#1f2535]' i],
+  [class~='bg-[#202023]' i],
+  [class~='bg-[#222]' i],
+  [class~='bg-[#24212b]' i],
+  [class~='bg-[#242428]' i],
+  [class~='bg-[#252934]' i],
+  [class~='bg-[#26232c]' i],
+  [class~='bg-[#28282c]' i],
+  [class~='bg-[#2a2730]' i],
+  [class~='bg-[#2c2c2e]' i],
+  [class~='bg-[#2c2c2e]/80' i],
+  [class~='bg-[#34313b]' i],
+  [class~='bg-[#35313c]' i],
+  [class~='bg-neutral-800' i],
+  [class~='bg-neutral-900' i]
+):not(:where([data-ui-overlay], [data-theme-independent], [data-theme-independent] *, [data-light-mode-reference], [data-light-mode-reference] *)) {
+  background-color: var(--theme-surface);
+}
+
+html[data-color-mode='light'] :is([class^='bg-black/'], [class*=' bg-black/']):not(:where([data-ui-overlay], .fixed.inset-0, [data-theme-independent], [data-theme-independent] *, [data-light-mode-reference], [data-light-mode-reference] *)) {
+  background-color: var(--theme-surface-elevated);
+}
+
+html[data-color-mode='light'] :is(
+  [class^='bg-[linear-gradient(180deg,#0'], [class*=' bg-[linear-gradient(180deg,#0'],
+  [class^='bg-[linear-gradient(180deg,rgba(1'], [class*=' bg-[linear-gradient(180deg,rgba(1'],
+  [class^='bg-[radial-gradient(ellipse_at_50%_-20%'], [class*=' bg-[radial-gradient(ellipse_at_50%_-20%']
+):not(:where(
+  [data-ui-overlay], [data-theme-independent], [data-theme-independent] *,
+  [data-light-mode-reference], [data-light-mode-reference] *
+)) {
+  background: var(--theme-surface);
+}
+
+/* Content surfaces share a flat treatment. Keep their existing padding, grid,
+   radii, motion and borders; only decorative light-mode depth is removed. */
+html[data-color-mode='light'] :is(
+  .glass-surface, .glass-surface-strong, .glass-pill, .glass-panel,
+  .glass-panel-enhanced, .glass-card-premium, .premium-ambient-panel,
+  .premium-search-pill, .premium-search-pill:focus-within, .premium-motion-surface,
+  .luxury-analysis-panel, .glass-sidebar, .glass-input, [data-slot='card']
+):not(:where(
+  [data-theme-independent], [data-theme-independent] *,
+  [data-light-mode-reference], [data-light-mode-reference] *
+)) {
+  background: var(--theme-surface);
+  border-color: var(--theme-border);
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+html[data-color-mode='light'] :is(
+  .shadow-sm, .shadow-md, .shadow-lg, .shadow-xl, .shadow-2xl,
+  [class*='shadow-['], .glass-card-hover:hover, .premium-motion-surface:hover,
+  .prometheus-masthead:hover, .glass-button:hover,
+  [data-slot='button']:hover, [data-slot='button']:focus-visible, [data-slot='button']:active,
+  [data-slot='collapsible-trigger']:hover, [data-slot='collapsible-trigger']:focus-visible,
+  [data-slot='collapsible-trigger'][data-state='open']
+):not(:where(
+  .fixed, .absolute, [role='dialog'], [role='alertdialog'], [role='menu'],
+  [role='listbox'], [role='tooltip'], [data-ui-elevation],
+  [data-theme-independent], [data-theme-independent] *,
+  [data-light-mode-reference], [data-light-mode-reference] *
+)) {
+  --tw-shadow: 0 0 #0000;
+  --tw-inset-shadow: 0 0 #0000;
+  box-shadow: var(--tw-inset-ring-shadow, 0 0 #0000), var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000);
+}
+
+html[data-color-mode='light'] :is(.premium-motion-surface, .glass-card-premium, [data-slot='button'], [data-slot='collapsible-trigger']):not(:where([data-theme-independent], [data-theme-independent] *, [data-light-mode-reference] *))::before,
+html[data-color-mode='light'] :is(.glass-card-premium, [data-slot='button'], [data-slot='collapsible-trigger']):not(:where([data-theme-independent], [data-theme-independent] *, [data-light-mode-reference] *))::after,
+html[data-color-mode='light'] :is(
+  .premium-vignette-edge,
+  .premium-vignette-falloff, .premium-vignette-inner-glow,
+  .premium-song-scroller-sheen
+):not(:where([data-theme-independent] *, [data-light-mode-reference] *)) {
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+html[data-color-mode='light'] .accent-glow:not(:where([data-theme-independent], [data-theme-independent] *)) {
+  text-shadow: none;
+}
+
+html[data-color-mode='light'] :is(.premium-kinetic-text:hover, .premium-kinetic-text:focus-visible):not(:where([data-theme-independent] *, [data-light-mode-reference] *)) {
+  text-shadow: none;
+}
+
+html[data-color-mode='light'] .focus-ring-glow:not(:focus-visible):not(:where([data-light-mode-reference] *)) {
+  box-shadow: none;
+}
+
+html[data-color-mode='light'] :focus-visible:not(:where([data-theme-independent] *, [data-light-mode-reference] *)) {
+  outline-color: var(--theme-accent);
+  outline-style: solid;
+  outline-width: 2px;
+  outline-offset: 2px;
+}
+
+html[data-color-mode='light'] :is(input, textarea):not(:where([data-theme-independent] *, [data-light-mode-reference] *))::placeholder {
+  color: var(--muted-foreground);
+}
+
+html[data-color-mode='light'] .premium-scroll-fades::before,
+html[data-color-mode='light'] .premium-song-scroller-overlay-top {
+  background: linear-gradient(to bottom, var(--theme-surface), transparent);
+}
+
+html[data-color-mode='light'] .premium-scroll-fades::after,
+html[data-color-mode='light'] .premium-song-scroller-overlay-bottom {
+  background: linear-gradient(to top, var(--theme-surface), transparent);
+}
+
+/* Depth is reserved for elements genuinely above content. Radix roles cover
+   portal content; custom floating UI can use the same elevation attributes. */
+html[data-color-mode='light'] :is([data-ui-elevation="menu"], [role='menu'], [role='listbox'], [role='tooltip']) {
+  background: var(--theme-surface);
+  color: var(--theme-foreground);
+  border-color: var(--theme-border);
+  box-shadow: var(--light-ui-menu-shadow);
+}
+
+html[data-color-mode='light'] :is([data-ui-elevation="dialog"], [role='dialog'], [role='alertdialog'], .iteration-modal) {
+  background: var(--theme-surface);
+  color: var(--theme-foreground);
+  border-color: var(--theme-border);
+  box-shadow: var(--light-ui-dialog-shadow);
+}
+
+html[data-color-mode='light'] [data-ui-elevation="dialog"] [aria-label='Close'] {
+  background: var(--theme-surface-elevated);
+  color: var(--theme-foreground);
+}
+
+html[data-color-mode='light'] [data-slot='button'][data-variant='destructive']:not(:where([data-light-mode-reference] *)) {
+  background: #b91c1c;
+  color: #fff;
+  box-shadow: none;
+}
+
+html[data-color-mode='light'] [data-slot='button'][data-variant='destructive']:hover:not(:where([data-light-mode-reference] *)) {
+  background: #991b1b;
+}
+
+html[data-color-mode='light'] [data-slot='button'][data-variant='default']:not(:where([data-light-mode-reference] *)) {
+  color: #fff;
+}
+
+html[data-color-mode='light'] :is(.prometheus-masthead, .prometheus-masthead:hover):not(:where([data-light-mode-reference] *)) {
+  background: var(--theme-background);
+  border-color: var(--theme-border);
+  box-shadow: none;
+}
+
+html[data-color-mode='light'] [data-ui-surface="navigation"] {
+  box-shadow: none;
+}
+
+html[data-color-mode='light'] [data-slot='card'] [data-slot='card']:not(:where([data-light-mode-reference] *, [data-theme-independent] *)) {
+  background: var(--theme-surface-elevated);
+  border-color: transparent;
+  box-shadow: none;
+}
+
+html[data-color-mode='light'] :is(
+  [class^='text-neutral-' i], [class*=' text-neutral-' i],
+  [class^='text-gray-' i], [class*=' text-gray-' i],
+  [class^='text-slate-' i], [class*=' text-slate-' i],
+  [class^='text-zinc-' i], [class*=' text-zinc-' i]
+):not(:where([data-light-mode-reference] *, [data-theme-independent] *, [data-theme-independent])) {
+  color: var(--muted-foreground);
+}
+
+/* The project room keeps its editorial structure and dark hover inversion.
+   Light cards use tonal contrast, with no glow or content-card elevation. */
+html[data-color-mode='light'] [data-ui-surface="project-card"],
+html[data-color-mode='light'] [data-ui-surface="project-card"]:hover,
+html[data-color-mode='light'] [data-ui-surface="project-card"]:focus-within {
+  border-color: var(--theme-border);
+  box-shadow: none;
+}
+
+html[data-color-mode='light'] :is(.project-hero-shade, .project-hero-glow, .project-hero-grain) {
+  background: none;
+}
+
+html[data-color-mode='light'] .project-tile-artwork {
+  mix-blend-mode: multiply;
+}
+
+/* Preserve the reference's existing treatment and intentional dark video
+   stages. Theme switching must not recolor footage, render output or artwork. */
+html[data-color-mode='light'] [data-light-mode-reference] {
+  --glass-shadow: 0 24px 60px -34px rgba(24, 34, 48, 0.16);
+  --glass-shadow-lg: 0 40px 110px -58px rgba(24, 34, 48, 0.22);
+  --focus-glow: 0 0 0 1px var(--theme-accent), 0 0 0 5px rgba(3, 105, 161, 0.12);
+}
+
+html[data-color-mode='light'] [data-theme-independent] {
+  --color-white: #fff;
+  --void: #050505;
+  --surface-base: #0a0a0c;
+  --chrome: #e8e8e8;
+  --chrome-dim: #a0a0b0;
+  color: #fff;
+}
+
+html[data-color-mode='light'] :is(
+  [class~='hover:bg-black'], [class~='hover:bg-black/20'],
+  [class~='hover:bg-black/60'], [class~='hover:bg-black/72'],
+  [class~='hover:bg-black/82'], [class~='hover:bg-black/84'],
+  [class~='hover:bg-black/85'], [class~='hover:bg-black/86'], [class~='hover:bg-black/90'],
+  [class~='hover:bg-[#101010]' i],
+  [class~='hover:bg-[#120d26]/65' i],
+  [class~='hover:bg-[#13251a]' i],
+  [class~='hover:bg-[#151817]' i],
+  [class~='hover:bg-[#1f2535]' i],
+  [class~='hover:bg-[#34313b]' i],
+  [class~='hover:bg-[#35313c]' i],
+  [class~='hover:bg-neutral-800' i]
+):hover:not(:where([data-ui-overlay], [data-theme-independent], [data-theme-independent] *, [data-light-mode-reference], [data-light-mode-reference] *)) {
+  background-color: var(--theme-surface-elevated);
+}
+
+html[data-color-mode='light'] [class~='focus:bg-black/40']:focus:not(:where([data-theme-independent] *, [data-light-mode-reference] *)),
+html[data-color-mode='light'] .group:hover [class~='group-hover:bg-black/52']:not(:where([data-theme-independent] *, [data-light-mode-reference] *)) {
+  background-color: var(--theme-surface-elevated);
+}
+
+/* Neutral labels in legacy editorial panels share the same text hierarchy. */
+html[data-color-mode='light'] :is(
+  [class~='text-[#C5C7B9]' i],
+  [class~='text-[#C7C7C0]' i],
+  [class~='text-[#D8D8D0]' i],
+  [class~='text-[#E9E9E1]' i],
+  [class~='text-[#EAEAEA]' i],
+  [class~='text-[#F1F0EA]' i],
+  [class~='text-[#F5F5F5]' i],
+  [class~='text-[#d7fff8]/70' i],
+  [class~='text-[#d8fff4]' i],
+  [class~='text-[#d9d4cb]' i],
+  [class~='text-[#ddd6fe]' i],
+  [class~='text-[#f2f0eb]' i],
+  [class~='text-[#f2f1eb]' i],
+  [class~='text-[#f2f1ec]' i],
+  [class~='text-[#f4f1ff]' i],
+  [class~='text-[#f4f2eb]' i],
+  [class~='text-[#f4f3ee]' i],
+  [class~='text-[#f5f2ea]' i],
+  [class~='text-[#f5f2eb]' i],
+  [class~='text-[#f8f7ff]' i],
+  [class~='text-[#f8fafc]' i],
+  [class~='text-[#fbfaff]' i],
+  [class~='text-[#fff1ed]' i]
+):not(:where([data-ui-overlay], [data-theme-independent], [data-theme-independent] *, [data-light-mode-reference], [data-light-mode-reference] *)) {
+  color: var(--theme-foreground);
+}
+
+html[data-color-mode='light'] :is(
+  [class~='text-[#666158]' i],
+  [class~='text-[#66685F]' i],
+  [class~='text-[#676961]' i],
+  [class~='text-[#69666e]' i],
+  [class~='text-[#6d675f]' i],
+  [class~='text-[#6f6961]' i],
+  [class~='text-[#6f6a62]' i],
+  [class~='text-[#706b63]' i],
+  [class~='text-[#767068]' i],
+  [class~='text-[#77726a]' i],
+  [class~='text-[#777970]' i],
+  [class~='text-[#79736a]' i],
+  [class~='text-[#7a756d]' i],
+  [class~='text-[#7b756d]' i],
+  [class~='text-[#7e776f]' i],
+  [class~='text-[#8D8E85]' i],
+  [class~='text-[#8b857d]' i],
+  [class~='text-[#94a3b8]' i],
+  [class~='text-[#999A91]' i],
+  [class~='text-[#A8AA9D]' i]
+):not(:where([data-ui-overlay], [data-theme-independent], [data-theme-independent] *, [data-light-mode-reference], [data-light-mode-reference] *)) {
+  color: var(--muted-foreground);
+}

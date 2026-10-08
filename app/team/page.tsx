@@ -1,5 +1,6 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
 import { PrometheusShell } from '@/components/prometheus-shell'
 import { PageHeader } from '@/components/page-header'
 import {
@@ -11,8 +12,11 @@ import {
 } from '@/components/ui/card'
 
 export default function TeamPage() {
+  const router = useRouter()
+  const workspaceHref = '/settings?panel=workspace'
+
   return (
-    <PrometheusShell header={<PageHeader title="Team" description="UI-only team management scaffolding." showBackButton />}>
+    <PrometheusShell header={<PageHeader title="Team" description="UI-only team management scaffolding." showBackButton backHref={workspaceHref} onBack={() => router.push(workspaceHref)} />}>
       <div className="px-8 py-6">
         <Card>
           <CardHeader>

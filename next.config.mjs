@@ -5,6 +5,14 @@ import { fileURLToPath } from 'node:url'
 const configFilePath = fileURLToPath(import.meta.url)
 const projectRoot = path.dirname(configFilePath)
 const backendApiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.trim() || 'http://localhost:8000'
+// Expose only this deployment's exact platform hostnames to the auth helper.
+// Production keeps its canonical origin; arbitrary request hosts are not trusted.
+const authPreviewOrigins = process.env.VERCEL_ENV === 'preview'
+  ? [process.env.VERCEL_URL, process.env.VERCEL_BRANCH_URL].flatMap((hostname) => {
+      if (!hostname || !/^[a-z\d](?:[a-z\d-]*[a-z\d])?\.vercel\.app$/i.test(hostname)) return []
+      return [`https://${hostname.toLowerCase()}`]
+    })
+  : []
 
 const nextConfig = {
   allowedDevOrigins: ['192.168.207.174'],
@@ -18,6 +26,7 @@ const nextConfig = {
   },
   env: {
     NEXT_PUBLIC_API_BASE_URL: backendApiBaseUrl,
+    NEXT_PUBLIC_AUTH_PREVIEW_ORIGINS: JSON.stringify([...new Set(authPreviewOrigins)]),
   },
   poweredByHeader: false,
   images: {

@@ -29,6 +29,17 @@ import { getProject, upsertProject } from '@/lib/mock'
 import type { ProjectCardStatus, ProjectListItem } from '@/lib/projects/types'
 import type { Project } from '@/lib/types'
 
+// Light mode aliases the shared palette; each fallback is the existing dark color.
+const PROJECT_THEME = {
+  '--project-canvas': 'var(--light-ui-canvas, #09090b)',
+  '--project-card': 'var(--light-ui-surface, #000)',
+  '--project-option': 'var(--light-ui-surface, #111114)',
+  '--project-ink': 'var(--light-ui-text, #fff)',
+  '--project-line': 'var(--light-ui-line, #fff)',
+  '--project-inverse': 'var(--light-ui-subtle, #fff)',
+  '--project-inverse-ink': 'var(--light-ui-text, #000)',
+} as React.CSSProperties
+
 type FilterKey = 'all' | ProjectCardStatus
 type SortKey = 'updated' | 'created' | 'title'
 
@@ -101,12 +112,13 @@ function ProjectTile({
 
   return (
     <article
+      data-ui-surface="project-card"
       onClick={(event) => {
         const target = event.target as HTMLElement | null
         if (target?.closest('button[data-menu-action]')) return
         onOpen()
       }}
-      className="group relative aspect-[4/5] min-h-[248px] cursor-pointer overflow-hidden border border-white/45 bg-black shadow-[0_18px_45px_-28px_rgba(0,0,0,0.92)] transition-[transform,background-color,border-color,box-shadow] duration-500 ease-[cubic-bezier(.16,1,.3,1)] hover:-translate-y-1 hover:border-white hover:bg-white hover:shadow-[0_30px_58px_-28px_rgba(0,0,0,1)] focus-within:border-white focus-within:bg-white"
+      className="group relative aspect-[4/5] min-h-[248px] cursor-pointer overflow-hidden border border-[var(--project-line)]/45 bg-[var(--project-card)] shadow-[0_18px_45px_-28px_rgba(0,0,0,0.92)] transition-[transform,background-color,border-color,box-shadow] duration-500 ease-[cubic-bezier(.16,1,.3,1)] hover:-translate-y-1 hover:border-[var(--project-line)] hover:bg-[var(--project-inverse)] hover:shadow-[0_30px_58px_-28px_rgba(0,0,0,1)] focus-within:border-[var(--project-line)] focus-within:bg-[var(--project-inverse)]"
       style={{ animationDelay: `${Math.min(index * 45, 360)}ms` }}
     >
       <button
@@ -115,20 +127,20 @@ function ProjectTile({
           event.stopPropagation()
           onOpen()
         }}
-        className="absolute inset-0 z-0 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white"
+        className="absolute inset-0 z-0 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--project-line)]"
         aria-label={`Open ${project.title}`}
       />
 
       <div aria-hidden="true" className="absolute inset-0 overflow-hidden">
         <div className="absolute inset-0 opacity-20 [background-image:linear-gradient(90deg,rgba(255,255,255,.18)_1px,transparent_1px),linear-gradient(rgba(255,255,255,.18)_1px,transparent_1px)] [background-size:28px_28px] transition-opacity duration-500 group-hover:opacity-0 group-focus-within:opacity-0" />
-        {thumbnailStyle ? <div className="absolute inset-0 bg-cover bg-center grayscale opacity-[0.18] mix-blend-screen transition-[opacity,transform,mix-blend-mode] duration-700 group-hover:scale-105 group-hover:opacity-[0.12] group-hover:mix-blend-multiply group-focus-within:scale-105 group-focus-within:opacity-[0.12] group-focus-within:mix-blend-multiply" style={thumbnailStyle} /> : null}
-        <span className="absolute -right-12 -top-10 size-44 rounded-full bg-white/10 blur-3xl transition-[transform,background-color] duration-700 group-hover:translate-x-6 group-hover:translate-y-5 group-hover:bg-black/10 group-focus-within:translate-x-6 group-focus-within:translate-y-5 group-focus-within:bg-black/10" />
-        <span className="absolute left-5 top-5 font-mono text-[10px] tracking-[0.22em] text-white/70 transition-colors duration-500 group-hover:text-black/65 group-focus-within:text-black/65">PROMETHEUS / 0{index + 1}</span>
+        {thumbnailStyle ? <div className="project-tile-artwork absolute inset-0 bg-cover bg-center grayscale opacity-[0.18] mix-blend-screen transition-[opacity,transform,mix-blend-mode] duration-700 group-hover:scale-105 group-hover:opacity-[0.12] group-hover:mix-blend-multiply group-focus-within:scale-105 group-focus-within:opacity-[0.12] group-focus-within:mix-blend-multiply" style={thumbnailStyle} /> : null}
+        <span className="absolute -right-12 -top-10 size-44 rounded-full bg-[var(--project-inverse)]/10 blur-3xl transition-[transform,background-color] duration-700 group-hover:translate-x-6 group-hover:translate-y-5 group-hover:bg-[var(--project-card)]/10 group-focus-within:translate-x-6 group-focus-within:translate-y-5 group-focus-within:bg-[var(--project-card)]/10" />
+        <span className="absolute left-5 top-5 font-mono text-[10px] tracking-[0.22em] text-[color:var(--light-ui-muted,rgba(255,255,255,0.7))] transition-colors duration-500 group-hover:text-[color:var(--light-ui-muted,rgba(0,0,0,0.65))] group-focus-within:text-[color:var(--light-ui-muted,rgba(0,0,0,0.65))]">PROMETHEUS / 0{index + 1}</span>
       </div>
 
       {isOpening ? (
-        <div className="absolute inset-0 z-40 grid place-items-center bg-black/78 backdrop-blur-sm">
-          <div className="flex flex-col items-center gap-3 text-center text-xs text-white/76">
+        <div className="absolute inset-0 z-40 grid place-items-center bg-[var(--project-card)]/78 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-3 text-center text-xs text-[color:var(--light-ui-muted,rgba(255,255,255,0.76))]">
             <InlineLoadingAnimation size={46} label={`Opening ${project.title}`} />
             <span>Opening editorial chamber</span>
           </div>
@@ -136,7 +148,7 @@ function ProjectTile({
       ) : null}
 
       <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-start justify-between p-3">
-        <span className="inline-flex items-center gap-1.5 border border-white/55 bg-black px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-white transition-[background-color,border-color,color] duration-500 group-hover:border-black group-hover:bg-black group-hover:text-white">
+        <span className="inline-flex items-center gap-1.5 border border-[var(--project-line)]/55 bg-[var(--project-card)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--project-ink)] transition-[background-color,border-color,color] duration-500 group-hover:border-[var(--project-inverse-ink)] group-hover:bg-[var(--project-card)] group-hover:text-[var(--project-ink)]">
           <span className="size-1.5 rounded-full bg-current" />
           {status.label}
         </span>
@@ -150,12 +162,12 @@ function ProjectTile({
               event.stopPropagation()
               setMenuOpen((open) => !open)
             }}
-            className="grid size-9 place-items-center border border-white/55 bg-white text-black transition-[background-color,border-color,color,transform] duration-300 hover:scale-105 hover:border-black hover:bg-black hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white group-hover:border-black/60"
+            className="grid size-9 place-items-center border border-[var(--project-line)]/55 bg-[var(--project-inverse)] text-[var(--project-inverse-ink)] transition-[background-color,border-color,color,transform] duration-300 hover:scale-105 hover:border-[var(--project-inverse-ink)] hover:bg-[var(--project-card)] hover:text-[var(--project-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--project-line)] group-hover:border-[var(--project-inverse-ink)]/60"
           >
             <MoreHorizontal className="size-4" />
           </button>
           {menuOpen ? (
-            <div className="absolute right-0 top-11 z-30 min-w-40 border border-black bg-white p-1.5 text-black shadow-2xl">
+            <div data-ui-elevation="menu" className="absolute right-0 top-11 z-30 min-w-40 border border-[var(--project-inverse-ink)] bg-[var(--project-inverse)] p-1.5 text-[var(--project-inverse-ink)] shadow-2xl">
               <button
                 type="button"
                 data-menu-action="duplicate"
@@ -165,7 +177,7 @@ function ProjectTile({
                   onDuplicate()
                 }}
                 disabled={isDuplicating}
-                className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-black/75 transition hover:bg-black hover:text-white disabled:opacity-50"
+                className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-[color:var(--light-ui-muted,rgba(0,0,0,0.75))] transition hover:bg-[var(--project-card)] hover:text-[var(--project-ink)] disabled:opacity-50"
               >
                 <Copy className="size-3.5" /> Duplicate
               </button>
@@ -178,7 +190,7 @@ function ProjectTile({
                   onDelete()
                 }}
                 disabled={isDeleting}
-                className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-black/75 transition hover:bg-black hover:text-white disabled:opacity-50"
+                className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-[color:var(--light-ui-muted,rgba(0,0,0,0.75))] transition hover:bg-[var(--project-card)] hover:text-[var(--project-ink)] disabled:opacity-50"
               >
                 <Trash2 className="size-3.5" /> Delete
               </button>
@@ -188,17 +200,17 @@ function ProjectTile({
       </div>
 
       <div className="absolute inset-x-0 bottom-0 z-10 p-4">
-        <div className="mb-3 h-px w-full bg-white/45 transition-colors duration-500 group-hover:bg-black/45 group-focus-within:bg-black/45" />
+        <div className="mb-3 h-px w-full bg-[var(--project-inverse)]/45 transition-colors duration-500 group-hover:bg-[var(--project-card)]/45 group-focus-within:bg-[var(--project-card)]/45" />
         <p
           onClick={(event) => {
             event.stopPropagation()
             onOpen()
           }}
-          className="mb-1 line-clamp-2 text-lg font-semibold leading-[1.05] tracking-[-0.04em] text-white transition-[color,transform] duration-500 group-hover:translate-x-1 group-hover:text-black group-focus-within:translate-x-1 group-focus-within:text-black"
+          className="mb-1 line-clamp-2 text-lg font-semibold leading-[1.05] tracking-[-0.04em] text-[var(--project-ink)] transition-[color,transform] duration-500 group-hover:translate-x-1 group-hover:text-[var(--project-inverse-ink)] group-focus-within:translate-x-1 group-focus-within:text-[var(--project-inverse-ink)]"
         >
           {project.title}
         </p>
-        <div className="flex items-center justify-between gap-3 text-[10px] font-medium uppercase tracking-[0.14em] text-white/64 transition-colors duration-500 group-hover:text-black/65 group-focus-within:text-black/65">
+        <div className="flex items-center justify-between gap-3 text-[10px] font-medium uppercase tracking-[0.14em] text-[color:var(--light-ui-muted,rgba(255,255,255,0.64))] transition-colors duration-500 group-hover:text-[color:var(--light-ui-muted,rgba(0,0,0,0.65))] group-focus-within:text-[color:var(--light-ui-muted,rgba(0,0,0,0.65))]">
           <span className="truncate">{compactDate(project.updatedAt)}</span>
           <span className="shrink-0">{project.width && project.height ? `${project.width}×${project.height}` : 'Project'}</span>
         </div>
@@ -297,23 +309,23 @@ export function ProjectsPageEditorial() {
   }, [duplicateProject])
 
   return (
-    <main aria-busy={isLoading || Boolean(openingProjectId)} className="min-h-dvh overflow-hidden bg-[#09090b] text-white">
-      <section className="relative isolate overflow-hidden border-b border-white/10 px-4 pb-8 pt-5 sm:px-7 lg:px-10">
-        <div aria-hidden="true" className="absolute inset-0 -z-10 overflow-hidden bg-[#09090b]">
-          <div className="absolute -right-20 -top-24 size-[28rem] rounded-full bg-white/10 blur-[100px]" />
-          <div className="absolute inset-0 bg-[linear-gradient(100deg,rgba(0,0,0,.94)_15%,rgba(0,0,0,.45)_70%,rgba(0,0,0,.78))]" />
-          <div className="absolute inset-0 opacity-35 [background-image:radial-gradient(rgba(255,255,255,.52)_0.6px,transparent_0.6px)] [background-size:5px_5px]" />
+    <main style={PROJECT_THEME} aria-busy={isLoading || Boolean(openingProjectId)} className="min-h-dvh overflow-hidden bg-[var(--project-canvas)] text-[var(--project-ink)]">
+      <section className="relative isolate overflow-hidden border-b border-[var(--project-line)]/10 px-4 pb-8 pt-5 sm:px-7 lg:px-10">
+        <div aria-hidden="true" className="absolute inset-0 -z-10 overflow-hidden bg-[var(--project-canvas)]">
+          <div className="project-hero-glow absolute -right-20 -top-24 size-[28rem] rounded-full bg-[var(--project-inverse)]/10 blur-[100px]" />
+          <div className="project-hero-shade absolute inset-0 bg-[linear-gradient(100deg,rgba(0,0,0,.94)_15%,rgba(0,0,0,.45)_70%,rgba(0,0,0,.78))]" />
+          <div className="project-hero-grain absolute inset-0 opacity-35 [background-image:radial-gradient(rgba(255,255,255,.52)_0.6px,transparent_0.6px)] [background-size:5px_5px]" />
         </div>
 
         <div className="mx-auto max-w-[1540px]">
-          <div className="flex items-center justify-between gap-4 border-b border-white/15 pb-4 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/70">
+          <div className="flex items-center justify-between gap-4 border-b border-[var(--project-line)]/15 pb-4 text-[10px] font-semibold uppercase tracking-[0.18em] text-[color:var(--light-ui-muted,rgba(255,255,255,0.7))]">
             <span className="flex items-center gap-2"><Sparkles className="size-3.5" /> Prometheus studio</span>
             <span>{isLoading ? 'Loading your projects?' : `${projects.length} pieces in motion`}</span>
           </div>
 
           <div className="flex flex-col justify-between gap-7 pt-8 lg:flex-row lg:items-end lg:pt-12">
             <div>
-              <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-white/65">Your creative room</p>
+              <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-[color:var(--light-ui-muted,rgba(255,255,255,0.65))]">Your creative room</p>
               <h1 className="max-w-3xl [font-family:var(--font-playfair-display)] text-balance text-[clamp(3.25rem,9vw,8.5rem)] font-semibold leading-[0.78] tracking-[-0.09em]">
                 <motion.span
                   initial={prefersReducedMotion ? false : { opacity: 0, y: 22 }}
@@ -322,7 +334,7 @@ export function ProjectsPageEditorial() {
                 >
                   Make{' '}
                 </motion.span>
-                <span aria-label="moves" className="font-serif font-normal text-white">
+                <span aria-label="moves" className="font-serif font-normal text-[var(--project-ink)]">
                   {movesLetters.map((letter, index) => (
                     <motion.span
                       aria-hidden="true"
@@ -344,7 +356,7 @@ export function ProjectsPageEditorial() {
                 <br />
                 <motion.span
                   aria-label="together."
-                  className="inline-flex items-baseline border border-white/65 px-[0.08em] text-[#f5f5f2] shadow-[inset_0_0_0_1px_rgba(255,255,255,.08)]"
+                  className="inline-flex items-baseline border border-[var(--project-line)]/65 px-[0.08em] text-[color:var(--light-ui-text,#f5f5f2)] shadow-[inset_0_0_0_1px_rgba(255,255,255,.08)]"
                   initial={prefersReducedMotion ? false : { opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.01, delay: prefersReducedMotion ? 0 : 0.8 }}
@@ -365,17 +377,17 @@ export function ProjectsPageEditorial() {
                       </motion.span>
                     </span>
                   ))}
-                  {!prefersReducedMotion ? <motion.span aria-hidden="true" className="ml-[0.03em] inline-block h-[0.74em] w-[0.035em] bg-white align-[-0.02em]" animate={{ opacity: [0, 1, 1, 0] }} transition={{ duration: 0.72, delay: 1.46, times: [0, 0.15, 0.78, 1] }} /> : null}
+                  {!prefersReducedMotion ? <motion.span aria-hidden="true" className="ml-[0.03em] inline-block h-[0.74em] w-[0.035em] bg-[var(--project-inverse)] align-[-0.02em]" animate={{ opacity: [0, 1, 1, 0] }} transition={{ duration: 0.72, delay: 1.46, times: [0, 0.15, 0.78, 1] }} /> : null}
                 </motion.span>
               </h1>
             </div>
             <div className="flex flex-wrap items-center gap-2 lg:justify-end">
-              <span className="inline-flex items-center gap-2 rounded-full border border-white bg-white px-3 py-1.5 text-xs font-medium text-black"><span className="size-2 rounded-full bg-black/70" /> You</span>
-              <span className="inline-flex items-center gap-2 rounded-full border border-white/55 bg-black px-3 py-1.5 text-xs font-medium text-white"><span className="size-2 rounded-full bg-white/70" /> Prometheus</span>
+              <span className="inline-flex items-center gap-2 rounded-full border border-[var(--project-line)] bg-[var(--project-inverse)] px-3 py-1.5 text-xs font-medium text-[var(--project-inverse-ink)]"><span className="size-2 rounded-full bg-[var(--project-card)]/70" /> You</span>
+              <span className="inline-flex items-center gap-2 rounded-full border border-[var(--project-line)]/55 bg-[var(--project-card)] px-3 py-1.5 text-xs font-medium text-[var(--project-ink)]"><span className="size-2 rounded-full bg-[var(--project-inverse)]/70" /> Prometheus</span>
               <button
                 type="button"
                 onClick={() => setIsCreateOpen(true)}
-                className="ml-1 inline-flex min-h-11 items-center gap-2 border border-white bg-white px-4 text-sm font-semibold text-black transition duration-200 hover:bg-black hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+                className="ml-1 inline-flex min-h-11 items-center gap-2 border border-[var(--project-line)] bg-[var(--project-inverse)] px-4 text-sm font-semibold text-[var(--project-inverse-ink)] transition duration-200 hover:bg-[var(--project-card)] hover:text-[var(--project-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--project-line)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--project-card)]"
               >
                 <Plus className="size-4" /> New project
               </button>
@@ -385,7 +397,7 @@ export function ProjectsPageEditorial() {
       </section>
 
       <section aria-label="Browse projects" className="mx-auto max-w-[1540px] px-4 py-6 sm:px-7 lg:px-10 lg:py-8">
-        <div className="mb-5 flex flex-col gap-3 border-b border-white/10 pb-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="mb-5 flex flex-col gap-3 border-b border-[var(--project-line)]/10 pb-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex max-w-full gap-2 overflow-x-auto pb-1 [scrollbar-width:none] lg:pb-0">
             {filters.map((item) => {
               const active = filter === item.key
@@ -394,7 +406,7 @@ export function ProjectsPageEditorial() {
                   key={item.key}
                   type="button"
                   onClick={() => setFilter(item.key)}
-                  className={`shrink-0 border px-3 py-2 text-xs font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${active ? 'border-white bg-white text-black' : 'border-white/15 bg-white/[0.03] text-white/68 hover:border-white/45 hover:text-white'}`}
+                  className={`shrink-0 border px-3 py-2 text-xs font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--project-line)] ${active ? 'border-[var(--project-line)] bg-[var(--project-inverse)] text-[var(--project-inverse-ink)]' : 'border-[var(--project-line)]/15 bg-[var(--project-inverse)]/[0.03] text-[color:var(--light-ui-muted,rgba(255,255,255,0.68))] hover:border-[var(--project-line)]/45 hover:text-[var(--project-ink)]'}`}
                 >
                   {item.label} <span className="ml-1.5 font-mono text-[10px] opacity-60">{isLoading ? 'Loading' : `(${countFor(item.key)})`}</span>
                 </button>
@@ -404,54 +416,54 @@ export function ProjectsPageEditorial() {
 
           <div className="flex items-center gap-2">
             <div className="relative min-w-0 flex-1 lg:w-64 lg:flex-none">
-              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-white/42" />
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[color:var(--light-ui-muted,rgba(255,255,255,0.42))]" />
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 aria-label="Search projects"
                 placeholder="Search the room"
-                className="h-10 w-full border border-white/15 bg-white/[0.035] pl-9 pr-9 text-sm text-white outline-none transition placeholder:text-white/38 focus:border-white/55 focus:bg-white/[0.07]"
+                className="h-10 w-full border border-[var(--project-line)]/15 bg-[var(--project-inverse)]/[0.035] pl-9 pr-9 text-sm text-[var(--project-ink)] outline-none transition placeholder:text-[color:var(--light-ui-muted,rgba(255,255,255,0.38))] focus:border-[var(--project-line)]/55 focus:bg-[var(--project-inverse)]/[0.07]"
               />
-              {query ? <button type="button" onClick={() => setQuery('')} aria-label="Clear project search" className="absolute right-1 top-1 grid size-8 place-items-center text-white/55 hover:text-white"><X className="size-3.5" /></button> : null}
+              {query ? <button type="button" onClick={() => setQuery('')} aria-label="Clear project search" className="absolute right-1 top-1 grid size-8 place-items-center text-[color:var(--light-ui-muted,rgba(255,255,255,0.55))] hover:text-[var(--project-ink)]"><X className="size-3.5" /></button> : null}
             </div>
             <button
               type="button"
               onClick={() => setIsControlsOpen((open) => !open)}
               aria-expanded={isControlsOpen}
-              className="inline-flex size-10 items-center justify-center border border-white/15 text-white/75 transition hover:border-white/50 hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white lg:hidden"
+              className="inline-flex size-10 items-center justify-center border border-[var(--project-line)]/15 text-[color:var(--light-ui-muted,rgba(255,255,255,0.75))] transition hover:border-[var(--project-line)]/50 hover:bg-[var(--project-inverse)]/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--project-line)] lg:hidden"
               aria-label="Open project sorting controls"
             >
               <SlidersHorizontal className="size-4" />
             </button>
-            <label className={`${isControlsOpen ? 'flex' : 'hidden'} items-center gap-2 border border-white/15 bg-white/[0.035] px-3 lg:flex`}>
-              <span className="hidden text-[10px] font-semibold uppercase tracking-[0.13em] text-white/42 sm:inline">Sort</span>
-              <select value={sortKey} onChange={(event) => setSortKey(event.target.value as SortKey)} className="h-10 min-w-24 appearance-none bg-transparent pr-5 text-xs font-medium text-white outline-none">
-                <option value="updated" className="bg-[#111114]">Latest</option>
-                <option value="created" className="bg-[#111114]">Created</option>
-                <option value="title" className="bg-[#111114]">A–Z</option>
+            <label className={`${isControlsOpen ? 'flex' : 'hidden'} items-center gap-2 border border-[var(--project-line)]/15 bg-[var(--project-inverse)]/[0.035] px-3 lg:flex`}>
+              <span className="hidden text-[10px] font-semibold uppercase tracking-[0.13em] text-[color:var(--light-ui-muted,rgba(255,255,255,0.42))] sm:inline">Sort</span>
+              <select value={sortKey} onChange={(event) => setSortKey(event.target.value as SortKey)} className="h-10 min-w-24 appearance-none bg-transparent pr-5 text-xs font-medium text-[var(--project-ink)] outline-none">
+                <option value="updated" className="bg-[var(--project-option)]">Latest</option>
+                <option value="created" className="bg-[var(--project-option)]">Created</option>
+                <option value="title" className="bg-[var(--project-option)]">A–Z</option>
               </select>
-              <ChevronDown className="pointer-events-none -ml-7 size-3.5 text-white/55" />
+              <ChevronDown className="pointer-events-none -ml-7 size-3.5 text-[color:var(--light-ui-muted,rgba(255,255,255,0.55))]" />
             </label>
           </div>
         </div>
 
         {error ? (
-          <div role="alert" className="flex min-h-60 flex-col items-center justify-center border border-white/25 bg-white/[0.04] p-6 text-center">
-            <CircleAlert className="mb-3 size-6 text-white/75" />
-            <p className="font-medium text-white">The project room could not load.</p>
-            <p className="mt-1 max-w-md text-sm text-white/55">{error}</p>
-            <button type="button" onClick={() => void refetch()} className="mt-5 border border-white/25 px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] transition hover:bg-white hover:text-black">Try again</button>
+          <div role="alert" className="flex min-h-60 flex-col items-center justify-center border border-[var(--project-line)]/25 bg-[var(--project-inverse)]/[0.04] p-6 text-center">
+            <CircleAlert className="mb-3 size-6 text-[color:var(--light-ui-muted,rgba(255,255,255,0.75))]" />
+            <p className="font-medium text-[var(--project-ink)]">The project room could not load.</p>
+            <p className="mt-1 max-w-md text-sm text-[color:var(--light-ui-muted,rgba(255,255,255,0.55))]">{error}</p>
+            <button type="button" onClick={() => void refetch()} className="mt-5 border border-[var(--project-line)]/25 px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] transition hover:bg-[var(--project-inverse)] hover:text-[var(--project-inverse-ink)]">Try again</button>
           </div>
         ) : isLoading ? (
           <div className="flex min-h-80 items-center justify-center"><InlineLoadingAnimation size={64} label="Loading projects" /></div>
         ) : projects.length === 0 ? (
           <EmptyState onCreate={() => setIsCreateOpen(true)} />
         ) : visibleProjects.length === 0 ? (
-          <div className="flex min-h-72 flex-col items-center justify-center border border-dashed border-white/18 p-6 text-center">
-            <Search className="mb-4 size-6 text-white/40" />
+          <div className="flex min-h-72 flex-col items-center justify-center border border-dashed border-[var(--project-line)]/18 p-6 text-center">
+            <Search className="mb-4 size-6 text-[color:var(--light-ui-muted,rgba(255,255,255,0.4))]" />
             <h2 className="text-2xl font-semibold tracking-[-0.04em]">Nothing in this cut.</h2>
-            <p className="mt-2 text-sm text-white/52">Try a different word or return to all work.</p>
-            <button type="button" onClick={() => { setQuery(''); setFilter('all') }} className="mt-5 text-xs font-semibold uppercase tracking-[0.14em] text-white/70 hover:text-white">Reset view</button>
+            <p className="mt-2 text-sm text-[color:var(--light-ui-muted,rgba(255,255,255,0.52))]">Try a different word or return to all work.</p>
+            <button type="button" onClick={() => { setQuery(''); setFilter('all') }} className="mt-5 text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--light-ui-muted,rgba(255,255,255,0.7))] hover:text-[var(--project-ink)]">Reset view</button>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
@@ -480,18 +492,18 @@ export function ProjectsPageEditorial() {
 
 function EmptyState({ onCreate }: { onCreate: () => void }) {
   return (
-    <div className="relative isolate flex min-h-[420px] overflow-hidden border border-white/25 bg-black p-6 sm:p-10">
-      <div aria-hidden="true" className="absolute -right-12 -top-16 -z-10 size-80 rounded-full bg-white/10 blur-[90px]" />
+    <div className="relative isolate flex min-h-[420px] overflow-hidden border border-[var(--project-line)]/25 bg-[var(--project-card)] p-6 sm:p-10">
+      <div aria-hidden="true" className="absolute -right-12 -top-16 -z-10 size-80 rounded-full bg-[var(--project-inverse)]/10 blur-[90px]" />
       <div className="my-auto max-w-xl">
-        <span className="mb-6 grid size-12 place-items-center rounded-full border border-white/45 bg-white/[0.07] text-white"><FolderOpen className="size-5" /></span>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/54">First cut</p>
+        <span className="mb-6 grid size-12 place-items-center rounded-full border border-[var(--project-line)]/45 bg-[var(--project-inverse)]/[0.07] text-[var(--project-ink)]"><FolderOpen className="size-5" /></span>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[color:var(--light-ui-muted,rgba(255,255,255,0.54))]">First cut</p>
         <h2 className="mt-3 text-balance text-4xl font-semibold leading-none tracking-[-0.065em] sm:text-5xl">Start something worth watching.</h2>
-        <p className="mt-4 max-w-md text-sm leading-6 text-white/60">Give Prometheus an idea and a direction. Your draft opens ready for the first move.</p>
-        <button type="button" onClick={onCreate} className="mt-7 inline-flex min-h-11 items-center gap-2 border border-white bg-white px-4 text-sm font-semibold text-black transition hover:bg-black hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
+        <p className="mt-4 max-w-md text-sm leading-6 text-[color:var(--light-ui-muted,rgba(255,255,255,0.6))]">Give Prometheus an idea and a direction. Your draft opens ready for the first move.</p>
+        <button type="button" onClick={onCreate} className="mt-7 inline-flex min-h-11 items-center gap-2 border border-[var(--project-line)] bg-[var(--project-inverse)] px-4 text-sm font-semibold text-[var(--project-inverse-ink)] transition hover:bg-[var(--project-card)] hover:text-[var(--project-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--project-line)]">
           Make a project <ArrowUpRight className="size-4" />
         </button>
       </div>
-      <span className="absolute bottom-6 right-6 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.15em] text-white/48"><Clock3 className="size-3.5" /> Start with a thought</span>
+      <span className="absolute bottom-6 right-6 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.15em] text-[color:var(--light-ui-muted,rgba(255,255,255,0.48))]"><Clock3 className="size-3.5" /> Start with a thought</span>
     </div>
   )
 }
