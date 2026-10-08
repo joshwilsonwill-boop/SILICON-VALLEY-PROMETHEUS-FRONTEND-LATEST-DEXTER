@@ -25,34 +25,29 @@ function assert(condition, message) {
 if (flag === '--check-export-modal' || flag === '--all') {
   console.log('\n--- Checking Export Modal Parity ---');
   const exportFile = readFile('components/editor/ExportDrawer.tsx');
+  const pageFile = readFile('app/editor/[id]/page.tsx');
+  const providerFile = readFile('lib/oauth/provider-metadata.ts');
 
-  assert(exportFile.includes('Export Video'), 'Contains "Export Video" title');
-  assert(exportFile.includes('Choose where to publish or save your final video.'), 'Contains modal description subtext');
+  assert(exportFile.includes('Export Video'), 'Contains the Export Video title');
+  assert(exportFile.includes('Review the available source-based output before starting a Mini-Run.'), 'Contains accurate export guidance');
   assert(exportFile.includes('Publish to social'), 'Contains "Publish to social" section');
   assert(exportFile.includes('Manage accounts'), 'Contains "Manage accounts" navigation link');
-
-  // 6 Social platforms
-  assert(exportFile.includes('TikTok') && exportFile.includes('YouTube') && exportFile.includes('Instagram'), 'Contains top row social platforms (TikTok, YouTube, Instagram)');
-  assert(exportFile.includes('Facebook') && exportFile.includes('LinkedIn'), 'Contains Facebook and LinkedIn social platforms');
-  assert(exportFile.includes('Change account') && exportFile.includes('Connect'), 'Contains "Change account" and "Connect" buttons');
-
-  // Cloud storage
+  assert(['tiktok', 'youtube', 'instagram', 'x', 'facebook', 'linkedin'].every(provider => exportFile.includes(`'${provider}'`)), 'Contains all configured social platform destinations');
+  assert(providerFile.includes("name: 'YouTube'") && providerFile.includes("name: 'TikTok'") && providerFile.includes("name: 'Instagram'"), 'Provider metadata supplies platform names');
+  assert(exportFile.includes('Change account') && exportFile.includes('Connect'), 'Contains account management actions');
   assert(exportFile.includes('Save to storage'), 'Contains "Save to storage" section');
-  assert(exportFile.includes('Google Drive') && exportFile.includes('Dropbox'), 'Contains Google Drive and Dropbox storage options');
-  assert(exportFile.includes('Link account'), 'Contains "Link account" buttons');
-
-  // Export settings with 4K, 2K, 1080p, 720p, 480p
+  assert(exportFile.includes("'google_drive'") && exportFile.includes("'dropbox'"), 'Contains Google Drive and Dropbox destinations');
   assert(exportFile.includes('Export settings'), 'Contains "Export settings" section');
-  assert(exportFile.includes('Format'), 'Contains Format setting');
-  assert(exportFile.includes('Resolution'), 'Contains Resolution setting');
-  assert(exportFile.includes('4K') && exportFile.includes('2K') && exportFile.includes('1080p') && exportFile.includes('720p'), 'Contains 4K, 2K, 1080p, and 720p resolution options');
-  assert(exportFile.includes('Aspect ratio'), 'Contains Aspect ratio setting');
-  assert(exportFile.includes('Captions'), 'Contains Captions setting');
-  assert(exportFile.includes('Burn in'), 'Contains Burn in captions option');
-
-  // Footer
-  assert(exportFile.includes('Estimated file size') && exportFile.includes('Export time'), 'Contains dynamic estimated file size and export time');
-  assert(exportFile.includes('Cancel') && exportFile.includes('Export now'), 'Contains Cancel and Export now buttons');
+  assert(['4K', '2K', '1080p', '720p', '480p'].every(profile => exportFile.includes(`id: '${profile}'`)), 'Shows the high-quality profile ladder');
+  assert(exportFile.includes('aria-disabled={!option.available}') && exportFile.includes('Unavailable'), 'Locks output profiles the renderer cannot produce');
+  assert(exportFile.includes('Format') && exportFile.includes('MP4'), 'Shows the currently supported MP4 format');
+  assert(exportFile.includes('Aspect ratio') && exportFile.includes('9:16 portrait'), 'Shows the fixed portrait aspect ratio');
+  assert(exportFile.includes('Captions') && exportFile.includes('Saved editor captions are not included'), 'Shows caption availability accurately');
+  assert(exportFile.includes('Saved timeline edits and captions are not applied'), 'Explains the current render limitation');
+  assert(exportFile.includes('aria-label="Mini-Run pipeline"') && exportFile.includes('onStartRender()') && exportFile.includes('Start source Mini-Run'), 'Export action explains and starts the tracked render job');
+  assert(pageFile.includes('setShowExport(true)'), 'Editor Export action opens the modal');
+  assert((pageFile.match(/<ExportDrawer\b/g) || []).length === 2, 'Export modal is mounted in desktop and mobile editor views');
+  assert(pageFile.includes('onStartRender={startProjectRender}'), 'Modal uses the project render action');
 
   if (flag === '--check-export-modal') {
     if (!passed) process.exit(1);

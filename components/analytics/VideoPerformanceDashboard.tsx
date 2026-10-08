@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { ArrowDown, ArrowUp, ArrowUpRight, Eye, Heart, MessageCircle, Share2, Timer } from 'lucide-react'
 
 import { BackButton } from '@/components/navigation/BackButton'
+import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet'
 import {
   adaptAccountScopedAnalytics,
   filterVideos,
@@ -15,6 +16,7 @@ import {
   type PerformanceMetric,
 } from '@/lib/analytics/video-performance-dashboard'
 import { PolaroidLineCarousel, type Slide, type LandPalette } from '@/components/ui/polaroid-line-carousel'
+import { captureFirstVideoFrame } from '@/lib/media/capture-first-video-frame'
 import type { LayaCatalogAppraisal } from '@/lib/analytics/laya-types'
 
 const metricOptions: Array<{ value: PerformanceMetric; label: string }> = [
@@ -54,17 +56,6 @@ type PrometheusTrackedVideo = {
   }>
 }
 
-const CAROUSEL_PALETTES: LandPalette[] = ['dawn', 'alpine', 'dusk', 'mist']
-
-const DEFAULT_TRACKED_PRINTS: Slide[] = [
-  { title: 'First Cut', caption: 'Raw sequence tracked and timed in Prometheus.', palette: 'dawn', seed: 101 },
-  { title: 'Editorial Teaser', caption: 'Hook pacing & high retention curve locked.', palette: 'alpine', seed: 202 },
-  { title: 'Short-Form Velocity', caption: 'Vertical cut optimized across platforms.', palette: 'dusk', seed: 303 },
-  { title: 'Audio Sync Pass', caption: 'Dialogue levelled with dynamic music bed.', palette: 'mist', seed: 404 },
-  { title: 'Color Grade Polish', caption: 'Cinematic LUT calibrated for mobile displays.', palette: 'dawn', seed: 505 },
-  { title: 'Final Master', caption: 'Export complete · publishing telemetry ready.', palette: 'alpine', seed: 606 },
-]
-
 function formatCompactViews(count?: number) {
   if (!count) return null
   return new Intl.NumberFormat('en', { notation: count >= 10000 ? 'compact' : 'standard', maximumFractionDigits: 1 }).format(count)
@@ -83,6 +74,7 @@ export function VideoPerformanceDashboard() {
   const [frames, setFrames] = React.useState<Record<string, string>>({})
   const [frameFailures, setFrameFailures] = React.useState<Record<string, boolean>>({})
   const [frameRequests, setFrameRequests] = React.useState<Record<string, boolean>>({})
+  const [selectedAnalyticsVideo, setSelectedAnalyticsVideo] = React.useState<DashboardVideo | PrometheusTrackedVideo | null>(null)
   const [requestKey, setRequestKey] = React.useState(0)
 
   React.useEffect(() => {
@@ -157,9 +149,7 @@ export function VideoPerformanceDashboard() {
   const carouselSlides: Slide[] = React.useMemo(() => {
     // Reflect the last 5 or 6 videos that Prometheus did and tracked for the user
     const candidateVideos = trackedVideos.length > 0 ? trackedVideos : accountVideos
-    if (candidateVideos.length === 0) {
-      return DEFAULT_TRACKED_PRINTS
-    }
+    if (candidateVideos.length === 0) return []
 
     const prints: Slide[] = candidateVideos.slice(0, 6).map((video, index) => {
       const isTracked = 'totals' in video
@@ -194,16 +184,10 @@ export function VideoPerformanceDashboard() {
         caption,
         image,
         alt: video.title,
-        palette: CAROUSEL_PALETTES[index % CAROUSEL_PALETTES.length],
+        palette: (['dawn', 'alpine', 'dusk', 'mist'] as LandPalette[])[index % 4],
         seed: (index + 1) * 23 + (video.id ? video.id.charCodeAt(0) : 0),
       }
     })
-
-    if (prints.length < 5) {
-      const padding = DEFAULT_TRACKED_PRINTS.slice(prints.length, 6)
-      return [...prints, ...padding]
-    }
-
     return prints
   }, [accountVideos, frames, trackedVideos])
 
@@ -216,15 +200,19 @@ export function VideoPerformanceDashboard() {
 
   React.useEffect(() => {
     let active = true
-    const candidateList = [...rankedVideos, ...trackedVideos]
-    const candidates = candidateList.filter((video) =>
-      (!video.thumbnailUrl || frameRequests[video.id]) && video.previewUrl && !frames[video.id] && !frameFailures[video.id],
-    )
+    const candidateList = [...trackedVideos.slice(0, 6), ...rankedVideos.slice(0, 6)]
+    const seen = new Set<string>()
+    const candidates = candidateList.filter((video) => {
+      if (seen.has(video.id)) return false
+      seen.add(video.id)
+      const hasProjectSource = !video.id.includes(':')
+      return (!video.thumbnailUrl || frameRequests[video.id]) && Boolean(video.previewUrl || hasProjectSource) && !frames[video.id] && !frameFailures[video.id]
+    })
     let next = 0
     async function captureNext() {
       while (active && next < candidates.length) {
         const video = candidates[next++]!
-        const frame = await captureFirstFrame(video.previewUrl!)
+        const frame = await captureAnalyticsVideoFrame(video)
         if (!active) return
         if (frame) setFrames((current) => ({ ...current, [video.id]: frame }))
         else setFrameFailures((current) => ({ ...current, [video.id]: true }))
@@ -280,63 +268,32 @@ export function VideoPerformanceDashboard() {
         </section>
 
         {appraisal && appraisal.totalPostsAnalyzed > 0 ? (
-          <section className="mt-8 rounded-2xl border border-white/[0.1] bg-white/[0.02] p-5 sm:p-6 backdrop-blur-sm" aria-label="LAYA Autonomous Decision Layer">
-            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/[0.08] pb-4">
-              <div className="flex items-center gap-3">
-                <span className="flex size-2 rounded-full bg-[#D7FF4F] animate-pulse" />
-                <div>
-                  <div className="flex items-center gap-2">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-[#D7FF4F]">LAYA Autonomous Decision Layer</p>
-                    <span className="rounded bg-white/[0.06] px-1.5 py-0.5 text-[8px] uppercase tracking-[0.14em] text-white/60">System 1 · In-Process</span>
-                  </div>
-                  <p className="mt-0.5 text-[11px] text-[#A8AA9D]">{appraisal.jarvisSynthesis.headline}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-4 text-[9px] uppercase tracking-[0.16em] text-[#8D8E85]">
-                <span>Appraised in <strong className="text-white font-mono">{appraisal.executionLatencyMs}ms</strong></span>
-                <span>Analyzed: <strong className="text-white">{appraisal.totalPostsAnalyzed} posts</strong></span>
-              </div>
+          <section className="mt-8 rounded-2xl border border-white/[0.1] bg-white/[0.02] p-5 sm:p-6" aria-label="Analysis notes">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+              <h2 className="text-sm font-medium tracking-tight text-[#F1F0EA]">Video insights</h2>
+              <p className="text-[11px] text-[#8D8E85]">Based on {appraisal.totalPostsAnalyzed} {appraisal.totalPostsAnalyzed === 1 ? 'video' : 'videos'}</p>
             </div>
 
-            <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <div className="rounded-xl border border-white/[0.06] bg-black/40 p-3.5">
-                <p className="text-[9px] uppercase tracking-[0.18em] text-[#81837A]">Retention Efficiency</p>
-                <p className="mt-1 font-mono text-2xl font-light text-[#F1F0EA]">
-                  {Math.round(appraisal.catalogSummary.averageRetentionScore * 100)}%
-                </p>
-                <p className="mt-1 text-[10px] text-[#8D8E85]">Calibrated RLCD benchmark index</p>
+            <dl className="mt-5 grid grid-cols-3 gap-3 border-y border-white/[0.08] py-4">
+              <div>
+                <dt className="text-[11px] text-[#8D8E85]">Average retention</dt>
+                <dd className="mt-1 font-mono text-2xl font-light text-[#F1F0EA]">{Math.round(appraisal.catalogSummary.averageRetentionScore * 100)}%</dd>
               </div>
-
-              <div className="rounded-xl border border-white/[0.06] bg-black/40 p-3.5">
-                <p className="text-[9px] uppercase tracking-[0.18em] text-[#81837A]">Virality Velocity</p>
-                <p className="mt-1 font-mono text-2xl font-light text-[#D7FF4F]">
-                  {Math.round(appraisal.catalogSummary.averageViralityScore * 100)}%
-                </p>
-                <p className="mt-1 text-[10px] text-[#8D8E85]">Share & comment propagation</p>
+              <div>
+                <dt className="text-[11px] text-[#8D8E85]">Sharing score</dt>
+                <dd className="mt-1 font-mono text-2xl font-light text-[#D7FF4F]">{Math.round(appraisal.catalogSummary.averageViralityScore * 100)}%</dd>
+                <p className="text-[10px] text-[#777970]">Shares and comments</p>
               </div>
-
-              <div className="rounded-xl border border-white/[0.06] bg-black/40 p-3.5">
-                <p className="text-[9px] uppercase tracking-[0.18em] text-[#81837A]">Viral Outliers</p>
-                <p className="mt-1 font-mono text-2xl font-light text-[#F1F0EA]">
-                  {appraisal.catalogSummary.viralOutliersCount}
-                </p>
-                <p className="mt-1 text-[10px] text-[#8D8E85]">Confirmed breakout candidates</p>
+              <div>
+                <dt className="text-[11px] text-[#8D8E85]">Breakout videos</dt>
+                <dd className="mt-1 font-mono text-2xl font-light text-[#F1F0EA]">{appraisal.catalogSummary.viralOutliersCount}</dd>
               </div>
+            </dl>
 
-              <div className="rounded-xl border border-white/[0.06] bg-black/40 p-3.5">
-                <p className="text-[9px] uppercase tracking-[0.18em] text-[#81837A]">Mini-Runs Preset</p>
-                <p className="mt-1 font-mono text-sm font-light text-[#F1F0EA]">
-                  {appraisal.miniRunOptimizationDirectives.recommendedCutsPerMinute} CPM · {appraisal.miniRunOptimizationDirectives.targetChunkWords} Words
-                </p>
-                <p className="mt-1 text-[10px] text-[#8D8E85]">Hook cut: &lt;{appraisal.miniRunOptimizationDirectives.hookCutBeforeMs}ms</p>
-              </div>
-            </div>
-
-            <div className="mt-4 rounded-xl border border-white/[0.06] bg-black/30 p-3.5">
-              <p className="text-[9px] uppercase tracking-[0.2em] text-[#D7FF4F]">JARVIS Executive Synthesis</p>
-              <p className="mt-1 text-[12px] leading-5 text-[#E6E6DE]">{appraisal.jarvisSynthesis.executiveBrief}</p>
-              <p className="mt-2 text-[11px] italic text-[#8D8E85]">Spoken debrief: &ldquo;{appraisal.jarvisSynthesis.spokenVoiceLine}&rdquo;</p>
-            </div>
+            <p className="mt-4 text-[12px] leading-5 text-[#BFC0B7]">
+              <span className="mr-1.5 text-[#D7FF4F]">Next edit</span>
+              Bring the most compelling moment closer to the start.
+            </p>
           </section>
         ) : null}
 
@@ -351,7 +308,7 @@ export function VideoPerformanceDashboard() {
             <>
               <div className="mb-4 flex items-center justify-between gap-3 text-[9px] uppercase tracking-[0.17em] text-[#777970]"><p>{selectedAccount.platformName} · {selectedAccount.accountName}</p><p>{rankedVideos.length} {rankedVideos.length === 1 ? 'video' : 'videos'} · ranked by {metricOptions.find((option) => option.value === metric)?.label}</p></div>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                {rankedVideos.map((video, index) => <PerformanceCard key={`${selectedAccount.id}:${video.id}:${video.platform}`} video={video} rank={index + 1} sortMetric={metric} frame={frames[video.id] ?? null} frameFailed={Boolean(frameFailures[video.id])} onFrameFailure={() => setFrameRequests((current) => ({ ...current, [video.id]: true }))} />)}
+                {rankedVideos.map((video, index) => <PerformanceCard key={`${selectedAccount.id}:${video.id}:${video.platform}`} video={video} rank={index + 1} sortMetric={metric} frame={frames[video.id] ?? null} frameFailed={Boolean(frameFailures[video.id])} onOpen={() => setSelectedAnalyticsVideo(video)} onFrameFailure={() => setFrameRequests((current) => ({ ...current, [video.id]: true }))} />)}
               </div>
             </>
           ) : null}
@@ -375,7 +332,7 @@ export function VideoPerformanceDashboard() {
             </div>
           </div>
 
-          <div className="mt-6 overflow-hidden rounded-2xl border border-white/[0.08] bg-[#080808]/70 backdrop-blur-sm shadow-[0_24px_50px_-20px_rgba(0,0,0,0.8)]">
+          {carouselSlides.length ? <div className="mt-6 overflow-hidden rounded-2xl border border-white/[0.08] bg-[#080808]/70 backdrop-blur-sm shadow-[0_24px_50px_-20px_rgba(0,0,0,0.8)]">
             <PolaroidLineCarousel
               slides={carouselSlides}
               height={520}
@@ -387,23 +344,37 @@ export function VideoPerformanceDashboard() {
               background="transparent"
               ink="#F1F0EA"
               ariaLabel="Recent Prometheus tracked videos carousel"
+              onSelect={(index) => {
+                const id = carouselSlides[index]?.id
+                const selected = trackedVideos.find((video) => video.id === id) ?? accountVideos.find((video) => video.id === id)
+                if (selected) setSelectedAnalyticsVideo(selected)
+              }}
+              onImageFailure={(index) => {
+                const id = carouselSlides[index]?.id
+                const video = trackedVideos.find((candidate) => candidate.id === id) ?? accountVideos.find((candidate) => candidate.id === id)
+                if (video && !frames[video.id] && !frameRequests[video.id]) {
+                  setFrameRequests((current) => ({ ...current, [video.id]: true }))
+                }
+              }}
             />
-          </div>
+          </div> : <div role="status" className="mt-6 rounded-2xl border border-white/[0.08] bg-white/[0.02] px-5 py-10 text-center text-[12px] leading-6 text-[#92938B]">Videos created or published through a linked account will appear here with their available stats and thumbnails.</div>}
         </section>
       </div>
+      <AnalyticsVideoSheet video={selectedAnalyticsVideo} frame={selectedAnalyticsVideo ? frames[selectedAnalyticsVideo.id] ?? null : null} onOpenChange={(open) => !open && setSelectedAnalyticsVideo(null)} />
     </main>
   )
 }
 
-function PerformanceCard({ video, rank, sortMetric, frame, frameFailed, onFrameFailure }: { video: DashboardVideo; rank: number; sortMetric: PerformanceMetric; frame: string | null; frameFailed: boolean; onFrameFailure: () => void }) {
+function PerformanceCard({ video, rank, sortMetric, frame, frameFailed, onFrameFailure, onOpen }: { video: DashboardVideo; rank: number; sortMetric: PerformanceMetric; frame: string | null; frameFailed: boolean; onFrameFailure: () => void; onOpen: () => void }) {
   const [failedThumbnail, setFailedThumbnail] = React.useState(false)
   const imageSource = thumbnailSource(video, frame)
   const shownImage = failedThumbnail ? frame : imageSource
   const iconComponent = metricIcon(sortMetric)
   return (
     <article className="group overflow-hidden rounded-xl border border-white/[0.1] bg-white/[0.025] transition-colors hover:border-white/[0.22] hover:bg-white/[0.04]">
+      <button type="button" onClick={onOpen} aria-label={`Open analytics for ${video.title}`} className="block w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#D7FF4F]">
       <div className="relative aspect-video overflow-hidden bg-[#101010]">
-        {shownImage ? <Image src={shownImage} alt="" fill unoptimized={shownImage.startsWith('data:')} sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 33vw" onError={() => { if (!failedThumbnail && video.previewUrl && !frame) onFrameFailure(); setFailedThumbnail(true) }} className="object-cover transition-transform duration-700 group-hover:scale-[1.025]" /> : <div className="absolute inset-0 grid place-items-center bg-[radial-gradient(ellipse_at_70%_20%,rgba(215,255,79,0.1),transparent_55%),linear-gradient(135deg,#171717,#050505)]"><span className="text-[9px] uppercase tracking-[0.17em] text-white/50">{video.previewUrl && !frameFailed ? 'Finding a frame…' : 'Preview unavailable'}</span></div>}
+        {shownImage ? <Image src={shownImage} alt="" fill unoptimized={shownImage.startsWith('data:')} sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 33vw" onError={() => { if (!failedThumbnail && !frame) onFrameFailure(); setFailedThumbnail(true) }} className="object-cover transition-transform duration-700 group-hover:scale-[1.025]" /> : <div className="absolute inset-0 grid place-items-center bg-[radial-gradient(ellipse_at_70%_20%,rgba(215,255,79,0.1),transparent_55%),linear-gradient(135deg,#171717,#050505)]"><span className="text-[9px] uppercase tracking-[0.17em] text-white/50">{!frameFailed && (!video.thumbnailUrl || video.previewUrl || failedThumbnail) ? 'Finding a frame…' : 'Preview unavailable'}</span></div>}
         <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-transparent to-black/10" aria-hidden="true" />
         <span className="absolute left-3 top-3 rounded-full border border-white/15 bg-black/55 px-2.5 py-1.5 text-[9px] uppercase tracking-[0.16em] text-white/80 backdrop-blur">Rank {String(rank).padStart(2, '0')}</span>
         <span className="absolute bottom-3 right-3 rounded-full border border-white/15 bg-black/55 px-2.5 py-1.5 text-[9px] uppercase tracking-[0.13em] text-white/75 backdrop-blur">{video.status}</span>
@@ -412,8 +383,9 @@ function PerformanceCard({ video, rank, sortMetric, frame, frameFailed, onFrameF
         <h2 className="truncate text-[14px] text-[#F1F0EA]" title={video.title}>{video.title}</h2>
         <div className="mt-4 flex items-end justify-between gap-3"><div className="min-w-0"><p className="text-[9px] uppercase tracking-[0.17em] text-[#777970]">{metricOptions.find((option) => option.value === sortMetric)?.label}</p><p className="mt-1 flex items-center gap-2 text-[22px] font-light tabular-nums text-[#E3E4D9]">{React.createElement(iconComponent, { className: 'size-4 text-[#A3A68F]' })}{formatMetric(video.metrics[sortMetric], sortMetric)}</p></div><span className="shrink-0 rounded-full border border-white/[0.12] px-2.5 py-1.5 text-[9px] uppercase tracking-[0.12em] text-[#A4A69C]">{video.platformName}</span></div>
         <div className="mt-4 grid grid-cols-3 gap-2 border-t border-white/[0.08] pt-3 text-[10px] text-[#999B91]"><MetricDatum icon={Eye} label="Views" value={formatMetric(video.metrics.views, 'views')} /><MetricDatum icon={Heart} label="Likes" value={formatMetric(video.metrics.likes, 'likes')} /><MetricDatum icon={MessageCircle} label="Comments" value={formatMetric(video.metrics.comments, 'comments')} /></div>
-        {video.publishedUrl ? <a href={video.publishedUrl} target="_blank" rel="noreferrer" className="mt-4 inline-flex min-h-9 items-center gap-2 text-[9px] uppercase tracking-[0.14em] text-[#A3A68F] transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D7FF4F]">View on {video.platformName}<ArrowUpRight className="size-3.5" /></a> : null}
       </div>
+      </button>
+      {video.publishedUrl ? <a href={video.publishedUrl} target="_blank" rel="noreferrer" className="mx-4 mb-4 inline-flex min-h-9 items-center gap-2 text-[9px] uppercase tracking-[0.14em] text-[#A3A68F] transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D7FF4F]">View on {video.platformName}<ArrowUpRight className="size-3.5" /></a> : null}
     </article>
   )
 }
@@ -428,12 +400,86 @@ function DashboardStatus({ title, children, action, muted = false }: { title?: s
   </div>
 }
 
+function AnalyticsVideoSheet({ video, frame, onOpenChange }: { video: DashboardVideo | PrometheusTrackedVideo | null; frame: string | null; onOpenChange: (open: boolean) => void }) {
+  const tracked = video && !('metrics' in video) ? video : null
+  const dashboard = video && 'metrics' in video ? video : null
+  const values: Array<[string, number, PerformanceMetric]> = video
+    ? tracked
+      ? [
+          ['Views', tracked.totals?.views ?? 0, 'views'],
+          ['Likes', tracked.totals?.likes ?? 0, 'likes'],
+          ['Comments', tracked.totals?.comments ?? 0, 'comments'],
+          ['Shares', tracked.totals?.shares ?? 0, 'shares'],
+          ['Watch time', tracked.totals?.watchTimeSeconds ?? 0, 'watchTimeSeconds'],
+          ['Retention', tracked.totals?.retentionRate ?? 0, 'retentionRate'],
+          ['Engagement', tracked.totals?.engagementRate ?? 0, 'engagementRate'],
+        ]
+      : [
+          ['Views', dashboard!.metrics.views, 'views'],
+          ['Likes', dashboard!.metrics.likes, 'likes'],
+          ['Comments', dashboard!.metrics.comments, 'comments'],
+          ['Shares', dashboard!.metrics.shares, 'shares'],
+          ['Watch time', dashboard!.metrics.watchTimeSeconds, 'watchTimeSeconds'],
+          ['Retention', dashboard!.metrics.retentionRate, 'retentionRate'],
+          ['Engagement', dashboard!.metrics.engagementRate, 'engagementRate'],
+        ]
+    : []
+  const thumbnail = frame || video?.thumbnailUrl || null
+  const publishedUrl = dashboard?.publishedUrl ?? tracked?.platformBreakdown?.find((platform) => platform.publishedUrl)?.publishedUrl ?? null
+
+  return (
+    <Sheet open={Boolean(video)} onOpenChange={onOpenChange}>
+      <SheetContent side="right" className="w-full overflow-y-auto border-l border-white/[0.1] bg-[#080808] px-5 pb-8 pt-7 text-[#F1F0EA] sm:max-w-xl sm:px-8">
+        {video ? <>
+          <p className="text-[10px] uppercase tracking-[0.22em] text-[#A3A68F]">Video performance</p>
+          <SheetTitle className="mt-3 pr-8 font-[family-name:var(--font-vogue-display)] text-4xl font-normal leading-tight text-[#F1F0EA]">{video.title}</SheetTitle>
+          <SheetDescription className="mt-2 text-[12px] text-[#A8AA9D]">{video.status} · {dashboard?.platformName ?? 'Prometheus project'}</SheetDescription>
+          <div className="mt-6 aspect-video overflow-hidden rounded-xl border border-white/[0.1] bg-[#101010]">
+            {thumbnail ? <Image src={thumbnail} alt={`${video.title} thumbnail`} width={960} height={540} unoptimized={thumbnail.startsWith('data:')} className="h-full w-full object-cover" /> : <div className="grid h-full place-items-center text-[10px] uppercase tracking-[0.16em] text-white/40">Video thumbnail unavailable</div>}
+          </div>
+          <div className="mt-7 grid grid-cols-2 border-y border-white/[0.1] sm:grid-cols-3">
+            {values.map(([label, value, metric]) => <div key={label} className="border-b border-r border-white/[0.08] px-4 py-4 last:border-r-0">
+              <p className="text-[9px] uppercase tracking-[0.16em] text-[#81837A]">{label}</p>
+              <p className="mt-2 text-xl tabular-nums text-[#E6E6DE]">{formatMetric(value, metric)}</p>
+            </div>)}
+          </div>
+          {tracked?.platformBreakdown?.length ? <div className="mt-7">
+            <h3 className="text-[10px] uppercase tracking-[0.18em] text-[#A3A68F]">Channel readings</h3>
+            <div className="mt-3 divide-y divide-white/[0.08] border-y border-white/[0.08]">
+              {tracked.platformBreakdown.map((platform) => <div key={platform.platform} className="flex items-center justify-between gap-3 py-3 text-[11px]">
+                <span>{platform.platformName}</span><span className="tabular-nums text-[#B8BAAF]">{formatCompactViews(platform.views) ?? 'No reach data'}</span>
+              </div>)}
+            </div>
+          </div> : null}
+          {publishedUrl ? <a href={publishedUrl} target="_blank" rel="noreferrer" className="mt-6 inline-flex min-h-11 items-center gap-2 rounded-full border border-white/[0.16] px-4 text-[10px] uppercase tracking-[0.14em] text-[#D7FF4F] hover:border-[#D7FF4F]/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D7FF4F]">View published video <ArrowUpRight className="size-3.5" /></a> : null}
+        </> : null}
+      </SheetContent>
+    </Sheet>
+  )
+}
+
 function metricIcon(metric: PerformanceMetric) {
   if (metric === 'views') return Eye
   if (metric === 'likes') return Heart
   if (metric === 'comments') return MessageCircle
   if (metric === 'watchTimeSeconds') return Timer
   return Share2
+}
+
+async function captureAnalyticsVideoFrame(video: DashboardVideo | PrometheusTrackedVideo): Promise<string | null> {
+  let previewUrl = video.previewUrl
+  if (!previewUrl && !video.id.includes(':')) {
+    try {
+      const response = await fetch(`/api/projects/${encodeURIComponent(video.id)}/assets`)
+      if (!response.ok) return null
+      const payload = await response.json() as { asset?: { mime_type?: string }; source?: { url?: string } }
+      if (!payload.asset?.mime_type?.startsWith('video/')) return null
+      previewUrl = payload.source?.url ?? null
+    } catch {
+      return null
+    }
+  }
+  return previewUrl ? captureFirstVideoFrame(previewUrl) : null
 }
 
 function formatMetric(value: number, metric: PerformanceMetric) {
@@ -443,36 +489,4 @@ function formatMetric(value: number, metric: PerformanceMetric) {
     return seconds >= 3600 ? `${Math.floor(seconds / 3600)}h ${Math.floor(seconds % 3600 / 60)}m` : `${Math.floor(seconds / 60)}m`
   }
   return new Intl.NumberFormat('en', { notation: value >= 10000 ? 'compact' : 'standard', maximumFractionDigits: 1 }).format(value)
-}
-
-async function captureFirstFrame(src: string): Promise<string | null> {
-  const video = document.createElement('video')
-  video.preload = 'auto'
-  video.muted = true
-  video.playsInline = true
-  video.crossOrigin = 'anonymous'
-  video.src = src
-  try {
-    await new Promise<void>((resolve, reject) => {
-      const timeout = window.setTimeout(() => reject(new Error('Video preview timed out')), 20_000)
-      video.onloadeddata = () => { window.clearTimeout(timeout); resolve() }
-      video.onerror = () => { window.clearTimeout(timeout); reject(new Error('Video preview could not be loaded')) }
-      video.load()
-    })
-    if (!video.videoWidth || !video.videoHeight) return null
-    const scale = Math.min(1, 640 / video.videoWidth)
-    const canvas = document.createElement('canvas')
-    canvas.width = Math.round(video.videoWidth * scale)
-    canvas.height = Math.round(video.videoHeight * scale)
-    const context = canvas.getContext('2d')
-    if (!context) return null
-    context.drawImage(video, 0, 0, canvas.width, canvas.height)
-    return canvas.toDataURL('image/jpeg', 0.82)
-  } catch {
-    return null
-  } finally {
-    video.pause()
-    video.removeAttribute('src')
-    video.load()
-  }
 }

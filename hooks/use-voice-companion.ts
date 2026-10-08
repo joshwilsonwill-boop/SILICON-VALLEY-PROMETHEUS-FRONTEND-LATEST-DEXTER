@@ -520,14 +520,18 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
           return { success: true, style }
         }
 
+        case 'review_export_readiness': {
+          const review = getCurrentHandlers().onReviewExportReadiness
+          if (!review) return { success: false, error: 'The export readiness panel is not connected to this editor.' }
+          return await review()
+        }
+
         case 'start_render':
         case 'export_video': {
           const mode = args.mode === 'final' ? 'final' : 'preview'
           if (!handlersRef.current.hasVideo && !handlersRef.current.projectId) {
             return { success: false, error: 'There is no playable source video to render.' }
           }
-          const access = await requireEditingAccess()
-          if (!access.success) return access
           const startRender = getCurrentHandlers().onStartRender
           if (!startRender) return { success: false, error: 'The editor is not linked, so I cannot start or confirm an export.' }
           const result = await startRender(mode)
@@ -535,7 +539,7 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
           return {
             success: true,
             mode,
-            renderInitiated: mode === 'final',
+            renderInitiated: false,
             status: result.summary,
           }
         }
@@ -653,7 +657,8 @@ export function useVoiceCompanion(options: UseVoiceCompanionOptions = {}): UseVo
       cut_silence: 'Removing pauses', remove_silence: 'Removing pauses', inspect_video: 'Inspecting video',
       reference_video_style: args.apply ? 'Applying reference look' : 'Analyzing reference',
       apply_editorial_plan: 'Applying caption plan', set_caption_style: 'Restyling captions',
-      switch_workspace_tab: 'Opening workspace', start_render: 'Opening export workflow',
+      switch_workspace_tab: 'Opening workspace', review_export_readiness: 'Checking export readiness',
+      start_render: 'Opening export preflight',
     }
     const label = labels[name]
     const receipt = label ? useAutonomousStore.getState().beginAction({ label }) : null

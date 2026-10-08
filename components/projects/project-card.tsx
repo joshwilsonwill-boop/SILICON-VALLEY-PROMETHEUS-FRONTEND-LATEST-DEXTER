@@ -6,6 +6,7 @@ import { ArrowUpRight, Clock3, Copy, Film, Gauge, Link2, MoreHorizontal, Trash2 
 
 import { InlineLoadingAnimation } from '@/components/loading-animation'
 import type { ProjectListItem } from '@/lib/projects/types'
+import { captureFirstVideoFrame } from '@/lib/media/capture-first-video-frame'
 import { cn } from '@/lib/utils'
 
 export interface ProjectCardProps {
@@ -47,6 +48,9 @@ function badgeClass(status: ProjectListItem['status']) {
 
 export function ProjectCard({ project, featured = false, onEdit, onDuplicate, onDelete, onShare }: ProjectCardProps) {
   const [thumbnailFailed, setThumbnailFailed] = React.useState(false)
+  const [fallbackFrame, setFallbackFrame] = React.useState<string | null>(null)
+  const [nearViewport, setNearViewport] = React.useState(false)
+  const previewRef = React.useRef<HTMLButtonElement | null>(null)
   const [actionMenuOpen, setActionMenuOpen] = React.useState(false)
   const durationLabel = formatDuration(project.duration)
   const resolutionLabel =
@@ -59,9 +63,49 @@ export function ProjectCard({ project, featured = false, onEdit, onDuplicate, on
     { label: 'Delete project', icon: Trash2, onClick: () => onDelete(project.id), danger: true },
   ]
 
+  React.useEffect(() => {
+    const target = previewRef.current
+    if (!target || !('IntersectionObserver' in window)) {
+      setNearViewport(true)
+      return
+    }
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setNearViewport(true)
+        observer.disconnect()
+      }
+    }, { rootMargin: '160px' })
+    observer.observe(target)
+    return () => observer.disconnect()
+  }, [])
+
+  React.useEffect(() => {
+    if (!nearViewport || !project.sourceAssetId || (project.thumbnailUrl && !thumbnailFailed) || fallbackFrame) return
+    const controller = new AbortController()
+    let active = true
+    async function loadFallbackFrame() {
+      try {
+        const response = await fetch(`/api/projects/${encodeURIComponent(project.id)}/assets`, { signal: controller.signal })
+        if (!response.ok) return
+        const payload = await response.json() as { asset?: { mime_type?: string }; source?: { url?: string } }
+        if (!payload.asset?.mime_type?.startsWith('video/') || !payload.source?.url) return
+        const frame = await captureFirstVideoFrame(payload.source.url)
+        if (active && frame) setFallbackFrame(frame)
+      } catch {
+        // The card keeps its neutral placeholder when the source cannot be read.
+      }
+    }
+    void loadFallbackFrame()
+    return () => {
+      active = false
+      controller.abort()
+    }
+  }, [fallbackFrame, nearViewport, project.id, project.sourceAssetId, project.thumbnailUrl, thumbnailFailed])
+
   return (
     <article className="group relative overflow-visible border-t border-white/[0.16] bg-transparent pt-3 transition-colors duration-300 hover:border-[#d3ad75]/80 focus-within:border-[#d3ad75]/80 max-lg:bg-white/[0.02] max-lg:p-4">
       <button
+        ref={previewRef}
         type="button"
         aria-label={`Open ${project.title}`}
         onClick={() => onEdit(project.id)}
@@ -70,11 +114,11 @@ export function ProjectCard({ project, featured = false, onEdit, onDuplicate, on
           featured ? 'aspect-[16/9]' : 'aspect-[4/3]',
         )}
       >
-        {project.thumbnailUrl && !thumbnailFailed ? (
+        {(project.thumbnailUrl && !thumbnailFailed) || fallbackFrame ? (
           // R2/public thumbnails can be external or blob/data URLs, so next/image is not guaranteed to fit.
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={project.thumbnailUrl}
+            src={!thumbnailFailed && project.thumbnailUrl ? project.thumbnailUrl : fallbackFrame!}
             alt={`${project.title} thumbnail`}
             className="h-full w-full object-cover opacity-75 grayscale-[18%] transition-[opacity,filter] duration-500 group-hover:opacity-100 group-hover:grayscale-0"
             onError={() => setThumbnailFailed(true)}

@@ -44,7 +44,6 @@ import { MusicPlayNotification } from '@/components/editor/music-play-notificati
 import { MusicRecommendationShowcase } from '@/components/editor/music-recommendation-showcase'
 import { PrometheusChat, type PrometheusChatMessage } from '@/components/editor/PrometheusChat'
 import { applyEditorActionDrafts, type EditorActionContext, type EditorActionDraft, type EditorCaptionStyle } from '@/lib/editor-actions'
-import { dispatchLongformFromProject } from '@/lib/api/mini-run-console'
 import type { AIChatContextProvider, AIChatLiveContext, AIChatVideoContext } from '@/hooks/use-ai-chat'
 import { ChatStyleSelector } from '@/components/editor/chat-style-selector'
 import { MusicTabPanel } from '@/components/editor/music-tab-panel'
@@ -6144,6 +6143,7 @@ function MobileEditorView({
 }
 
 function OriginalEditorPage() {
+  const { setShowExport } = useEditor()
   const params = useParams<{ id: string }>()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -8173,11 +8173,9 @@ const requestAssemblyAITranscription = React.useCallback(async (): Promise<boole
     viralClipStatusMessage,
   ])
 
-  const handlePrepareExport = React.useCallback(async (options?: { quality: MobileExportQuality; format: MobileExportFormat }) => {
-    setActiveWorkspaceTab('Editor')
-    setDeliveryOpenToken((value) => value + 1)
-    window.setTimeout(() => document.querySelector('[aria-label="Final render studio"]')?.scrollIntoView({behavior: 'smooth', block: 'nearest'}), 50)
-  }, [])
+  const handlePrepareExport = React.useCallback(async (_options?: { quality: MobileExportQuality; format: MobileExportFormat }) => {
+    setShowExport(true)
+  }, [setShowExport])
 
   const startProjectRender = React.useCallback(async () => {
     if (!project?.sourceAssetId) {
@@ -8206,7 +8204,8 @@ const requestAssemblyAITranscription = React.useCallback(async (): Promise<boole
       if (!payload.export?.id) throw new Error('The export service returned success without a tracked render job.')
       if (payload.export.status === 'failed') throw new Error(payload.export.errorMessage || 'The render service rejected the job.')
       setLatestExport(payload.export)
-      await handlePrepareExport()
+      setActiveWorkspaceTab('Editor')
+      setDeliveryOpenToken((value) => value + 1)
       toast.success('Mini-Run accepted. Follow its progress in the editor.')
       return { success: true, summary: 'VINCERE accepted the source-based portrait Mini-Run. Its progress is shown in the editor; saved timeline layers are not included in this output yet.' }
     } catch (error) {
@@ -8214,13 +8213,47 @@ const requestAssemblyAITranscription = React.useCallback(async (): Promise<boole
       toast.error(summary)
       return { success: false, summary }
     }
-  }, [handlePrepareExport, project?.sourceAssetId, projectId])
+  }, [project?.sourceAssetId, projectId])
 
   const handleVoiceStartRender = React.useCallback(async (mode: 'preview' | 'final') => {
-    if (mode === 'final') return startProjectRender()
     await handlePrepareExport()
-    return { success: true, summary: 'The export panel is open. No render has been started.' }
-  }, [handlePrepareExport, startProjectRender])
+    return {
+      success: true,
+      summary: mode === 'final'
+        ? 'Export preflight is open. No job has been submitted; choose Start source Mini-Run in the panel if this output is what you want.'
+        : 'Export preflight is open. No render has been started.',
+    }
+  }, [handlePrepareExport])
+
+  const handleVoiceReviewExportReadiness = React.useCallback(async () => {
+    await handlePrepareExport()
+    try {
+      const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/exports`, {cache: 'no-store'})
+      const payload = await response.json() as {readiness?: {
+        canSubmit: boolean; sourceReady: boolean; sourceDurationMs: number | null; sourceWidth: number | null
+        sourceHeight: number | null; backendConfigured: boolean; timelineRevision: number
+        blockers: string[]; liveWorkerHealthChecked: boolean
+      }; error?: string}
+      if (!response.ok || !payload.readiness) throw new Error(payload.error || 'Readiness information is unavailable.')
+      const readiness = payload.readiness
+      const sourceFacts = [
+        readiness.sourceDurationMs ? `${(readiness.sourceDurationMs / 1000).toFixed(1)} seconds` : null,
+        readiness.sourceWidth && readiness.sourceHeight ? `${readiness.sourceWidth} by ${readiness.sourceHeight}` : null,
+      ].filter((fact): fact is string => Boolean(fact))
+      const sourceDescription = readiness.sourceReady
+        ? `Stored source is available${sourceFacts.length ? ` (${sourceFacts.join(', ')})` : ''}.`
+        : 'No stored source file is available.'
+      const result = readiness.canSubmit
+        ? `${sourceDescription} Mini-Run server configuration is present. The latest saved timeline revision is ${readiness.timelineRevision}.`
+        : `Export is blocked: ${readiness.blockers.join(' ')}`
+      return {
+        success: true,
+        summary: `Export preflight opened. ${result} Output is a source-based 1080 by 1920 portrait MP4 using up to a 30-second source window by default, with automatic worker music and worker-planned captions. Saved editor cuts, captions, movement, and selected music are not included. Live Modal worker health and unsaved local edits are checked only at submission. No job was submitted.`,
+      }
+    } catch (error) {
+      return {success: false, summary: error instanceof Error ? error.message : 'Readiness information is unavailable.'}
+    }
+  }, [handlePrepareExport, projectId])
 
   const handleDownload = React.useCallback(() => {
     if (!latestExport || !project?.sourceAssetId || !isPlayableRender(latestExport, projectId, project.sourceAssetId)) return
@@ -8599,7 +8632,6 @@ const requestAssemblyAITranscription = React.useCallback(async (): Promise<boole
   })
 
   // Latest agent-dispatched longform batch id (Mini-Run Studio polls via localStorage key too).
-  const miniRunLongformBatchIdRef = React.useRef<string | null>(null)
 
   React.useEffect(() => {
     chatLiveStateRef.current = {
@@ -8723,27 +8755,13 @@ const requestAssemblyAITranscription = React.useCallback(async (): Promise<boole
     splitAtPlayhead: (timeSec) => handleSplitClip(timeSec),
     cutSilence: (minDurationSec) => handleApplySilenceCuts(resolveSilenceCuts(minDurationSec)),
     setCaptionStyle: (style) => setEditorCaptionStyle(style),
-    startRender: async (mode) => {
-      if (mode === 'final') {
-        await startProjectRender()
-        return
-      }
-      if (!project?.sourceAssetId) return
-      try {
-        const result = await dispatchLongformFromProject({
-          projectId: project.id,
-          sourceAssetId: project.sourceAssetId,
-          songPolicy: 'auto',
-        })
-        miniRunLongformBatchIdRef.current = result.batchJobId
-        toast.success(`Viral batch queued (${result.nClips} clips) — track it in Mini-Run Studio.`)
-      } catch (error) {
-        toast.error(error instanceof Error ? error.message : 'Could not start the viral batch.')
-      }
+    startRender: async (_mode) => {
+      await handlePrepareExport()
+      toast.info('Review the source Mini-Run details and choose Start source Mini-Run to submit. No job has been submitted.')
     },
     // A direct chat instruction is explicit consent for this whitelisted action set.
     allowMutations: true,
-  }), [transportDurationSec, handlePreviewSeekSeconds, startPreviewPlayback, pausePreviewPlayback, handleSoundtrackVolumeChange, handleSoundtrackDuckingChange, handleRemoveEditorMusicTrack, handleApplySilenceCuts, resolveSilenceCuts, openThumbnailStudioFromJarvis, project?.id, project?.sourceAssetId, startProjectRender])
+  }), [transportDurationSec, handlePreviewSeekSeconds, startPreviewPlayback, pausePreviewPlayback, handleSoundtrackVolumeChange, handleSoundtrackDuckingChange, handleRemoveEditorMusicTrack, handleApplySilenceCuts, resolveSilenceCuts, openThumbnailStudioFromJarvis, handlePrepareExport, project?.id, project?.sourceAssetId])
 
   const handleApplyChatActions = React.useCallback(async (drafts: EditorActionDraft[]) => {
     if (!drafts || drafts.length === 0) return
@@ -8777,8 +8795,8 @@ const requestAssemblyAITranscription = React.useCallback(async (): Promise<boole
         setBottomMode('Original')
         handleApplySilenceCuts(resolveSilenceCuts(draft.minDurationSec))
       } else if (draft.kind === 'start_render') {
-        if (draft.mode === 'final') await startProjectRender()
-        else await handlePrepareExport()
+        await handlePrepareExport()
+        toast.info('Review the source Mini-Run details and choose Start source Mini-Run to submit. No job has been submitted.')
       } else if (draft.kind === 'open_master_review') {
         setIsMasterReviewOpen(true)
       } else {
@@ -8798,7 +8816,6 @@ const requestAssemblyAITranscription = React.useCallback(async (): Promise<boole
     handlePreviewSeekSeconds,
     transportDurationSec,
     handlePrepareExport,
-    startProjectRender,
     handleApplySilenceCuts,
     resolveSilenceCuts,
     handleSplitClip,
@@ -8837,6 +8854,7 @@ const requestAssemblyAITranscription = React.useCallback(async (): Promise<boole
       contextProvider: chatContextProvider,
       onApplyActions: handleApplyChatActions,
       onStartRender: handleVoiceStartRender,
+      onReviewExportReadiness: handleVoiceReviewExportReadiness,
       onSeek: (timeSec) => handleApplyChatActions([{ kind: 'seek', timeSec, summary: `Seek to ${timeSec.toFixed(1)}s` }]),
       onPlay: () => handleApplyChatActions([{ kind: 'preview_control', command: 'play', summary: 'Play preview' }]),
       onPause: () => handleApplyChatActions([{ kind: 'preview_control', command: 'pause', summary: 'Pause preview' }]),
@@ -8942,6 +8960,7 @@ const requestAssemblyAITranscription = React.useCallback(async (): Promise<boole
   }, [
     chatContextProvider,
     handleApplyChatActions,
+    handleVoiceReviewExportReadiness,
     handleVoiceStartRender,
     isAgentTakeoverEnabled,
     handleToggleAgentTakeover,
@@ -9340,6 +9359,13 @@ const requestAssemblyAITranscription = React.useCallback(async (): Promise<boole
           onChatSeekToSec={handlePreviewSeekSeconds}
         />
         <EditorNewProjectUploadDialog open={isNewProjectUploadOpen} onOpenChange={setIsNewProjectUploadOpen} />
+        <ExportDrawer
+          onStartRender={startProjectRender}
+          hasSource={hasSourceAsset}
+          projectId={projectId}
+          hasFinishedRender={Boolean(latestExport && project?.sourceAssetId && isPlayableRender(latestExport, projectId, project.sourceAssetId))}
+          onDownloadFinished={handleConfirmDownload}
+        />
       </>
     )
   }
@@ -9754,6 +9780,13 @@ const requestAssemblyAITranscription = React.useCallback(async (): Promise<boole
           setIsDownloadDialogOpen(true)
         }}
       />
+      <ExportDrawer
+        onStartRender={startProjectRender}
+        hasSource={hasSourceAsset}
+        projectId={projectId}
+        hasFinishedRender={Boolean(latestExport && project?.sourceAssetId && isPlayableRender(latestExport, projectId, project.sourceAssetId))}
+        onDownloadFinished={handleConfirmDownload}
+      />
       <div
         ref={setChatComposerPortal}
         aria-hidden
@@ -9873,7 +9906,6 @@ function EditorShell({ children }: { children: React.ReactNode }) {
         </button>
       )}
       <CommandBubble />
-      <ExportDrawer />
       <CircularToast />
     </>
   )

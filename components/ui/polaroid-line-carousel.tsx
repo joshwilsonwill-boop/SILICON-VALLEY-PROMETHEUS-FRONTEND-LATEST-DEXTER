@@ -45,6 +45,8 @@ export type PolaroidLineCarouselProps = {
   background?: string
   ink?: string
   onChange?: (index: number) => void
+  onSelect?: (index: number) => void
+  onImageFailure?: (index: number) => void
   className?: string
   style?: React.CSSProperties
   ariaLabel?: string
@@ -121,7 +123,7 @@ export function mixRgb(a: string, b: string, t: number): string {
 
 // A layered-ridge landscape: sky, a low sun, five ridges fading into haze with
 // mist between them, a tree line on the nearest, film grain. Painted once.
-export function paintLandscape(seed: number, palette: LandPalette, w = 1600, h = 1000): string {
+export function paintLandscape(seed: number, palette: LandPalette, w = 480, h = 300): string {
   if (typeof document === "undefined") return ""
   const c = document.createElement("canvas")
   c.width = w
@@ -204,15 +206,6 @@ export function paintLandscape(seed: number, palette: LandPalette, w = 1600, h =
   vig.addColorStop(1, "rgba(0,0,0,.32)")
   g.fillStyle = vig
   g.fillRect(0, 0, w, h)
-  const grain = g.getImageData(0, 0, w, h)
-  const d = grain.data
-  for (let i = 0; i < d.length; i += 4) {
-    const v = (r() - 0.5) * 14
-    d[i] += v
-    d[i + 1] += v
-    d[i + 2] += v
-  }
-  g.putImageData(grain, 0, 0)
   return c.toDataURL("image/jpeg", 0.88)
 }
 
@@ -242,6 +235,7 @@ const PL_CSS = [
   ".pl-root:focus-visible{box-shadow:inset 0 0 0 2px var(--pl-ink)}",
   ".pl-string{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;overflow:visible}",
   ".pl-card{position:absolute;left:0;top:0;width:var(--pl-cw);transform-origin:50% 0;will-change:transform;cursor:inherit}",
+  ".pl-card:focus-visible{outline:2px solid var(--pl-ink);outline-offset:3px;border-radius:4px}",
   ".pl-print{margin-top:10px;background:#fbfaf7;padding:10px 10px 0;box-shadow:0 1px 2px rgba(0,0,0,.12),0 18px 30px -16px rgba(0,0,0,.4);transition:transform .5s cubic-bezier(.2,.7,.2,1),filter .5s ease}",
   ".pl-card[data-on='0'] .pl-print{transform:scale(.9);filter:saturate(.7) brightness(.96)}",
   ".pl-shot{position:relative;aspect-ratio:1;overflow:hidden;background:#d9d5cc}",
@@ -275,6 +269,8 @@ export function PolaroidLineCarousel({
   background = "var(--color-background, #efece6)",
   ink = "var(--color-foreground, #161513)",
   onChange,
+  onSelect,
+  onImageFailure,
   className,
   style,
   ariaLabel = "Image carousel",
@@ -442,7 +438,11 @@ export function PolaroidLineCarousel({
       return
     }
     const card = (e.target as HTMLElement).closest("[data-i]")
-    if (card) goTo(Number(card.getAttribute("data-i")))
+    if (card) {
+      const index = Number(card.getAttribute("data-i"))
+      goTo(index)
+      onSelect?.(index)
+    }
   }
   const step = (dir: number) => {
     lastTouch.current = performance.now()
@@ -451,6 +451,13 @@ export function PolaroidLineCarousel({
   const onKey = (e: React.KeyboardEvent) => {
     if (e.key === "ArrowRight") step(1)
     else if (e.key === "ArrowLeft") step(-1)
+    else if (e.key === "Enter" || e.key === " ") {
+      const card = (e.target as HTMLElement).closest("[data-i]")
+      if (!card) return
+      e.preventDefault()
+      onSelect?.(Number(card.getAttribute("data-i")))
+      return
+    }
     else return
     e.preventDefault()
   }
@@ -491,13 +498,16 @@ export function PolaroidLineCarousel({
           className="pl-card"
           data-i={i}
           data-on={i === active ? "1" : "0"}
+          role="button"
+          tabIndex={i === active ? 0 : -1}
+          aria-label={`Open analytics for ${sl.title || `video ${i + 1}`}`}
           ref={(el) => {
             cards.current[i] = el
           }}
           aria-hidden={i === active ? undefined : true}
         >
           <div className="pl-print">
-            <div className="pl-shot">{srcs[i] ? <img src={srcs[i]} alt={sl.alt || sl.title || ""} draggable={false} /> : null}</div>
+            <div className="pl-shot">{srcs[i] ? <img src={srcs[i]} alt={sl.alt || sl.title || ""} draggable={false} onError={() => onImageFailure?.(i)} /> : null}</div>
             <div className="pl-note">{sl.title || ""}</div>
           </div>
           <div className="pl-peg" />

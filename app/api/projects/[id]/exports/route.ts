@@ -2,8 +2,62 @@ import {NextResponse} from 'next/server'
 import {createClient} from '@/lib/supabase/server'
 import {ExportService} from '@/lib/exports/service'
 import {dispatchMiniRunRender} from '@/lib/server/mini-run-dispatch'
+import {resolveMiniRunConfig} from '@/lib/server/mini-run-proxy'
 
 type RouteContext = {params: Promise<{id: string}>}
+
+export async function GET(_request: Request, {params}: RouteContext) {
+  const {id: projectId} = await params
+  const supabase = await createClient()
+  const {data: {user}} = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({error: 'Unauthorized'}, {status: 401})
+
+  const {data: project, error: projectError} = await supabase.from('projects')
+    .select('id, source_asset_id, editor_state').eq('id', projectId).eq('user_id', user.id).maybeSingle()
+  if (projectError || !project) return NextResponse.json({error: 'Project not found.'}, {status: 404})
+
+  const sourceAssetId = typeof project.source_asset_id === 'string' ? project.source_asset_id : ''
+  const {data: asset, error: assetError} = sourceAssetId
+    ? await supabase.from('source_assets').select('id, storage_path, duration_ms, width, height')
+      .eq('id', sourceAssetId).eq('project_id', projectId).eq('user_id', user.id).maybeSingle()
+    : {data: null, error: null}
+  const sourceReady = !assetError && Boolean(asset?.storage_path)
+
+  const editorState = project.editor_state && typeof project.editor_state === 'object' ? project.editor_state as Record<string, unknown> : {}
+  const timeline = editorState.editorialTimeline && typeof editorState.editorialTimeline === 'object'
+    ? editorState.editorialTimeline as Record<string, unknown> : {}
+  const timelineRevision = typeof timeline.revision === 'number' && Number.isSafeInteger(timeline.revision) && timeline.revision >= 0
+    ? timeline.revision as number : 0
+
+  let backendConfigured = true
+  try {
+    resolveMiniRunConfig({
+      MINI_RUN_BACKEND_URL: process.env.MINI_RUN_BACKEND_URL,
+      MODAL_PROXY_KEY: process.env.MODAL_PROXY_KEY,
+      MODAL_PROXY_SECRET: process.env.MODAL_PROXY_SECRET,
+    })
+  } catch {
+    backendConfigured = false
+  }
+
+  const blockers = [
+    ...(!sourceReady ? ['A stored source video is not available for this project.'] : []),
+    ...(!backendConfigured ? ['Mini-Run server configuration is unavailable.'] : []),
+  ]
+  return NextResponse.json({readiness: {
+    canSubmit: blockers.length === 0,
+    sourceReady,
+    sourceDurationMs: asset?.duration_ms ?? null,
+    sourceWidth: asset?.width ?? null,
+    sourceHeight: asset?.height ?? null,
+    backendConfigured,
+    timelineRevision,
+    timelineApplied: false,
+    output: {format: 'mp4', width: 1080, height: 1920, sourceWindowDefaultMs: 30_000, musicPolicy: 'auto'},
+    blockers,
+    liveWorkerHealthChecked: false,
+  }}, {headers: {'Cache-Control': 'no-store'}})
+}
 
 export async function POST(request: Request, {params}: RouteContext) {
   const {id: projectId} = await params

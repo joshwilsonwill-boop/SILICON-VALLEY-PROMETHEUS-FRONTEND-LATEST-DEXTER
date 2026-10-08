@@ -118,8 +118,8 @@ export function JarvisConversationPanel(props: JarvisConversationPanelProps) {
           </div>
           <p className="whitespace-pre-wrap break-words text-[13px] leading-6 text-zinc-100">{turn.text || (turn.status === 'streaming' ? 'Waiting for reply…' : 'No text received.')}</p>
         </article>) : <p className="py-3 text-sm leading-6 text-zinc-300">{props.status === 'connecting' ? 'Connecting to voice…' : active ? 'Speak or type a message to start your conversation.' : 'Connect to speak with Jarvis.'}</p>}
-        {actions.length > 0 && <details className="mt-3 border-t border-zinc-600 pt-3">
-          <summary className="min-h-11 cursor-pointer text-xs font-medium text-cyan-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-200">Edit results ({actions.length})</summary>
+        {actions.length > 0 && <details open={actions.some((action) => action.status === 'running')} className="mt-3 border-t border-zinc-600 pt-3">
+          <summary className="min-h-11 cursor-pointer text-xs font-medium text-cyan-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-200">Pipeline activity ({actions.length})</summary>
           <ol aria-label="Confirmed edit results">{[...actions].reverse().map((action) => <li key={action.id} className="border-b border-zinc-700 py-3 last:border-0">
             <p className="text-xs font-medium">{action.label} · {ACTION_STATUS_LABELS[action.status]}</p>
             {action.targetLabel && <p className="mt-1 break-words text-xs text-zinc-300">{action.targetLabel}</p>}
