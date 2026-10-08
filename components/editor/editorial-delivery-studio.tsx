@@ -81,12 +81,7 @@ export function EditorialDeliveryStudio({
   const textCues = cues.filter((cue) => cue.type === 'text')
   const selectedCue = textCues.find((cue) => cue.id === selectedCueId) ?? textCues[0]
   const history = sourceAssetId ? projectRenderHistory(records, projectId, sourceAssetId) : []
-  const completedRecords = history.filter((record) => {
-    const metadata = record.metadata && typeof record.metadata === 'object' && !Array.isArray(record.metadata)
-      ? record.metadata as Record<string, unknown>
-      : {}
-    return metadata.outputKind !== 'mini-run' && isPlayableRender(record, projectId, sourceAssetId ?? '')
-  })
+  const completedRecords = history.filter((record) => isPlayableRender(record, projectId, sourceAssetId ?? ''))
   const selectedRecord = completedRecords.find((record) => record.id === selectedId) ?? completedRecords[0]
   const finishedRecord = selectedRecord && sourceAssetId && isPlayableRender(selectedRecord, projectId, sourceAssetId) ? selectedRecord : null
   const pendingRecord = history.find((record) => record.status === 'pending' || record.status === 'processing')
@@ -167,22 +162,27 @@ export function EditorialDeliveryStudio({
   }
 
   const startRender = async () => {
-    if (!sourceAssetId || isSubmitting || pendingRecord || editorial.status !== 'saved') return
+    if (!sourceAssetId || isSubmitting || pendingRecord) return
     setIsSubmitting(true)
     setError(null)
     setExpanded(true)
     try {
       const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/exports`, {
         method: 'POST', headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({preset: 'default', sourceAssetId, editorialRevision: editorial.timeline?.revision}),
+        body: JSON.stringify({preset: 'mini-run-maul-portrait', sourceAssetId}),
+        signal: AbortSignal.timeout(30_000),
       })
       const payload = await response.json() as {export?: ProjectExport; error?: string}
       if (!response.ok) throw new Error(payload.error || 'The render could not start.')
       const created = payload.export
-      if (created?.id) setRecords((current) => [created, ...current.filter((record) => record.id !== created.id)])
+      if (!created?.id) throw new Error('The export service returned no tracked render job.')
+      if (created.status === 'failed') throw new Error(created.errorMessage || 'The render service rejected the job.')
+      setRecords((current) => [created, ...current.filter((record) => record.id !== created.id)])
       await refresh()
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'The render could not start.')
+      setError(cause instanceof Error && (cause.name === 'TimeoutError' || cause.name === 'AbortError')
+        ? 'The render submission response timed out. Refresh render status before retrying; a job may already have been accepted.'
+        : cause instanceof Error ? cause.message : 'The render could not start.')
     } finally {
       setIsSubmitting(false)
     }
@@ -255,9 +255,10 @@ export function EditorialDeliveryStudio({
               </header>
 
               {(error || historyError || editorial.status === 'error') ? (
-                <p role="alert" className="shrink-0 border-b border-rose-400/15 bg-rose-400/5 px-5 py-2 text-xs text-rose-200">{error ?? historyError ?? editorial.error}</p>
+                <p role="alert" className="shrink-0 border-b border-rose-400/15 bg-rose-400/5 px-5 py-2 text-xs text-rose-200">{error ?? historyError ?? `Editor timeline sync failed: ${editorial.error || 'Unable to confirm the save.'}`}</p>
               ) : null}
 
+              <p className="px-4 pt-3 text-[11px] text-white/50 sm:px-6">Source Mini-Run MP4s use the original footage with automatic music and captions; editor timeline layers are not included.</p>
               <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 overflow-y-auto p-3 sm:grid-cols-2 sm:p-5">
                 <figure className="relative flex aspect-video min-h-0 min-w-0 flex-col overflow-hidden rounded-xl bg-black sm:aspect-auto">
                   {sourceUrl ? <video key={sourceUrl} src={sourceUrl} controls playsInline preload="metadata" className="absolute inset-0 size-full object-contain" aria-label="Original video" /> : <div className="grid h-full place-items-center text-xs text-white/40">Source video unavailable</div>}
@@ -265,8 +266,8 @@ export function EditorialDeliveryStudio({
                 </figure>
 
                 <figure className="relative flex aspect-video min-h-0 min-w-0 flex-col overflow-hidden rounded-xl border border-[#b4fb60]/16 bg-black sm:aspect-auto">
-                  {finishedRecord ? <video key={finishedRecord.id} src={renderPreviewPath(finishedRecord.id)} controls playsInline preload="metadata" className="absolute inset-0 size-full object-contain" aria-label="Finished edit" /> : <div className="grid h-full place-items-center px-6 text-center text-xs text-white/42">No finished edit is available yet.</div>}
-                  <figcaption className="pointer-events-none absolute left-3 top-3 rounded-full border border-[#b4fb60]/22 bg-black/70 px-2.5 py-1 text-[10px] font-medium text-[#c9ff88] backdrop-blur">Finished edit</figcaption>
+                  {finishedRecord ? <video key={finishedRecord.id} src={renderPreviewPath(finishedRecord.id)} controls playsInline preload="metadata" className="absolute inset-0 size-full object-contain" aria-label="Rendered MP4" /> : <div className="grid h-full place-items-center px-6 text-center text-xs text-white/42">{pendingRecord ? 'The backend is rendering. The MP4 will appear here when its receipt is ready.' : 'No completed MP4 is available yet.'}</div>}
+                  <figcaption className="pointer-events-none absolute left-3 top-3 rounded-full border border-[#b4fb60]/22 bg-black/70 px-2.5 py-1 text-[10px] font-medium text-[#c9ff88] backdrop-blur">Rendered MP4</figcaption>
                 </figure>
               </div>
 
@@ -287,17 +288,17 @@ export function EditorialDeliveryStudio({
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-[radial-gradient(circle_at_15%_0%,rgba(157,246,90,.13),transparent_35%)] px-4 py-3 sm:px-5">
         <div className="flex min-w-0 items-center gap-3">
           <span className="grid size-9 shrink-0 place-items-center rounded-lg border border-[#9df65a]/20 bg-[#9df65a]/10 text-[#b4fb60]"><Film className="size-4" /></span>
-          <div><h2 className="text-sm font-semibold text-white">Final render</h2><p className="text-[11px] text-white/45">Compare the source with each finished MP4.</p></div>
+          <div><h2 className="text-sm font-semibold text-white">MP4 exports</h2><p className="text-[11px] text-white/45">Source Mini-Run: portrait MP4, up to 30 seconds, automatic music and captions. Editor timeline layers are not included.</p></div>
         </div>
         <div className="flex items-center gap-2">
           <button type="button" onClick={() => void refresh()} className="grid size-9 place-items-center rounded-lg border border-white/10 text-white/60 hover:bg-white/5 hover:text-white" aria-label="Refresh renders"><RefreshCw className="size-4" /></button>
-          <button type="button" onClick={() => void startRender()} disabled={!sourceAssetId || isSubmitting || Boolean(pendingRecord) || editorial.status !== 'saved'} title={!sourceAssetId ? 'Add a source video first.' : editorial.status !== 'saved' ? 'Wait for the timeline to finish saving.' : undefined} className="inline-flex min-h-9 items-center gap-2 rounded-lg bg-[#b4fb60] px-3 text-xs font-semibold text-black transition disabled:cursor-not-allowed disabled:opacity-45">
+          <button type="button" onClick={() => void startRender()} disabled={!sourceAssetId || isSubmitting || Boolean(pendingRecord)} title={!sourceAssetId ? 'Add a source video first.' : undefined} className="inline-flex min-h-9 items-center gap-2 rounded-lg bg-[#b4fb60] px-3 text-xs font-semibold text-black transition disabled:cursor-not-allowed disabled:opacity-45">
             {isSubmitting || pendingRecord ? <LoaderCircle className="size-3.5 animate-spin" /> : <Film className="size-3.5" />}
-            {isSubmitting ? 'Submitting render…' : pendingRecord?.status === 'pending' ? 'Queued…' : pendingRecord ? 'Rendering…' : editorial.status !== 'saved' ? 'Saving timeline…' : 'Render final MP4'}
+            {isSubmitting ? 'Submitting render…' : pendingRecord?.status === 'pending' ? 'Queued…' : pendingRecord ? 'Rendering…' : 'Start source Mini-Run'}
           </button>
         </div>
       </div>
-      {(error || historyError || editorial.status === 'error') && <p role="alert" className="border-b border-rose-400/15 bg-rose-400/5 px-5 py-2 text-xs text-rose-200">{error ?? historyError ?? editorial.error}</p>}
+      {(error || historyError || editorial.status === 'error') && <p role="alert" className="border-b border-rose-400/15 bg-rose-400/5 px-5 py-2 text-xs text-rose-200">{error ?? historyError ?? `Editor timeline sync failed: ${editorial.error || 'Unable to confirm the save.'}`}</p>}
       {isSubmitting && <p role="status" aria-live="polite" className="border-b border-white/8 px-5 py-2 text-[11px] text-white/55">Submitting render…</p>}
       {latestRecord && <div role="status" aria-live="polite" className="border-b border-white/8 px-5 py-3 text-[11px] text-white/65">
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -329,7 +330,7 @@ export function EditorialDeliveryStudio({
           {sourceUrl ? <video key={sourceUrl} src={sourceUrl} controls playsInline preload="metadata" className="aspect-video w-full bg-black object-contain" aria-label="Original footage" /> : <div className="grid aspect-video place-items-center text-xs text-white/35">Upload a source video to begin</div>}
         </div>
         <div className="overflow-hidden rounded-xl border border-[#9df65a]/20 bg-black">
-          <div className="flex items-center justify-between px-3 py-2 text-[10px] font-semibold uppercase tracking-[.14em] text-[#b4fb60]"><span>02 / Finished cut</span><span>{finishedRecord ? 'MP4 ready' : pendingRecord?.status === 'pending' ? 'Queued' : pendingRecord ? 'Rendering' : 'Awaiting render'}</span></div>
+          <div className="flex items-center justify-between px-3 py-2 text-[10px] font-semibold uppercase tracking-[.14em] text-[#b4fb60]"><span>02 / Rendered MP4</span><span>{finishedRecord ? 'MP4 ready' : pendingRecord?.status === 'pending' ? 'Queued' : pendingRecord ? 'Rendering' : 'Awaiting render'}</span></div>
           {finishedRecord ? <video key={finishedRecord.id} src={renderPreviewPath(finishedRecord.id)} controls playsInline preload="metadata" className="aspect-video w-full bg-black object-contain" aria-label="Finished MP4" /> : <div className="grid aspect-video place-items-center bg-[radial-gradient(circle_at_50%_40%,rgba(157,246,90,.08),transparent_55%)] px-8 text-center text-xs leading-5 text-white/40">{pendingRecord ? 'The backend is rendering this version. It will appear here when the MP4 is stored.' : 'Your completed render will play here beside the original.'}</div>}
         </div>
       </div>

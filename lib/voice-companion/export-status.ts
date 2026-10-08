@@ -26,8 +26,8 @@ export async function readVoiceExportStatus(getBridge: () => VoiceCompanionBridg
     const metadata = record.metadata && typeof record.metadata === 'object' && !Array.isArray(record.metadata)
       ? record.metadata as Record<string, unknown> : {}
     const reportedProgress = metadata.progressPercent
-    const progressPercent = typeof reportedProgress === 'number' && Number.isFinite(reportedProgress)
-      ? Math.max(0, Math.min(100, reportedProgress)) : null
+    const progressPercent = typeof reportedProgress === 'number' && Number.isFinite(reportedProgress) && reportedProgress >= 0 && reportedProgress <= 100
+      ? reportedProgress : null
     const ready = isPlayableRender(record, projectId, sourceAssetId)
     const phase = ready ? 'completed' : record.status === 'completed' ? 'finalizing' : record.status
     const summary = ready

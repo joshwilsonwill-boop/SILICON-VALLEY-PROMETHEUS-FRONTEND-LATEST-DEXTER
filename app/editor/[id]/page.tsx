@@ -8200,7 +8200,9 @@ const requestAssemblyAITranscription = React.useCallback(async (): Promise<boole
       toast.success('Mini-Run accepted. Follow its progress in the editor.')
       return { success: true, summary: 'VINCERE accepted the source-based portrait Mini-Run. Its progress is shown in the editor; saved timeline layers are not included in this output yet.' }
     } catch (error) {
-      const summary = error instanceof Error ? error.message : 'Unable to start the final render.'
+      const summary = error instanceof Error && (error.name === 'TimeoutError' || error.name === 'AbortError')
+        ? 'The render submission response timed out. Check MP4 status before retrying; the backend may already have accepted a job.'
+        : error instanceof Error ? error.message : 'Unable to start the final render.'
       toast.error(summary)
       return { success: false, summary }
     }
