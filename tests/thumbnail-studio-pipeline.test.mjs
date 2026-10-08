@@ -33,6 +33,9 @@ assert.match(thumbnailWorkspace, /Creative direction/)
 assert.match(thumbnailWorkspace, /Download image/)
 assert.match(thumbnailStudio, /generatedDataUrl/)
 assert.match(thumbnailWorkspace, /Save Project Cover/)
+assert.match(thumbnailWorkspace, /props\.generatedUrl \?\? source\?\.dataUrl/)
+assert.match(thumbnailWorkspace, /'Frame preview'/)
+assert.doesNotMatch(thumbnailWorkspace, /renderStudioDraft|Layout preview/)
 
 // Master Video Review checks
 assert.match(masterReview, /MasterVideoReviewModal/)

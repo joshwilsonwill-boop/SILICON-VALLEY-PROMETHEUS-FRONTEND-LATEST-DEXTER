@@ -5,7 +5,6 @@ import { ThumbnailEngine, type ExtractedFrameCandidate, type ThumbnailTextPositi
 import { VIRAL_THUMBNAIL_RECIPES } from '@/lib/thumbnails/nano-banana-rulebook'
 import { DEFAULT_STUDIO_DESIGN, type StudioDesign } from '@/lib/thumbnails/studio-art-direction'
 import { STUDIO_REFERENCES, getStudioReference, type StudioReferenceId } from '@/lib/thumbnails/studio-references'
-import { renderStudioDraft } from '@/lib/thumbnails/studio-draft'
 import { readThumbnailGenerationResponse } from '@/lib/thumbnails/thumbnail-response'
 import { isThumbnailRequestWithinBudget } from '@/lib/thumbnails/thumbnail-request'
 import { THUMBNAIL_CLIENT_TIMEOUT_MS } from '@/lib/thumbnails/thumbnail-runtime'
@@ -141,7 +140,6 @@ export function ThumbnailStudioModal({ isOpen, onClose, jarvisDraft, projectId, 
   const [creativeDirection, setCreativeDirection] = React.useState('')
   const [recipeId, setRecipeId] = React.useState(VIRAL_THUMBNAIL_RECIPES[0].id)
   const [channelReferences, setChannelReferences] = React.useState<string[]>([])
-  const [previewDataUrl, setPreviewDataUrl] = React.useState<string | null>(null)
   const [generatedDataUrl, setGeneratedDataUrl] = React.useState<string | null>(null)
   const [variants, setVariants] = React.useState<ThumbnailVariant[]>([])
   const [selectedVariantId, setSelectedVariantId] = React.useState<string | null>(null)
@@ -233,7 +231,6 @@ export function ThumbnailStudioModal({ isOpen, onClose, jarvisDraft, projectId, 
     curationAbortRef.current = controller
     setIsExtracting(true)
     setNanoErrorMessage(null)
-    setPreviewDataUrl(null)
     setCandidates([])
     setAiData(null)
     frameTouchedRef.current = false
@@ -272,17 +269,6 @@ export function ThumbnailStudioModal({ isOpen, onClose, jarvisDraft, projectId, 
     return () => { cancelled = true; controller.abort() }
   }, [isOpen, projectId, projectTitle, videoElement, videoUrl, transcriptSnippet])
 
-  React.useEffect(() => {
-    if (!isOpen || !activeFrame) return
-    let cancelled = false
-    const timer = setTimeout(() => {
-      const [width,height] = DIMENSIONS[aspectRatio]
-      void renderStudioDraft(activeFrame.dataUrl, headline, highlightWord, design, width, height)
-        .then(url => { if (!cancelled) setPreviewDataUrl(url) })
-        .catch(error => { if (!cancelled) setNanoErrorMessage(error instanceof Error ? error.message : 'Could not prepare the preview.') })
-    }, 120)
-    return () => { cancelled = true; clearTimeout(timer) }
-  }, [isOpen, activeFrame, headline, highlightWord, design, aspectRatio])
   const handleHeadline = (value: string) => { headlineTouchedRef.current = true; setHeadline(value.slice(0,64)); if (!value.split(/\s+/).includes(highlightWord)) setHighlightWord('') }
   const handleFrame = (index: number) => { frameTouchedRef.current = true; setSelectedFrameIndex(index) }
   const handleCaptureCurrentPlayhead = () => {
@@ -493,5 +479,5 @@ export function ThumbnailStudioModal({ isOpen, onClose, jarvisDraft, projectId, 
   }
 
   if (!isOpen) return null
-  return <ThumbnailWorkspace projectTitle={projectTitle} aspectRatio={aspectRatio} onAspectRatio={setAspectRatio} design={design} onDesign={update => setDesign(previous => ({ ...previous,...update }))} headline={headline} onHeadline={handleHeadline} emphasis={highlightWord} onEmphasis={setHighlightWord} creativeDirection={creativeDirection} onCreativeDirection={setCreativeDirection} recipeId={recipeId} onRecipe={setRecipeId} candidates={candidates} selectedFrameIndex={selectedFrameIndex} onFrame={handleFrame} isExtracting={isExtracting} isCurating={isAiCurating} recommendedFrameIndex={aiData?.recommendedFrameIndex} hookTitles={aiData?.hookTitles ?? []} onCapture={videoElement ? handleCaptureCurrentPlayhead : undefined} onUploadFrame={files => { void handleUploadFrame(files) }} previewUrl={previewDataUrl} generatedUrl={generatedDataUrl} referenceId={referenceId} onReference={setReferenceId} references={channelReferences} onReferences={files => { void handleAddReferenceImages(files) }} onRemoveReference={index => setChannelReferences(previous => previous.filter((_,i) => i !== index))} variants={variants} selectedVariantId={selectedVariantId} onVariant={handleRestoreVariant} isGenerating={isGeneratingNano} onGenerate={() => { void handleGenerateNanoBanana() }} onCancel={handleCancelGeneration} error={nanoErrorMessage} success={nanoSuccessMessage} onDownload={handleDownload} onSave={() => { void handleSaveCover() }} isSaving={isExporting} saved={savedSuccess} onClose={onClose} chatMessages={chatMessages} onIterateThumbnail={handleIterateThumbnail} />
+  return <ThumbnailWorkspace projectTitle={projectTitle} aspectRatio={aspectRatio} onAspectRatio={setAspectRatio} design={design} onDesign={update => setDesign(previous => ({ ...previous,...update }))} headline={headline} onHeadline={handleHeadline} emphasis={highlightWord} onEmphasis={setHighlightWord} creativeDirection={creativeDirection} onCreativeDirection={setCreativeDirection} recipeId={recipeId} onRecipe={setRecipeId} candidates={candidates} selectedFrameIndex={selectedFrameIndex} onFrame={handleFrame} isExtracting={isExtracting} isCurating={isAiCurating} recommendedFrameIndex={aiData?.recommendedFrameIndex} hookTitles={aiData?.hookTitles ?? []} onCapture={videoElement ? handleCaptureCurrentPlayhead : undefined} onUploadFrame={files => { void handleUploadFrame(files) }} generatedUrl={generatedDataUrl} referenceId={referenceId} onReference={setReferenceId} references={channelReferences} onReferences={files => { void handleAddReferenceImages(files) }} onRemoveReference={index => setChannelReferences(previous => previous.filter((_,i) => i !== index))} variants={variants} selectedVariantId={selectedVariantId} onVariant={handleRestoreVariant} isGenerating={isGeneratingNano} onGenerate={() => { void handleGenerateNanoBanana() }} onCancel={handleCancelGeneration} error={nanoErrorMessage} success={nanoSuccessMessage} onDownload={handleDownload} onSave={() => { void handleSaveCover() }} isSaving={isExporting} saved={savedSuccess} onClose={onClose} chatMessages={chatMessages} onIterateThumbnail={handleIterateThumbnail} />
 }
