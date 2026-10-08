@@ -69,7 +69,7 @@ export async function POST(request: Request, {params}: RouteContext) {
   const sourceAssetId = typeof body.sourceAssetId === 'string' ? body.sourceAssetId : ''
   const editorialRevision = body.editorialRevision
   if (!sourceAssetId || (editorialRevision !== undefined && (!Number.isSafeInteger(editorialRevision) || (editorialRevision as number) < 0))) {
-    return NextResponse.json({error: 'A source asset and valid saved timeline revision are required.'}, {status: 400})
+    return NextResponse.json({error: 'A source asset is required; any supplied timeline revision must be a nonnegative integer.'}, {status: 400})
   }
 
   const {data: project, error: projectError} = await supabase.from('projects')
@@ -82,9 +82,8 @@ export async function POST(request: Request, {params}: RouteContext) {
   const editorState = project.editor_state && typeof project.editor_state === 'object' ? project.editor_state as Record<string, unknown> : {}
   const timeline = editorState.editorialTimeline && typeof editorState.editorialTimeline === 'object'
     ? editorState.editorialTimeline as Record<string, unknown> : {}
-  if (typeof editorialRevision === 'number' && timeline.revision !== editorialRevision) {
-    return NextResponse.json({error: 'The saved timeline changed. Wait for it to finish saving before rendering.'}, {status: 409})
-  }
+  // The revision is informational: Mini-Run does not consume the editor timeline.
+  // A stale client revision must not block a source-based export.
 
   const {data: asset, error: assetError} = await supabase.from('source_assets').select('*')
     .eq('id', sourceAssetId).eq('project_id', projectId).eq('user_id', user.id).maybeSingle()

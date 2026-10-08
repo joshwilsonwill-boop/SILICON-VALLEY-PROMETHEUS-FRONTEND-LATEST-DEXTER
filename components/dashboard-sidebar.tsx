@@ -6,12 +6,13 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
-import { ChevronsLeft, ChevronsRight, LayoutDashboard } from 'lucide-react'
+import { ChevronsLeft, ChevronsRight, LayoutDashboard, Menu } from 'lucide-react'
 
 import { rememberCurrentPathForEditorReturn } from '@/lib/editor-navigation'
 import { getMostRecentProject, PROJECTS_UPDATED_EVENT } from '@/lib/mock'
 import { cn } from '@/lib/utils'
 import { prometheusNavItems } from '@/lib/navigation'
+import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 
 interface MenuItem {
   key: string
@@ -52,7 +53,7 @@ const BASE_MENU_ITEMS: MenuItem[] = [
   ...prometheusNavItems,
 ]
 
-const ACTIVE_CUTOUT_COLOR = '#0f0b17'
+const ACTIVE_CUTOUT_COLOR = 'var(--light-ui-subtle, #0f0b17)'
 const SIDEBAR_EXPANDED_WIDTH = 260
 const SIDEBAR_COLLAPSED_WIDTH = 72
 const COLLAPSE_CONTENT_TRANSITION = {
@@ -66,7 +67,7 @@ const BLADE_TRANSITION = {
   mass: 0.84,
 }
 
-export function DashboardSidebar() {
+export function DashboardSidebar({ mobile = false }: { mobile?: boolean } = {}) {
   const pathname = usePathname()
   const router = useRouter()
   const [hoveredHref, setHoveredHref] = useState<string | null>(null)
@@ -107,8 +108,14 @@ export function DashboardSidebar() {
     return menuItems.find((item) => isPathActive(pathname, item.href))?.href ?? null
   }, [menuItems, pathname])
 
+  if (mobile) {
+    return <MobileWorkspaceNavigation items={menuItems} pathname={pathname} activeHref={activeHref} />
+  }
+
   return (
     <motion.aside
+      data-workspace-sidebar
+      data-ui-surface="navigation"
       initial={false}
       animate={{
         width: collapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH,
@@ -211,6 +218,74 @@ export function DashboardSidebar() {
 
       </div>
     </motion.aside>
+  )
+}
+
+function MobileWorkspaceNavigation({ items, pathname, activeHref }: { items: MenuItem[]; pathname: string; activeHref: string | null }) {
+  const [isOpen, setIsOpen] = useState(false)
+
+  useEffect(() => {
+    if (!isOpen) return
+    const desktop = window.matchMedia('(min-width: 64rem)')
+    const dismissOnDesktop = () => {
+      if (desktop.matches) setIsOpen(false)
+    }
+    dismissOnDesktop()
+    desktop.addEventListener('change', dismissOnDesktop)
+    return () => desktop.removeEventListener('change', dismissOnDesktop)
+  }, [isOpen])
+
+  return (
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <header
+        data-ui-surface="navigation"
+        className="sticky top-0 z-20 flex min-h-14 shrink-0 items-center justify-between gap-3 border-b border-[color:var(--light-ui-border,rgba(255,255,255,0.1))] bg-[var(--light-ui-subtle,#0f0b17)] px-3 text-[color:var(--light-ui-text,#f8fafc)] lg:hidden"
+      >
+        <DialogTrigger asChild>
+          <button
+            type="button"
+            aria-label="Open workspace navigation"
+            className="inline-flex h-11 items-center gap-2 rounded-md px-3 text-sm font-medium hover:bg-[var(--light-ui-surface,rgba(255,255,255,0.06))] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--theme-accent)]"
+          >
+            <Menu className="size-5" aria-hidden="true" />
+            Menu
+          </button>
+        </DialogTrigger>
+        <span className="truncate text-sm font-medium">{items.find(item => item.href === activeHref)?.label ?? 'Workspace'}</span>
+      </header>
+      <DialogContent
+        overlayClassName="z-[60] lg:hidden"
+        className="left-0 top-0 z-[60] h-dvh w-[min(20rem,calc(100vw-3rem))] max-w-none translate-x-0 translate-y-0 overflow-y-auto rounded-none border-y-0 border-l-0 bg-[var(--light-ui-surface,#0f0b17)] p-4 text-[color:var(--light-ui-text,#f8fafc)] lg:hidden"
+      >
+        <DialogTitle className="pr-12 pt-3 text-sm">Workspace navigation</DialogTitle>
+        <DialogDescription className="sr-only">Go to a section of your workspace.</DialogDescription>
+        <nav aria-label="Workspace" className="mt-6 space-y-2">
+          {items.map(item => {
+            const Icon = item.icon
+            const isCurrent = isPathActive(pathname, item.href)
+            return (
+              <Link
+                key={item.key}
+                href={item.href}
+                prefetch={false}
+                aria-current={isCurrent ? 'page' : undefined}
+                onClick={() => {
+                  if (item.key === 'editor') rememberCurrentPathForEditorReturn()
+                  setIsOpen(false)
+                }}
+                className={cn(
+                  'flex min-h-11 items-center gap-3 rounded-md px-3 text-sm font-medium hover:bg-[var(--light-ui-subtle,rgba(255,255,255,0.06))] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--theme-accent)]',
+                  isCurrent ? 'bg-[var(--light-ui-subtle,rgba(255,255,255,0.06))]' : 'text-[color:var(--light-ui-muted,#94a3b8)]',
+                )}
+              >
+                <Icon className="size-5" strokeWidth={1.5} aria-hidden="true" />
+                {item.label}
+              </Link>
+            )
+          })}
+        </nav>
+      </DialogContent>
+    </Dialog>
   )
 }
 
@@ -318,6 +393,7 @@ function BladeNavGroup({ items, activeHref, hoveredHref, onHoverChange, onRouteI
 function ActiveBlade({ top, height, transition }: ActiveBladeProps) {
   return (
     <motion.div
+      data-ui-surface="navigation"
       initial={false}
       animate={{ top, height }}
       transition={transition}

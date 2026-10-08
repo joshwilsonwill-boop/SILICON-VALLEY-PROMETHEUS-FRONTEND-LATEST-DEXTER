@@ -20,10 +20,18 @@ async function getRatelimit() {
 }
 
 export async function enforceRateLimit(request: NextRequest): Promise<NextResponse | null> {
+  // One page load also requests route payloads, fonts and media ranges. These
+  // must not share the API budget or an ordinary refresh can return JSON 429.
+  // Classify by path, not client-supplied prefetch/Accept headers, so API calls
+  // cannot opt out of protection. Authentication and security headers still
+  // run for page requests in the proxy.
+  const { pathname } = request.nextUrl
+  if (pathname !== '/api' && !pathname.startsWith('/api/')) return null
+
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? '127.0.0.1'
   try {
     const rl = await getRatelimit()
-    if (rl && !(await rl.limit(ip)).success) {
+    if (rl && !(await rl.limit(`api:${ip}`)).success) {
       return NextResponse.json(
         { error: 'Too many requests. Please slow down.', code: 'RATE_LIMITED' },
         {

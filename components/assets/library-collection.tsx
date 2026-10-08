@@ -13,7 +13,7 @@ export function LibraryCollection({ onSelect }: { onSelect: (showcaseId: string)
   const reduceMotion = useReducedMotion() ?? false
 
   return (
-    <section className="relative min-h-full snap-start snap-normal overflow-hidden bg-black text-white" aria-labelledby="creator-library-title">
+    <section data-creator-library className="relative min-h-full snap-start snap-normal overflow-hidden bg-black text-white" aria-labelledby="creator-library-title">
       <div
         className="pointer-events-none absolute inset-0 opacity-80"
         style={{
@@ -27,11 +27,11 @@ export function LibraryCollection({ onSelect }: { onSelect: (showcaseId: string)
       <div className="relative mx-auto flex min-h-full w-full max-w-[1440px] flex-col px-4 py-7 sm:px-6 sm:py-9 lg:px-8 lg:py-10">
         <header className="flex flex-wrap items-end justify-between gap-5 border-b border-[#55ff9b]/15 pb-5">
           <div className="flex items-start gap-3">
-            <div className="grid size-9 shrink-0 place-items-center border border-[#55ff9b]/25 bg-[#07120b] text-[#63ffa4]">
+            <div data-library-symbol className="grid size-9 shrink-0 place-items-center border border-[#55ff9b]/25 bg-[#07120b] text-[#63ffa4]">
               <LibraryBig className="size-4" aria-hidden="true" />
             </div>
             <div>
-              <p className="text-[10px] uppercase tracking-[0.28em] text-[#63ffa4]/64">Prometheus archive</p>
+              <p data-library-accent className="text-[10px] uppercase tracking-[0.28em] text-[#63ffa4]/64">Prometheus archive</p>
               <h1 id="creator-library-title" className="mt-1 text-2xl font-semibold text-white sm:text-[2rem]">
                 Creator library
               </h1>
@@ -39,7 +39,7 @@ export function LibraryCollection({ onSelect }: { onSelect: (showcaseId: string)
           </div>
 
           <div className="text-right">
-            <div className="font-mono text-lg text-[#63ffa4]">{String(LIBRARY_CREATOR_CARDS.length).padStart(2, '0')}</div>
+            <div data-library-accent className="font-mono text-lg text-[#63ffa4]">{String(LIBRARY_CREATOR_CARDS.length).padStart(2, '0')}</div>
             <div className="text-[9px] uppercase tracking-[0.22em] text-white/38">Active archives</div>
           </div>
         </header>
@@ -47,6 +47,7 @@ export function LibraryCollection({ onSelect }: { onSelect: (showcaseId: string)
         <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7">
           {LIBRARY_CREATOR_CARDS.map((creator, index) => (
             <motion.button
+              data-creator-card
               key={creator.id}
               type="button"
               onClick={() => onSelect(`uploads_${index}`)}
@@ -77,15 +78,15 @@ export function LibraryCollection({ onSelect }: { onSelect: (showcaseId: string)
               <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(72,255,151,0.12),transparent_32%)] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 
               <div className="absolute inset-x-0 top-0 flex items-center justify-between p-2.5">
-                <span className="font-mono text-[9px] tracking-[0.18em] text-white/52">{String(index + 1).padStart(2, '0')}</span>
-                <span className="grid size-7 place-items-center border border-white/15 bg-black/45 text-white/66 backdrop-blur-sm transition-colors group-hover:border-[#55ff9b]/45 group-hover:text-[#63ffa4]">
+                <span data-creator-index className="font-mono text-[9px] tracking-[0.18em] text-white/52">{String(index + 1).padStart(2, '0')}</span>
+                <span data-creator-action className="grid size-7 place-items-center border border-white/15 bg-black/45 text-white/66 backdrop-blur-sm transition-colors group-hover:border-[#55ff9b]/45 group-hover:text-[#63ffa4]">
                   <ArrowUpRight className="size-3.5" aria-hidden="true" />
                 </span>
               </div>
 
-              <div className="absolute inset-x-0 bottom-0 p-3">
-                <div className="truncate text-[9px] uppercase tracking-[0.2em] text-[#63ffa4]/72">{creator.designation}</div>
-                <div className="mt-1.5 text-sm font-semibold leading-tight text-white sm:text-[15px]">{creator.name}</div>
+              <div data-creator-caption className="absolute inset-x-0 bottom-0 p-3">
+                <div data-creator-designation className="truncate text-[9px] uppercase tracking-[0.2em] text-[#63ffa4]/72">{creator.designation}</div>
+                <div data-creator-name className="mt-1.5 text-sm font-semibold leading-tight text-white sm:text-[15px]">{creator.name}</div>
               </div>
             </motion.button>
           ))}

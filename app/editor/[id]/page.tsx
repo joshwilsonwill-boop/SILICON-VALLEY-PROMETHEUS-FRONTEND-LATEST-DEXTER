@@ -8183,21 +8183,12 @@ const requestAssemblyAITranscription = React.useCallback(async (): Promise<boole
       toast.error(summary)
       return { success: false, summary }
     }
-    const controller = getEditorialTimelineController(projectId)
-    const deadline = Date.now() + 15_000
-    while (controller.getSnapshot().status === 'saving' && Date.now() < deadline) {
-      await new Promise((resolve) => window.setTimeout(resolve, 100))
-    }
-    const snapshot = controller.getSnapshot()
-    if (snapshot.status !== 'saved' || snapshot.timeline?.sourceAssetId !== project.sourceAssetId) {
-      const summary = 'The project edits must finish saving before rendering.'
-      toast.error(summary)
-      return { success: false, summary }
-    }
     try {
       const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/exports`, {
         method: 'POST', headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({preset: 'default', sourceAssetId: project.sourceAssetId, editorialRevision: snapshot.timeline.revision}),
+        // This worker consumes source media, independently of editor timeline sync.
+        body: JSON.stringify({preset: 'mini-run-maul-portrait', sourceAssetId: project.sourceAssetId}),
+        signal: AbortSignal.timeout(30_000),
       })
       const payload = await response.json() as {export?: ProjectExport; error?: string}
       if (!response.ok) throw new Error(payload.error || 'Unable to start the final render.')
@@ -8248,7 +8239,7 @@ const requestAssemblyAITranscription = React.useCallback(async (): Promise<boole
         : `Export is blocked: ${readiness.blockers.join(' ')}`
       return {
         success: true,
-        summary: `Export preflight opened. ${result} Output is a source-based 1080 by 1920 portrait MP4 using up to a 30-second source window by default, with automatic worker music and worker-planned captions. Saved editor cuts, captions, movement, and selected music are not included. Live Modal worker health and unsaved local edits are checked only at submission. No job was submitted.`,
+        summary: `Export preflight opened. ${result} Output is a source-based 1080 by 1920 portrait MP4 using up to a 30-second source window by default, with automatic worker music and worker-planned captions. Saved editor cuts, captions, movement, and selected music are not included. Timeline saving does not block this source output. Live worker availability is checked at submission. No job was submitted.`,
       }
     } catch (error) {
       return {success: false, summary: error instanceof Error ? error.message : 'Readiness information is unavailable.'}
@@ -8855,6 +8846,10 @@ const requestAssemblyAITranscription = React.useCallback(async (): Promise<boole
       onApplyActions: handleApplyChatActions,
       onStartRender: handleVoiceStartRender,
       onReviewExportReadiness: handleVoiceReviewExportReadiness,
+      getTimelineSyncState: () => {
+        const snapshot = getEditorialTimelineController(projectId).getSnapshot()
+        return {status: snapshot.status, revision: snapshot.timeline?.revision ?? null, sourceAssetId: snapshot.timeline?.sourceAssetId ?? null, error: snapshot.error}
+      },
       onSeek: (timeSec) => handleApplyChatActions([{ kind: 'seek', timeSec, summary: `Seek to ${timeSec.toFixed(1)}s` }]),
       onPlay: () => handleApplyChatActions([{ kind: 'preview_control', command: 'play', summary: 'Play preview' }]),
       onPause: () => handleApplyChatActions([{ kind: 'preview_control', command: 'pause', summary: 'Pause preview' }]),
@@ -9383,10 +9378,12 @@ const requestAssemblyAITranscription = React.useCallback(async (): Promise<boole
       <div className="relative h-full min-h-0 overflow-hidden bg-black text-white">
       <div
         aria-hidden
+        data-editor-backdrop
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_48%_-12%,rgba(255,255,255,0.055)_0%,rgba(255,255,255,0)_34%),linear-gradient(180deg,#000_0%,#030304_44%,#000_100%)]"
       />
       <div
         aria-hidden
+        data-editor-backdrop
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.035)_0_1px,transparent_1.2px)] bg-[length:7px_7px] opacity-[0.24]"
       />
 

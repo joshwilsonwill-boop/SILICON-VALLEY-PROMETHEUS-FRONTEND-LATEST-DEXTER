@@ -93,7 +93,7 @@ export function VideoPlatformGallery({ videos, onOpenVideo }: VideoPlatformGalle
                 className="block w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#D7FF4F]"
                 aria-label={`Open analytics for ${video.title}`}
               >
-                <div className="relative aspect-video overflow-hidden bg-[#101010]">
+                <div data-theme-independent="media" className="relative aspect-video overflow-hidden bg-[#101010]">
                   {video.thumbnailUrl ? (
                     <Image src={video.thumbnailUrl} alt="" fill sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 25vw" className="object-cover transition-transform duration-700 group-hover:scale-[1.035]" />
                   ) : <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_70%_20%,rgba(215,255,79,0.12),transparent_55%),linear-gradient(135deg,#171717,#050505)]" />}

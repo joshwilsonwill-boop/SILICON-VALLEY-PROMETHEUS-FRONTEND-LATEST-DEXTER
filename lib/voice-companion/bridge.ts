@@ -23,6 +23,13 @@ export interface VoiceCompanionBridgeHandlers {
   onStartRender?: (mode: 'preview' | 'final') => Promise<{ success: boolean; summary: string }>
   /** Opens the export preflight without submitting a job or changing the timeline. */
   onReviewExportReadiness?: () => Promise<{ success: boolean; summary: string }>
+  /** Read current sync facts on demand, independently of the source render job. */
+  getTimelineSyncState?: () => {
+    status: 'loading' | 'saving' | 'saved' | 'error'
+    revision: number | null
+    sourceAssetId: string | null
+    error: string | null
+  }
   onSeek?: (timeSec: number) => Promise<void> | void
   onPlay?: () => Promise<void> | void
   onPause?: () => Promise<void> | void

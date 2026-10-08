@@ -19,10 +19,38 @@ export function normalizeNextPath(rawPath: string | null | undefined, fallback =
 }
 
 /**
- * Returns the intended public origin of the application.
- * Prefers NEXT_PUBLIC_SITE_URL if present, otherwise falls back to a provided request or window location.
+ * Returns the auth origin for the application that started sign-in.
+ * Exact preview hosts are supplied by the build config, so preview callbacks
+ * retain their own session cookie instead of landing on the production app.
+ * All other hosts continue to use the configured canonical site URL.
  */
 export function getSiteOrigin(input?: Request | URL | string) {
+  let currentOrigin: string | undefined
+  if (typeof window !== 'undefined') {
+    currentOrigin = window.location.origin
+  } else if (input) {
+    try {
+      const url = input instanceof Request ? new URL(input.url) : input instanceof URL ? input : new URL(input)
+      currentOrigin = url.origin
+    } catch {
+      // Ignore invalid request URLs.
+    }
+  }
+
+  if (currentOrigin) {
+    try {
+      const previewOrigins: unknown = JSON.parse(process.env.NEXT_PUBLIC_AUTH_PREVIEW_ORIGINS || '[]')
+      if (Array.isArray(previewOrigins) && previewOrigins.includes(currentOrigin)) {
+        const url = new URL(currentOrigin)
+        if (url.protocol === 'https:' && /^[a-z\d-]+\.vercel\.app$/i.test(url.hostname) && !url.port) {
+          return url.origin
+        }
+      }
+    } catch {
+      // An absent or malformed preview configuration preserves canonical behavior.
+    }
+  }
+
   const envUrl = process.env.NEXT_PUBLIC_SITE_URL
   if (envUrl) {
     try {
@@ -32,20 +60,7 @@ export function getSiteOrigin(input?: Request | URL | string) {
     }
   }
 
-  if (typeof window !== 'undefined') {
-    return window.location.origin
-  }
-
-  if (input) {
-    try {
-      const url = input instanceof Request ? new URL(input.url) : input instanceof URL ? input : new URL(input)
-      return url.origin
-    } catch {
-      // ignore
-    }
-  }
-
-  return 'http://localhost:3000'
+  return currentOrigin || 'http://localhost:3000'
 }
 
 /**
