@@ -126,11 +126,14 @@ postcss.parse(readFileSync('app/light-mode.css', 'utf8')).walkRules(rule => {
     assert.ok(selector.startsWith("html[data-color-mode='light']"), 'Every new theme rule must be opt-in so dark mode remains unchanged')
   }
   for (const declaration of rule.nodes.filter(node => node.type === 'decl')) {
-    const logoColor = declaration.prop === 'filter' && declaration.value === 'brightness(0)' && rule.selector.endsWith("img[src*='prometheus-logo-no-bg.png']")
+    const logoColor = declaration.prop === 'filter' && declaration.value === 'brightness(0)' && (rule.selector.endsWith("img[src*='prometheus-logo-no-bg.png']") || rule.selector.endsWith('.prom-cine-logo video'))
+    const loaderGlow = declaration.prop === 'filter' && declaration.value === 'none' && rule.selector.endsWith('.prom-cine-logo')
+    const dividerProperties = { content: "''", position: 'absolute', 'inset-block': '0', right: '0', width: '1px', 'pointer-events': 'none' }
+    const navigationDivider = rule.selector === "html[data-color-mode='light'] [data-workspace-sidebar]::after" && dividerProperties[declaration.prop] === declaration.value
     const quietDecoration = ['backdrop-filter', '-webkit-backdrop-filter', 'text-shadow'].includes(declaration.prop) && declaration.value === 'none'
     const focusIndicator = ['outline-color', 'outline-width', 'outline-style', 'outline-offset'].includes(declaration.prop) && rule.selector.includes(':focus-visible')
     const projectArtworkBlend = declaration.prop === 'mix-blend-mode' && declaration.value === 'multiply' && rule.selector.endsWith('.project-tile-artwork')
-    assert.ok(declaration.prop.startsWith('--') || colorOnlyProperties.has(declaration.prop) || logoColor || quietDecoration || focusIndicator || projectArtworkBlend, `Light mode must not change layout, typography, or project media: ${declaration.prop}`)
+    assert.ok(declaration.prop.startsWith('--') || colorOnlyProperties.has(declaration.prop) || logoColor || loaderGlow || navigationDivider || quietDecoration || focusIndicator || projectArtworkBlend, `Light mode must not change layout, typography, or project media: ${declaration.prop}`)
   }
 })
 

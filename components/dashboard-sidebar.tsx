@@ -114,6 +114,7 @@ export function DashboardSidebar({ mobile = false }: { mobile?: boolean } = {}) 
 
   return (
     <motion.aside
+      data-workspace-sidebar
       data-ui-surface="navigation"
       initial={false}
       animate={{

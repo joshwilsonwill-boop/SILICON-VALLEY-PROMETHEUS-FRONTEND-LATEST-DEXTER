@@ -9357,10 +9357,12 @@ const requestAssemblyAITranscription = React.useCallback(async (): Promise<boole
       <div className="relative h-full min-h-0 overflow-hidden bg-black text-white">
       <div
         aria-hidden
+        data-editor-backdrop
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_48%_-12%,rgba(255,255,255,0.055)_0%,rgba(255,255,255,0)_34%),linear-gradient(180deg,#000_0%,#030304_44%,#000_100%)]"
       />
       <div
         aria-hidden
+        data-editor-backdrop
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.035)_0_1px,transparent_1.2px)] bg-[length:7px_7px] opacity-[0.24]"
       />
 

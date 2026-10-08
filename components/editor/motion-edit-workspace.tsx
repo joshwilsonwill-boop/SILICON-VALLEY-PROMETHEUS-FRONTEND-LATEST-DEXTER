@@ -664,7 +664,7 @@ export function MotionEditWorkspace({
         </div>
       ) : null}
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
-        <aside className="hidden w-[clamp(250px,24vw,340px)] shrink-0 flex-col border-r border-white/10 xl:flex">
+        <aside data-motion-panel="transcript" className="hidden w-[clamp(250px,24vw,340px)] shrink-0 flex-col border-r border-white/10 xl:flex">
           <div className="flex min-h-14 shrink-0 items-center gap-2 border-b border-white/8 px-4">
             <span className="text-sm font-medium">Transcript</span>
             <span className="rounded bg-[#98f237]/15 px-1.5 py-0.5 text-[10px] font-medium text-[#b4fb60]">Prometheus AI</span>
@@ -1134,7 +1134,7 @@ export function MotionEditWorkspace({
                 className="relative aspect-[var(--motion-preview-aspect)] w-[min(100cqw,calc(100cqh*var(--motion-preview-aspect)))] max-h-full max-w-full"
                 style={{ '--motion-preview-aspect': safeAspectRatio } as React.CSSProperties}
               >
-                <div className="relative h-full w-full overflow-hidden border border-white/18 bg-black shadow-[0_28px_80px_rgba(0,0,0,0.56)]">
+                <div data-theme-independent="media" className="relative h-full w-full overflow-hidden border border-white/18 bg-black shadow-[0_28px_80px_rgba(0,0,0,0.56)]">
                   {renderMedia()}
                   {effectiveCaptionsVisible && effectiveCaptionStyle && <ReferenceCaptionOverlay segment={activeSegment} timeSec={currentTimeSec} style={effectiveCaptionStyle} />}
                   <div className="pointer-events-none absolute left-3 top-3 inline-flex max-w-[calc(100%-1.5rem)] items-center gap-2 rounded bg-black/60 px-2.5 py-1.5 text-[10px] text-white/72 backdrop-blur-sm"><Frame className="size-3 shrink-0 text-[#98f237]" /><span className="truncate">{sourceLabel ?? 'Source video'}</span></div>
