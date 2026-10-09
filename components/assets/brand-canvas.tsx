@@ -144,7 +144,7 @@ function savedBrandDirectionFrom(raw: string | null): BrandDirection | null {
         middle: colors.primary ?? '#334155',
         end: colors.accent ?? '#475569',
         accent: colors.accent ?? '#a3e635',
-        soft: colors.text ?? '#f8fafc',
+        soft: '#f8fafc',
       },
       cards: [
         { id: 'strategy', title: 'Brand position', index: '01', lines: [short(dna.tagline, 'Core promise'), short(dna.valueProposition, 'Value proposition'), short(dna.targetAudience, 'Audience'), short(dna.industry, 'Category')], accent: '↗', rotation: -8, x: '5%', y: '23%', depth: 0.45 },
@@ -383,11 +383,11 @@ export function BrandCanvas() {
           transition={{ type: 'spring', stiffness: 45, damping: 18 }}
         />
         <motion.div
-          className="absolute -bottom-[102%] left-[28%] h-[135%] w-[135%] rounded-full border-[30px] border-[#e9e3ff]"
+          className="absolute -bottom-[102%] left-[28%] h-[135%] w-[135%] rounded-full border-[30px] border-[var(--brand-soft)]/65"
           animate={reduceMotion ? undefined : { x: pointer.x * 22, y: pointer.y * 14 }}
           transition={{ type: 'spring', stiffness: 45, damping: 18 }}
         />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_77%_18%,rgba(208,190,255,0.34),transparent_19%),linear-gradient(135deg,rgba(255,255,255,0.12),transparent_35%)]" />
+        <div className="absolute inset-0" style={{ backgroundImage: `radial-gradient(circle at 77% 18%, color-mix(in srgb, ${activeDirection.colors.accent} 30%, transparent), transparent 19%), linear-gradient(135deg, rgba(255,255,255,0.12), transparent 35%)` }} />
         <div className="absolute inset-0 opacity-[0.12] [background-image:radial-gradient(rgba(255,255,255,0.92)_0.7px,transparent_0.7px)] [background-size:5px_5px]" />
       </div>
 
@@ -492,18 +492,18 @@ export function BrandCanvas() {
 
           <motion.div
             aria-hidden="true"
-            className="absolute left-[53%] top-[7%] hidden h-[300px] w-[220px] -translate-x-1/2 rounded-[50%] border border-[#e9e3ff]/75 bg-[#7c3aed]/14 p-4 shadow-[inset_0_0_0_10px_rgba(255,255,255,0.06)] lg:block"
+            className="absolute left-[53%] top-[7%] hidden h-[300px] w-[220px] -translate-x-1/2 rounded-[50%] border border-[var(--brand-soft)]/75 bg-[var(--brand-accent)]/14 p-4 shadow-[inset_0_0_0_10px_rgba(255,255,255,0.06)] lg:block"
             animate={reduceMotion ? undefined : { x: pointer.x * -18, y: pointer.y * -11, rotate: pointer.x * -2 }}
             transition={{ type: 'spring', stiffness: 45, damping: 18 }}
           >
-            <div className="grid h-full place-items-center rounded-[50%] border border-[#e9e3ff]/70">
-              <span className="font-mono text-[10px] uppercase tracking-[0.28em] text-[#f4f1ff] [writing-mode:vertical-rl]">Make it felt</span>
+            <div className="grid h-full place-items-center rounded-[50%] border border-[var(--brand-soft)]/70">
+              <span className="font-mono text-[10px] uppercase tracking-[0.28em] text-[var(--brand-soft)] [writing-mode:vertical-rl]">Make it felt</span>
             </div>
           </motion.div>
         </div>
 
         <footer className="absolute bottom-5 left-5 right-5 z-20 flex items-end justify-between sm:bottom-8 sm:left-8 sm:right-8 lg:left-12 lg:right-12">
-          <p className="max-w-[260px] text-[10px] font-medium leading-relaxed text-white/65 sm:text-[11px]">Source-informed direction study for {activeDirection.name}. Edit any title or detail; changes stay with this profile.</p>
+          <p className="max-w-[260px] text-[10px] font-medium leading-relaxed text-white/65 sm:text-[11px]">Direction study for {activeDirection.name}. Card content follows the selected profile; edits stay with it.</p>
           <span className="hidden items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/52 sm:inline-flex"><Volume2 className="size-3.5" /> Voice at top right</span>
         </footer>
 
