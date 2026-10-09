@@ -18,9 +18,59 @@ type BrandCard = {
   depth: number
 }
 
-const BRAND_CARD_STORAGE_KEY = 'prometheus.brand-canvas.cards.v1'
+type BrandDirection = {
+  id: string
+  name: string
+  subtitle: string
+  sourceUrl: string
+  headline: string
+  colors: { start: string; middle: string; end: string; accent: string; soft: string }
+  cards: BrandCard[]
+}
 
-const DEFAULT_CARDS: BrandCard[] = [
+type SavedBrandDna = {
+  brandName?: string
+  url?: string
+  tagline?: string
+  valueProposition?: string
+  industry?: string
+  targetAudience?: string
+  logoText?: string
+  primaryColors?: { surface?: string; primary?: string; accent?: string; text?: string; muted?: string; border?: string }
+  fonts?: { display?: string; body?: string; mono?: string }
+  kineticStyle?: { pacing?: string; captionStyle?: string }
+  toneOfVoice?: string[]
+  keyMessages?: { title?: string }[]
+  aiPhotoPreset?: string
+}
+
+const BRAND_PROFILE_STORAGE_KEY = 'prometheus.brand-canvas.profile.v1'
+const BRAND_CARD_STORAGE_PREFIX = 'prometheus.brand-canvas.cards.v2.'
+const SAVED_BRAND_DNA_KEY = 'prometheus.brand-dna.v1'
+
+const BRAND_DIRECTIONS: BrandDirection[] = [
+  {
+    id: 'dan-martell',
+    name: 'Dan Martell',
+    subtitle: 'Founder growth / time freedom',
+    sourceUrl: 'https://www.danmartell.com/',
+    headline: 'Build freedom,\nthen scale.',
+    colors: { start: '#111a31', middle: '#17294a', end: '#164b61', accent: '#b8f36b', soft: '#edf5dc' },
+    cards: [
+      { id: 'strategy', title: 'Buy back your time', index: '01', lines: ['Protect high-value work', 'Delegate the $20 tasks', 'Build a business that runs without you', 'Scale without burning out'], accent: '↗', rotation: -8, x: '5%', y: '23%', depth: 0.45 },
+      { id: 'creative', title: 'Founder playbooks', index: '02', lines: ['Direct, energetic delivery', 'One useful idea per post', 'Story → lesson → action', 'Make growth feel possible'], accent: '✳', rotation: 4, x: '25%', y: '16%', depth: 0.78 },
+      { id: 'palette', title: 'Direction palette', index: '03', lines: ['Deep navy #111A31', 'Evergreen #164B61', 'Signal lime #B8F36B', 'Warm paper #EDF5DC'], accent: '◉', rotation: -2, x: '49%', y: '20%', depth: 1 },
+      { id: 'assets', title: 'Signature themes', index: '04', lines: ['Buy Back Your Time', 'Founder growth systems', 'SaaS & AI operations', 'Freedom, family, endurance'], accent: '▣', rotation: 7, x: '73%', y: '15%', depth: 0.62 },
+    ],
+  },
+  {
+    id: 'prometheus',
+    name: 'Prometheus Studio',
+    subtitle: 'Independent creative direction',
+    sourceUrl: '',
+    headline: 'Bold ideas,\nbrought to life.',
+    colors: { start: '#1b123b', middle: '#33206f', end: '#202f89', accent: '#5f3df2', soft: '#f4f1ff' },
+    cards: [
   {
     id: 'strategy',
     title: 'Growth strategy',
@@ -65,7 +115,48 @@ const DEFAULT_CARDS: BrandCard[] = [
     y: '15%',
     depth: 0.62,
   },
+    ],
+  },
 ]
+
+const DEFAULT_PROFILE_ID = 'dan-martell'
+
+function savedBrandDirectionFrom(raw: string | null): BrandDirection | null {
+  if (!raw) return null
+  try {
+    const dna = JSON.parse(raw) as SavedBrandDna
+    if (!dna.brandName || !dna.primaryColors) return null
+    const colors = dna.primaryColors
+    const short = (value: string | undefined, fallback: string, max = 35) => {
+      const clean = value?.replace(/\s+/g, ' ').trim() || fallback
+      return clean.length > max ? `${clean.slice(0, max - 1)}…` : clean
+    }
+    const tone = dna.toneOfVoice?.slice(0, 4) ?? []
+    const messageTitles = dna.keyMessages?.map((message) => message.title).filter((title): title is string => Boolean(title)).slice(0, 4) ?? []
+    return {
+      id: 'saved-brand-dna',
+      name: dna.brandName,
+      subtitle: 'Saved brand DNA',
+      sourceUrl: dna.url && /^https?:\/\//i.test(dna.url) ? dna.url : '',
+      headline: `${short(dna.tagline, 'A direction shaped by your brand', 29)}\nbrand direction.`,
+      colors: {
+        start: colors.surface ?? '#111827',
+        middle: colors.primary ?? '#334155',
+        end: colors.accent ?? '#475569',
+        accent: colors.accent ?? '#a3e635',
+        soft: colors.text ?? '#f8fafc',
+      },
+      cards: [
+        { id: 'strategy', title: 'Brand position', index: '01', lines: [short(dna.tagline, 'Core promise'), short(dna.valueProposition, 'Value proposition'), short(dna.targetAudience, 'Audience'), short(dna.industry, 'Category')], accent: '↗', rotation: -8, x: '5%', y: '23%', depth: 0.45 },
+        { id: 'creative', title: 'Voice & motion', index: '02', lines: [...tone, short(dna.kineticStyle?.captionStyle, 'Caption direction'), short(dna.kineticStyle?.pacing, 'Motion pacing')].filter(Boolean).slice(0, 4).map((item) => short(item, 'Brand voice')), accent: '✳', rotation: 4, x: '25%', y: '16%', depth: 0.78 },
+        { id: 'palette', title: 'Brand palette', index: '03', lines: [`Primary ${colors.primary ?? '—'}`, `Accent ${colors.accent ?? '—'}`, `Surface ${colors.surface ?? '—'}`, `Text ${colors.text ?? '—'}`], accent: '◉', rotation: -2, x: '49%', y: '20%', depth: 1 },
+        { id: 'assets', title: 'Brand anchors', index: '04', lines: [short(dna.logoText, dna.brandName), ...messageTitles, short(dna.fonts?.display, 'Display type'), short(dna.aiPhotoPreset, 'Image direction')].slice(0, 4).map((item) => short(item, 'Brand anchor')), accent: '▣', rotation: 7, x: '73%', y: '15%', depth: 0.62 },
+      ],
+    }
+  } catch {
+    return null
+  }
+}
 
 const VOICES = [
   { id: 'nyx', label: 'Nyx', tone: 'Quiet' },
@@ -199,31 +290,69 @@ function BrandVoicePanel({ onClose, reduceMotion }: { onClose: () => void; reduc
 export function BrandCanvas() {
   const reduceMotion = useReducedMotion() ?? false
   const [pointer, setPointer] = React.useState({ x: 0, y: 0 })
-  const [cards, setCards] = React.useState<BrandCard[]>(DEFAULT_CARDS)
+  const [activeProfileId, setActiveProfileId] = React.useState(DEFAULT_PROFILE_ID)
+  const [savedBrandDirection, setSavedBrandDirection] = React.useState<BrandDirection | null>(null)
+  const [cards, setCards] = React.useState<BrandCard[]>(BRAND_DIRECTIONS[0].cards)
   const [hasHydratedCards, setHasHydratedCards] = React.useState(false)
+  const [loadedProfileId, setLoadedProfileId] = React.useState<string | null>(null)
   const [voiceOpen, setVoiceOpen] = React.useState(false)
   const [editingCardId, setEditingCardId] = React.useState<string | null>(null)
+  const availableDirections = savedBrandDirection ? [...BRAND_DIRECTIONS, savedBrandDirection] : BRAND_DIRECTIONS
+  const activeDirection = availableDirections.find((direction) => direction.id === activeProfileId) ?? BRAND_DIRECTIONS[0]
 
   React.useEffect(() => {
     try {
-      const stored = window.localStorage.getItem(BRAND_CARD_STORAGE_KEY)
-      const parsed = stored ? JSON.parse(stored) : null
-      if (Array.isArray(parsed) && parsed.length === DEFAULT_CARDS.length) setCards(parsed as BrandCard[])
+      const savedDirection = savedBrandDirectionFrom(window.localStorage.getItem(SAVED_BRAND_DNA_KEY))
+      setSavedBrandDirection(savedDirection)
+      const storedProfile = window.localStorage.getItem(BRAND_PROFILE_STORAGE_KEY)
+      if (storedProfile && (BRAND_DIRECTIONS.some((direction) => direction.id === storedProfile) || (savedDirection && storedProfile === savedDirection.id))) setActiveProfileId(storedProfile)
     } catch {
-      // The on-card editor remains usable even when local storage is unavailable.
-    } finally {
-      setHasHydratedCards(true)
+      // Keep the default direction when local storage is unavailable.
     }
   }, [])
 
   React.useEffect(() => {
-    if (!hasHydratedCards) return
+    setHasHydratedCards(false)
+    setLoadedProfileId(null)
     try {
-      window.localStorage.setItem(BRAND_CARD_STORAGE_KEY, JSON.stringify(cards))
+      const stored = window.localStorage.getItem(`${BRAND_CARD_STORAGE_PREFIX}${activeProfileId}`)
+      const parsed = stored ? JSON.parse(stored) : null
+      if (Array.isArray(parsed) && parsed.length === activeDirection.cards.length) {
+        setCards(parsed as BrandCard[])
+      } else if (activeProfileId === 'prometheus') {
+        const legacy = window.localStorage.getItem('prometheus.brand-canvas.cards.v1')
+        const legacyCards = legacy ? JSON.parse(legacy) : null
+        setCards(Array.isArray(legacyCards) && legacyCards.length === activeDirection.cards.length ? legacyCards as BrandCard[] : activeDirection.cards)
+      } else {
+        setCards(activeDirection.cards)
+      }
+    } catch {
+      // The on-card editor remains usable even when local storage is unavailable.
+      setCards(activeDirection.cards)
+    } finally {
+      setHasHydratedCards(true)
+      setLoadedProfileId(activeProfileId)
+    }
+  }, [activeDirection, activeProfileId])
+
+  React.useEffect(() => {
+    if (!hasHydratedCards || loadedProfileId !== activeProfileId) return
+    try {
+      window.localStorage.setItem(`${BRAND_CARD_STORAGE_PREFIX}${activeProfileId}`, JSON.stringify(cards))
     } catch {
       // Keep the current session state when persistence is blocked.
     }
-  }, [cards, hasHydratedCards])
+  }, [activeProfileId, cards, hasHydratedCards, loadedProfileId])
+
+  const selectDirection = (profileId: string) => {
+    setActiveProfileId(profileId)
+    setHasHydratedCards(false)
+    try {
+      window.localStorage.setItem(BRAND_PROFILE_STORAGE_KEY, profileId)
+    } catch {
+      // The active direction remains available for this session.
+    }
+  }
 
   const updateCard = React.useCallback((cardId: string, updater: (card: BrandCard) => BrandCard) => {
     setCards((current) => current.map((card) => (card.id === cardId ? updater(card) : card)))
@@ -242,7 +371,8 @@ export function BrandCanvas() {
     <section
       id="brand-canvas"
       aria-labelledby="brand-canvas-title"
-      className="relative isolate min-h-full snap-start snap-normal overflow-hidden bg-[linear-gradient(135deg,#1b123b_0%,#33206f_48%,#202f89_100%)] text-[#f8f7ff]"
+      className="relative isolate min-h-full snap-start snap-normal overflow-hidden text-[#f8f7ff]"
+      style={{ background: `linear-gradient(135deg, ${activeDirection.colors.start} 0%, ${activeDirection.colors.middle} 48%, ${activeDirection.colors.end} 100%)`, '--brand-accent': activeDirection.colors.accent, '--brand-soft': activeDirection.colors.soft } as React.CSSProperties}
       onPointerMove={onPointerMove}
       onPointerLeave={() => setPointer({ x: 0, y: 0 })}
     >
@@ -264,10 +394,22 @@ export function BrandCanvas() {
       <div className="relative mx-auto min-h-[780px] max-w-[1680px] px-5 py-5 sm:min-h-[840px] sm:px-8 lg:min-h-[900px] lg:px-12 lg:py-8">
         <header className="relative z-20 flex items-center justify-between gap-3 text-[10px] font-semibold uppercase tracking-[0.16em] sm:text-[11px]">
           <div className="flex items-center gap-2.5">
-            <span className="grid size-7 place-items-center rounded-full border border-white/75 bg-[#f4f1ff] text-sm text-[#251544]">P</span>
+            <span className="grid size-7 place-items-center rounded-full border border-white/75 bg-[var(--brand-soft)] text-sm text-[#251544]">P</span>
             <span>Prometheus / Brand</span>
           </div>
           <div className="flex items-center gap-2">
+            <label className="flex items-center gap-1.5 rounded-full border border-white/20 bg-[#120d26]/35 px-2.5 py-2 text-[9px] text-white/75 sm:gap-2 sm:px-3.5 sm:text-[10px]">
+              <span className="hidden text-white/45 sm:inline">For</span>
+              <select
+                value={activeProfileId}
+                onChange={(event) => selectDirection(event.target.value)}
+                aria-label="Choose a brand direction"
+                className="max-w-[90px] cursor-pointer appearance-none bg-transparent text-white outline-none sm:max-w-[150px] [&>option]:bg-[#17132a] [&>option]:text-white"
+              >
+                {availableDirections.map((direction) => <option key={direction.id} value={direction.id}>{direction.name}</option>)}
+              </select>
+            </label>
+            {activeDirection.sourceUrl ? <a href={activeDirection.sourceUrl} target="_blank" rel="noreferrer" className="hidden rounded-full border border-white/16 bg-[#120d26]/35 px-3 py-2 text-[10px] text-white/70 transition hover:bg-[#120d26]/65 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white lg:inline-flex">Source ↗</a> : null}
             <a href="#creator-library-title" className="hidden items-center gap-2 rounded-full border border-white/16 bg-[#120d26]/35 px-3.5 py-2 text-white/80 transition hover:-translate-y-0.5 hover:bg-[#120d26]/65 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white sm:inline-flex">
               Browse the archive
               <ArrowUpRight className="size-3.5" aria-hidden="true" />
@@ -276,7 +418,7 @@ export function BrandCanvas() {
               type="button"
               layoutId="brand-voice-trigger"
               onClick={() => setVoiceOpen((open) => !open)}
-              className="group grid size-11 place-items-center rounded-full border border-white/60 bg-[#f4f1ff] text-[#22123f] shadow-[0_14px_34px_-20px_rgba(0,0,0,0.9)] transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
+              className="group grid size-11 place-items-center rounded-full border border-white/60 bg-[var(--brand-soft)] text-[#22123f] shadow-[0_14px_34px_-20px_rgba(0,0,0,0.9)] transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
               aria-label={voiceOpen ? 'Close brand voice' : 'Open brand voice'}
               aria-expanded={voiceOpen}
             >
@@ -288,11 +430,11 @@ export function BrandCanvas() {
         <div className="relative z-10 pt-16 sm:pt-20 lg:pt-24">
           <p className="mb-5 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/66 sm:text-[11px]">
             <Asterisk className="size-3.5" aria-hidden="true" />
-            Independent direction for restless ideas
+            {activeDirection.name} · {activeDirection.subtitle}
           </p>
           <h2 id="brand-canvas-title" className="max-w-[1050px] text-[clamp(3.3rem,9.5vw,10.5rem)] font-medium leading-[0.82] tracking-[-0.085em] text-[#fbfaff]">
-            Bold ideas,
-            <span className="block pl-[7vw] sm:pl-[12vw]">brought to life.</span>
+            {activeDirection.headline.split('\n')[0]}
+            <span className="block pl-[7vw] sm:pl-[12vw]">{activeDirection.headline.split('\n')[1]}</span>
           </h2>
         </div>
 
@@ -301,7 +443,7 @@ export function BrandCanvas() {
             <motion.article
               key={card.id}
               className="group absolute h-[250px] w-[190px] cursor-text rounded-[10px] border border-[#241448]/18 bg-[#faf9ff] p-4 text-[#120d26] shadow-[0_24px_42px_rgba(8,4,32,0.35)] sm:h-[310px] sm:w-[235px] sm:p-5 lg:h-[350px] lg:w-[268px]"
-              style={{ left: card.x, top: card.y, transformStyle: 'preserve-3d', zIndex: index + 1 }}
+              style={{ left: card.x, top: card.y, transformStyle: 'preserve-3d', zIndex: index + 1, '--card-accent': activeDirection.colors.accent } as React.CSSProperties}
               initial={reduceMotion ? false : { opacity: 0, y: 80, rotate: card.rotation - 11 }}
               animate={{
                 opacity: 1,
@@ -316,7 +458,7 @@ export function BrandCanvas() {
                 if (!event.currentTarget.contains(event.relatedTarget)) setEditingCardId(null)
               }}
             >
-              <div className="flex items-start justify-between border-b border-[#5f3df2]/22 pb-4">
+              <div className="flex items-start justify-between border-b border-[var(--card-accent)]/35 pb-4">
                 <div className="min-w-0">
                   <span className="font-mono text-[9px] tracking-[0.12em] text-[#241448]/48">{card.index}</span>
                   <EditableText
@@ -324,7 +466,7 @@ export function BrandCanvas() {
                     value={card.title}
                     onCommit={(next) => updateCard(card.id, (current) => ({ ...current, title: next }))}
                     ariaLabel={`Edit ${card.title} card title`}
-                    className="mt-1 cursor-text text-xl font-semibold tracking-[-0.07em] outline-none transition focus:bg-[#5f3df2]/[0.07] focus:text-[#3e22a6] sm:text-2xl"
+                    className="mt-1 cursor-text text-xl font-semibold tracking-[-0.07em] outline-none transition focus:bg-[var(--card-accent)]/10 focus:text-[#3e22a6] sm:text-2xl"
                   />
                 </div>
                 <span className="text-2xl leading-none sm:text-3xl" aria-hidden="true">{card.accent}</span>
@@ -337,7 +479,7 @@ export function BrandCanvas() {
                     value={line}
                     onCommit={(next) => updateCard(card.id, (current) => ({ ...current, lines: current.lines.map((item, itemIndex) => itemIndex === lineIndex ? next : item) }))}
                     ariaLabel={`Edit ${card.title} item ${lineIndex + 1}`}
-                    className="cursor-text border-b border-dotted border-[#5f3df2]/32 pb-1.5 outline-none transition focus:bg-[#5f3df2]/[0.07] focus:text-[#3e22a6]"
+                    className="cursor-text border-b border-dotted border-[var(--card-accent)]/45 pb-1.5 outline-none transition focus:bg-[var(--card-accent)]/10 focus:text-[#3e22a6]"
                   />
                 ))}
               </ul>
@@ -361,7 +503,7 @@ export function BrandCanvas() {
         </div>
 
         <footer className="absolute bottom-5 left-5 right-5 z-20 flex items-end justify-between sm:bottom-8 sm:left-8 sm:right-8 lg:left-12 lg:right-12">
-          <p className="max-w-[210px] text-[10px] font-medium leading-relaxed text-white/65 sm:max-w-[250px] sm:text-[11px]">Click any title or detail directly on a card to tune the direction. Changes stay with this brand room.</p>
+          <p className="max-w-[260px] text-[10px] font-medium leading-relaxed text-white/65 sm:text-[11px]">Source-informed direction study for {activeDirection.name}. Edit any title or detail; changes stay with this profile.</p>
           <span className="hidden items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/52 sm:inline-flex"><Volume2 className="size-3.5" /> Voice at top right</span>
         </footer>
 
