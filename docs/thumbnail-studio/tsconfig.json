@@ -8,7 +8,7 @@
     "../../components/editor/ThumbnailStudioModal.tsx",
     "../../components/editor/thumbnail-studio/ThumbnailWorkspace.tsx",
     "../../lib/thumbnails/studio-art-direction.ts",
-    "../../lib/thumbnails/studio-draft.ts",
+    "../../lib/thumbnails/thumbnail-response.ts",
     "../../lib/thumbnails/nano-banana-image.ts",
     "../../app/api/projects/[id]/thumbnails/nano-banana/route.ts"
   ],
