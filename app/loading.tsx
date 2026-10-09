@@ -4,7 +4,7 @@ export default function Loading() {
   return (
     <>
       <CinematicLogoLoader
-        caption="Opening your workspace…"
+        label="Loading"
         className="workspace-route-loader"
       />
       <style>{`
@@ -16,11 +16,6 @@ export default function Loading() {
         }
         .workspace-route-loader.prom-cine-enter {
           animation-duration: 500ms;
-        }
-        .workspace-route-loader .prom-cine-caption {
-          color: rgba(255, 255, 255, 0.86);
-          letter-spacing: 0.16em;
-          white-space: nowrap;
         }
         @media (prefers-reduced-motion: reduce) {
           .workspace-route-loader.prom-cine-enter {

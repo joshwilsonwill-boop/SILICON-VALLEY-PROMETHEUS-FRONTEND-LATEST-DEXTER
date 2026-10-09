@@ -12,6 +12,13 @@ const AppToaster = dynamic(() => import('@/components/ui/app-toaster').then((mod
   ssr: false,
 })
 
+// Keep the voice companion out of the initial shared client bundle. Its UI
+// mounts after the browser has time for enhancements.
+const JarvisTopNavFilament = dynamic(
+  () => import('@/components/navigation/jarvis-top-nav-filament').then((mod) => mod.JarvisTopNavFilament),
+  { ssr: false },
+)
+
 const CinematicClickRipple = dynamic(
   () => import('@/components/ui/cinematic-click-ripple').then((mod) => mod.CinematicClickRipple),
   {
@@ -69,6 +76,7 @@ export function RootClientEffects() {
   return (
     <>
       <ThemeInjector />
+      {enhancementsReady ? <JarvisTopNavFilament /> : null}
       {isEditorRoute ? <AgenticCursorLayer /> : null}
       {enhancementsReady && (
         <>

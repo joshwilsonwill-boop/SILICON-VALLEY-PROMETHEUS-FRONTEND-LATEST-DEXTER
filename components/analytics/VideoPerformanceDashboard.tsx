@@ -74,8 +74,13 @@ export function VideoPerformanceDashboard() {
   const [frames, setFrames] = React.useState<Record<string, string>>({})
   const [frameFailures, setFrameFailures] = React.useState<Record<string, boolean>>({})
   const [frameRequests, setFrameRequests] = React.useState<Record<string, boolean>>({})
+  const framesRef = React.useRef(frames)
+  const frameFailuresRef = React.useRef(frameFailures)
   const [selectedAnalyticsVideo, setSelectedAnalyticsVideo] = React.useState<DashboardVideo | PrometheusTrackedVideo | null>(null)
   const [requestKey, setRequestKey] = React.useState(0)
+
+  React.useEffect(() => { framesRef.current = frames }, [frames])
+  React.useEffect(() => { frameFailuresRef.current = frameFailures }, [frameFailures])
 
   React.useEffect(() => {
     const controller = new AbortController()
@@ -206,7 +211,7 @@ export function VideoPerformanceDashboard() {
       if (seen.has(video.id)) return false
       seen.add(video.id)
       const hasProjectSource = !video.id.includes(':')
-      return (!video.thumbnailUrl || frameRequests[video.id]) && Boolean(video.previewUrl || hasProjectSource) && !frames[video.id] && !frameFailures[video.id]
+      return (!video.thumbnailUrl || frameRequests[video.id]) && Boolean(video.previewUrl || hasProjectSource) && !framesRef.current[video.id] && !frameFailuresRef.current[video.id]
     })
     let next = 0
     async function captureNext() {
@@ -214,13 +219,33 @@ export function VideoPerformanceDashboard() {
         const video = candidates[next++]!
         const frame = await captureAnalyticsVideoFrame(video)
         if (!active) return
-        if (frame) setFrames((current) => ({ ...current, [video.id]: frame }))
-        else setFrameFailures((current) => ({ ...current, [video.id]: true }))
+        if (!frame) {
+          frameFailuresRef.current = { ...frameFailuresRef.current, [video.id]: true }
+          setFrameFailures((current) => ({ ...current, [video.id]: true }))
+          continue
+        }
+
+        framesRef.current = { ...framesRef.current, [video.id]: frame }
+        setFrames((current) => ({ ...current, [video.id]: frame }))
+        if (!video.id.includes(':')) {
+          try {
+            await fetch(`/api/projects/${encodeURIComponent(video.id)}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ thumbnailUrl: frame }),
+            })
+          } catch {
+            // The captured frame remains available in this session; a later
+            // Analytics visit can retry persistence if the request failed.
+          }
+        }
       }
     }
+    // Frame state updates must not cancel this batch; the refs above keep
+    // state current without making it an effect dependency.
     void Promise.all(Array.from({ length: Math.min(3, candidates.length) }, () => captureNext()))
     return () => { active = false }
-  }, [frameFailures, frameRequests, frames, rankedVideos, trackedVideos])
+  }, [frameRequests, rankedVideos, trackedVideos])
 
   return (
     <main className="min-h-[100svh] bg-black text-[#F1F0EA]">
@@ -240,7 +265,7 @@ export function VideoPerformanceDashboard() {
           <div className="mt-9 grid gap-3 border-y border-white/[0.1] py-4 sm:grid-cols-2 lg:grid-cols-[minmax(15rem,1.3fr)_minmax(12rem,1fr)_minmax(13rem,1fr)_auto] lg:items-end lg:gap-5">
             <label className="block">
               <span className="mb-2 block text-[9px] uppercase tracking-[0.19em] text-[#81837A]">Linked account</span>
-              <select aria-label="Filter by linked account" value={selectedAccountId} onChange={(event) => setSelectedAccountId(event.target.value)} disabled={accounts.length === 0} className="min-h-11 w-full rounded-lg border border-white/[0.12] bg-[#0B0B0B] px-3 text-[12px] text-[#E6E6DE] outline-none focus-visible:ring-2 focus-visible:ring-[#D7FF4F] disabled:opacity-50">
+              <select aria-label="Filter by linked account" value={selectedAccountId} onChange={(event) => setSelectedAccountId(event.target.value)} disabled={accounts.length === 0} className="min-h-11 w-full border-0 border-b border-white/[0.16] bg-transparent px-1 text-[12px] text-[#E6E6DE] outline-none focus-visible:ring-2 focus-visible:ring-[#D7FF4F] disabled:opacity-50">
                 {accounts.length === 0 ? <option value="">No linked accounts</option> : null}
                 {accounts.map((account) => <option key={account.id} value={account.id}>{account.platformName} · {account.accountName}{account.connected ? '' : ` · ${account.unavailableReason ?? 'unavailable'}`}</option>)}
               </select>
@@ -248,7 +273,7 @@ export function VideoPerformanceDashboard() {
 
             <label className="block">
               <span className="mb-2 block text-[9px] uppercase tracking-[0.19em] text-[#81837A]">Platform</span>
-              <select aria-label="Filter by platform" value={validPlatform} onChange={(event) => setSelectedPlatform(event.target.value)} disabled={platforms.length === 0} className="min-h-11 w-full rounded-lg border border-white/[0.12] bg-[#0B0B0B] px-3 text-[12px] text-[#E6E6DE] outline-none focus-visible:ring-2 focus-visible:ring-[#D7FF4F] disabled:opacity-50">
+              <select aria-label="Filter by platform" value={validPlatform} onChange={(event) => setSelectedPlatform(event.target.value)} disabled={platforms.length === 0} className="min-h-11 w-full border-0 border-b border-white/[0.16] bg-transparent px-1 text-[12px] text-[#E6E6DE] outline-none focus-visible:ring-2 focus-visible:ring-[#D7FF4F] disabled:opacity-50">
                 <option value="all">All platforms in this account</option>
                 {platforms.map((platform) => <option key={platform.id} value={platform.id}>{platform.name}</option>)}
               </select>
@@ -256,42 +281,42 @@ export function VideoPerformanceDashboard() {
 
             <label className="block">
               <span className="mb-2 block text-[9px] uppercase tracking-[0.19em] text-[#81837A]">Rank by</span>
-              <select aria-label="Sort videos by metric" value={metric} onChange={(event) => setMetric(event.target.value as PerformanceMetric)} className="min-h-11 w-full rounded-lg border border-white/[0.12] bg-[#0B0B0B] px-3 text-[12px] text-[#E6E6DE] outline-none focus-visible:ring-2 focus-visible:ring-[#D7FF4F]">
+              <select aria-label="Sort videos by metric" value={metric} onChange={(event) => setMetric(event.target.value as PerformanceMetric)} className="min-h-11 w-full border-0 border-b border-white/[0.16] bg-transparent px-1 text-[12px] text-[#E6E6DE] outline-none focus-visible:ring-2 focus-visible:ring-[#D7FF4F]">
                 {metricOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
               </select>
             </label>
 
-            <button type="button" aria-label={`Sort ${direction === 'desc' ? 'highest to lowest' : 'lowest to highest'}`} onClick={() => setDirection((current) => current === 'desc' ? 'asc' : 'desc')} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-white/[0.12] px-4 text-[9px] uppercase tracking-[0.14em] text-[#B9BAAF] transition-colors hover:border-white/30 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D7FF4F]">
+            <button type="button" aria-label={`Sort ${direction === 'desc' ? 'highest to lowest' : 'lowest to highest'}`} onClick={() => setDirection((current) => current === 'desc' ? 'asc' : 'desc')} className="inline-flex min-h-11 items-center justify-center gap-2 border-b border-white/[0.16] px-1 text-[9px] uppercase tracking-[0.14em] text-[#B9BAAF] transition-colors hover:border-white/40 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D7FF4F]">
               {direction === 'desc' ? <ArrowDown className="size-3.5" /> : <ArrowUp className="size-3.5" />}{direction === 'desc' ? 'Highest first' : 'Lowest first'}
             </button>
           </div>
         </section>
 
         {appraisal && appraisal.totalPostsAnalyzed > 0 ? (
-          <section className="mt-8 rounded-2xl border border-white/[0.1] bg-white/[0.02] p-5 sm:p-6" aria-label="Analysis notes">
+          <section className="mt-8 border-y border-white/[0.1] py-5 sm:py-6" aria-label="Analysis notes">
             <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
               <h2 className="text-sm font-medium tracking-tight text-[#F1F0EA]">Video insights</h2>
               <p className="text-[11px] text-[#8D8E85]">Based on {appraisal.totalPostsAnalyzed} {appraisal.totalPostsAnalyzed === 1 ? 'video' : 'videos'}</p>
             </div>
 
-            <dl className="mt-5 grid grid-cols-3 gap-3 border-y border-white/[0.08] py-4">
-              <div>
+            <dl className="mt-5 grid grid-cols-1 gap-5 border-t border-white/[0.07] pt-5 sm:grid-cols-3 sm:gap-6">
+              <div className="border-b border-white/[0.07] pb-4 sm:border-0 sm:pb-0">
                 <dt className="text-[11px] text-[#8D8E85]">Average retention</dt>
-                <dd className="mt-1 font-mono text-2xl font-light text-[#F1F0EA]">{Math.round(appraisal.catalogSummary.averageRetentionScore * 100)}%</dd>
+                <dd className="mt-2 font-mono text-[28px] font-light leading-none tracking-tight text-[#F1F0EA]">{Math.round(appraisal.catalogSummary.averageRetentionScore * 100)}%</dd>
               </div>
-              <div>
+              <div className="border-b border-white/[0.07] pb-4 sm:border-0 sm:pb-0">
                 <dt className="text-[11px] text-[#8D8E85]">Sharing score</dt>
-                <dd className="mt-1 font-mono text-2xl font-light text-[#D7FF4F]">{Math.round(appraisal.catalogSummary.averageViralityScore * 100)}%</dd>
-                <p className="text-[10px] text-[#777970]">Shares and comments</p>
+                <dd className="mt-2 font-mono text-[28px] font-light leading-none tracking-tight text-[#D7FF4F]">{Math.round(appraisal.catalogSummary.averageViralityScore * 100)}%</dd>
+                <p className="mt-1.5 text-[10px] text-[#777970]">Shares and comments</p>
               </div>
               <div>
                 <dt className="text-[11px] text-[#8D8E85]">Breakout videos</dt>
-                <dd className="mt-1 font-mono text-2xl font-light text-[#F1F0EA]">{appraisal.catalogSummary.viralOutliersCount}</dd>
+                <dd className="mt-2 font-mono text-[28px] font-light leading-none tracking-tight text-[#F1F0EA]">{appraisal.catalogSummary.viralOutliersCount}</dd>
               </div>
             </dl>
 
-            <p className="mt-4 text-[12px] leading-5 text-[#BFC0B7]">
-              <span className="mr-1.5 text-[#D7FF4F]">Next edit</span>
+            <p className="mt-5 text-[12px] leading-5 text-[#BFC0B7]">
+              <span className="mr-2 text-[10px] uppercase tracking-[0.12em] text-[#D7FF4F]">Next edit</span>
               Bring the most compelling moment closer to the start.
             </p>
           </section>
@@ -299,7 +324,7 @@ export function VideoPerformanceDashboard() {
 
         <section className="mt-7" aria-label="Video performance rankings" aria-live="polite">
           {loadState === 'loading' ? <DashboardStatus>Loading linked accounts and performance…</DashboardStatus> : null}
-          {loadState === 'error' ? <DashboardStatus title="Analytics could not be loaded" action={<button type="button" onClick={() => setRequestKey((value) => value + 1)} className="mt-4 min-h-10 rounded-full border border-white/20 px-4 text-[10px] uppercase tracking-[0.13em] text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D7FF4F]">Try again</button>}>Your account data is still protected. Reload the analytics feed to try again.</DashboardStatus> : null}
+          {loadState === 'error' ? <DashboardStatus title="Analytics could not be loaded" action={<button type="button" onClick={() => setRequestKey((value) => value + 1)} className="mt-4 min-h-10 border-b border-white/30 px-1 text-[10px] uppercase tracking-[0.13em] text-white transition-colors hover:border-white hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D7FF4F]">Try again</button>}>Your account data is still protected. Reload the analytics feed to try again.</DashboardStatus> : null}
           {loadState === 'ready' && !selectedAccount ? <DashboardStatus title="No linked accounts yet">Connect a publishing account to see its video performance here.</DashboardStatus> : null}
           {loadState === 'ready' && selectedAccount && !selectedAccount.connected ? <DashboardStatus title={`${selectedAccount.accountName} is unavailable`} muted>This {selectedAccount.platformName} account is {selectedAccount.unavailableReason ?? 'disconnected'}. Its results are hidden until the account is available again.</DashboardStatus> : null}
           {loadState === 'ready' && selectedAccount?.connected && rankedVideos.length === 0 ? <DashboardStatus title="Account-scoped results are not available yet">This account is connected. The current analytics feed does not identify which account owns each video metric, so no shared or cross-account totals are shown here.</DashboardStatus> : null}
@@ -322,17 +347,17 @@ export function VideoPerformanceDashboard() {
               <h2 id="tracked-carousel-title" className="mt-2 font-[family-name:var(--font-vogue-display)] text-2xl sm:text-3xl text-[#F1F0EA]">
                 Recent tracked videos
               </h2>
-              <p className="mt-2 text-[12px] leading-5 text-[#92938B]">
-                Instant prints pegged to the line reflecting the latest videos created and tracked by Prometheus. Drag the line, scrub through cuts, or let them sway in the breeze.
+              <p className="mt-2 max-w-xl text-[12px] leading-5 text-[#92938B]">
+                Recent videos created or published through Prometheus.
               </p>
             </div>
             <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.16em] text-[#787A72]">
-              <span className="inline-block size-1.5 rounded-full bg-[#D7FF4F] animate-pulse" />
-              Live reflection ({carouselSlides.length} prints)
+              <span className="inline-block size-1.5 rounded-full bg-[#D7FF4F]" />
+              {carouselSlides.length} {carouselSlides.length === 1 ? 'video' : 'videos'}
             </div>
           </div>
 
-          {carouselSlides.length ? <div className="mt-6 overflow-hidden rounded-2xl border border-white/[0.08] bg-[#080808]/70 backdrop-blur-sm shadow-[0_24px_50px_-20px_rgba(0,0,0,0.8)]">
+          {carouselSlides.length ? <div className="mt-6 overflow-hidden border-y border-white/[0.08]">
             <PolaroidLineCarousel
               slides={carouselSlides}
               height={520}
@@ -395,8 +420,8 @@ function MetricDatum({ icon: Icon, label, value }: { icon: React.ComponentType<{
 }
 
 function DashboardStatus({ title, children, action, muted = false }: { title?: string; children: React.ReactNode; action?: React.ReactNode; muted?: boolean }) {
-  return <div role="status" className={`rounded-xl border px-5 py-10 text-center sm:py-14 ${muted ? 'border-white/[0.07] bg-white/[0.015] text-[#73756F]' : 'border-white/[0.09] bg-white/[0.02] text-[#9A9C92]'}`}>
-    {title ? <h2 className={`font-[family-name:var(--font-vogue-display)] text-2xl sm:text-3xl ${muted ? 'text-[#999A93]' : 'text-[#F1F0EA]'}`}>{title}</h2> : null}<p className="mx-auto mt-3 max-w-2xl text-[12px] leading-6">{children}</p>{action}
+  return <div role="status" className={`border-y border-white/[0.09] px-5 py-10 text-left sm:px-7 sm:py-12 ${muted ? 'text-[#73756F]' : 'text-[#9A9C92]'}`}>
+    {title ? <h2 className={`text-lg font-medium tracking-tight sm:text-xl ${muted ? 'text-[#999A93]' : 'text-[#F1F0EA]'}`}>{title}</h2> : null}<p className="mt-2 max-w-2xl text-[12px] leading-6">{children}</p>{action}
   </div>
 }
 

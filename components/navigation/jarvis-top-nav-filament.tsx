@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useRef, useState, useSyncExternalStore } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { Mic, MicOff, MousePointer2, Sparkles, X, ArrowUp, Power, Download } from 'lucide-react'
 import { Dock, DockItem, DockLabel, DockIcon } from '@/components/ui/dock'
 
@@ -27,6 +27,7 @@ export function JarvisTopNavFilament({ className }: JarvisTopNavFilamentProps) {
   const glowPathRef = useRef<SVGPathElement | null>(null)
   const animFrameIdRef = useRef<number | null>(null)
   const phaseRef = useRef(0)
+  const prefersReducedMotion = useReducedMotion() ?? false
 
   const companion = useVoiceCompanion()
 
@@ -50,15 +51,28 @@ export function JarvisTopNavFilament({ className }: JarvisTopNavFilamentProps) {
   const isSpeaking = companion.status === 'speaking'
   const isListening = companion.status === 'listening'
   const isInterrupted = companion.status === 'interrupted'
+  const shouldAnimateFilament = !prefersReducedMotion && (isActive || isHovered)
 
-  // Single mount-only high-performance RAF loop (zero React re-renders)
+  // Keep the idle filament static; only schedule frames while the companion
+  // is active or the user is hovering over it.
   useEffect(() => {
-    let active = true
+    if (!shouldAnimateFilament) {
+      pathRef.current?.setAttribute('d', 'M 0 16 L 200 16')
+      glowPathRef.current?.setAttribute('d', 'M 0 16 L 200 16')
+      return
+    }
 
-    const loop = () => {
+    let active = true
+    let lastFrameAt = 0
+    const frameInterval = 1000 / 30
+
+    const loop = (timestamp: number) => {
       if (!active) return
 
-      if (pathRef.current) {
+      const shouldDraw = timestamp - lastFrameAt >= frameInterval
+      if (shouldDraw) lastFrameAt = timestamp
+
+      if (shouldDraw && pathRef.current) {
         const comp = companionRef.current
         const userVol = comp.getUserVolume()
         const asstVol = comp.getAssistantVolume()
@@ -132,7 +146,7 @@ export function JarvisTopNavFilament({ className }: JarvisTopNavFilamentProps) {
         cancelAnimationFrame(animFrameIdRef.current)
       }
     }
-  }, [])
+  }, [shouldAnimateFilament])
 
   const handleToggleCompanion = () => {
     if (companion.status === 'disconnected') {

@@ -9,7 +9,6 @@ import { LoadingProvider } from '@/contexts/LoadingContext'
 import { CookieConsentBanner } from '@/components/cookie-consent/banner'
 import { ConsentGatedAnalytics } from '@/components/cookie-consent/consent-gated-analytics'
 import { CookieConsentProvider } from '@/components/cookie-consent/consent-context'
-import { JarvisTopNavFilament } from '@/components/navigation/jarvis-top-nav-filament'
 import './globals.css'
 import './premium-vignette.css'
 
@@ -91,7 +90,6 @@ export default async function RootLayout({
         <CookieConsentProvider>
           <LoadingProvider>
             <AuthProvider>
-              <JarvisTopNavFilament />
               <div className="relative z-10">
                 <RootLayoutFrame>{children}</RootLayoutFrame>
               </div>

@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import { createPortal } from 'react-dom'
 import { ArrowRight, Camera, Check, ChevronLeft, ChevronRight, Download, Frame, ImagePlus, Layers, Loader2, MessageSquare, Palette, ScanLine, Send, Sparkles, X } from 'lucide-react'
 import { STUDIO_ACCENTS, STUDIO_BACKGROUNDS, type StudioDesign } from '@/lib/thumbnails/studio-art-direction'
 import { STUDIO_REFERENCES, type StudioReferenceCategory, type StudioReferenceId } from '@/lib/thumbnails/studio-references'
@@ -96,6 +97,7 @@ function ReferenceTile({ reference, selected, index, onSelect }: { reference: ty
 }
 
 export function ThumbnailWorkspace(props: Props) {
+  const [portalReady, setPortalReady] = React.useState(false)
   const [tab, setTab] = React.useState<'create' | 'chat' | 'styles' | 'brand'>('create')
   const [showAllReferences, setShowAllReferences] = React.useState(false)
   const [referenceQuery, setReferenceQuery] = React.useState('')
@@ -111,8 +113,10 @@ export function ThumbnailWorkspace(props: Props) {
   const closeRef = React.useRef<HTMLButtonElement>(null)
   const frameStripRef = React.useRef<HTMLDivElement>(null)
   const onCloseRef = React.useRef(props.onClose)
+  React.useEffect(() => { setPortalReady(true) }, [])
   React.useEffect(() => { onCloseRef.current = props.onClose }, [props.onClose])
   React.useEffect(() => {
+    if (!portalReady) return
     const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
@@ -128,7 +132,7 @@ export function ThumbnailWorkspace(props: Props) {
     }
     document.addEventListener('keydown', handleKey, true)
     return () => { document.removeEventListener('keydown', handleKey, true); document.body.style.overflow = previousOverflow; previous?.focus() }
-  }, [])
+  }, [portalReady])
 
   const source = props.candidates[props.selectedFrameIndex]
   // Until artwork has actually been generated, show the chosen source frame
@@ -151,7 +155,7 @@ export function ThumbnailWorkspace(props: Props) {
     const observer = new ResizeObserver(update)
     observer.observe(node)
     return () => observer.disconnect()
-  }, [ratioWidth, ratioHeight])
+  }, [portalReady, ratioWidth, ratioHeight])
   const handleStagePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
     if (event.pointerType !== 'mouse' || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
     const bounds = stageRef.current?.getBoundingClientRect()
@@ -219,7 +223,9 @@ export function ThumbnailWorkspace(props: Props) {
     <p className={styles.hint}>Your selected cinematic look plus up to three uploads guide composition, lighting, color, and graphic treatment. Your video frame anchors the subject.</p>
   </div>
 
-  return <div className={styles.studio}>
+  if (!portalReady) return null
+
+  return createPortal(<div className={styles.studio}>
     <div className={styles.backdrop} onClick={props.onClose} aria-hidden="true" />
     <div className={styles.window} role="dialog" aria-modal="true" aria-labelledby="thumbnail-studio-title" ref={dialogRef}>
       <header className={styles.header}>
@@ -375,5 +381,5 @@ export function ThumbnailWorkspace(props: Props) {
         </aside>
       </div>
     </div>
-  </div>
+  </div>, document.body)
 }
