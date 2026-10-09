@@ -71,7 +71,7 @@ The local build emits existing missing R2/Redis configuration warnings. No stora
 
 - `app/light-mode.css`: shared light-only coverage, semantic aliases, elevation/focus rules and preservation exclusions.
 - `components/projects/projects-page-editorial.tsx`: mode-aware project colors and semantic surface/elevation hooks.
-- `components/editor/thumbnail-studio/ThumbnailWorkspace.module.css`: mode-aware local UI chrome with original dark fallbacks.
+- `components/editor/thumbnail-studio/ThumbnailWorkspace.styles.ts`: mode-aware local UI chrome with original dark fallbacks; styles now mount with the Studio portal.
 - `components/ui/app-toaster.tsx`: mode and semantic toast styling.
 - `components/ui/dialog.tsx`: scrim/elevation hooks only.
 - `components/ui/slide-drawer.tsx`: semantic inline surface/border colors only.

@@ -7,6 +7,8 @@
     "../../next-env.d.ts",
     "../../components/editor/ThumbnailStudioModal.tsx",
     "../../components/editor/thumbnail-studio/ThumbnailWorkspace.tsx",
+    "../../components/editor/thumbnail-studio/ThumbnailWorkspace.styles.ts",
+    "../../tests/fixtures/thumbnail-workspace-page.tsx",
     "../../lib/thumbnails/studio-art-direction.ts",
     "../../lib/thumbnails/thumbnail-response.ts",
     "../../lib/thumbnails/nano-banana-image.ts",

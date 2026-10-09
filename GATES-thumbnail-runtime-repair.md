@@ -20,7 +20,7 @@ Scope: Reproduce and repair the unstyled Thumbnail Studio using the real compone
 - [ ] G4: The user's failing editor page renders the repaired Thumbnail Studio with its layout and contained reference images.
   EVIDENCE: pending
 
-## Diagnosis so far
+## Earlier diagnostic stage (before the component repair)
 
 - The development fixture rendered the real component with computed shell position fixed, a viewport-bounded dialog, and a 180px reference image rather than its 900px natural width.
 - The isolated production build emitted matching Studio class names and CSS selectors.
@@ -30,3 +30,7 @@ Scope: Reproduce and repair the unstyled Thumbnail Studio using the real compone
 - Browser verification stopped after the browser policy rejected the local production URL. No alternate browser access was attempted.
 - No application fix has been made during this investigation. G2 and G4 remain pending.
 - The focused verifier referenced a deleted studio-draft.ts file. Its lint list now contains existing files, and its TypeScript include names the thumbnail-response.ts module actually used by the modal.
+
+## Follow-up repair
+
+The actual component repair and current acceptance evidence are recorded in `GATES-thumbnail-studio-complete-fix.md`. The Studio now mounts its full namespaced stylesheet with its portal; a mounted-component reproduction fails without the repair and passes with it. The complete frontend production build and all 14 final CSS, runtime and iteration checks passed. The original browser/page gates above remain pending and have not been silently certified by DOM checks.

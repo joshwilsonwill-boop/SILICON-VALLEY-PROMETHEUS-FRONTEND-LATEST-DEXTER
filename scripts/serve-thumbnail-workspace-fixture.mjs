@@ -3,7 +3,13 @@ import { resolve, join } from 'node:path'
 import { spawn } from 'node:child_process'
 import { pathToFileURL } from 'node:url'
 
-// Exercise the real Studio with Next's CSS pipeline, without account data or paid generation.
+// Exercise the real Studio with the application CSS and component-owned styles.
+// The fixture makes no account writes or paid generation requests.
+const flags = process.argv.slice(2)
+if (flags.length > 1 || flags.some(flag => !['--build', '--start'].includes(flag))) {
+  console.error('Usage: node scripts/serve-thumbnail-workspace-fixture.mjs [--build|--start]')
+  process.exit(1)
+}
 const root = process.cwd()
 const fixture = resolve(root, '.tmp/thumbnail-workspace-runtime')
 mkdirSync(join(fixture, 'app'), { recursive: true })
@@ -18,6 +24,7 @@ writeFileSync(join(fixture, 'postcss.config.mjs'), `export { default } from ${JS
 writeFileSync(join(fixture, 'next.config.mjs'), `export default { outputFileTracingRoot: ${JSON.stringify(root)}, experimental: { externalDir: true }, typescript: { ignoreBuildErrors: true }, webpack(config) { config.resolve.alias['@'] = ${JSON.stringify(root)}; return config } }\n`)
 writeFileSync(join(fixture, 'app/page.tsx'), `export { default } from ${JSON.stringify(join(root, 'tests/fixtures/thumbnail-workspace-page.tsx').replaceAll('\\', '/'))}\n`)
 writeFileSync(join(fixture, 'app/layout.tsx'), `import ${JSON.stringify(join(root, 'app/globals.css').replaceAll('\\', '/'))};\nexport default function Layout({ children }) { return <html lang="en"><body>{children}</body></html> }\n`)
-const command = process.argv.includes('--build') ? ['build', '--webpack'] : ['dev', '--webpack', '-p', '3220', '--hostname', '127.0.0.1']
+const command = flags.includes('--build') ? ['build', '--webpack'] : flags.includes('--start') ? ['start', '-p', '3220', '--hostname', '127.0.0.1'] : ['dev', '--webpack', '-p', '3220', '--hostname', '127.0.0.1']
 const child = spawn(process.execPath, [join(root, 'node_modules/next/dist/bin/next'), ...command, fixture], { cwd: root, stdio: 'inherit', env: { ...process.env, NEXT_TELEMETRY_DISABLED: '1' } })
+child.on('error', error => { console.error(error.message); process.exit(1) })
 child.on('exit', code => process.exit(code ?? 1))

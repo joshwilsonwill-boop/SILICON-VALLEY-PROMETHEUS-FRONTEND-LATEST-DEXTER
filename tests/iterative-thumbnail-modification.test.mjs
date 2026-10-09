@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import fs from 'node:fs'
 import path from 'node:path'
+import { thumbnailWorkspaceCss } from '../components/editor/thumbnail-studio/ThumbnailWorkspace.styles.ts'
 import { buildNanoBananaImageRequest } from '../lib/thumbnails/nano-banana-image.ts'
 import { buildOpenAIImageEditRequest, buildOpenAIImageEditFormData } from '../lib/thumbnails/openai-image-edit.ts'
 import { applyThumbnailIterationDirection } from '../lib/thumbnails/creative-direction.ts'
@@ -125,18 +126,10 @@ test('G4: ThumbnailWorkspace provides an interactive Chat Assistant tab with con
   assert.match(content, /chatSendBtn/)
   assert.match(content, /refineChatButton/)
 
-  // Verifies CSS module contains styling for all chat classes
-  const cssPath = path.resolve('components/editor/thumbnail-studio/ThumbnailWorkspace.module.css')
-  const cssContent = fs.readFileSync(cssPath, 'utf8')
-  assert.match(cssContent, /\.chatContainer/)
-  assert.match(cssContent, /\.chatContextCard/)
-  assert.match(cssContent, /\.chatMessageList/)
-  assert.match(cssContent, /\.chatBubbleUser/)
-  assert.match(cssContent, /\.chatBubbleAssistant/)
-  assert.match(cssContent, /\.chatPromptChips/)
-  assert.match(cssContent, /\.chatInputBox/)
-  assert.match(cssContent, /\.chatSendBtn/)
-  assert.match(cssContent, /\.refineChatButton/)
+  // Chat styling travels with the Workspace instead of a separate CSS module.
+  for (const name of ['chatContainer', 'chatContextCard', 'chatMessageList', 'chatBubbleUser', 'chatBubbleAssistant', 'chatPromptChips', 'chatInputBox', 'chatSendBtn', 'refineChatButton']) {
+    assert.ok(thumbnailWorkspaceCss.includes('.prom-thumbnail-' + name), `Missing chat style ${name}`)
+  }
 
   console.log('G4_WORKSPACE_CHAT_UI_PASSED')
 })

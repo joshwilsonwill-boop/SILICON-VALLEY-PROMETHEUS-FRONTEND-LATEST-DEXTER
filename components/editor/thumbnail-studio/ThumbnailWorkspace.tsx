@@ -7,7 +7,7 @@ import { STUDIO_ACCENTS, STUDIO_BACKGROUNDS, type StudioDesign } from '@/lib/thu
 import { STUDIO_REFERENCES, type StudioReferenceCategory, type StudioReferenceId } from '@/lib/thumbnails/studio-references'
 import { VIRAL_THUMBNAIL_RECIPES } from '@/lib/thumbnails/nano-banana-rulebook'
 import type { ExtractedFrameCandidate } from '@/lib/thumbnails/thumbnail-engine'
-import styles from './ThumbnailWorkspace.module.css'
+import { thumbnailWorkspaceClasses as styles, thumbnailWorkspaceCss } from './ThumbnailWorkspace.styles'
 
 export type ThumbnailVariant = {
   id: string
@@ -226,6 +226,7 @@ export function ThumbnailWorkspace(props: Props) {
   if (!portalReady) return null
 
   return createPortal(<div className={styles.studio}>
+    <style data-thumbnail-studio-styles>{thumbnailWorkspaceCss}</style>
     <div className={styles.backdrop} onClick={props.onClose} aria-hidden="true" />
     <div className={styles.window} role="dialog" aria-modal="true" aria-labelledby="thumbnail-studio-title" ref={dialogRef}>
       <header className={styles.header}>
