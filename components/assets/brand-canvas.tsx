@@ -2,47 +2,11 @@
 
 import * as React from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
-import { ArrowUpRight, Asterisk, Check, Mic, Plus, Sparkles, Volume2, X } from 'lucide-react'
+import { ArrowUpRight, Asterisk, Check, Globe, Mic, Plus, Sparkles, Volume2, X } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
-
-type BrandCard = {
-  id: string
-  title: string
-  index: string
-  lines: string[]
-  accent: string
-  rotation: number
-  x: string
-  y: string
-  depth: number
-}
-
-type BrandDirection = {
-  id: string
-  name: string
-  subtitle: string
-  sourceUrl: string
-  headline: string
-  colors: { start: string; middle: string; end: string; accent: string; soft: string }
-  cards: BrandCard[]
-}
-
-type SavedBrandDna = {
-  brandName?: string
-  url?: string
-  tagline?: string
-  valueProposition?: string
-  industry?: string
-  targetAudience?: string
-  logoText?: string
-  primaryColors?: { surface?: string; primary?: string; accent?: string; text?: string; muted?: string; border?: string }
-  fonts?: { display?: string; body?: string; mono?: string }
-  kineticStyle?: { pacing?: string; captionStyle?: string }
-  toneOfVoice?: string[]
-  keyMessages?: { title?: string }[]
-  aiPhotoPreset?: string
-}
+import { mapSavedBrandDnaToCanvas, type BrandCanvasCard as BrandCard, type BrandDirection } from '@/lib/brand-dna/canvas-mapping'
+import type { ExtractedBrandDna } from '@/lib/brand-dna/types'
 
 const BRAND_PROFILE_STORAGE_KEY = 'prometheus.brand-canvas.profile.v1'
 const BRAND_CARD_STORAGE_PREFIX = 'prometheus.brand-canvas.cards.v2.'
@@ -120,43 +84,6 @@ const BRAND_DIRECTIONS: BrandDirection[] = [
 ]
 
 const DEFAULT_PROFILE_ID = 'dan-martell'
-
-function savedBrandDirectionFrom(raw: string | null): BrandDirection | null {
-  if (!raw) return null
-  try {
-    const dna = JSON.parse(raw) as SavedBrandDna
-    if (!dna.brandName || !dna.primaryColors) return null
-    const colors = dna.primaryColors
-    const short = (value: string | undefined, fallback: string, max = 35) => {
-      const clean = value?.replace(/\s+/g, ' ').trim() || fallback
-      return clean.length > max ? `${clean.slice(0, max - 1)}…` : clean
-    }
-    const tone = dna.toneOfVoice?.slice(0, 4) ?? []
-    const messageTitles = dna.keyMessages?.map((message) => message.title).filter((title): title is string => Boolean(title)).slice(0, 4) ?? []
-    return {
-      id: 'saved-brand-dna',
-      name: dna.brandName,
-      subtitle: 'Saved brand DNA',
-      sourceUrl: dna.url && /^https?:\/\//i.test(dna.url) ? dna.url : '',
-      headline: `${short(dna.tagline, 'A direction shaped by your brand', 29)}\nbrand direction.`,
-      colors: {
-        start: colors.surface ?? '#111827',
-        middle: colors.primary ?? '#334155',
-        end: colors.accent ?? '#475569',
-        accent: colors.accent ?? '#a3e635',
-        soft: '#f8fafc',
-      },
-      cards: [
-        { id: 'strategy', title: 'Brand position', index: '01', lines: [short(dna.tagline, 'Core promise'), short(dna.valueProposition, 'Value proposition'), short(dna.targetAudience, 'Audience'), short(dna.industry, 'Category')], accent: '↗', rotation: -8, x: '5%', y: '23%', depth: 0.45 },
-        { id: 'creative', title: 'Voice & motion', index: '02', lines: [...tone, short(dna.kineticStyle?.captionStyle, 'Caption direction'), short(dna.kineticStyle?.pacing, 'Motion pacing')].filter(Boolean).slice(0, 4).map((item) => short(item, 'Brand voice')), accent: '✳', rotation: 4, x: '25%', y: '16%', depth: 0.78 },
-        { id: 'palette', title: 'Brand palette', index: '03', lines: [`Primary ${colors.primary ?? '—'}`, `Accent ${colors.accent ?? '—'}`, `Surface ${colors.surface ?? '—'}`, `Text ${colors.text ?? '—'}`], accent: '◉', rotation: -2, x: '49%', y: '20%', depth: 1 },
-        { id: 'assets', title: 'Brand anchors', index: '04', lines: [short(dna.logoText, dna.brandName), ...messageTitles, short(dna.fonts?.display, 'Display type'), short(dna.aiPhotoPreset, 'Image direction')].slice(0, 4).map((item) => short(item, 'Brand anchor')), accent: '▣', rotation: 7, x: '73%', y: '15%', depth: 0.62 },
-      ],
-    }
-  } catch {
-    return null
-  }
-}
 
 const VOICES = [
   { id: 'nyx', label: 'Nyx', tone: 'Quiet' },
@@ -287,6 +214,83 @@ function BrandVoicePanel({ onClose, reduceMotion }: { onClose: () => void; reduc
   )
 }
 
+function BrandSourcePanel({
+  onAnalyze,
+  onClose,
+  error,
+  isAnalyzing,
+  reduceMotion,
+}: {
+  onAnalyze: (website: string) => void
+  onClose: () => void
+  error: string | null
+  isAnalyzing: boolean
+  reduceMotion: boolean
+}) {
+  const [website, setWebsite] = React.useState('')
+
+  return (
+    <motion.aside
+      role="dialog"
+      aria-modal="false"
+      aria-label="Analyze a brand website"
+      initial={reduceMotion ? false : { opacity: 0, y: -12, scale: 0.96 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={reduceMotion ? undefined : { opacity: 0, y: -10, scale: 0.98 }}
+      transition={{ type: 'spring', stiffness: 260, damping: 24 }}
+      className="absolute right-5 top-5 z-50 w-[min(29rem,calc(100vw-2.5rem))] rounded-[22px] border border-white/20 bg-[#101827]/[0.96] p-5 text-white shadow-[0_30px_80px_-34px_rgba(0,0,0,0.94)] backdrop-blur-2xl sm:right-8 sm:top-8 lg:right-12"
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/45">Build from a real source</p>
+          <h3 className="mt-1 text-lg font-semibold tracking-tight">Analyze a person or brand</h3>
+          <p className="mt-1 text-xs leading-5 text-white/60">Add their website. We’ll read public pages and styles, then map the findings onto these cards.</p>
+        </div>
+        <button type="button" onClick={onClose} className="grid size-8 shrink-0 place-items-center rounded-full text-white/48 transition hover:bg-white/[0.08] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/45" aria-label="Close website analysis">
+          <X className="size-4" />
+        </button>
+      </div>
+
+      <form
+        className="mt-5"
+        onSubmit={(event) => {
+          event.preventDefault()
+          if (!isAnalyzing && website.trim()) onAnalyze(website.trim())
+        }}
+      >
+        <label htmlFor="brand-source-url" className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.14em] text-white/48">Website URL</label>
+        <div className="flex gap-2">
+          <input
+            id="brand-source-url"
+            type="text"
+            inputMode="url"
+            autoComplete="url"
+            maxLength={2_000}
+            placeholder="https://danmartell.com"
+            value={website}
+            onChange={(event) => setWebsite(event.target.value)}
+            disabled={isAnalyzing}
+            required
+            className="h-11 min-w-0 flex-1 rounded-xl border border-white/15 bg-black/25 px-3 text-sm text-white outline-none placeholder:text-white/30 focus:border-[var(--brand-accent)]/70 focus:ring-2 focus:ring-[var(--brand-accent)]/20 disabled:opacity-50"
+          />
+          <button
+            type="submit"
+            disabled={!website.trim() || isAnalyzing}
+            className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-[var(--brand-accent)] px-3.5 text-xs font-bold text-[#111827] transition hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 disabled:cursor-wait disabled:opacity-55 sm:px-4"
+          >
+            {isAnalyzing ? <span className="size-3.5 animate-spin rounded-full border-2 border-[#111827]/30 border-t-[#111827]" aria-hidden="true" /> : <Globe className="size-3.5" aria-hidden="true" />}
+            {isAnalyzing ? 'Analyzing' : 'Analyze site'}
+          </button>
+        </div>
+      </form>
+
+      {isAnalyzing ? <p className="mt-3 text-xs text-white/60" role="status">Reading public pages, visual styles, and brand language…</p> : null}
+      {error ? <p className="mt-3 rounded-lg border border-red-300/20 bg-red-400/10 px-3 py-2 text-xs leading-5 text-red-100" role="alert">{error}</p> : null}
+      <p className="mt-4 border-t border-white/10 pt-3 text-[10px] leading-4 text-white/42">Only public website content is analyzed. The profile and cards remain editable.</p>
+    </motion.aside>
+  )
+}
+
 export function BrandCanvas() {
   const reduceMotion = useReducedMotion() ?? false
   const [pointer, setPointer] = React.useState({ x: 0, y: 0 })
@@ -296,13 +300,16 @@ export function BrandCanvas() {
   const [hasHydratedCards, setHasHydratedCards] = React.useState(false)
   const [loadedProfileId, setLoadedProfileId] = React.useState<string | null>(null)
   const [voiceOpen, setVoiceOpen] = React.useState(false)
+  const [sourceOpen, setSourceOpen] = React.useState(false)
+  const [sourceError, setSourceError] = React.useState<string | null>(null)
+  const [isAnalyzingSite, setIsAnalyzingSite] = React.useState(false)
   const [editingCardId, setEditingCardId] = React.useState<string | null>(null)
   const availableDirections = savedBrandDirection ? [...BRAND_DIRECTIONS, savedBrandDirection] : BRAND_DIRECTIONS
   const activeDirection = availableDirections.find((direction) => direction.id === activeProfileId) ?? BRAND_DIRECTIONS[0]
 
   React.useEffect(() => {
     try {
-      const savedDirection = savedBrandDirectionFrom(window.localStorage.getItem(SAVED_BRAND_DNA_KEY))
+      const savedDirection = mapSavedBrandDnaToCanvas(window.localStorage.getItem(SAVED_BRAND_DNA_KEY))
       setSavedBrandDirection(savedDirection)
       const storedProfile = window.localStorage.getItem(BRAND_PROFILE_STORAGE_KEY)
       if (storedProfile && (BRAND_DIRECTIONS.some((direction) => direction.id === storedProfile) || (savedDirection && storedProfile === savedDirection.id))) setActiveProfileId(storedProfile)
@@ -351,6 +358,42 @@ export function BrandCanvas() {
       window.localStorage.setItem(BRAND_PROFILE_STORAGE_KEY, profileId)
     } catch {
       // The active direction remains available for this session.
+    }
+  }
+
+  const analyzeWebsite = async (website: string) => {
+    setIsAnalyzingSite(true)
+    setSourceError(null)
+    try {
+      const response = await fetch('/api/brand-dna/extract', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: website }),
+      })
+      const payload = await response.json().catch(() => null) as { profile?: ExtractedBrandDna; error?: string } | null
+      if (!response.ok) throw new Error(payload?.error || 'Brand analysis failed. Check the website and try again.')
+      if (!payload?.profile) throw new Error('The analysis did not return a brand profile. Please try again.')
+
+      const serialized = JSON.stringify(payload.profile)
+      const direction = mapSavedBrandDnaToCanvas(serialized)
+      if (!direction) throw new Error('The website returned an incomplete brand profile. Please try another source.')
+      try {
+        window.localStorage.setItem(SAVED_BRAND_DNA_KEY, serialized)
+        window.localStorage.removeItem(`${BRAND_CARD_STORAGE_PREFIX}${direction.id}`)
+        window.localStorage.setItem(BRAND_PROFILE_STORAGE_KEY, direction.id)
+      } catch {
+        // Keep the current generated profile even if browser storage is unavailable.
+      }
+      setSavedBrandDirection(direction)
+      setCards(direction.cards)
+      setActiveProfileId(direction.id)
+      setLoadedProfileId(direction.id)
+      setHasHydratedCards(true)
+      setSourceOpen(false)
+    } catch (error) {
+      setSourceError(error instanceof Error ? error.message : 'Brand analysis failed. Please try again.')
+    } finally {
+      setIsAnalyzingSite(false)
     }
   }
 
@@ -406,7 +449,7 @@ export function BrandCanvas() {
                 aria-label="Choose a brand direction"
                 className="max-w-[90px] cursor-pointer appearance-none bg-transparent text-white outline-none sm:max-w-[150px] [&>option]:bg-[#17132a] [&>option]:text-white"
               >
-                {availableDirections.map((direction) => <option key={direction.id} value={direction.id}>{direction.name}</option>)}
+                {availableDirections.map((direction) => <option key={direction.id} value={direction.id}>{direction.id === 'saved-brand-dna' ? `${direction.name} · website` : direction.name}</option>)}
               </select>
             </label>
             {activeDirection.sourceUrl ? <a href={activeDirection.sourceUrl} target="_blank" rel="noreferrer" className="hidden rounded-full border border-white/16 bg-[#120d26]/35 px-3 py-2 text-[10px] text-white/70 transition hover:bg-[#120d26]/65 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white lg:inline-flex">Source ↗</a> : null}
@@ -414,10 +457,27 @@ export function BrandCanvas() {
               Browse the archive
               <ArrowUpRight className="size-3.5" aria-hidden="true" />
             </a>
+            <button
+              type="button"
+              onClick={() => {
+                setVoiceOpen(false)
+                setSourceError(null)
+                setSourceOpen((open) => !open)
+              }}
+              aria-label="Analyze a website and build its brand profile"
+              aria-expanded={sourceOpen}
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-white/25 bg-[#101827]/55 px-3 text-[10px] font-semibold text-white/85 transition hover:-translate-y-0.5 hover:bg-[#101827]/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white sm:px-3.5"
+            >
+              <Globe className="size-3.5" aria-hidden="true" />
+              <span className="hidden sm:inline">Analyze URL</span>
+            </button>
             <motion.button
               type="button"
               layoutId="brand-voice-trigger"
-              onClick={() => setVoiceOpen((open) => !open)}
+              onClick={() => {
+                setSourceOpen(false)
+                setVoiceOpen((open) => !open)
+              }}
               className="group grid size-11 place-items-center rounded-full border border-white/60 bg-[var(--brand-soft)] text-[#22123f] shadow-[0_14px_34px_-20px_rgba(0,0,0,0.9)] transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
               aria-label={voiceOpen ? 'Close brand voice' : 'Open brand voice'}
               aria-expanded={voiceOpen}
@@ -508,6 +568,17 @@ export function BrandCanvas() {
         </footer>
 
         <AnimatePresence>{voiceOpen ? <BrandVoicePanel onClose={() => setVoiceOpen(false)} reduceMotion={reduceMotion} /> : null}</AnimatePresence>
+        <AnimatePresence>
+          {sourceOpen ? (
+            <BrandSourcePanel
+              onAnalyze={analyzeWebsite}
+              onClose={() => setSourceOpen(false)}
+              error={sourceError}
+              isAnalyzing={isAnalyzingSite}
+              reduceMotion={reduceMotion}
+            />
+          ) : null}
+        </AnimatePresence>
       </div>
     </section>
   )

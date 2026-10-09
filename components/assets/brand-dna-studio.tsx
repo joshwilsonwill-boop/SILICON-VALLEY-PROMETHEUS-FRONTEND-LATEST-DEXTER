@@ -31,6 +31,8 @@ import { saveJarvisMemory } from '@/lib/voice-companion/memory'
 export interface ExtractedBrandDna {
   id: string
   url: string
+  sourceUrls?: string[]
+  analyzedAt?: string
   brandName: string
   industry: string
   tagline: string
@@ -66,6 +68,7 @@ export interface ExtractedBrandDna {
     body: string
   }[]
   aiPhotoPreset: string
+  evidence?: { pagesRead: number; colorsObserved: string[]; fontsObserved: string[] }
 }
 
 export const BRAND_DNA_STORAGE_KEY = 'prometheus.brand-dna.v1'
@@ -350,7 +353,7 @@ export function BrandDnaStudio() {
   const [inputUrl, setInputUrl] = React.useState('')
   const [activeBrand, setActiveBrand] = React.useState<ExtractedBrandDna>(PRESET_BRANDS.linear)
   const [isScanning, setIsScanning] = React.useState(false)
-  const [scanStep, setScanStep] = React.useState(0)
+  const [scanError, setScanError] = React.useState<string | null>(null)
   const [activeTab, setActiveTab] = React.useState<'overview' | 'palette' | 'typography' | 'voice' | 'mockup'>('overview')
   const [activeFormat, setActiveFormat] = React.useState<'9:16' | '1:1' | '16:9' | '4:5'>('9:16')
   const [copiedField, setCopiedField] = React.useState<string | null>(null)
@@ -376,98 +379,36 @@ export function BrandDnaStudio() {
     }
   }
 
-  const triggerScanSimulation = (targetDna: ExtractedBrandDna) => {
-    setIsScanning(true)
-    setScanStep(0)
-
-    const steps = [
-      'Scraping DOM hierarchy & visual stylesheets...',
-      'Synthesizing primary, secondary & contrast spectral tokens...',
-      'Inferring voice vectors, narrative anchors & emotional tone...',
-      'Compiling multi-platform video treatments & layout matrix...',
-    ]
-
-    let current = 0
-    const interval = setInterval(() => {
-      current++
-      if (current < steps.length) {
-        setScanStep(current)
-      } else {
-        clearInterval(interval)
-        setActiveBrand(targetDna)
-        setIsScanning(false)
-        writeLocalStorageJSON(BRAND_DNA_STORAGE_KEY, targetDna)
-      }
-    }, 450)
+  const applyPresetBrand = (targetDna: ExtractedBrandDna) => {
+    setScanError(null)
+    setActiveBrand(targetDna)
+    setInputUrl(targetDna.url)
+    writeLocalStorageJSON(BRAND_DNA_STORAGE_KEY, targetDna)
   }
 
-  const handleCustomExtract = (e?: React.FormEvent) => {
+  const handleCustomExtract = async (e?: React.FormEvent) => {
     if (e) e.preventDefault()
-    const clean = inputUrl.trim().toLowerCase()
-    if (!clean) return
-
-    // Check if matches preset
-    for (const key of Object.keys(PRESET_BRANDS)) {
-      if (clean.includes(key)) {
-        triggerScanSimulation(PRESET_BRANDS[key])
-        return
-      }
+    const website = inputUrl.trim()
+    if (!website || isScanning) return
+    setScanError(null)
+    setIsScanning(true)
+    try {
+      const response = await fetch('/api/brand-dna/extract', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: website }),
+      })
+      const payload = await response.json().catch(() => null) as { profile?: ExtractedBrandDna; error?: string } | null
+      if (!response.ok) throw new Error(payload?.error || 'Brand analysis failed. Check the website and try again.')
+      if (!payload?.profile) throw new Error('The analysis did not return a brand profile. Please try again.')
+      setActiveBrand(payload.profile)
+      setInputUrl(payload.profile.url)
+      writeLocalStorageJSON(BRAND_DNA_STORAGE_KEY, payload.profile)
+    } catch (error) {
+      setScanError(error instanceof Error ? error.message : 'Brand analysis failed. Please try again.')
+    } finally {
+      setIsScanning(false)
     }
-
-    // Synthesize fresh brand DNA from input URL/Name
-    const parsedName = clean
-      .replace(/^https?:\/\//, '')
-      .replace(/^www\./, '')
-      .split('.')[0]
-    const capitalized = parsedName.charAt(0).toUpperCase() + parsedName.slice(1)
-
-    const syntheticDna: ExtractedBrandDna = {
-      id: `brand_${Date.now()}`,
-      url: inputUrl.startsWith('http') ? inputUrl : `https://${inputUrl}`,
-      brandName: capitalized,
-      industry: 'Bespoke Digital Experience',
-      tagline: `Engineered distinction for ${capitalized}.`,
-      valueProposition: `Crafting high-leverage digital assets and video treatments calibrated to ${capitalized}'s proprietary visual language.`,
-      targetAudience: 'Discerning clients, forward-thinking operators, and visionary innovators.',
-      logoText: capitalized.toUpperCase(),
-      primaryColors: {
-        surface: '#0B0914',
-        primary: '#7C3AED',
-        accent: '#34D399',
-        text: '#F9FAFB',
-        muted: '#9CA3AF',
-        border: '#28233C',
-      },
-      fonts: {
-        display: 'Clash Display Semibold',
-        body: 'Plus Jakarta Sans',
-        mono: 'JetBrains Mono',
-      },
-      kineticStyle: {
-        curveName: 'Dynamic Fluid [cubic-bezier(0.2, 0.8, 0.2, 1)]',
-        pacing: 'cinematic_deliberate',
-        captionStyle: 'gradient_glow_wordmark',
-      },
-      toneOfVoice: ['Visionary', 'Direct', 'High-Craft', 'Authoritative'],
-      personality: {
-        visionary: 85,
-        polish: 90,
-        intensity: 80,
-      },
-      keyMessages: [
-        {
-          title: 'Uncompromised Identity',
-          body: `A calibrated visual footprint that makes ${capitalized} immediately unmistakable.`,
-        },
-        {
-          title: 'High-Signal Velocity',
-          body: 'Executing video treatments with intentional spatial motion and razor-sharp contrast.',
-        },
-      ],
-      aiPhotoPreset: 'Dark Techy Void',
-    }
-
-    triggerScanSimulation(syntheticDna)
   }
 
   const toggleTone = (tone: string) => {
@@ -607,14 +548,14 @@ export function BrandDnaStudio() {
               <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 <div className="max-w-xl">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#55ff9b]">
-                    Google Pomelli Extraction Engine
+                    Website Brand Profile
                   </p>
                   <h2 className="mt-1 text-2xl font-medium tracking-tight text-white sm:text-3xl">
                     Extract your brand from any website URL.
                   </h2>
                   <p className="mt-1.5 text-xs leading-relaxed text-white/60">
-                    Paste your domain or select a curated aesthetic archetype. Playwright & Vision AI extract your color
-                    gamut, font scale, narrative voice, and generate on-brand video treatments instantly.
+                    Enter a public website. Prometheus reads its page copy and linked styles, then builds an editable profile
+                    with observed colors and fonts plus an AI summary of the brand voice and audience.
                   </p>
                 </div>
 
@@ -628,7 +569,8 @@ export function BrandDnaStudio() {
                       type="text"
                       value={inputUrl}
                       onChange={(e) => setInputUrl(e.target.value)}
-                      placeholder="e.g. https://linear.app, stripe.com, or your domain..."
+                      placeholder="e.g. https://danmartell.com"
+                      aria-label="Website to analyze"
                       className="w-full min-w-0 bg-transparent px-2 text-sm text-white placeholder-white/35 outline-none font-mono"
                     />
                     <button
@@ -652,7 +594,9 @@ export function BrandDnaStudio() {
                 </form>
               </div>
 
-              {/* Scanning Progress Banner */}
+              {scanError ? <p className="mt-3 rounded-xl border border-red-300/20 bg-red-400/10 px-4 py-3 text-xs leading-5 text-red-100" role="alert">{scanError}</p> : null}
+
+              {/* Live website analysis progress */}
               <AnimatePresence>
                 {isScanning && (
                   <motion.div
@@ -665,15 +609,15 @@ export function BrandDnaStudio() {
                       <RefreshCw className="size-4 text-[#55ff9b] animate-spin" />
                       <div className="flex-1">
                         <div className="flex items-center justify-between text-xs font-medium text-[#55ff9b]">
-                          <span>Scanning website DOM, CSS tokens, and brand assets...</span>
-                          <span className="font-mono">Step {scanStep + 1} of 4</span>
+                          <span>Reading public website pages and styles, then building the profile…</span>
+                          <span className="font-mono">LIVE ANALYSIS</span>
                         </div>
                         <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-black/40">
                           <motion.div
                             className="h-full bg-[#55ff9b]"
                             initial={{ width: '15%' }}
-                            animate={{ width: `${(scanStep + 1) * 25}%` }}
-                            transition={{ duration: 0.35 }}
+                            animate={{ width: ['18%', '72%', '42%', '88%'] }}
+                            transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
                           />
                         </div>
                       </div>
@@ -693,7 +637,7 @@ export function BrandDnaStudio() {
                       type="button"
                       onClick={() => {
                         setInputUrl(brand.url)
-                        triggerScanSimulation(brand)
+                        applyPresetBrand(brand)
                       }}
                       className={cn(
                         'inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium transition active:scale-[0.97]',

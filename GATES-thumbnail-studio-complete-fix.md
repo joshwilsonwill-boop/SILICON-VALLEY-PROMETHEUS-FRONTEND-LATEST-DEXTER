@@ -57,3 +57,7 @@ The first full production check emitted the repaired editor bundle but timed out
 G1, G2 and G3 were reset and passed another final ledger run after the last fixture polish. The frontend build and standalone fixture build completed with zero exit codes. The implementation is pushed to main as d4a3ea6; the remote ref was verified against the full local SHA d4a3ea66e96f920d1ea70894f4fdc270acd80aac. GitHub's public status API subsequently reported Vercel deployment completed successfully for that commit.
 
 The final ledger reports seven met gates, one unmet gate (G4), and no abandoned gates. The permitted live-production browser attempt failed because its webview could not attach. No desktop/mobile pixel measurements or original-user-page verification are claimed; no alternate access to the previously rejected local browser URL was attempted. The exact failing editor URL is still required for that remaining check.
+
+## Browser access revalidation
+
+The next continuation successfully opened the deployed production homepage in the in-app browser. After account loading finished, the rendered navigation showed Log in and Get started. No connected external browser was available. The editor and Studio verification therefore require a signed-in project page. The user has been asked to sign in and open the affected project; G4 remains unchecked. The earlier webview connection failure has cleared, but no Studio browser measurements have yet been taken.
