@@ -14,6 +14,9 @@ export const thumbnailWorkspaceClasses = {
   iconButton: 'prom-thumbnail-iconButton',
   body: 'prom-thumbnail-body',
   canvasColumn: 'prom-thumbnail-canvasColumn',
+  previewSourceLayout: 'prom-thumbnail-previewSourceLayout',
+  previewColumn: 'prom-thumbnail-previewColumn',
+  sourceFramesPanel: 'prom-thumbnail-sourceFramesPanel',
   canvasToolbar: 'prom-thumbnail-canvasToolbar',
   previewIdentity: 'prom-thumbnail-previewIdentity',
   previewSparkle: 'prom-thumbnail-previewSparkle',
@@ -299,5 +302,37 @@ export const thumbnailWorkspaceCss = String.raw`
 .prom-thumbnail-chatRefineBadge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; font-size: 10px; color: var(--studio-accent); background: #7ff2d412; border: 1px solid #7ff2d42e; border-radius: 12px; }
 .prom-thumbnail-refineChatButton { display: inline-flex; align-items: center; gap: 6px; padding: 5px 9px; font-size: 10px; color: var(--studio-accent); background: #7ff2d410; border: 1px solid #7ff2d433; border-radius: 5px; font-weight: 550; }
 .prom-thumbnail-refineChatButton:hover { background: #7ff2d41f; border-color: var(--studio-accent); }
+
+/* Keep the chosen frame and its alternatives visible together on desktop. */
+.prom-thumbnail-previewSourceLayout { display: grid; grid-template-columns: minmax(0,1.65fr) minmax(235px,.85fr); gap: 14px; align-items: stretch; }
+.prom-thumbnail-previewColumn { display: flex; flex-direction: column; min-width: 0; }
+.prom-thumbnail-previewSourceLayout .prom-thumbnail-stage,
+.prom-thumbnail-previewSourceLayout .prom-thumbnail-stage[data-ratio="9:16"],
+.prom-thumbnail-previewSourceLayout .prom-thumbnail-stage[data-ratio="2:3"],
+.prom-thumbnail-previewSourceLayout .prom-thumbnail-stage[data-ratio="1:1"] { height: clamp(210px,30vh,340px); min-height: 210px; }
+.prom-thumbnail-previewColumn .prom-thumbnail-previewMeta { margin: 8px 0 0; }
+.prom-thumbnail-sourceFramesPanel { min-width: 0; min-height: 0; padding: 10px; border: 1px solid var(--studio-border); border-radius: 8px; background: var(--light-ui-surface, #101619); }
+.prom-thumbnail-sourceFramesPanel .prom-thumbnail-sectionHeading { gap: 8px; margin-bottom: 8px; }
+.prom-thumbnail-sourceFramesPanel .prom-thumbnail-sectionHeading h2 { font-size: 11px; }
+.prom-thumbnail-sourceFramesPanel .prom-thumbnail-count { margin-left: 5px; }
+.prom-thumbnail-sourceFramesPanel .prom-thumbnail-sectionActions { gap: 4px; }
+.prom-thumbnail-sourceFramesPanel .prom-thumbnail-textButton { font-size: 10px !important; white-space: nowrap; }
+.prom-thumbnail-sourceFramesPanel .prom-thumbnail-frameStrip { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); align-content: start; gap: 7px; max-height: clamp(190px,30vh,270px); overflow-x: hidden; overflow-y: auto; padding: 2px 3px 8px; }
+.prom-thumbnail-sourceFramesPanel .prom-thumbnail-frame,
+.prom-thumbnail-sourceFramesPanel .prom-thumbnail-skeleton { width: 100%; min-width: 0; height: auto; aspect-ratio: 16 / 10; flex: none; }
+.prom-thumbnail-templates { margin-top: 12px; }
+@media(max-width:800px) {
+  .prom-thumbnail-previewSourceLayout { grid-template-columns: minmax(0,1fr); gap: 10px; }
+  .prom-thumbnail-previewSourceLayout .prom-thumbnail-stage,
+  .prom-thumbnail-previewSourceLayout .prom-thumbnail-stage[data-ratio="9:16"],
+  .prom-thumbnail-previewSourceLayout .prom-thumbnail-stage[data-ratio="2:3"],
+  .prom-thumbnail-previewSourceLayout .prom-thumbnail-stage[data-ratio="1:1"] { height: auto; min-height: clamp(280px,64vw,420px); }
+  .prom-thumbnail-sourceFramesPanel { padding: 0; border: 0; background: transparent; }
+  .prom-thumbnail-sourceFramesPanel .prom-thumbnail-frameStrip { display: flex; max-height: none; overflow-x: auto; overflow-y: hidden; }
+}
+@media(max-width:520px) {
+  .prom-thumbnail-sourceFramesPanel .prom-thumbnail-sectionHeading { align-items: flex-start; flex-wrap: wrap; }
+  .prom-thumbnail-sourceFramesPanel .prom-thumbnail-sectionActions { margin-left: auto; }
+}
 
 `
