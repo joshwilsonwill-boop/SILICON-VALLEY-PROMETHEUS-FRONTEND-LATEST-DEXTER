@@ -61,8 +61,8 @@ export function buildOpenAIImageEditRequest(input: OpenAIImageEditInput): OpenAI
   }
 
   const promptText = hasBase
-    ? `${input.prompt}\n\nUse the first attached image as the base thumbnail to edit iteratively. The second attached image is the video subject anchor. Preserve the person's identity, layout composition, and visual lighting from the base thumbnail, applying only the requested targeted modification. Do not recreate the image from scratch. Any following images are visual style references only. Render the requested headline exactly, with a clear reading order and safe margins.`
-    : `${input.prompt}\n\nUse the first attached image as the video subject anchor. Preserve the person's identity, expression, and recognizable features. Recompose the scene as a new, complete cinematic thumbnail; do not simply add text to the original frame. Any following images are visual style references only. Do not copy their people, logos, exact text, or layout. Render the requested headline exactly, with a clear reading order and safe margins.`
+    ? `${input.prompt}\n\nUse the first attached image as the base thumbnail to edit iteratively. The second attached image is the video subject anchor. This is an explicitly requested iterative refinement. The first selected reference image is the primary thumbnail style reference; later references are secondary. Preserve the person's identity, base composition, and visual lighting unless the creator asks to change them. Apply the selected reference's visual treatment closely where requested. Do not recreate the image from scratch. Never copy reference faces, logos, or exact wording.`
+    : `${input.prompt}\n\nImage roles and priority: use the first attached image as the video subject anchor. The second attached image is the selected primary thumbnail style reference. Any later reference images are secondary style cues. Follow the selected reference closely: transfer its macro-composition, subject-to-text relationship, visual hierarchy, palette, lighting, background treatment, typography style, texture, and graphic devices. Rebuild those qualities around the source subject, exact requested headline, creative brief, and aspect ratio. Keep the source person's identity, expression, and recognizable features. Never copy the reference person's identity, logos, exact words, or factual claims. Create a complete thumbnail, not a flat text overlay on the source frame.`
 
   return {
     model: input.model?.trim() || DEFAULT_THUMBNAIL_IMAGE_MODEL,
@@ -93,8 +93,8 @@ export function buildOpenAIImageEditFormData(input: OpenAIImageEditInput): FormD
     const bytes = Uint8Array.from(Buffer.from(parsed.data, 'base64'))
     const extension = parsed.mimeType === 'image/jpeg' ? 'jpg' : parsed.mimeType.split('/')[1]
     const label = hasBase
-      ? (index === 0 ? 'base-thumbnail' : index === 1 ? 'video-frame' : `style-reference-${index - 1}`)
-      : (index === 0 ? 'video-frame' : `style-reference-${index}`)
+      ? (index === 0 ? 'base-thumbnail' : index === 1 ? 'video-frame' : index === 2 ? 'selected-primary-reference' : `additional-style-reference-${index - 2}`)
+      : (index === 0 ? 'video-frame' : index === 1 ? 'selected-primary-reference' : `additional-style-reference-${index - 1}`)
     form.append('image[]', new Blob([bytes], { type: parsed.mimeType }), `${label}.${extension}`)
   })
 

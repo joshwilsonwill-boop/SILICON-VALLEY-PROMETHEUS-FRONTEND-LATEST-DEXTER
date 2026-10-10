@@ -6,7 +6,7 @@ import { VIRAL_THUMBNAIL_RECIPES } from '@/lib/thumbnails/nano-banana-rulebook'
 import { DEFAULT_STUDIO_DESIGN, type StudioDesign } from '@/lib/thumbnails/studio-art-direction'
 import { STUDIO_REFERENCES, getStudioReference, type StudioReferenceId } from '@/lib/thumbnails/studio-references'
 import { readThumbnailGenerationResponse } from '@/lib/thumbnails/thumbnail-response'
-import { isThumbnailRequestWithinBudget } from '@/lib/thumbnails/thumbnail-request'
+import { isThumbnailRequestWithinBudget, resolveThumbnailBaseUrl } from '@/lib/thumbnails/thumbnail-request'
 import { THUMBNAIL_CLIENT_TIMEOUT_MS } from '@/lib/thumbnails/thumbnail-runtime'
 import { ThumbnailWorkspace, type ThumbnailVariant, type ThumbnailChatMessage } from '@/components/editor/thumbnail-studio/ThumbnailWorkspace'
 
@@ -326,9 +326,13 @@ export function ThumbnailStudioModal({ isOpen, onClose, jarvisDraft, projectId, 
       if (controller.signal.aborted) return
       const referenceImages = [visualReference, ...channelReferences].slice(0, 4)
       const effectiveIterativePrompt = options?.iterationPrompt || (jarvisDraft?.isIterative ? jarvisDraft.iterationPrompt : undefined)
-      const baseThumbnailUrl = (options?.isIterative || effectiveIterativePrompt || jarvisDraft?.isIterative)
-        ? (generatedDataUrl ?? jarvisDraft?.baseThumbnailUrl ?? undefined)
-        : (generatedDataUrl ?? undefined)
+      const baseThumbnailUrl = resolveThumbnailBaseUrl({
+        isIterative: options?.isIterative,
+        iterationPrompt: effectiveIterativePrompt,
+        jarvisDraftIsIterative: jarvisDraft?.isIterative,
+        generatedDataUrl,
+        draftBaseThumbnailUrl: jarvisDraft?.baseThumbnailUrl,
+      })
 
       const requestBody = {
         frameDataUrl: activeFrame.dataUrl,

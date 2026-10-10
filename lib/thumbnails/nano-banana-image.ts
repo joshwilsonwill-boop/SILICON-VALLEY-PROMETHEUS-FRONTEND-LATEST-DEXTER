@@ -28,8 +28,8 @@ export function buildNanoBananaImageRequest(input: {
   const baseThumbnail = input.baseThumbnailUrl ? parseImageDataUrl(input.baseThumbnailUrl) : null
 
   const instructionPreamble = baseThumbnail
-    ? `${input.prompt}\n\nThis is an iterative refinement of the existing thumbnail. Use the attached base thumbnail as the starting design. Preserve the overall composition, character identity, and visual atmosphere, modifying only the requested feature(s). Any following images are visual style references only.`
-    : `${input.prompt}\n\nUse the first attached image as the video subject anchor. Preserve the person's identity, expression, and recognizable features. Recompose the scene as a new, complete cinematic thumbnail; do not simply add text to the original frame. Any following images are visual style references only. Do not copy their people, logos, exact text, or layout. Render the requested headline exactly, with a clear reading order and safe margins.`
+    ? `${input.prompt}\n\nThis is an iterative refinement of the existing thumbnail, explicitly requested by the creator. Use the first attached image as the video subject anchor and the second attached image as the existing base artwork to refine. The first selected reference image is the primary thumbnail style reference; later references are secondary. Keep the base composition unless the creator asks to change it, while applying the selected reference's visual treatment closely where requested. Preserve the source person's identity. Never copy reference faces, logos, or exact wording.`
+    : `${input.prompt}\n\nImage roles and priority: use the first attached image as the video subject anchor. The second attached image is the selected primary thumbnail style reference. Any later reference images are secondary style cues. Follow the selected reference closely: transfer its macro-composition, subject-to-text relationship, visual hierarchy, palette, lighting, background treatment, typography style, texture, and graphic devices. Rebuild those qualities around the source subject, exact requested headline, creative brief, and aspect ratio. Keep the source person's identity, expression, and recognizable features. Never copy the reference person's identity, logos, exact words, or factual claims. Create a complete thumbnail, not a flat text overlay on the source frame.`
 
   const parts: Array<TextPart | ImagePart> = [
     { text: instructionPreamble },
@@ -45,7 +45,7 @@ export function buildNanoBananaImageRequest(input: {
   input.referenceImages?.slice(0, 4).forEach((value, index) => {
     const reference = parseImageDataUrl(value)
     if (!reference) return
-    parts.push({ text: `Visual style reference ${index + 1}:` })
+    parts.push({ text: index === 0 ? 'Selected primary thumbnail style reference:' : `Additional secondary style reference ${index}:` })
     parts.push({ inline_data: { mime_type: reference.mimeType, data: reference.data } })
   })
 
