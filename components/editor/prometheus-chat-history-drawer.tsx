@@ -156,6 +156,8 @@ export function PrometheusChatHistoryDrawer({
             type="button"
             disabled={isLoading}
             onClick={onNewSession}
+            title="Start a new conversation for this project (saves current conversation to history)"
+            aria-label="Start new chat for this project"
             className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-white/10 bg-white px-3 text-sm font-medium text-black transition-transform hover:-translate-y-px disabled:cursor-wait disabled:opacity-60"
           >
             <Plus className="size-3.5" aria-hidden="true" />
@@ -171,6 +173,12 @@ export function PrometheusChatHistoryDrawer({
             <X className="size-4" aria-hidden="true" />
           </button>
         </header>
+
+        <div className="border-b border-white/[0.06] bg-white/[0.02] px-4 py-2">
+          <p className="text-[11px] leading-relaxed text-white/50">
+            <span className="font-medium text-white/75">+ New chat</span> starts a fresh thread for this project. Previous conversations remain saved and accessible below.
+          </p>
+        </div>
 
         {/* Full-text search across session titles and message contents */}
         <div className="border-b border-white/[0.06] px-3 py-2.5">

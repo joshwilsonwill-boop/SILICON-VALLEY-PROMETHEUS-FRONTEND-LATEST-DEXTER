@@ -12,11 +12,21 @@ function verifyP1() {
   const chatFile = read('components/editor/PrometheusChat.tsx')
   const hookFile = read('hooks/use-ai-chat.ts')
 
-  // P1: Must have in-memory session cache to eliminate false empty states on reopen/switch
+  // P1: Must have in-memory and persistent session cache to eliminate false empty states on reopen/switch/fresh navigation
   assert.match(
     hookFile,
     /sessionMessagesCache|sessionCache/i,
-    'use-ai-chat must provide in-memory session message cache for instant restore on workspace switch',
+    'use-ai-chat must provide in-memory session message cache',
+  )
+  assert.match(
+    hookFile,
+    /prometheus\.active-session\./,
+    'use-ai-chat must hydrate active session ID from localStorage on mount',
+  )
+  assert.match(
+    hookFile,
+    /await loadSessionMessages/,
+    'initializeHistory must await loadSessionMessages so isHistoryLoading is not released prematurely',
   )
 
   // P1: PrometheusChat must explicitly handle isHistoryLoading before empty greeting
@@ -26,11 +36,11 @@ function verifyP1() {
     'PrometheusChat must render an explicit session loading indicator with data-chat-history-loading',
   )
 
-  // P1: Must not render ElegistChatGreeting while history is loading
+  // P1: Must not render ElegistChatGreeting while history is loading or while existing sessions exist
   assert.match(
     chatFile,
-    /!persistentChat\.isHistoryLoading|persistentChat\.isHistoryLoading\s*\?/,
-    'PrometheusChat must guard ElegistChatGreeting against rendering while history is loading',
+    /persistentChat\.sessions\.length === 0/,
+    'PrometheusChat must never render ElegistChatGreeting when sessions already exist',
   )
 
   // P1: ChatSuggestions must be hidden while history is loading
@@ -60,6 +70,13 @@ function verifyP2() {
     'PrometheusChat must honestly label turns where no assistant reply was received',
   )
 
+  // P2: Must provide one-click retry for orphan turns
+  assert.match(
+    chatFile,
+    /Retry generation|onRetryOrphan/,
+    'PrometheusChat must provide a retry action on orphan message bubbles',
+  )
+
   console.log('p2-orphan-messages-honesty-verified')
 }
 
@@ -67,6 +84,8 @@ function verifyP3() {
   const rowFile = read('components/editor/prometheus-chat-history-row.tsx')
   const drawerFile = read('components/editor/prometheus-chat-history-drawer.tsx')
   const logFile = read('lib/conversation-log.ts')
+  const sessionsFile = read('lib/supabase/chat-sessions.ts')
+  const chatFile = read('components/editor/PrometheusChat.tsx')
 
   // P3: History row must display message count
   assert.match(
@@ -89,11 +108,30 @@ function verifyP3() {
     'PrometheusChatHistoryDrawer must include a search input with data-history-search',
   )
 
-  // P3: Conversation log download formats all entries in order
+  // P3: Remote session queries must query message counts
+  assert.match(
+    sessionsFile,
+    /chat_messages\(count\)/,
+    'getRemoteProjectChatSessions must query chat_messages(count) from Supabase',
+  )
+
+  // P3: Exported log uses Prometheus Editorial Conversation title and includes status notes
+  assert.match(
+    chatFile,
+    /prometheus-editorial-/,
+    'PrometheusChat export button must name files prometheus-editorial-...',
+  )
   assert.match(
     logFile,
-    /formatConversationLog/,
-    'lib/conversation-log.ts must provide conversation formatting in order',
+    /statusNote|failureNotice/,
+    'lib/conversation-log.ts must support turn status notes for orphan turns',
+  )
+
+  // Run unit tests for log and message counts
+  execFileSync(
+    process.execPath,
+    ['--import', 'tsx', '--test', 'tests/chat-critique-integration.test.ts'],
+    { cwd: root, stdio: 'inherit' },
   )
 
   console.log('p3-history-dialog-search-metadata-verified')
@@ -121,6 +159,7 @@ function verifyP4() {
 function verifyP5() {
   const uploadInterface = read('components/video-upload-interface.tsx')
   const topNavFilament = read('components/navigation/jarvis-top-nav-filament.tsx')
+  const chatFile = read('components/editor/PrometheusChat.tsx')
 
   // P5: Home prompt box must explain its inception role (separate from project chats)
   assert.match(
@@ -129,11 +168,18 @@ function verifyP5() {
     'Home upload interface prompt must state its role as new project inception',
   )
 
-  // P5: Top nav filament must state connection status to active project editor
+  // P5: Top nav filament must state that Jarvis voice operates independently from saved text chats
   assert.match(
     topNavFilament,
-    /isEditorLinked|editor/i,
-    'Jarvis top nav filament must distinguish editor-linked vs standalone status',
+    /Jarvis Voice operates independently|Saved project text chats remain separate/,
+    'Jarvis top nav filament must honestly explain that voice companion is separate from saved editorial chats',
+  )
+
+  // P5: Editorial chat upfront notice must clarify separation from Jarvis Voice
+  assert.match(
+    chatFile,
+    /Jarvis Voice Neural Filament/,
+    'Editorial chat role notice must clarify separation from global Jarvis Voice',
   )
 
   console.log('p5-surface-honesty-verified')
@@ -159,6 +205,20 @@ function verifyP6() {
 
 function verifyP7() {
   const hookFile = read('hooks/use-ai-chat.ts')
+  const drawerFile = read('components/editor/prometheus-chat-history-drawer.tsx')
+  const panelFile = read('components/editor/ai-chat-history-panel.tsx')
+
+  // P7: History drawer and panel must explicitly explain + New chat behaviour
+  assert.match(
+    drawerFile,
+    /starts a fresh thread for this project.*Previous conversations remain saved/s,
+    'PrometheusChatHistoryDrawer must explain + New chat behaviour in UI subtitle',
+  )
+  assert.match(
+    panelFile,
+    /starts a fresh thread for this project.*Previous conversations remain saved/s,
+    'AIChatHistoryPanel must explain + New chat behaviour in UI subtitle',
+  )
 
   // P7: createNewSession must retain previous sessions in list
   assert.match(
@@ -195,6 +255,7 @@ function verifyP8() {
       'tests/project-lifecycle-services.test.mjs',
       'tests/jarvis-source-replacement-repair.test.ts',
       'tests/jarvis-collaborator-render-pipeline.test.ts',
+      'tests/chat-critique-integration.test.ts',
     ],
     { cwd: root, stdio: 'inherit' },
   )

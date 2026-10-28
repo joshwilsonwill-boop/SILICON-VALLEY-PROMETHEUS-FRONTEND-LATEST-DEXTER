@@ -129,9 +129,55 @@ export function useAIChat({
   contextProvider?: AIChatContextProvider;
 }) {
   const initialSessionId = typeof window !== "undefined"
-    ? new URLSearchParams(window.location.search).get("chat_session") || (projectId ? projectActiveSessionCache.get(projectId) : null) || null
+    ? new URLSearchParams(window.location.search).get("chat_session") ||
+      (projectId
+        ? projectActiveSessionCache.get(projectId) ||
+          (() => {
+            try {
+              return window.localStorage.getItem(`prometheus.active-session.${projectId}`);
+            } catch {
+              return null;
+            }
+          })()
+        : null) ||
+      null
     : null;
-  const initialCachedMessages = initialSessionId ? sessionMessagesCache.get(initialSessionId) ?? [] : [];
+
+  const initialCachedMessages = (() => {
+    if (!initialSessionId) return [];
+    const memory = sessionMessagesCache.get(initialSessionId);
+    if (memory && memory.length > 0) return memory;
+    if (typeof window !== "undefined") {
+      try {
+        const raw = window.localStorage.getItem("prometheus.local-chat-history.v1");
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed?.messages)) {
+            const matched = parsed.messages
+              .filter((m: any) => m.session_id === initialSessionId)
+              .sort((a: any, b: any) => a.created_at.localeCompare(b.created_at))
+              .map((record: any) => ({
+                id: record.id,
+                role: record.role === "assistant" ? "assistant" : "user",
+                content: record.content,
+                createdAt: record.created_at,
+                isComplete: true,
+                platform: record.platform as AIChatPlatform | undefined,
+                postType: record.post_type as AIChatPostType | undefined,
+                ...normalizePersistedMessageMetadata(record.metadata),
+              } satisfies AIChatMessage));
+            if (matched.length > 0) {
+              sessionMessagesCache.set(initialSessionId, matched);
+              return matched;
+            }
+          }
+        }
+      } catch {
+        // storage unreadable
+      }
+    }
+    return [];
+  })();
 
   const [draft, setDraft] = useState("");
   const [messages, setMessages] = useState<AIChatMessage[]>(initialCachedMessages);
@@ -263,14 +309,27 @@ export function useAIChat({
         if (disposed) return;
         const requestedSessionId = new URLSearchParams(window.location.search).get("chat_session");
         const requestedSession = nextSessions.find((session) => session.id === requestedSessionId);
-        if (requestedSession) {
-          setActiveSessionId(requestedSession.id);
-        } else if (nextSessions[0]) {
-          setActiveSessionId(nextSessions[0].id);
+        const storedSessionId = projectId && typeof window !== "undefined"
+          ? (() => {
+              try {
+                return window.localStorage.getItem(`prometheus.active-session.${projectId}`);
+              } catch {
+                return null;
+              }
+            })()
+          : null;
+        const storedSession = storedSessionId ? nextSessions.find((s) => s.id === storedSessionId) : null;
+        const targetSession = requestedSession || storedSession || nextSessions[0] || null;
+
+        if (targetSession) {
+          setActiveSessionId(targetSession.id);
+          await loadSessionMessages(targetSession.id, () => disposed);
+        } else {
+          // Genuinely empty project with zero history sessions
+          if (!disposed) setIsHistoryLoading(false);
         }
       } catch {
         // Chat remains usable without persistence when the user is signed out or Supabase is unavailable.
-      } finally {
         if (!disposed) setIsHistoryLoading(false);
       }
     }
@@ -308,7 +367,17 @@ export function useAIChat({
       messagesRef.current = restoredMessages;
       memorySessionIdRef.current = sessionId;
       sessionMessagesCache.set(sessionId, restoredMessages);
-      if (projectId) projectActiveSessionCache.set(projectId, sessionId);
+      if (projectId) {
+        projectActiveSessionCache.set(projectId, sessionId);
+        try {
+          window.localStorage.setItem(`prometheus.active-session.${projectId}`, sessionId);
+        } catch {}
+      }
+      setSessions((current) =>
+        current.map((s) =>
+          s.id === sessionId ? { ...s, message_count: restoredMessages.length } : s,
+        ),
+      );
       setMessages(restoredMessages);
       setHistoryLoadError(null);
     } catch (err) {
@@ -840,7 +909,12 @@ export function useAIChat({
       const session = await createChatSession(projectId);
       setActiveSessionId(session.id);
       sessionMessagesCache.set(session.id, []);
-      if (projectId) projectActiveSessionCache.set(projectId, session.id);
+      if (projectId) {
+        projectActiveSessionCache.set(projectId, session.id);
+        try {
+          window.localStorage.setItem(`prometheus.active-session.${projectId}`, session.id);
+        } catch {}
+      }
       setSessions((current) => [session, ...current.filter((entry) => entry.id !== session.id)]);
       messagesRef.current = [];
       memorySessionIdRef.current = session.id;

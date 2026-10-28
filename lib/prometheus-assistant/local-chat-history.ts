@@ -170,7 +170,20 @@ export function createLocalChatHistoryStore(
     if (!incoming.length) return getSessions();
     const state = read();
     const sessions = new Map(state.sessions.map((session) => [session.id, session]));
-    for (const session of incoming) sessions.set(session.id, session);
+    for (const session of incoming) {
+      const existing = sessions.get(session.id);
+      const messageCount =
+        typeof session.message_count === "number" && session.message_count > 0
+          ? session.message_count
+          : typeof existing?.message_count === "number" && existing.message_count > 0
+          ? existing.message_count
+          : session.message_count;
+      sessions.set(session.id, {
+        ...existing,
+        ...session,
+        message_count: messageCount,
+      });
+    }
     const nextSessions = [...sessions.values()];
     write({ ...state, sessions: nextSessions });
     return nextSessions.sort((left, right) => right.updated_at.localeCompare(left.updated_at));
@@ -246,14 +259,18 @@ export function createLocalChatHistoryStore(
   const searchSessions = (query: string, projectId?: string | null) => {
     const cleanQuery = query.trim().toLowerCase();
     if (!cleanQuery) {
-      return (projectId ? getProjectSessions(projectId) : getSessions()).map((session) => ({
-        session: {
-          ...session,
-          message_count: getMessageCount(session.id),
-        },
-        messageCount: getMessageCount(session.id),
-        matchSnippet: undefined as string | undefined,
-      }));
+      return (projectId ? getProjectSessions(projectId) : getSessions()).map((session) => {
+        const localCount = getMessageCount(session.id);
+        const resolvedCount = Math.max(localCount, session.message_count ?? 0);
+        return {
+          session: {
+            ...session,
+            message_count: resolvedCount,
+          },
+          messageCount: resolvedCount,
+          matchSnippet: undefined as string | undefined,
+        };
+      });
     }
 
     const state = read();
@@ -265,7 +282,8 @@ export function createLocalChatHistoryStore(
 
     for (const rawSession of candidateSessions) {
       const sessionMessages = state.messages.filter((m) => m.session_id === rawSession.id);
-      const messageCount = sessionMessages.length;
+      const localCount = sessionMessages.length;
+      const messageCount = Math.max(localCount, rawSession.message_count ?? 0);
       const session: ChatSessionRecord = {
         ...rawSession,
         message_count: messageCount,

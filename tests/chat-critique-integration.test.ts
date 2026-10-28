@@ -77,3 +77,74 @@ test('formatConversationLog includes all messages in chronological order with se
   assert.ok(output.indexOf('testing') < output.indexOf('Please edit this video'))
   assert.ok(output.indexOf('Please edit this video') < output.indexOf('The footage is currently queued'))
 })
+
+test('formatConversationLog includes failure status notes for orphan turns and custom assistant label', () => {
+  const turns = [
+    {
+      role: 'user' as const,
+      text: 'Suggest a hook for this clip',
+      timestamp: '2026-10-28T07:43:00.000Z',
+      statusNote: 'No assistant reply recorded for this turn (generation did not return a response)',
+    },
+    {
+      role: 'user' as const,
+      text: 'testing',
+      timestamp: '2026-10-28T07:44:00.000Z',
+      statusNote: 'No assistant reply recorded for this turn (generation did not return a response)',
+    },
+    {
+      role: 'user' as const,
+      text: 'Please edit this video and give me the final edited MP4',
+      timestamp: '2026-10-28T07:45:00.000Z',
+    },
+    {
+      role: 'assistant' as const,
+      text: 'Options A-D staged. Final MP4 renders in Export.',
+      timestamp: '2026-10-28T07:45:05.000Z',
+    },
+  ]
+
+  const output = formatConversationLog(
+    turns,
+    'Prometheus Editorial Conversation',
+    new Date('2026-10-28T18:54:28.000Z'),
+    { assistantLabel: 'Prometheus Assistant' },
+  )
+
+  assert.ok(output.includes('Prometheus Editorial Conversation'))
+  assert.ok(output.includes('Prometheus Assistant'))
+  assert.ok(
+    output.includes('[Status: No assistant reply recorded for this turn (generation did not return a response)]'),
+    'Exported log must include explicit failure note under orphan turns',
+  )
+})
+
+test('upsertSessions and searchSessions preserve message_count for older sessions without cached local messages', () => {
+  const memoryStorage = new Map<string, string>()
+  const store = createLocalChatHistoryStore({
+    getItem: (key) => memoryStorage.get(key) ?? null,
+    setItem: (key, value) => { memoryStorage.set(key, value) },
+  }, 'test-user')
+
+  // Simulate an older session from remote server with 2 messages, where messages are not yet in local storage
+  store.upsertSessions([
+    {
+      id: 'session-older-aug27',
+      user_id: 'user-1',
+      project_id: 'project-mini-run',
+      title: 'Pick a music mood',
+      created_at: '2026-08-27T10:00:00.000Z',
+      updated_at: '2026-08-27T10:05:00.000Z',
+      message_count: 2,
+    },
+  ])
+
+  const sessions = store.getProjectSessions('project-mini-run')
+  assert.equal(sessions.length, 1)
+  assert.equal(sessions[0].message_count, 2, 'Older session must retain message_count of 2')
+
+  const searchResults = store.searchSessions('', 'project-mini-run')
+  assert.equal(searchResults.length, 1)
+  assert.equal(searchResults[0].messageCount, 2, 'Search results must retain messageCount of 2')
+  assert.equal(searchResults[0].session.message_count, 2)
+})

@@ -392,8 +392,8 @@ export function JarvisTopNavFilament({ className }: JarvisTopNavFilamentProps) {
                   <div>
                     <p className="m-0 text-[13px] leading-5 text-white/70">
                       {isEditorLinked
-                        ? 'Linked to the active project editor: voice instructions guide the current cut.'
-                        : 'Standalone voice companion: open an active project in the editor to link timeline actions and chat context.'}
+                        ? 'Linked to the active project editor: voice instructions guide the current cut. Note: Jarvis Voice operates independently from saved editorial text chat sessions.'
+                        : 'Standalone voice companion: open an active project in the editor to link timeline actions. Saved project text chats remain separate inside the editor.'}
                     </p>
                   </div>
                 )}

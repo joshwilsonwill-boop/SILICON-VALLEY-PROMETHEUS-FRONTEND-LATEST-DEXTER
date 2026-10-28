@@ -25,25 +25,66 @@ async function getRemoteUserChatSessions(limit = 20) {
   const { supabase } = await getCurrentUserId();
   const { data, error } = await supabase
     .from("chat_sessions")
-    .select("id, user_id, project_id, title, created_at, updated_at")
+    .select("id, user_id, project_id, title, created_at, updated_at, chat_messages(count)")
     .order("updated_at", { ascending: false })
     .limit(limit);
 
-  if (error) throw error;
-  return (data ?? []) as ChatSession[];
+  if (error) {
+    const { data: fallbackData, error: fallbackError } = await supabase
+      .from("chat_sessions")
+      .select("id, user_id, project_id, title, created_at, updated_at")
+      .order("updated_at", { ascending: false })
+      .limit(limit);
+    if (fallbackError) throw fallbackError;
+    return (fallbackData ?? []) as ChatSession[];
+  }
+
+  return (data ?? []).map((row: any) => ({
+    id: row.id,
+    user_id: row.user_id,
+    project_id: row.project_id,
+    title: row.title,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+    message_count:
+      Array.isArray(row.chat_messages) && row.chat_messages[0] && typeof row.chat_messages[0].count === "number"
+        ? row.chat_messages[0].count
+        : undefined,
+  })) as ChatSession[];
 }
 
 async function getRemoteProjectChatSessions(projectId: string, limit = 20) {
   const { supabase } = await getCurrentUserId();
   const { data, error } = await supabase
     .from("chat_sessions")
-    .select("id, user_id, project_id, title, created_at, updated_at")
+    .select("id, user_id, project_id, title, created_at, updated_at, chat_messages(count)")
     .eq("project_id", projectId)
     .order("updated_at", { ascending: false })
     .limit(limit);
 
-  if (error) throw error;
-  return (data ?? []) as ChatSession[];
+  if (error) {
+    const { data: fallbackData, error: fallbackError } = await supabase
+      .from("chat_sessions")
+      .select("id, user_id, project_id, title, created_at, updated_at")
+      .eq("project_id", projectId)
+      .order("updated_at", { ascending: false })
+      .limit(limit);
+    if (fallbackError) throw fallbackError;
+    return (fallbackData ?? []) as ChatSession[];
+  }
+
+  return (data ?? []).map((row: any) => ({
+    id: row.id,
+    user_id: row.user_id,
+    project_id: row.project_id,
+    title: row.title,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+    message_count:
+      Array.isArray(row.chat_messages) && row.chat_messages[0] && typeof row.chat_messages[0].count === "number"
+        ? row.chat_messages[0].count
+        : undefined,
+  })) as ChatSession[];
 }
 
 async function getRemoteChatSession(sessionId: string) {
@@ -96,13 +137,35 @@ function mergeSessions(
   counts: Record<string, number> = {},
 ) {
   const sessions = new Map<string, ChatSession>();
-  for (const session of [...remote, ...local]) {
+
+  // Ingest local records first
+  for (const session of local) {
     const messageCount = session.message_count ?? counts[session.id] ?? 0;
     sessions.set(session.id, {
       ...session,
       message_count: messageCount,
     });
   }
+
+  // Merge remote server records over local records, preserving accurate message counts
+  for (const session of remote) {
+    const existing = sessions.get(session.id);
+    const resolvedCount =
+      typeof session.message_count === "number" && session.message_count > 0
+        ? session.message_count
+        : typeof counts[session.id] === "number" && counts[session.id] > 0
+        ? counts[session.id]
+        : typeof existing?.message_count === "number" && existing.message_count > 0
+        ? existing.message_count
+        : session.message_count ?? counts[session.id] ?? 0;
+
+    sessions.set(session.id, {
+      ...existing,
+      ...session,
+      message_count: resolvedCount,
+    });
+  }
+
   return [...sessions.values()]
     .sort((left, right) => right.updated_at.localeCompare(left.updated_at))
     .slice(0, limit);

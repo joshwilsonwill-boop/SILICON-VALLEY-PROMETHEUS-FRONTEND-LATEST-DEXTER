@@ -8,20 +8,26 @@ import { cn } from "@/lib/utils";
 export function ConversationExportButton({
   turns,
   filename,
+  title,
+  assistantLabel,
   className,
   disabled,
 }: {
   turns: ConversationLogTurn[];
   filename?: string;
+  title?: string;
+  assistantLabel?: string;
   className?: string;
   disabled?: boolean;
 }) {
-  const hasTurns = turns.some((turn) => turn.text.trim().length > 0);
+  const hasTurns = turns.some(
+    (turn) => turn.text.trim().length > 0 || Boolean(turn.statusNote || turn.failureNotice),
+  );
 
   return (
     <button
       type="button"
-      onClick={() => downloadConversationLog(turns, filename)}
+      onClick={() => downloadConversationLog(turns, filename, title, { assistantLabel })}
       disabled={disabled ?? !hasTurns}
       aria-label="Download conversation log"
       title="Download conversation log"

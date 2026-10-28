@@ -1,15 +1,24 @@
 export type ConversationLogTurn = {
-  role: "user" | "assistant";
+  role: "user" | "assistant" | "system";
   text: string;
   timestamp?: string | number;
+  statusNote?: string;
+  failureNotice?: string;
 };
 
 export function formatConversationLog(
   turns: ConversationLogTurn[],
-  title = "Jarvis conversation",
+  title = "Prometheus Editorial Conversation",
   exportedAt = new Date(),
+  options?: {
+    assistantLabel?: string;
+  },
 ) {
-  const entries = turns.filter((turn) => turn.text.trim().length > 0);
+  const assistantLabel =
+    options?.assistantLabel || (title.toLowerCase().includes("jarvis") ? "Jarvis" : "Prometheus Assistant");
+  const entries = turns.filter(
+    (turn) => turn.text.trim().length > 0 || Boolean(turn.statusNote || turn.failureNotice),
+  );
   const lines = [title, `Exported ${exportedAt.toLocaleString()}`, ""];
 
   for (const turn of entries) {
@@ -17,7 +26,13 @@ export function formatConversationLog(
     const timestamp = date && Number.isFinite(date.getTime())
       ? `[${date.toLocaleString()}] `
       : "";
-    lines.push(`${timestamp}${turn.role === "user" ? "You" : "Jarvis"}`, turn.text, "");
+    const sender = turn.role === "user" ? "You" : turn.role === "assistant" ? assistantLabel : "System";
+    lines.push(`${timestamp}${sender}`, turn.text);
+    const note = turn.statusNote || turn.failureNotice;
+    if (note) {
+      lines.push(`[Status: ${note}]`);
+    }
+    lines.push("");
   }
 
   return lines.join("\n");
@@ -25,16 +40,21 @@ export function formatConversationLog(
 
 export function downloadConversationLog(
   turns: ConversationLogTurn[],
-  filename = "jarvis-conversation",
-  title = "Jarvis conversation",
+  filename = "prometheus-editorial-chat",
+  title = "Prometheus Editorial Conversation",
+  options?: {
+    assistantLabel?: string;
+  },
 ) {
-  if (!turns.some((turn) => turn.text.trim().length > 0)) return false;
+  if (!turns.some((turn) => turn.text.trim().length > 0 || Boolean(turn.statusNote || turn.failureNotice))) {
+    return false;
+  }
 
   const safeFilename = filename
     .normalize("NFKD")
     .replace(/[^\w.-]+/g, "-")
-    .replace(/^-+|-+$/g, "") || "jarvis-conversation";
-  const blob = new Blob([formatConversationLog(turns, title)], {
+    .replace(/^-+|-+$/g, "") || "prometheus-conversation";
+  const blob = new Blob([formatConversationLog(turns, title, new Date(), options)], {
     type: "text/plain;charset=utf-8",
   });
   const url = URL.createObjectURL(blob);

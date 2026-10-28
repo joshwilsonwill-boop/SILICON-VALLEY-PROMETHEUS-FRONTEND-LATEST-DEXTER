@@ -538,12 +538,26 @@ export function PrometheusChat({
           onClick={() => setHistoryOpen((current) => !current)}
         />
         <ConversationExportButton
-          turns={persistentChat.messages.map((message) => ({
-            role: message.role,
-            text: message.content,
-            timestamp: message.createdAt,
-          }))}
-          filename={`jarvis-${persistentChat.currentSessionId ?? 'chat'}`}
+          turns={persistentChat.messages.map((message, index, allMessages) => {
+            const isOrphan =
+              message.role === 'user' &&
+              (allMessages[index + 1]?.role === 'user' ||
+                (index === allMessages.length - 1 &&
+                  !showingThinking &&
+                  !persistentChat.isAwaitingResponse &&
+                  !persistentChat.isSending))
+            return {
+              role: message.role,
+              text: message.content,
+              timestamp: message.createdAt,
+              statusNote: isOrphan
+                ? 'No assistant reply recorded for this turn (generation did not return a response)'
+                : undefined,
+            }
+          })}
+          filename={`prometheus-editorial-${persistentChat.currentSessionId ?? 'chat'}`}
+          title="Prometheus Editorial Conversation"
+          assistantLabel="Prometheus Assistant"
           className="size-9"
           disabled={persistentChat.isHistoryLoading || renderedMessages.length === 0}
         />
@@ -607,7 +621,7 @@ export function PrometheusChat({
               )}
             </div>
           ) : null}
-          {renderedMessages.length === 0 && (persistentChat.isHistoryLoading || !persistentChat.currentSessionId) ? (
+          {renderedMessages.length === 0 && (persistentChat.isHistoryLoading || !persistentChat.currentSessionId || persistentChat.sessions.length > 0) ? (
             <div data-chat-history-loading="true" className="mx-auto flex w-full max-w-3xl flex-col gap-6 py-12 md:py-16">
               <div className="flex items-center gap-3.5 rounded-2xl border border-white/[0.08] bg-white/[0.03] p-5 backdrop-blur-xl">
                 <span className="grid size-10 shrink-0 place-items-center rounded-xl border border-cyan-400/25 bg-cyan-400/10 text-cyan-300 shadow-[0_0_16px_rgba(56,189,248,0.2)]">
@@ -627,7 +641,7 @@ export function PrometheusChat({
                 sublabel="Retrieving speech-synced frames, recommendations, and timeline actions"
               />
             </div>
-          ) : renderedMessages.length === 0 && !showingThinking && !persistentChat.isHistoryLoading ? (
+          ) : renderedMessages.length === 0 && !showingThinking && !persistentChat.isHistoryLoading && persistentChat.sessions.length === 0 ? (
             <div className="flex min-h-full flex-col items-center justify-center px-4 pb-24 text-center">
               <ElegistChatGreeting
                 greeting={getChatGreeting(session?.user, profile)}
@@ -637,7 +651,7 @@ export function PrometheusChat({
                 data-chat-role-notice="true"
                 className="mx-auto mt-6 max-w-lg rounded-xl border border-white/[0.09] bg-white/[0.025] px-4 py-2.5 text-center text-xs text-white/55 backdrop-blur-md"
               >
-                <span className="font-medium text-white/80">Planning & Editorial Advice:</span> Stages timeline cuts, pacing recommendations, and prompt guidance. Final MP4 generation is processed in the <span className="font-medium text-cyan-300">Export</span> workspace.
+                <span className="font-medium text-white/80">Planning & Editorial Advice:</span> Stages timeline cuts, pacing recommendations, and prompt guidance. Final MP4 generation is processed in the <span className="font-medium text-cyan-300">Export</span> workspace. Editorial chat is project-scoped and separate from the global Jarvis Voice Neural Filament.
               </div>
             </div>
           ) : (
@@ -655,6 +669,7 @@ export function PrometheusChat({
                     key={message.id}
                     message={message}
                     isOrphan={isOrphan}
+                    onRetryOrphan={(content) => void persistentChat.sendMessage(content)}
                     live={usesPersistentChat}
                     isLatestAssistant={message.id === latestSpeakableMessage?.id}
                     onPrompt={handleSuggestionSelect}
@@ -827,6 +842,7 @@ export function PrometheusChat({
 const PrometheusMessageBubble = React.memo(function PrometheusMessageBubble({
   message,
   isOrphan = false,
+  onRetryOrphan,
   live,
   actionOutcome,
   isLatestAssistant = false,
@@ -842,6 +858,7 @@ const PrometheusMessageBubble = React.memo(function PrometheusMessageBubble({
 }: {
   message: PrometheusChatMessage
   isOrphan?: boolean
+  onRetryOrphan?: (content: string) => void
   live: boolean
   isLatestAssistant?: boolean
   onPrompt?: (text: string) => void
@@ -929,10 +946,21 @@ const PrometheusMessageBubble = React.memo(function PrometheusMessageBubble({
         {isUser && isOrphan ? (
           <div
             data-orphan-message-indicator="true"
-            className="flex items-center gap-1.5 rounded-lg border border-amber-500/25 bg-amber-500/[0.08] px-2.5 py-1 text-[11px] text-amber-200/90 shadow-sm"
+            className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-500/25 bg-amber-500/[0.08] px-3 py-1.5 text-[11px] text-amber-200/90 shadow-sm"
           >
-            <AlertCircle className="size-3.5 shrink-0 text-amber-400" />
-            <span>No assistant reply recorded for this turn (generation did not return a response)</span>
+            <div className="flex items-center gap-1.5">
+              <AlertCircle className="size-3.5 shrink-0 text-amber-400" />
+              <span>No assistant reply recorded for this turn (generation did not return a response)</span>
+            </div>
+            {onRetryOrphan ? (
+              <button
+                type="button"
+                onClick={() => onRetryOrphan(message.content)}
+                className="rounded bg-amber-500/20 px-2.5 py-0.5 text-[10px] font-medium text-amber-200 transition-colors hover:bg-amber-500/35 hover:text-white"
+              >
+                Retry generation
+              </button>
+            ) : null}
           </div>
         ) : null}
 
