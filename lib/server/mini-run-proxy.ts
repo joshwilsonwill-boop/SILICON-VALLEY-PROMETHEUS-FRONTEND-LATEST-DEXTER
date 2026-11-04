@@ -24,7 +24,8 @@ export function getMiniRunEnvironment(override?: MiniRunEnvironment): MiniRunEnv
     override?.MINI_RUN_AWS_API_URL?.trim() ||
     override?.MINI_RUN_BACKEND_URL?.trim() ||
     process.env.MINI_RUN_AWS_API_URL?.trim() ||
-    process.env.MINI_RUN_BACKEND_URL?.trim()
+    process.env.MINI_RUN_BACKEND_URL?.trim() ||
+    PRODUCTION_MINI_RUN_AWS_API_URL
 
   return {
     MINI_RUN_AWS_API_URL: configured,

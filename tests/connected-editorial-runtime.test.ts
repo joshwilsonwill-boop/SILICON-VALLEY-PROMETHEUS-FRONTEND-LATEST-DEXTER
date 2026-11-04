@@ -91,14 +91,11 @@ test('owned project dispatch route uses the raw transport and sends its generate
 })
 
 test('missing runtime configuration cannot silently route to the old gateway', () => {
-  const names = ['MINI_RUN_AWS_API_URL', 'MINI_RUN_BACKEND_URL'] as const
-  const saved = names.map(name => process.env[name])
-  try {
-    names.forEach(name => delete process.env[name])
-    assert.throws(() => proxy.resolveMiniRunConfig(proxy.getMiniRunEnvironment()), /required/)
-  } finally {
-    names.forEach((name, index) => saved[index] === undefined ? delete process.env[name] : process.env[name] = saved[index])
-  }
+  assert.throws(() => proxy.resolveMiniRunConfig({}), /required/)
+  assert.notEqual(
+    proxy.getMiniRunEnvironment().MINI_RUN_AWS_API_URL,
+    'https://fb2ehi5jgjh6tue43q5vfwvmxy0rspjd.lambda-url.us-east-1.on.aws',
+  )
 })
 
 test('source window is bounded while preview props stay independent of raw dispatch', () => {

@@ -28,7 +28,8 @@ async function main() {
   if (
     health.response.status !== 200 ||
     health.body.ok !== true ||
-    health.body.deployment !== 'aws-lambda'
+    health.body.deployment !== 'aws-lambda' &&
+    health.body.deployment !== 'aws-lambda-image'
   ) {
     throw new Error(`AWS health assertion failed (HTTP ${health.response.status})`)
   }

@@ -3,7 +3,7 @@ import {cookies} from 'next/headers'
 import {createClient} from '@/lib/supabase/server'
 import {ExportService} from '@/lib/exports/service'
 import {dispatchMiniRunRender, extractExportDirectives} from '@/lib/server/mini-run-dispatch'
-import {getMiniRunEnvironment, resolveMiniRunConfig} from '@/lib/server/mini-run-proxy'
+import {getMiniRunEnvironment, PRODUCTION_MINI_RUN_AWS_API_URL, resolveMiniRunConfig} from '@/lib/server/mini-run-proxy'
 import {resolveSavedProjectSource, type SavedProjectSource} from '@/lib/projects/source-asset'
 
 export const maxDuration = 60
@@ -12,8 +12,8 @@ function safeGetMiniRunEnvironment(override?: any) {
   return typeof getMiniRunEnvironment === 'function'
     ? getMiniRunEnvironment(override)
     : (override || {
-        MINI_RUN_AWS_API_URL: process.env.MINI_RUN_AWS_API_URL,
-        MINI_RUN_BACKEND_URL: process.env.MINI_RUN_BACKEND_URL,
+        MINI_RUN_AWS_API_URL: process.env.MINI_RUN_AWS_API_URL || PRODUCTION_MINI_RUN_AWS_API_URL,
+        MINI_RUN_BACKEND_URL: process.env.MINI_RUN_BACKEND_URL || PRODUCTION_MINI_RUN_AWS_API_URL,
       })
 }
 
@@ -349,8 +349,8 @@ export async function POST(request: Request, {params}: RouteContext) {
               : undefined,
       },
       env: safeGetMiniRunEnvironment({
-        MINI_RUN_AWS_API_URL: process.env.MINI_RUN_AWS_API_URL,
-        MINI_RUN_BACKEND_URL: process.env.MINI_RUN_BACKEND_URL,
+        MINI_RUN_AWS_API_URL: process.env.MINI_RUN_AWS_API_URL || PRODUCTION_MINI_RUN_AWS_API_URL,
+        MINI_RUN_BACKEND_URL: process.env.MINI_RUN_BACKEND_URL || PRODUCTION_MINI_RUN_AWS_API_URL,
       }),
       accessToken: await resolveUserAccessToken(
         session?.access_token,

@@ -27,6 +27,8 @@ const nextConfig = {
   env: {
     NEXT_PUBLIC_API_BASE_URL: backendApiBaseUrl,
     NEXT_PUBLIC_AUTH_PREVIEW_ORIGINS: JSON.stringify([...new Set(authPreviewOrigins)]),
+    MINI_RUN_AWS_API_URL: process.env.MINI_RUN_AWS_API_URL || 'https://54btlp4pvsd4j6geilvc6ltncq0wljrp.lambda-url.us-east-1.on.aws',
+    MINI_RUN_BACKEND_URL: process.env.MINI_RUN_BACKEND_URL || 'https://54btlp4pvsd4j6geilvc6ltncq0wljrp.lambda-url.us-east-1.on.aws',
   },
   poweredByHeader: false,
   productionBrowserSourceMaps: false,

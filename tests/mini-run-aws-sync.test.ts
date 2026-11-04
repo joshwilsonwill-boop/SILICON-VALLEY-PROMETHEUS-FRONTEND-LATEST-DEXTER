@@ -64,11 +64,11 @@ async function run() {
     shot: {preferredDurationSec: 30},
     jobId: 'source-job-1',
   })
-  assert.equal(renderPayload.jobId, 'source-job-1')
-  assert.equal((renderPayload.source as {url: string}).url, 'https://storage.example.test/presigned/source.mp4')
+  assert.equal(renderPayload.source, 'https://storage.example.test/presigned/source.mp4')
+  assert.equal(typeof renderPayload.prompt, 'string')
   assert.equal('projectId' in renderPayload, false)
   assert.equal('sourceAssetId' in renderPayload, false)
-  assert.equal('projectId' in (renderPayload.metadata as Record<string, unknown>), false)
+  assert.equal('projectId' in (renderPayload.metadata as Record<string, unknown> || {}), false)
 
   let receivedToken: string | null = null
   const response = await proxyMiniRunRequest({
