@@ -4,7 +4,10 @@ import { fileURLToPath } from 'node:url'
 /** @type {import('next').NextConfig} */
 const configFilePath = fileURLToPath(import.meta.url)
 const projectRoot = path.dirname(configFilePath)
-const backendApiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.trim() || 'http://localhost:8000'
+const backendApiBaseUrl =
+  process.env.VITE_API_BASE_URL?.trim() ||
+  process.env.NEXT_PUBLIC_API_BASE_URL?.trim() ||
+  'http://localhost:8000'
 // Expose only this deployment's exact platform hostnames to the auth helper.
 // Production keeps its canonical origin; arbitrary request hosts are not trusted.
 const authPreviewOrigins = process.env.VERCEL_ENV === 'preview'
@@ -25,6 +28,7 @@ const nextConfig = {
     ignoreBuildErrors: process.platform === 'win32',
   },
   env: {
+    VITE_API_BASE_URL: backendApiBaseUrl,
     NEXT_PUBLIC_API_BASE_URL: backendApiBaseUrl,
     NEXT_PUBLIC_AUTH_PREVIEW_ORIGINS: JSON.stringify([...new Set(authPreviewOrigins)]),
     MINI_RUN_AWS_API_URL: process.env.MINI_RUN_AWS_API_URL || 'https://54btlp4pvsd4j6geilvc6ltncq0wljrp.lambda-url.us-east-1.on.aws',
