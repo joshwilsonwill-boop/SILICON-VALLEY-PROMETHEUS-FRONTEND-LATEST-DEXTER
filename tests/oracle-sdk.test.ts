@@ -64,7 +64,6 @@ test('Oracle SDK - Intake Law Enforcement (Rule 13)', async (t) => {
           contentType: 'video/mp4',
           metadata: {
             creativePrompt: 'High pacing cinematic cut',
-            // @ts-expect-error Intake law violation test
             transcript: [{ text: 'Hello world', start: 0, end: 1.5 }],
           },
         })
@@ -86,7 +85,6 @@ test('Oracle SDK - Intake Law Enforcement (Rule 13)', async (t) => {
           filename: 'test.mp4',
           contentType: 'video/mp4',
           metadata: {
-            // @ts-expect-error Intake law violation test
             chunks: ['chunk1', 'chunk2'],
           },
         })
@@ -108,7 +106,6 @@ test('Oracle SDK - Intake Law Enforcement (Rule 13)', async (t) => {
           contentType: 'video/mp4',
           metadata: {
             creativePrompt: 'Cyberpunk style',
-            // @ts-expect-error Untrusted userId field test
             userId: 'attacker-spoofed-user-id',
           },
         })
