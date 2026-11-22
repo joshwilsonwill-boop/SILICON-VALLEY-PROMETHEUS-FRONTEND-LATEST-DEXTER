@@ -2,10 +2,12 @@ import {getPresignedGetUrl} from '@/lib/r2/presigned-url'
 import {
   miniRunUserHeaders,
   resolveMiniRunConfig,
+  PRODUCTION_ORACLE_GATEWAY_URL,
   type MiniRunEnvironment,
 } from '@/lib/server/mini-run-proxy'
 import {buildMiniRunRenderPayload} from '@/lib/server/mini-run-render-payload'
 import type {MiniRunShotSpec} from '@/lib/api/mini-run-console'
+import {OracleClient} from '@/lib/oracle'
 
 /**
  * Server-side dispatch to the Prometheus Mini-Runs long-form→short-form render
@@ -118,6 +120,74 @@ export async function dispatchMiniRunRender({
 }): Promise<{jobId: string; pipelineJobId: string; status: string}> {
   const config = resolveMiniRunConfig(env)
   const sourceUrl = await buildMiniRunSourceUrl(request.bucket, request.storagePath)
+
+  const isOracle =
+    config.baseUrl === PRODUCTION_ORACLE_GATEWAY_URL ||
+    config.baseUrl.includes('prometheus-runner') ||
+    config.baseUrl.includes('taile46eb2') ||
+    config.baseUrl.includes('oracle')
+
+  if (isOracle) {
+    const oracleClient = new OracleClient({
+      baseUrl: config.baseUrl,
+      token: accessToken,
+      fetchImpl,
+    })
+
+    const filename =
+      request.storagePath.split('/').pop() ||
+      `${request.sourceAssetId || 'source'}.mp4`
+    const contentType = request.mimeType || 'video/mp4'
+    const creativePrompt = request.prompt?.trim() || 'Autonomous cinematic cut'
+
+    // Rule 13 (Intake Law): Client sends ONLY raw video references and creative prompt.
+    // Transcripts, word timestamps, chunks, manifests, and client userId are strictly omitted.
+    const processResult = await oracleClient.startProcess(
+      {
+        bucket: request.bucket || 'prometheus-sources',
+        key: request.storagePath,
+        filename,
+        contentType,
+        mediaUrl: sourceUrl,
+        metadata: {
+          creativePrompt,
+          designOptions: {
+            aspectRatio:
+              request.width && request.height && request.width > request.height
+                ? '16:9'
+                : '9:16',
+            pacing: 'dynamic',
+          },
+        },
+      },
+      accessToken,
+    )
+
+    let renderJobId = processResult.jobId
+    if (processResult.urls?.render) {
+      try {
+        const renderResult = await oracleClient.triggerRender(
+          processResult.urls.render,
+          {
+            format: request.format || 'mp4',
+            quality: request.quality || 'high',
+          },
+          accessToken,
+        )
+        if (renderResult?.renderJobId) {
+          renderJobId = renderResult.renderJobId
+        }
+      } catch (err) {
+        console.warn('[ORACLE_RENDER_TRIGGER_DEFERRED]', err)
+      }
+    }
+
+    return {
+      jobId: renderJobId || processResult.jobId || crypto.randomUUID(),
+      pipelineJobId: processResult.sessionId || '',
+      status: processResult.status || 'queued',
+    }
+  }
 
   const frontendJobId = request.jobId ?? crypto.randomUUID()
   const body = buildMiniRunRenderPayload({

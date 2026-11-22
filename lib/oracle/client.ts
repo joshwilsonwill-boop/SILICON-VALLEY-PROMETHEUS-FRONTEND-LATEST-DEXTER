@@ -15,6 +15,7 @@ export interface OracleClientOptions {
   baseUrl?: string
   token?: string | null
   getAuthToken?: () => Promise<string | null | undefined> | string | null | undefined
+  fetchImpl?: typeof fetch
 }
 
 export interface UploadProgressCallback {
@@ -76,11 +77,13 @@ export class OracleClient {
   private baseUrl: string
   private token?: string | null
   private getAuthToken?: () => Promise<string | null | undefined> | string | null | undefined
+  private fetchImpl: typeof fetch
 
   constructor(options: OracleClientOptions = {}) {
     this.baseUrl = (options.baseUrl || getOracleApiBaseUrl()).replace(/\/+$/, '')
     this.token = options.token
     this.getAuthToken = options.getAuthToken
+    this.fetchImpl = options.fetchImpl || (typeof globalThis !== 'undefined' ? globalThis.fetch : fetch)
   }
 
   public setToken(token: string | null): void {
@@ -122,7 +125,7 @@ export class OracleClient {
     })
 
     const url = resolveOracleUrl('/api/upload-url', this.baseUrl)
-    const res = await fetch(url, {
+    const res = await this.fetchImpl(url, {
       method: 'POST',
       headers,
       body: JSON.stringify({
@@ -215,7 +218,7 @@ export class OracleClient {
       ...requiredHeaders,
     }
 
-    const res = await fetch(uploadUrl, {
+    const res = await this.fetchImpl(uploadUrl, {
       method: uploadInfo.method || 'PUT',
       headers,
       body: file as any,
@@ -248,7 +251,7 @@ export class OracleClient {
     })
 
     const url = resolveOracleUrl('/api/process', this.baseUrl)
-    const res = await fetch(url, {
+    const res = await this.fetchImpl(url, {
       method: 'POST',
       headers,
       body: JSON.stringify(request),
@@ -280,7 +283,7 @@ export class OracleClient {
         )
 
     const headers = await this.buildHeaders(overrideToken)
-    const res = await fetch(url, { method: 'GET', headers })
+    const res = await this.fetchImpl(url, { method: 'GET', headers })
 
     if (!res.ok) {
       const errText = await res.text().catch(() => res.statusText)
@@ -454,7 +457,7 @@ export class OracleClient {
       'Content-Type': 'application/json',
     })
 
-    const res = await fetch(url, {
+    const res = await this.fetchImpl(url, {
       method: 'POST',
       headers,
       body: JSON.stringify(renderOptions),
@@ -485,7 +488,7 @@ export class OracleClient {
         )
 
     const headers = await this.buildHeaders(overrideToken)
-    const res = await fetch(url, { method: 'GET', headers })
+    const res = await this.fetchImpl(url, { method: 'GET', headers })
 
     if (!res.ok) {
       const errText = await res.text().catch(() => res.statusText)
@@ -503,7 +506,7 @@ export class OracleClient {
     const url = resolveOracleUrl('/api/my-videos', this.baseUrl)
     const headers = await this.buildHeaders(overrideToken)
 
-    const res = await fetch(url, { method: 'GET', headers })
+    const res = await this.fetchImpl(url, { method: 'GET', headers })
     if (!res.ok) {
       const errText = await res.text().catch(() => res.statusText)
       throw new Error(`Failed to list user videos (${res.status}): ${errText}`)

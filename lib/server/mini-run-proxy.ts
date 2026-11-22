@@ -16,16 +16,19 @@ function requiredEnvironmentValue(env: MiniRunEnvironment, name: keyof MiniRunEn
   return value
 }
 
-// Published runtime identity for diagnostics; execution still requires server configuration.
-export const PRODUCTION_MINI_RUN_AWS_API_URL = 'https://54btlp4pvsd4j6geilvc6ltncq0wljrp.lambda-url.us-east-1.on.aws'
+// Re-routed to Oracle gateway (OCI) per user architecture directive.
+export const PRODUCTION_ORACLE_GATEWAY_URL = 'https://prometheus-runner.taile46eb2.ts.net'
+export const PRODUCTION_MINI_RUN_AWS_API_URL = PRODUCTION_ORACLE_GATEWAY_URL
 
 export function getMiniRunEnvironment(override?: MiniRunEnvironment): MiniRunEnvironment {
   const configured =
     override?.MINI_RUN_AWS_API_URL?.trim() ||
     override?.MINI_RUN_BACKEND_URL?.trim() ||
+    process.env.VITE_API_BASE_URL?.trim() ||
+    process.env.NEXT_PUBLIC_API_BASE_URL?.trim() ||
     process.env.MINI_RUN_AWS_API_URL?.trim() ||
     process.env.MINI_RUN_BACKEND_URL?.trim() ||
-    PRODUCTION_MINI_RUN_AWS_API_URL
+    PRODUCTION_ORACLE_GATEWAY_URL
 
   return {
     MINI_RUN_AWS_API_URL: configured,

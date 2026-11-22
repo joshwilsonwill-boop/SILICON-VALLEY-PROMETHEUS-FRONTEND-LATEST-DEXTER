@@ -7,7 +7,7 @@ const projectRoot = path.dirname(configFilePath)
 const backendApiBaseUrl =
   process.env.VITE_API_BASE_URL?.trim() ||
   process.env.NEXT_PUBLIC_API_BASE_URL?.trim() ||
-  'http://localhost:8000'
+  'https://prometheus-runner.taile46eb2.ts.net'
 // Expose only this deployment's exact platform hostnames to the auth helper.
 // Production keeps its canonical origin; arbitrary request hosts are not trusted.
 const authPreviewOrigins = process.env.VERCEL_ENV === 'preview'
@@ -31,8 +31,8 @@ const nextConfig = {
     VITE_API_BASE_URL: backendApiBaseUrl,
     NEXT_PUBLIC_API_BASE_URL: backendApiBaseUrl,
     NEXT_PUBLIC_AUTH_PREVIEW_ORIGINS: JSON.stringify([...new Set(authPreviewOrigins)]),
-    MINI_RUN_AWS_API_URL: process.env.MINI_RUN_AWS_API_URL || 'https://54btlp4pvsd4j6geilvc6ltncq0wljrp.lambda-url.us-east-1.on.aws',
-    MINI_RUN_BACKEND_URL: process.env.MINI_RUN_BACKEND_URL || 'https://54btlp4pvsd4j6geilvc6ltncq0wljrp.lambda-url.us-east-1.on.aws',
+    MINI_RUN_AWS_API_URL: process.env.MINI_RUN_AWS_API_URL || 'https://prometheus-runner.taile46eb2.ts.net',
+    MINI_RUN_BACKEND_URL: process.env.MINI_RUN_BACKEND_URL || 'https://prometheus-runner.taile46eb2.ts.net',
   },
   poweredByHeader: false,
   productionBrowserSourceMaps: false,

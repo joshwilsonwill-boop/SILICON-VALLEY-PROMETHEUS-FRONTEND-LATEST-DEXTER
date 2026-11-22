@@ -4,7 +4,8 @@ import type { ProjectExport, ProjectExportStatus } from '@/lib/types'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { R2Keys } from '@/lib/r2/keys'
 import { copyR2Object } from '@/lib/r2/copy-object'
-import { getMiniRunEnvironment, resolveMiniRunConfig } from '@/lib/server/mini-run-proxy'
+import { getMiniRunEnvironment, resolveMiniRunConfig, PRODUCTION_ORACLE_GATEWAY_URL } from '@/lib/server/mini-run-proxy'
+import { OracleClient } from '@/lib/oracle'
 
 async function resolveExportClient(reqOrClient?: Request | string | SupabaseClient): Promise<SupabaseClient> {
   return reqOrClient && typeof (reqOrClient as any).from === 'function'
@@ -246,32 +247,75 @@ export const ExportService = {
     if (active.length === 0) return records
 
     const config = resolveMiniRunConfig(getMiniRunEnvironment())
+    const isOracle =
+      config.baseUrl === PRODUCTION_ORACLE_GATEWAY_URL ||
+      config.baseUrl.includes('prometheus-runner') ||
+      config.baseUrl.includes('taile46eb2') ||
+      config.baseUrl.includes('oracle')
+
     await Promise.all(active.map(async (record) => {
       const jobId = record.metadata.miniRunJobId as string
+      const userToken = session?.access_token
       try {
-        const response = await fetch(`${config.baseUrl}/api/pipeline/job/${encodeURIComponent(jobId)}`, {
-          headers: session?.access_token ? {'X-Mini-Run-User-Token': session.access_token} : {},
-          cache: 'no-store',
-          redirect: 'manual',
-          signal: AbortSignal.timeout(8_000),
-        })
-        const redirectedOutput = response.status === 303 && response.headers.get('location')
-        if (!response.ok && !redirectedOutput) {
-          if (response.status === 404) {
-            const ageMs = Date.now() - new Date(record.createdAt).getTime()
-            if (ageMs > 3 * 60 * 1000) {
-              await supabase.from('project_exports').update({
-                status: 'failed',
-                error_message: 'Render job was not found on the worker.',
-                failed_at: new Date().toISOString(),
-              }).eq('id', record.id).eq('user_id', user.id)
+        let job: Record<string, unknown> | null = null
+        let redirectedOutput: string | null = null
+
+        if (isOracle) {
+          const oracleClient = new OracleClient({
+            baseUrl: config.baseUrl,
+            token: userToken,
+          })
+          try {
+            const renderStatus = await oracleClient.getRenderStatus(jobId, userToken)
+            job = {
+              status: renderStatus.status,
+              progressPercent: renderStatus.progress,
+              outputUrl: renderStatus.downloadUrl || renderStatus.signedUrl,
+              error: renderStatus.error,
+            }
+          } catch {
+            try {
+              const sessionStatus = await oracleClient.getSessionStatus(jobId, userToken)
+              job = {
+                status: sessionStatus.status || sessionStatus.stage,
+                progressPercent: sessionStatus.progress,
+                outputUrl: sessionStatus.downloadUrl,
+                error: sessionStatus.error,
+              }
+            } catch {
+              // Fall back to legacy endpoint
             }
           }
-          return
         }
-        const job = redirectedOutput
-          ? {status: 'completed', outputUrl: `/api/mini-run/job/${encodeURIComponent(jobId)}/output`} as Record<string, unknown>
-          : await response.json() as Record<string, unknown>
+
+        if (!job) {
+          const response = await fetch(`${config.baseUrl}/api/pipeline/job/${encodeURIComponent(jobId)}`, {
+            headers: userToken ? {
+              'Authorization': `Bearer ${userToken}`,
+              'X-Mini-Run-User-Token': userToken,
+            } : {},
+            cache: 'no-store',
+            redirect: 'manual',
+            signal: AbortSignal.timeout(8_000),
+          })
+          redirectedOutput = response.status === 303 && response.headers.get('location') ? (response.headers.get('location') as string) : null
+          if (!response.ok && !redirectedOutput) {
+            if (response.status === 404) {
+              const ageMs = Date.now() - new Date(record.createdAt).getTime()
+              if (ageMs > 3 * 60 * 1000) {
+                await supabase.from('project_exports').update({
+                  status: 'failed',
+                  error_message: 'Render job was not found on the worker.',
+                  failed_at: new Date().toISOString(),
+                }).eq('id', record.id).eq('user_id', user.id)
+              }
+            }
+            return
+          }
+          job = redirectedOutput
+            ? ({status: 'completed', outputUrl: `/api/mini-run/job/${encodeURIComponent(jobId)}/output`} as Record<string, unknown>)
+            : ((await response.json()) as Record<string, unknown>)
+        }
         const state = String(job.status ?? job.state ?? '').toLowerCase()
         const result = (job.returnvalue && typeof job.returnvalue === 'object' ? job.returnvalue : {}) as Record<string, unknown>
         const outputUrl = typeof result.outputUrl === 'string' ? result.outputUrl : typeof job.outputUrl === 'string' ? job.outputUrl : undefined

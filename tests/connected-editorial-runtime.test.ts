@@ -39,6 +39,7 @@ test('server export dispatch sends exact raw body, session auth and stable front
   const {dispatchMiniRunRender} = load('lib/server/mini-run-dispatch.ts', {
     '@/lib/r2/presigned-url': {}, '@/lib/server/mini-run-proxy': proxy,
     '@/lib/server/mini-run-render-payload': payloadModule,
+    '@/lib/oracle': {},
   })
   const received: Array<{body: any; headers: Headers}> = []
   for (let attempt = 0; attempt < 2; attempt++) {
@@ -73,6 +74,7 @@ test('owned project dispatch route uses the raw transport and sends its generate
     '@/lib/server/mini-run-render-payload': payloadModule,
     '@/lib/server/mini-run-dispatch': {buildMiniRunSourceUrl: async () => source},
     '@/lib/server/mini-run-proxy': {...proxy, getMiniRunEnvironment: () => ({MINI_RUN_AWS_API_URL: 'https://current-runtime.example.test'})},
+    '@/lib/oracle': {},
     '@/lib/supabase/server': {createClient: async () => ({from: () => query, auth: {
       getUser: async () => ({data: {user: {id: 'owner-1'}}}),
       getSession: async () => ({data: {session: {access_token: 'session-token'}}}),

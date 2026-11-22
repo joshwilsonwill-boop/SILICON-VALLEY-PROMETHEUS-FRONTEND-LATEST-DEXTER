@@ -3,9 +3,10 @@ import { NextResponse } from 'next/server'
 import { ProjectService } from '@/lib/projects/service'
 import { buildMiniRunRenderPayload } from '@/lib/server/mini-run-render-payload'
 import { buildMiniRunSourceUrl } from '@/lib/server/mini-run-dispatch'
-import { getMiniRunEnvironment, resolveMiniRunConfig } from '@/lib/server/mini-run-proxy'
+import { getMiniRunEnvironment, resolveMiniRunConfig, PRODUCTION_ORACLE_GATEWAY_URL } from '@/lib/server/mini-run-proxy'
 import { createClient } from '@/lib/supabase/server'
 import { isDevBypassActive } from '@/lib/supabase/dev-bypass'
+import { OracleClient } from '@/lib/oracle'
 
 /**
  * User-triggered Mini-Run dispatch.
@@ -202,6 +203,65 @@ export async function POST(req: Request) {
     const sourceUrl = isJeffSimonsDev
       ? 'http://localhost:3000/media/mini-run/raw_jeff_simons.mp4'
       : await buildMiniRunSourceUrl(bucket, row.storage_path)
+
+    const isOracle =
+      config.baseUrl === PRODUCTION_ORACLE_GATEWAY_URL ||
+      config.baseUrl.includes('prometheus-runner') ||
+      config.baseUrl.includes('taile46eb2') ||
+      config.baseUrl.includes('oracle')
+
+    if (isOracle) {
+      const oracleClient = new OracleClient({
+        baseUrl: config.baseUrl,
+        token: token || session?.access_token,
+      })
+
+      const filename = row.storage_path.split('/').pop() || `${sourceAssetId}.mp4`
+      const contentType = row.mime_type || 'video/mp4'
+      const creativePrompt = prompt || 'Autonomous cinematic cut'
+
+      // Intake Law (Rule 13): send ONLY raw video + creative prompt.
+      // Transcripts, word timestamps, chunks, manifests, and client userId are strictly omitted.
+      const processResult = await oracleClient.startProcess(
+        {
+          bucket,
+          key: row.storage_path,
+          filename,
+          contentType,
+          mediaUrl: sourceUrl,
+          metadata: {
+            creativePrompt,
+            designOptions: {
+              aspectRatio: row.width && row.height && row.width > row.height ? '16:9' : '9:16',
+              pacing: 'dynamic',
+            },
+          },
+        },
+        token || session?.access_token,
+      )
+
+      let renderJobId = processResult.jobId
+      if (processResult.urls?.render) {
+        try {
+          const renderResult = await oracleClient.triggerRender(
+            processResult.urls.render,
+            { format: 'mp4', quality: 'high' },
+            token || session?.access_token,
+          )
+          if (renderResult?.renderJobId) {
+            renderJobId = renderResult.renderJobId
+          }
+        } catch (err) {
+          console.warn('[ORACLE_DISPATCH_TRIGGER_RENDER_WARN]', err)
+        }
+      }
+
+      return NextResponse.json({
+        jobId: renderJobId || processResult.jobId || jobId,
+        pipelineJobId: processResult.sessionId || '',
+        status: processResult.status || 'queued',
+      })
+    }
 
     const bodyPayload = buildMiniRunRenderPayload({
       sourceUrl,
